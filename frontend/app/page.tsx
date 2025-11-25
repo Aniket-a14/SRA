@@ -6,7 +6,7 @@ import { HeroSection } from "@/components/hero-section"
 import { ChatInput } from "@/components/chat-input"
 import { ResultsTabs } from "@/components/results-tabs"
 import { AboutSection } from "@/components/about-section"
-import { FaqSection } from "@/components/faq-section" // Added FAQ section import
+import { FaqSection } from "@/components/faq-section"
 import { Footer } from "@/components/footer"
 import type { AnalysisResult } from "@/types/analysis"
 
@@ -46,7 +46,6 @@ export default function HomePage() {
       setAnalysisResult(data)
     } catch (error) {
       console.error("Error analyzing requirements:", error)
-      // You might want to add a toast notification here
     } finally {
       setIsLoading(false)
     }

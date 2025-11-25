@@ -76,14 +76,6 @@ export function ChatInput({ onAnalyze, isLoading }: ChatInputProps) {
                   onKeyDown={handleKeyDown}
                   disabled={isLoading}
                 />
-                <Button
-                  size="icon"
-                  className="absolute bottom-3 right-3 h-8 w-8 bg-primary hover:bg-primary/90 transition-all duration-300 hover:scale-110 hover:shadow-lg hover:shadow-primary/50"
-                  onClick={() => onAnalyze(input)}
-                  disabled={isLoading || !input.trim()}
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
               </div>
 
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">

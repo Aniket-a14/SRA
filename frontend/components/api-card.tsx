@@ -13,7 +13,7 @@ interface ApiCardProps {
   description: string
   requestBody?: Record<string, any> | string
   responseBody?: Record<string, any> | string
-  index?: number // Added index for staggered animation
+  index?: number
 }
 
 const methodColors: Record<string, string> = {
