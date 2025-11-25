@@ -11,8 +11,8 @@ interface ApiCardProps {
   endpoint: string
   method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH"
   description: string
-  requestBody?: Record<string, any> | string
-  responseBody?: Record<string, any> | string
+  requestBody?: Record<string, unknown> | string
+  responseBody?: Record<string, unknown> | string
   index?: number
 }
 
@@ -28,7 +28,7 @@ export function ApiCard({ endpoint, method, description, requestBody, responseBo
   const [requestOpen, setRequestOpen] = useState(false)
   const [responseOpen, setResponseOpen] = useState(false)
 
-  const formatBody = (body: Record<string, any> | string) => {
+  const formatBody = (body: Record<string, unknown> | string) => {
     if (typeof body === "string") return body
     return JSON.stringify(body, null, 2)
   }

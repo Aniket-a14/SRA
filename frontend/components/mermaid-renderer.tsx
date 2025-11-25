@@ -3,16 +3,19 @@
 
 import { useEffect, useRef, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ImageIcon } from "lucide-react"
 
 interface MermaidRendererProps {
     chart: string
     title: string
 }
 
+interface MermaidInstance {
+    render: (id: string, text: string) => Promise<{ svg: string }>
+}
+
 export function MermaidRenderer({ chart, title }: MermaidRendererProps) {
     const ref = useRef<HTMLDivElement>(null)
-    const [mermaidInstance, setMermaidInstance] = useState<any>(null)
+    const [mermaidInstance, setMermaidInstance] = useState<MermaidInstance | null>(null)
 
     useEffect(() => {
         import("mermaid").then((m) => {

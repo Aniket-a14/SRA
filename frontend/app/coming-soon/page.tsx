@@ -21,7 +21,7 @@ export default function ComingSoonPage() {
             </h1>
 
             <p className="text-lg text-muted-foreground max-w-md mb-8 animate-fade-up delay-200">
-                We're working hard to bring you this feature. Stay tuned for updates!
+                We&apos;re working hard to bring you this feature. Stay tuned for updates!
             </p>
 
             <div className="animate-fade-up delay-300">

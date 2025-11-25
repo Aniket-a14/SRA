@@ -64,7 +64,7 @@ export function ResultsTabs({ data }: ResultsTabsProps) {
             <div>
               <p className="text-sm font-medium mb-1">Analysis Complete</p>
               <p className="text-sm text-muted-foreground">
-                I've analyzed your requirements and extracted the following insights:
+                I&apos;ve analyzed your requirements and extracted the following insights:
               </p>
             </div>
           </div>

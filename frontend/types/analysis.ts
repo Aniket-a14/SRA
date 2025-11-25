@@ -14,8 +14,8 @@ export interface ApiContract {
     endpoint: string
     method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH"
     description: string
-    requestBody: Record<string, any>
-    responseBody: Record<string, any>
+    requestBody: Record<string, unknown>
+    responseBody: Record<string, unknown>
 }
 
 export interface AnalysisResult {

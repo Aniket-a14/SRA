@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Card } from "@/components/ui/card"
-import { Send, Sparkles } from "lucide-react"
+import { Sparkles } from "lucide-react"
 
 interface ChatInputProps {
   onAnalyze: (requirements: string) => void
@@ -61,7 +61,7 @@ export function ChatInput({ onAnalyze, isLoading }: ChatInputProps) {
                 </div>
                 <div className="flex-1">
                   <p className="text-sm text-muted-foreground mb-3">
-                    Hello! I can help you analyze requirements. Paste your project requirements and I'll extract
+                    Hello! I can help you analyze requirements. Paste your project requirements and I&apos;ll extract
                     functional specs, user stories, entities, and more.
                   </p>
                 </div>
