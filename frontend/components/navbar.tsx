@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Separator } from "@/components/ui/separator"
 import { Sparkles, Menu, X } from "lucide-react"
+import { AnimatedThemeToggler } from "./ui/animated-theme-toggler"
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
@@ -40,7 +41,8 @@ export function Navbar() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
+          <AnimatedThemeToggler />
           <Button
             size="sm"
             className="hidden sm:flex bg-primary hover:bg-primary/90 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-primary/25"
