@@ -55,7 +55,7 @@ export function ResultsTabs({ data }: ResultsTabsProps) {
 
   return (
     <section ref={sectionRef} className="py-12 sm:py-16">
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 sm:px-6">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-start gap-3 mb-6 animate-on-scroll opacity-0">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary animate-pulse-glow">
@@ -116,7 +116,7 @@ export function ResultsTabs({ data }: ResultsTabsProps) {
                 </CardContent>
               </Card>
 
-              <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 <Card className="bg-card border-border transition-all duration-300 hover:border-primary/30 hover:-translate-y-1">
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
@@ -342,7 +342,7 @@ export function ResultsTabs({ data }: ResultsTabsProps) {
 
             {/* Diagrams Tab */}
             <TabsContent value="diagrams" className="animate-fade-in">
-              <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                 <MermaidRenderer title="Flowchart" chart={flowchartDiagram} />
                 <MermaidRenderer title="Sequence Diagram" chart={sequenceDiagram} />
               </div>

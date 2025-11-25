@@ -5,34 +5,34 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 
 const faqs = [
   {
-    question: "What types of requirements can I analyze?",
+    question: "How do I get started?",
     answer:
-      "You can analyze any software requirements including functional specifications, user stories, system requirements, business requirements, and technical documentation. Our AI is trained to understand various formats and structures.",
+      "To use the analyzer, you'll need a Google Gemini API key. You can get one for free from Google AI Studio. Once you have it, set it up in your backend environment variables to start analyzing requirements.",
   },
   {
-    question: "How accurate is the AI analysis?",
+    question: "What kind of diagrams are generated?",
     answer:
-      "Our AI provides highly accurate analysis by leveraging advanced natural language processing. However, we recommend reviewing the generated output and making adjustments as needed for your specific context.",
+      "We currently generate Flowcharts and Sequence Diagrams to show the flow of operations. These are rendered using Mermaid.js for easy visualization and export.",
   },
   {
-    question: "Can I export the analysis results?",
+    question: "How detailed should my input be?",
     answer:
-      "Yes! You can export your analysis results in multiple formats including JSON, Markdown, and PDF. This makes it easy to integrate with your existing documentation and project management tools.",
+      "For the best results, provide a clear and descriptive overview of your project. Mention the key users, main features, and the overall goal of the software. The more context you provide, the better the AI can understand and structure the requirements.",
   },
   {
-    question: "Is my data secure?",
+    question: "Is my data saved?",
     answer:
-      "Absolutely. We use end-to-end encryption and never store your requirements on our servers longer than necessary. Your data is processed securely and deleted after analysis completion.",
+      "No, your data is processed in real-time for the current session only. We do not store your requirements or analysis results on our servers. Once you refresh the page, the data is cleared.",
   },
   {
-    question: "What programming languages are supported for API contracts?",
+    question: "What technology powers this?",
     answer:
-      "Our API contract generation supports multiple formats including OpenAPI/Swagger, GraphQL schemas, and REST specifications. We can generate examples in JavaScript, Python, TypeScript, and more.",
+      "The frontend is built with Next.js 15 and Tailwind CSS, while the backend uses Node.js and Express. The core analysis is powered by Google's Gemini Pro AI model.",
   },
   {
-    question: "Can I customize the output format?",
+    question: "Can I contribute to the project?",
     answer:
-      "Yes, you can customize how results are displayed and structured. Choose from different templates for user stories, acceptance criteria, and API documentation to match your team's preferences.",
+      "Yes! This is an open-source project. You can check out our GitHub repository to report issues, suggest features, or submit pull requests. We welcome contributions from the community.",
   },
 ]
 

@@ -28,8 +28,8 @@ export function Footer() {
 
   return (
     <footer ref={footerRef} className="border-t border-border">
-      <div className="container mx-auto px-4 py-8 sm:py-12">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-12 mb-8">
           <div className="sm:col-span-2 lg:col-span-1 animate-on-scroll opacity-0">
             <Link href="/" className="flex items-center gap-2 mb-4 group">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
@@ -43,48 +43,90 @@ export function Footer() {
           <div className="animate-on-scroll opacity-0 delay-100">
             <h4 className="font-semibold mb-4">Product</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              {["Features", "Pricing", "Documentation"].map((item) => (
-                <li key={item}>
-                  <Link
-                    href="#"
-                    className="hover:text-foreground transition-colors inline-block hover:translate-x-1 duration-200"
-                  >
-                    {item}
-                  </Link>
-                </li>
-              ))}
+              <li>
+                <Link
+                  href="#about"
+                  className="hover:text-foreground transition-colors inline-block hover:translate-x-1 duration-200"
+                >
+                  Features
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/coming-soon"
+                  className="hover:text-foreground transition-colors inline-block hover:translate-x-1 duration-200"
+                >
+                  Pricing
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="#faq"
+                  className="hover:text-foreground transition-colors inline-block hover:translate-x-1 duration-200"
+                >
+                  Documentation
+                </Link>
+              </li>
             </ul>
           </div>
 
           <div className="animate-on-scroll opacity-0 delay-200">
             <h4 className="font-semibold mb-4">Company</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              {["About", "Blog", "Careers"].map((item) => (
-                <li key={item}>
-                  <Link
-                    href="#"
-                    className="hover:text-foreground transition-colors inline-block hover:translate-x-1 duration-200"
-                  >
-                    {item}
-                  </Link>
-                </li>
-              ))}
+              <li>
+                <Link
+                  href="#about"
+                  className="hover:text-foreground transition-colors inline-block hover:translate-x-1 duration-200"
+                >
+                  About
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/coming-soon"
+                  className="hover:text-foreground transition-colors inline-block hover:translate-x-1 duration-200"
+                >
+                  Blog
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/coming-soon"
+                  className="hover:text-foreground transition-colors inline-block hover:translate-x-1 duration-200"
+                >
+                  Careers
+                </Link>
+              </li>
             </ul>
           </div>
 
           <div className="animate-on-scroll opacity-0 delay-300">
             <h4 className="font-semibold mb-4">Legal</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              {["Privacy", "Terms", "Contact"].map((item) => (
-                <li key={item}>
-                  <Link
-                    href="#"
-                    className="hover:text-foreground transition-colors inline-block hover:translate-x-1 duration-200"
-                  >
-                    {item}
-                  </Link>
-                </li>
-              ))}
+              <li>
+                <Link
+                  href="/coming-soon"
+                  className="hover:text-foreground transition-colors inline-block hover:translate-x-1 duration-200"
+                >
+                  Privacy
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/coming-soon"
+                  className="hover:text-foreground transition-colors inline-block hover:translate-x-1 duration-200"
+                >
+                  Terms
+                </Link>
+              </li>
+              <li>
+                <a
+                  href="mailto:aniketsahaworkspace@gmail.com"
+                  className="hover:text-foreground transition-colors inline-block hover:translate-x-1 duration-200"
+                >
+                  Contact
+                </a>
+              </li>
             </ul>
           </div>
         </div>
@@ -92,7 +134,7 @@ export function Footer() {
         <Separator className="my-8" />
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground animate-on-scroll opacity-0 delay-400">
-          <p>2024 ReqAnalyzer. All rights reserved.</p>
+          <p>2025 ReqAnalyzer. All rights reserved.</p>
           <p>Built with Next.js and shadcn/ui</p>
         </div>
       </div>

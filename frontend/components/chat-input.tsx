@@ -43,8 +43,8 @@ export function ChatInput({ onAnalyze, isLoading }: ChatInputProps) {
   }
 
   return (
-    <section id="analyzer" ref={sectionRef} className="py-12 sm:py-16">
-      <div className="container mx-auto px-4">
+    <section id="analyzer" ref={sectionRef} className="py-10 sm:py-14">
+      <div className="container mx-auto px-4 sm:px-6">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-8 animate-on-scroll opacity-0">
             <h2 className="text-xl sm:text-2xl font-semibold mb-2">Start Analyzing</h2>

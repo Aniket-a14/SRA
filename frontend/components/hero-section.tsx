@@ -26,7 +26,7 @@ export function HeroSection() {
   }, [])
 
   return (
-    <section id="home" ref={sectionRef} className="relative py-20 md:py-32 overflow-hidden">
+    <section id="home" ref={sectionRef} className="relative py-16 md:py-24 lg:py-32 overflow-hidden">
       <div className="absolute inset-0 -z-10">
         <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-primary/20 rounded-full blur-3xl animate-float" />
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-float delay-500" />
@@ -40,7 +40,7 @@ export function HeroSection() {
           AI-Powered Analysis
         </Badge>
 
-        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 text-balance animate-on-scroll opacity-0 delay-100">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 text-balance animate-on-scroll opacity-0 delay-100">
           Smart Requirements
           <span className="block text-primary mt-2">Analyzer</span>
         </h1>
