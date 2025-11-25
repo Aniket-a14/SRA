@@ -10,24 +10,6 @@ const _firaCode = Fira_Code({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "Smart Requirements Analyzer",
   description: "Transform raw requirements into structured insights with AI-powered analysis",
-  generator: "v0.app",
-  icons: {
-    icon: [
-      {
-        url: "/icon-light-32x32.png",
-        media: "(prefers-color-scheme: light)",
-      },
-      {
-        url: "/icon-dark-32x32.png",
-        media: "(prefers-color-scheme: dark)",
-      },
-      {
-        url: "/icon.svg",
-        type: "image/svg+xml",
-      },
-    ],
-    apple: "/apple-icon.png",
-  },
 }
 
 export default function RootLayout({
