@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Navbar } from "@/components/navbar"
 import { HeroSection } from "@/components/hero-section"
 import { ChatInput } from "@/components/chat-input"
@@ -24,6 +25,7 @@ const defaultAnalysis: AnalysisResult = {
 }
 
 export default function HomePage() {
+  const router = useRouter()
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult>(defaultAnalysis)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -46,6 +48,8 @@ export default function HomePage() {
       setAnalysisResult(data)
     } catch (error) {
       console.error("Error analyzing requirements:", error)
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred"
+      router.push(`/error?message=${encodeURIComponent(errorMessage)}`)
     } finally {
       setIsLoading(false)
     }

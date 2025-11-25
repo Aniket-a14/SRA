@@ -35,7 +35,7 @@ export function Footer() {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
                 <Sparkles className="h-4 w-4 text-primary-foreground" />
               </div>
-              <span className="text-lg font-semibold">ReqAnalyzer</span>
+              <span className="text-lg font-semibold">SRAnalyzer</span>
             </Link>
             <p className="text-sm text-muted-foreground">Transform requirements into structured insights with AI.</p>
           </div>
@@ -134,7 +134,8 @@ export function Footer() {
         <Separator className="my-8 md:my-12" />
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground animate-on-scroll opacity-0 delay-400">
-          <p>2025 ReqAnalyzer. All rights reserved.</p>
+          <p>2025 SRAnalyzer. All rights reserved.</p>
+          <p>Made by Aniket Saha</p>
           <p>Built with Next.js and shadcn/ui</p>
         </div>
       </div>
