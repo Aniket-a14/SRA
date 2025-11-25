@@ -27,9 +27,9 @@ export function Footer() {
   }, [])
 
   return (
-    <footer ref={footerRef} className="border-t border-border">
-      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-12 mb-8">
+    <footer ref={footerRef} className="border-t border-border bg-secondary/5">
+      <div className="container mx-auto px-4 sm:px-6 py-12 md:py-16">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12 mb-12">
           <div className="sm:col-span-2 lg:col-span-1 animate-on-scroll opacity-0">
             <Link href="/" className="flex items-center gap-2 mb-4 group">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
@@ -131,7 +131,7 @@ export function Footer() {
           </div>
         </div>
 
-        <Separator className="my-8" />
+        <Separator className="my-8 md:my-12" />
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground animate-on-scroll opacity-0 delay-400">
           <p>2025 ReqAnalyzer. All rights reserved.</p>
