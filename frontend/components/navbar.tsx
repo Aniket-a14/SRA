@@ -1,0 +1,85 @@
+"use client"
+
+import { useState } from "react"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sparkles, Menu, X } from "lucide-react"
+
+export function Navbar() {
+  const [isOpen, setIsOpen] = useState(false)
+
+  const navLinks = [
+    { href: "#home", label: "Home" },
+    { href: "#analyzer", label: "Analyzer" },
+    { href: "#about", label: "About" },
+    { href: "#faq", label: "FAQ" },
+  ]
+
+  return (
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md">
+      <div className="container mx-auto flex h-16 items-center justify-between px-4">
+        <Link href="/" className="flex items-center gap-2 group">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
+            <Sparkles className="h-4 w-4 text-primary-foreground" />
+          </div>
+          <span className="text-lg font-semibold">ReqAnalyzer</span>
+        </Link>
+
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex items-center gap-8">
+          {navLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-primary after:transition-all after:duration-300 hover:after:w-full"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="flex items-center gap-3">
+          <Button
+            size="sm"
+            className="hidden sm:flex bg-primary hover:bg-primary/90 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-primary/25"
+          >
+            Get Started
+          </Button>
+
+          <Sheet open={isOpen} onOpenChange={setIsOpen}>
+            <SheetTrigger asChild className="md:hidden">
+              <Button variant="ghost" size="icon" className="relative">
+                <Menu
+                  className={`h-5 w-5 transition-all duration-300 ${isOpen ? "rotate-90 opacity-0" : "rotate-0 opacity-100"}`}
+                />
+                <X
+                  className={`h-5 w-5 absolute transition-all duration-300 ${isOpen ? "rotate-0 opacity-100" : "-rotate-90 opacity-0"}`}
+                />
+                <span className="sr-only">Toggle menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[280px] bg-background border-border">
+              <nav className="flex flex-col gap-4 mt-8">
+                {navLinks.map((link, index) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setIsOpen(false)}
+                    className="text-lg font-medium text-foreground hover:text-primary transition-colors py-2 animate-slide-in-right"
+                    style={{ animationDelay: `${index * 100}ms` }}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+                <Button className="mt-4 bg-primary hover:bg-primary/90 w-full animate-slide-in-right delay-400">
+                  Get Started
+                </Button>
+              </nav>
+            </SheetContent>
+          </Sheet>
+        </div>
+      </div>
+    </header>
+  )
+}
