@@ -250,3 +250,13 @@ html {
     animation: none;
     mix-blend-mode: normal;
 }
+
+* {
+  cursor: none !important;
+}
+
+input,
+textarea,
+select {
+  cursor: text !important;
+}
