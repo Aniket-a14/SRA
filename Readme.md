@@ -126,7 +126,7 @@ SRA/
 4.  **Review Results**:
     *   **Requirements**: Check the Functional and Non-Functional requirements tabs.
     *   **User Stories**: Review the generated user stories and acceptance criteria.
-    *   **Diagrams**: Switch to the Diagrams tab to view the Use Case and Sequence diagrams.
+    *   **Diagrams**: Switch to the Diagrams tab to view the Flowchart and Sequence diagrams.
     *   **API**: Look at the proposed API structure.
 
 ## ⚙️ Configuration
