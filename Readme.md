@@ -41,7 +41,7 @@ The frontend is built with a modular component architecture focusing on user exp
 -   **User Story Generation**: Creates standard user stories with "As a... I want to... So that..." format.
 -   **Acceptance Criteria**: Defines clear success metrics for each user story.
 -   **Visual Modeling**:
-    -   **Use Case Diagrams**: Visualizes actors and their interactions with the system.
+    -   **Flowchart Diagrams**: Visualizes actors and their interactions with the system.
     -   **Sequence Diagrams**: Shows the flow of logic and data between system components.
 -   **Entity Recognition**: Identifies key data entities and their attributes.
 -   **API Contract Proposal**: Suggests potential API endpoints based on the requirements.
@@ -126,7 +126,7 @@ SRA/
 4.  **Review Results**:
     *   **Requirements**: Check the Functional and Non-Functional requirements tabs.
     *   **User Stories**: Review the generated user stories and acceptance criteria.
-    *   **Diagrams**: Switch to the Diagrams tab to view the Use Case and Sequence diagrams.
+    *   **Diagrams**: Switch to the Diagrams tab to view the Flowchart and Sequence diagrams.
     *   **API**: Look at the proposed API structure.
 
 ## ⚙️ Configuration
