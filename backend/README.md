@@ -73,7 +73,7 @@ Returns a JSON object containing:
 - `entities`: List of identified entities.
 - `userStories`: List of user stories.
 - `acceptanceCriteria`: Acceptance criteria for stories.
-- `useCaseDiagram`: Mermaid code for the use case diagram.
+- `flowchartDiagram`: Mermaid code for the flowchart diagram.
 - `sequenceDiagram`: Mermaid code for the sequence diagram.
 - `apiContracts`: Proposed API endpoints.
 - `missingLogic`: Identified gaps in logic.
