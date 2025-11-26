@@ -70,7 +70,7 @@ export function MermaidRenderer({ chart, title }: MermaidRendererProps) {
                     <CardTitle className="text-base">{title}</CardTitle>
                 </CardHeader>
                 <CardContent className="flex-1 flex items-center justify-center min-h-0">
-                    {/* Show blank instead of "No diagram available" */}
+                    No diagram available
                 </CardContent>
             </Card>
         )
