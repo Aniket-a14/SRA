@@ -16,6 +16,7 @@ interface MermaidInstance {
 export function MermaidRenderer({ chart, title }: MermaidRendererProps) {
     const ref = useRef<HTMLDivElement>(null)
     const [mermaidInstance, setMermaidInstance] = useState<MermaidInstance | null>(null)
+    const [hasError, setHasError] = useState(false)
 
     useEffect(() => {
         import("mermaid").then((m) => {
@@ -30,6 +31,7 @@ export function MermaidRenderer({ chart, title }: MermaidRendererProps) {
     }, [])
 
     useEffect(() => {
+        setHasError(false)
         if (!chart || !mermaidInstance) return
 
         // Clean the string:
@@ -56,21 +58,21 @@ export function MermaidRenderer({ chart, title }: MermaidRendererProps) {
                 }
             } catch (err) {
                 console.error("Mermaid render error:", err)
-                // Keep the container empty on error (show blank)
+                setHasError(true)
             }
         }
 
         renderDiagram()
     }, [chart, mermaidInstance, title])
 
-    if (!chart) {
+    if (!chart || hasError) {
         return (
             <Card className="h-[500px] bg-card border-border transition-all duration-300 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 group flex flex-col">
                 <CardHeader className="pb-2">
                     <CardTitle className="text-base">{title}</CardTitle>
                 </CardHeader>
-                <CardContent className="flex-1 flex items-center justify-center min-h-0">
-                    No diagram available
+                <CardContent className="flex-1 flex items-center justify-center min-h-0 text-muted-foreground text-sm">
+                    {hasError ? "Unable to render diagram" : "No diagram available"}
                 </CardContent>
             </Card>
         )
