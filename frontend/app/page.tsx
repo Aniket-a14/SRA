@@ -32,7 +32,7 @@ export default function HomePage() {
   const handleAnalyze = async (requirements: string) => {
     setIsLoading(true)
     try {
-      const response = await fetch("https://sra-backend-ydg1.onrender.com/analyze", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
