@@ -56,8 +56,6 @@ The server will start on port 3000 (or the port specified in your `.env` file).
 
 ## API Documentation
 
-## API Documentation
-
 ### Auth Endpoints
 
 #### POST /auth/register
