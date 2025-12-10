@@ -81,6 +81,11 @@ GEMINI_API_KEY=your_gemini_api_key_here
 PORT=3000
 DATABASE_URL="postgresql://user:password@localhost:5432/sra_db?schema=public"
 JWT_SECRET=your_super_secret_jwt_key
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+GOOGLE_REDIRECT_URI=http://localhost:3000/auth/google/callback
+FRONTEND_URL=http://localhost:3001
+ANALYZER_URL=http://localhost:3001/internal/analyze
 ```
 
 Initialize the database:
