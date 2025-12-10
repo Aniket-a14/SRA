@@ -35,9 +35,10 @@ The frontend interface for the Software Requirements Analyst (SRA) system. Built
    ```
 
 2. Create a `.env.local` file:
-   | Variable | Description | Required |
-   | :--- | :--- | :--- |
-   | `NEXT_PUBLIC_BACKEND_URL` | URL of the backend API (e.g., `http://localhost:3000`). | Yes |
+
+    | Variable | Description | Required |
+    | :--- | :--- | :--- |
+    | `NEXT_PUBLIC_BACKEND_URL` | URL of the backend API (e.g., `http://localhost:3000`). | Yes |
 
 3. Start the development server:
    ```bash

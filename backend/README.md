@@ -21,6 +21,7 @@ This is the backend service for the Software Requirements Analyst (SRA) project.
     npm install
     ```
 4.  Create a `.env` file in the root directory and add your Gemini API key:
+
     | Variable | Description | Required |
     | :--- | :--- | :--- |
     | `GEMINI_API_KEY` | Your Google Gemini API key. | Yes |
@@ -38,26 +39,25 @@ This is the backend service for the Software Requirements Analyst (SRA) project.
     npx prisma db push
     ```
 
-    ```
-36: 
-37: ## Project Structure
-38: 
-39: ```
-40: backend/
-41: ├── prisma/             # Database schema and migrations
-42: ├── src/
-43: │   ├── config/         # App configuration
-44: │   ├── controllers/    # Route controllers
-45: │   ├── middleware/     # Custom middleware (auth, error)
-46: │   ├── routes/         # API routes
-47: │   ├── services/       # Business logic and external services
-48: │   ├── utils/          # Utility functions
-49: │   ├── app.js          # Express app setup
-50: │   ├── index.js        # Entry point
-51: │   └── server.js      
-52: ├── .env                # Environment variables
-53: └── package.json
-54: ```
+
+## Project Structure
+
+```
+backend/
+├── prisma/             # Database schema and migrations
+├── src/
+│   ├── config/         # App configuration
+│   ├── controllers/    # Route controllers
+│   ├── middleware/     # Custom middleware (auth, error)
+│   ├── routes/         # API routes
+│   ├── services/       # Business logic and external services
+│   ├── utils/          # Utility functions
+│   ├── app.js          # Express app setup
+│   ├── index.js        # Entry point
+│   └── server.js      
+├── .env                # Environment variables
+└── package.json
+```
 55: 
 56: ## Usage
 
