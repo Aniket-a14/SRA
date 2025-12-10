@@ -1,11 +1,23 @@
-import type React from "react"
 import type { Metadata } from "next"
-import { Analytics } from "@vercel/analytics/next"
+import { Inter, Outfit } from "next/font/google"
 import "./globals.css"
+import { Providers } from "@/components/providers"
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const outfit = Outfit({
+  subsets: ["latin"],
+  variable: "--font-outfit",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Smart Requirements Analyzer",
-  description: "Transform raw requirements into structured insights with AI-powered analysis",
+  description: "Transform your requirements into technical specifications with AI",
 }
 
 export default function RootLayout({
@@ -14,10 +26,9 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className={`font-sans antialiased`}>
-        {children}
-        <Analytics />
+    <html lang="en" className="scroll-smooth">
+      <body className={`${inter.variable} ${outfit.variable} font-sans antialiased bg-background text-foreground`}>
+        <Providers>{children}</Providers>
       </body>
     </html>
   )

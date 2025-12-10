@@ -1,4 +1,8 @@
-.env
+
 node_modules/
 npm-debug.log
 dist/
+
+/src/generated/prisma
+.env
+.env.local

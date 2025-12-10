@@ -41,16 +41,16 @@ export function ResultsTabs({ data }: ResultsTabsProps) {
   }
 
   const {
-    cleanedRequirements,
-    functionalRequirements,
-    nonFunctionalRequirements,
-    entities,
-    userStories,
-    acceptanceCriteria,
-    apiContracts,
-    missingLogic,
-    flowchartDiagram,
-    sequenceDiagram,
+    cleanedRequirements = "",
+    functionalRequirements = [],
+    nonFunctionalRequirements = [],
+    entities = [],
+    userStories = [],
+    acceptanceCriteria = [],
+    apiContracts = [],
+    missingLogic = [],
+    flowchartDiagram = "",
+    sequenceDiagram = "",
   } = data
 
   return (
