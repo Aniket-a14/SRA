@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useAuth } from "@/lib/auth-context"
 import { Navbar } from "@/components/navbar"
 import { HeroSection } from "@/components/hero-section"
 import { ChatInput } from "@/components/chat-input"
@@ -26,8 +27,17 @@ const defaultAnalysis: AnalysisResult = {
 
 export default function HomePage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const { authenticateWithToken, token } = useAuth()
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult>(defaultAnalysis)
   const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    const urlToken = searchParams.get("token")
+    if (urlToken) {
+      authenticateWithToken(urlToken)
+    }
+  }, [searchParams, authenticateWithToken])
 
   const handleAnalyze = async (requirements: string) => {
     setIsLoading(true)
@@ -36,6 +46,7 @@ export default function HomePage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ text: requirements }),
       })
@@ -45,7 +56,7 @@ export default function HomePage() {
       }
 
       const data = await response.json()
-      setAnalysisResult(data)
+      setAnalysisResult(data.result)
     } catch (error) {
       console.error("Error analyzing requirements:", error)
       const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred"

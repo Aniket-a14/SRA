@@ -2,7 +2,7 @@ import { genAI } from "../config/gemini.js";
 import { MASTER_PROMPT } from "../utils/prompts.js";
 
 export async function analyzeText(text) {
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
   const prompt = `
 ${MASTER_PROMPT}
