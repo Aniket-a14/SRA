@@ -6,6 +6,7 @@ This is the backend service for the Software Requirements Analyst (SRA) project.
 
 - Node.js (v18 or higher recommended)
 - npm
+- PostgreSQL (Local or Cloud)
 - A Google Gemini API Key
 
 ## Installation
@@ -23,6 +24,14 @@ This is the backend service for the Software Requirements Analyst (SRA) project.
     ```env
     GEMINI_API_KEY=your_api_key_here
     PORT=3000
+    DATABASE_URL="postgresql://user:password@localhost:5432/sra_db?schema=public"
+    JWT_SECRET=your_jwt_secret_key
+    FRONTEND_URL=http://localhost:3001
+    ```
+5.  Initialize the database:
+    ```bash
+    npx prisma generate
+    npx prisma db push
     ```
 
 ## Usage
@@ -47,50 +56,35 @@ The server will start on port 3000 (or the port specified in your `.env` file).
 
 ## API Documentation
 
-### POST /analyze
+## API Documentation
 
+### Auth Endpoints
+
+#### POST /auth/register
+Register a new user.
+- **Body**: `{ "email": "...", "password": "...", "name": "..." }`
+
+#### POST /auth/login
+Login and receive a JWT cookie.
+- **Body**: `{ "email": "...", "password": "..." }`
+
+### Analysis Endpoints
+
+All analysis endpoints require authentication (Cookie).
+
+#### POST /analyze
 Analyzes the provided text and returns structured software requirements.
+- **Body**: `{ "text": "Description of your software project..." }`
+- **Response**: JSON object with requirements, user stories, mermaid code, etc.
 
-**Request URL:** `http://localhost:3000/analyze`
+#### GET /analyze
+Get the analysis history for the logged-in user.
+- **Response**: List of past analyses (ID, Input Text, Timestamp).
 
-**Headers:**
-- `Content-Type: application/json`
+#### GET /analyze/:id
+Get the full details of a specific analysis.
+- **Response**: Full analysis JSON object.
 
-**Body:**
-
-```json
-{
-  "text": "Description of your software project..."
-}
-```
-
-**Response (Success - 200 OK):**
-
-Returns a JSON object containing:
-- `cleanedRequirements`: Refined requirement text.
-- `functionalRequirements`: List of functional requirements.
-- `nonFunctionalRequirements`: List of non-functional requirements.
-- `entities`: List of identified entities.
-- `userStories`: List of user stories.
-- `acceptanceCriteria`: Acceptance criteria for stories.
-- `flowchartDiagram`: Mermaid code for the flowchart diagram.
-- `sequenceDiagram`: Mermaid code for the sequence diagram.
-- `apiContracts`: Proposed API endpoints.
-- `missingLogic`: Identified gaps in logic.
-
-**Response (Error - 400 Bad Request):**
-
-```json
-{
-  "error": "Text input required."
-}
-```
-
-**Response (Error - 500 Internal Server Error):**
-
-```json
-{
-  "error": "AI processing failed",
-  "details": "Error message details..."
-}
-```
+### Internal
+#### POST /internal/analyze
+Direct AI endpoint (used for testing or internal services).
