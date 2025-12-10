@@ -35,9 +35,9 @@ The frontend interface for the Software Requirements Analyst (SRA) system. Built
    ```
 
 2. Create a `.env.local` file:
-   ```env
-   NEXT_PUBLIC_BACKEND_URL=http://localhost:3000
-   ```
+   | Variable | Description | Required |
+   | :--- | :--- | :--- |
+   | `NEXT_PUBLIC_BACKEND_URL` | URL of the backend API (e.g., `http://localhost:3000`). | Yes |
 
 3. Start the development server:
    ```bash
@@ -49,7 +49,7 @@ The frontend interface for the Software Requirements Analyst (SRA) system. Built
 ## 📂 Project Structure
 
 ```
-src/
+SRA/
 ├── app/              # Next.js App Router pages
 │   ├── (auth)/       # Authentication routes (login, register)
 │   ├── (dashboard)/  # Protected dashboard routes
@@ -58,5 +58,6 @@ src/
 │   ├── ui/           # Reusable UI primitives (buttons, inputs)
 │   └── ...           # Feature-specific components
 ├── lib/              # Utilities and helper functions
-└── hooks/            # Custom React hooks
+├── hooks/            # Custom React hooks
+└── package.json
 ```

@@ -21,20 +21,46 @@ This is the backend service for the Software Requirements Analyst (SRA) project.
     npm install
     ```
 4.  Create a `.env` file in the root directory and add your Gemini API key:
-    ```env
-    GEMINI_API_KEY=your_api_key_here
-    PORT=3000
-    DATABASE_URL="postgresql://user:password@localhost:5432/sra_db?schema=public"
-    JWT_SECRET=your_jwt_secret_key
-    FRONTEND_URL=http://localhost:3001
-    ```
+    | Variable | Description | Required |
+    | :--- | :--- | :--- |
+    | `GEMINI_API_KEY` | Your Google Gemini API key. | Yes |
+    | `PORT` | The port the backend server listens on. Default is `3000`. | No |
+    | `DATABASE_URL` | PostgreSQL connection string. | Yes |
+    | `JWT_SECRET` | Secret key for JWT token generation. | Yes |
+    | `GOOGLE_CLIENT_ID` | OAuth 2.0 Client ID for Google Authentication. | Yes |
+    | `GOOGLE_CLIENT_SECRET` | OAuth 2.0 Client Secret for Google Authentication. | Yes |
+    | `GOOGLE_REDIRECT_URI` | OAuth 2.0 Redirect URI. | Yes |
+    | `FRONTEND_URL` | URL of the frontend application (for CORS). | Yes |
+    | `ANALYZER_URL` | URL for the internal analysis service. | Yes |
 5.  Initialize the database:
     ```bash
     npx prisma generate
     npx prisma db push
     ```
 
-## Usage
+    ```
+36: 
+37: ## Project Structure
+38: 
+39: ```
+40: backend/
+41: ├── prisma/             # Database schema and migrations
+42: ├── src/
+43: │   ├── config/         # App configuration
+44: │   ├── controllers/    # Route controllers
+45: │   ├── middleware/     # Custom middleware (auth, error)
+46: │   ├── routes/         # API routes
+47: │   ├── services/       # Business logic and external services
+48: │   ├── utils/          # Utility functions
+49: │   ├── app.js          # Express app setup
+50: │   ├── index.js        # Entry point
+51: │   └── server.js      
+52: ├── .env                # Environment variables
+53: └── package.json
+54: ```
+55: 
+56: ## Usage
+
 
 ### Development
 
