@@ -118,21 +118,36 @@ Open [http://localhost:3001](http://localhost:3001) (or the port shown in your t
 
 ```
 SRA/
-├── backend/            # Express.js server and AI logic
+├── backend/                # Express.js server
+│   ├── prisma/
+│   │   └── schema.prisma   # PostgreSQL database schema
 │   ├── src/
-│   │   └── index.js    # Main server entry point
-│   ├── .env            # Environment variables
+│   │   ├── config/         # App configuration
+│   │   ├── controllers/    # API Request handlers
+│   │   ├── middleware/     # Auth & error middleware
+│   │   ├── routes/         # Express routes definitions
+│   │   ├── services/       # AI & business logic
+│   │   ├── utils/          # Helper functions
+│   │   ├── app.js          # App setup
+│   │   ├── index.js        # Server entry point
+│   │   └── server.js       
+│   ├── .env                # Backend environment variables
 │   └── package.json
 │
-├── frontend/           # Next.js web application
-│   ├── app/            # App Router pages and layouts
-│   ├── components/     # Reusable UI components
-│   │   ├── ui/         # Shadcn UI primitives
-│   │   ├── ResultsTabs.tsx
-│   │   └── MermaidRenderer.tsx
+├── frontend/               # Next.js 15 App
+│   ├── app/                # App Router pages
+│   │   ├── analysis/       # Analysis result pages
+│   │   ├── auth/           # Authentication routes
+│   │   ├── error/          # Error pages
+│   │   └── page.tsx        # Landing Page
+│   ├── components/         # React Components
+│   │   ├── ui/             # Shadcn UI primitives
+│   │   ├── mermaid-renderer.tsx # Diagram visualization
+│   │   ├── results-tabs.tsx     # Main specific results view
+│   │   └── ...             # Other section components (Navbar, Hero, etc.)
 │   └── package.json
 │
-└── README.md           # Project documentation
+└── README.md
 ```
 
 ## 📖 Usage Guide
@@ -157,6 +172,13 @@ The application is configured via environment variables.
 | :--- | :--- | :--- |
 | `GEMINI_API_KEY` | Your Google Gemini API key. Get one [here](https://aistudio.google.com/app/apikey). | Yes |
 | `PORT` | The port the backend server listens on. Default is `3000`. | No |
+| `DATABASE_URL` | PostgreSQL connection string. | Yes |
+| `JWT_SECRET` | Secret key for JWT token generation. | Yes |
+| `GOOGLE_CLIENT_ID` | OAuth 2.0 Client ID for Google Authentication. | Yes |
+| `GOOGLE_CLIENT_SECRET` | OAuth 2.0 Client Secret for Google Authentication. | Yes |
+| `GOOGLE_REDIRECT_URI` | OAuth 2.0 Redirect URI (e.g., `http://localhost:3000/auth/google/callback`). | Yes |
+| `FRONTEND_URL` | URL of the frontend application (for CORS). | Yes |
+| `ANALYZER_URL` | URL for the internal analysis service. | Yes |
 
 ## 🗺️ Roadmap
 
