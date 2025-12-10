@@ -22,6 +22,9 @@
 ### Backend
 -   **Runtime**: [Node.js](https://nodejs.org/)
 -   **Framework**: [Express.js](https://expressjs.com/)
+-   **Database**: [PostgreSQL](https://www.postgresql.org/)
+-   **ORM**: [Prisma](https://www.prisma.io/)
+-   **Authentication**: [JWT](https://jwt.io/) & [Bcrypt](https://www.npmjs.com/package/bcryptjs)
 -   **AI Integration**: [Google Gemini API](https://ai.google.dev/) (`@google/generative-ai`)
 -   **Utilities**: `dotenv` for configuration, `cors` for cross-origin requests.
 
@@ -46,6 +49,10 @@ The frontend is built with a modular component architecture focusing on user exp
 -   **Entity Recognition**: Identifies key data entities and their attributes.
 -   **API Contract Proposal**: Suggests potential API endpoints based on the requirements.
 -   **Gap Analysis**: Highlights missing logic or potential issues in the provided description.
+-   **User System**: 
+    -   Secure User Authentication (Register/Login).
+    -   Personalized Dashboard.
+    -   Analysis History tracking.
 
 ## 🏁 Getting Started
 
@@ -70,6 +77,15 @@ Create a `.env` file in the `backend` directory with your API key:
 ```env
 GEMINI_API_KEY=your_gemini_api_key_here
 PORT=3000
+DATABASE_URL="postgresql://user:password@localhost:5432/sra_db?schema=public"
+JWT_SECRET=your_super_secret_jwt_key
+```
+
+Initialize the database:
+
+```bash
+npx prisma generate
+npx prisma db push
 ```
 
 Start the backend server:
