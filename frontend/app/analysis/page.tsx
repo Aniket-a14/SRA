@@ -16,6 +16,28 @@ export default function AnalysisPage() {
     const [error, setError] = useState("")
 
     useEffect(() => {
+        const fetchHistory = async () => {
+            try {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                })
+
+                if (!response.ok) {
+                    throw new Error("Failed to fetch analysis history")
+                }
+
+                const data = await response.json()
+                setHistory(data)
+            } catch (err) {
+                console.error("Error fetching history:", err)
+                setError("Failed to load your analysis history. Please try again later.")
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
         // If auth is done loading and no user, redirect
         if (!authLoading && !user) {
             router.push("/auth/login")
@@ -26,28 +48,6 @@ export default function AnalysisPage() {
             fetchHistory()
         }
     }, [user, token, authLoading, router])
-
-    const fetchHistory = async () => {
-        try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            })
-
-            if (!response.ok) {
-                throw new Error("Failed to fetch analysis history")
-            }
-
-            const data = await response.json()
-            setHistory(data)
-        } catch (err) {
-            console.error("Error fetching history:", err)
-            setError("Failed to load your analysis history. Please try again later.")
-        } finally {
-            setIsLoading(false)
-        }
-    }
 
     if (authLoading || isLoading) {
         return (

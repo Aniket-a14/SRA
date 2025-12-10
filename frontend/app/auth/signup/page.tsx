@@ -16,7 +16,6 @@ export default function SignupPage() {
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState("")
     const { login } = useAuth()
-    const router = useRouter()
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -37,8 +36,8 @@ export default function SignupPage() {
             }
 
             login(data.token, data.user)
-        } catch (err: any) {
-            setError(err.message)
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Signup failed")
         } finally {
             setIsLoading(false)
         }

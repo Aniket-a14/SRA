@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, use } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { Navbar } from "@/components/navbar"
@@ -18,17 +18,7 @@ interface AnalysisDetail {
     resultJson: AnalysisResult
 }
 
-export default function AnalysisDetailPage({ params }: { params: Promise<{ id: string }> }) {
-    const router = useRouter()
-    // React.use() to unwrap params in Next.js 15+ (if applicable, but safe to use await in async component or just standard params usage if not generic)
-    // Since this is a client component, params is a promise in newer Next.js versions. 
-    // However, simpler to use `useParams` for client components in most cases, 
-    // but let's handle the prop as 'use' for safety or just useParams hook.
-    // Actually, let's use the standard `useParams` hook which is cleanest for "use client".
-
-    // Wait, if I use `useParams`, I don't need `params` prop.
-    // Let's switch to useParams to avoid Promise issues with params prop in client components.
-
+export default function AnalysisDetailPage() {
     return <AnalysisDetailContent />
 }
 
@@ -44,6 +34,30 @@ function AnalysisDetailContent() {
     const [error, setError] = useState("")
 
     useEffect(() => {
+        const fetchAnalysis = async (analysisId: string) => {
+            try {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                })
+
+                if (!response.ok) {
+                    if (response.status === 404) throw new Error("Analysis not found")
+                    if (response.status === 403) throw new Error("Unauthorized access")
+                    throw new Error("Failed to load analysis")
+                }
+
+                const data = await response.json()
+                setAnalysis(data)
+            } catch (err) {
+                console.error("Error fetching analysis:", err)
+                setError(err instanceof Error ? err.message : "Failed to load analysis")
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
         if (!authLoading && !user) {
             router.push("/auth/login")
             return
@@ -53,30 +67,6 @@ function AnalysisDetailContent() {
             fetchAnalysis(id)
         }
     }, [user, token, id, authLoading, router])
-
-    const fetchAnalysis = async (analysisId: string) => {
-        try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            })
-
-            if (!response.ok) {
-                if (response.status === 404) throw new Error("Analysis not found")
-                if (response.status === 403) throw new Error("Unauthorized access")
-                throw new Error("Failed to load analysis")
-            }
-
-            const data = await response.json()
-            setAnalysis(data)
-        } catch (err) {
-            console.error("Error fetching analysis:", err)
-            setError(err instanceof Error ? err.message : "Failed to load analysis")
-        } finally {
-            setIsLoading(false)
-        }
-    }
 
     if (authLoading || isLoading) {
         return (

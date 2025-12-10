@@ -36,7 +36,7 @@ export function AnalysisHistory({ items }: AnalysisHistoryProps) {
 
     return (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {items.map((item, index) => (
+            {items.map((item) => (
                 <Card
                     key={item.id}
                     className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer border-border/50 bg-card/50 hover:bg-card hover:border-primary/20"

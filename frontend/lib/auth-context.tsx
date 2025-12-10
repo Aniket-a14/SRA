@@ -27,18 +27,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [isLoading, setIsLoading] = useState(true)
     const router = useRouter()
 
-    useEffect(() => {
-        // Check local storage on mount
-        const storedToken = localStorage.getItem("token")
-        if (storedToken) {
-            setToken(storedToken)
-            fetchUser(storedToken)
-        } else {
-            setIsLoading(false)
-        }
-    }, [])
+    const logout = React.useCallback(() => {
+        localStorage.removeItem("token")
+        setToken(null)
+        setUser(null)
+        router.push("/")
+    }, [router])
 
-    const fetchUser = async (authToken: string) => {
+    const fetchUser = React.useCallback(async (authToken: string) => {
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/me`, {
                 headers: {
@@ -57,28 +53,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } finally {
             setIsLoading(false)
         }
-    }
+    }, [logout])
 
-    const login = (newToken: string, newUser: User) => {
+    useEffect(() => {
+        // Check local storage on mount
+        const storedToken = localStorage.getItem("token")
+        if (storedToken) {
+            setToken(storedToken)
+            fetchUser(storedToken)
+        } else {
+            setIsLoading(false)
+        }
+    }, [fetchUser])
+
+    const login = React.useCallback((newToken: string, newUser: User) => {
         localStorage.setItem("token", newToken)
         setToken(newToken)
         setUser(newUser)
         router.push("/")
-    }
+    }, [router])
 
-    const authenticateWithToken = async (newToken: string) => {
+    const authenticateWithToken = React.useCallback(async (newToken: string) => {
         localStorage.setItem("token", newToken)
         setToken(newToken)
         await fetchUser(newToken)
         router.push("/")
-    }
-
-    const logout = () => {
-        localStorage.removeItem("token")
-        setToken(null)
-        setUser(null)
-        router.push("/")
-    }
+    }, [fetchUser, router])
 
     return (
         <AuthContext.Provider value={{ user, token, login, authenticateWithToken, logout, isLoading }}>

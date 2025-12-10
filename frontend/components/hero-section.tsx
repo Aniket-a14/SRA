@@ -55,7 +55,7 @@ export function HeroSection() {
             { icon: Zap, label: "Instant Analysis" },
             { icon: FileText, label: "User Stories" },
             { icon: Code2, label: "API Contracts" },
-          ].map((item, index) => (
+          ].map((item) => (
             <div
               key={item.label}
               className="flex items-center gap-2 text-sm text-muted-foreground px-4 py-2 rounded-full bg-secondary/50 transition-all duration-300 hover:bg-secondary hover:scale-105"

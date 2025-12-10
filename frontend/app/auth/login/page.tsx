@@ -7,7 +7,6 @@ import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
 import { Sparkles, Loader2 } from "lucide-react"
 
 export default function LoginPage() {
@@ -16,7 +15,6 @@ export default function LoginPage() {
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState("")
     const { login } = useAuth()
-    const router = useRouter()
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -37,8 +35,8 @@ export default function LoginPage() {
             }
 
             login(data.token, data.user)
-        } catch (err: any) {
-            setError(err.message)
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Login failed")
         } finally {
             setIsLoading(false)
         }
