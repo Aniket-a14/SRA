@@ -1,5 +1,7 @@
 # SRA (Software Requirements Analyst)
 
+![SRA View](/assets/overview.png)
+
 **SRA** is an intelligent, AI-powered tool designed to streamline the software requirements engineering process. By leveraging Google's Gemini AI, it analyzes raw project descriptions and automatically generates comprehensive technical documentation, including functional requirements, user stories, acceptance criteria, and visual diagrams.
 
 ## 🚀 How It Works
