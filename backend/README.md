@@ -1,114 +1,125 @@
 # SRA Backend
 
-This is the backend service for the Software Requirements Analyst (SRA) project. It provides an API to analyze text and generate software requirements, user stories, and Mermaid diagrams using Google's Gemini AI.
+This is the backend service for the Software Requirements Analyst (SRA) project. It provides a secure API to analyze text and generate software requirements, user stories, and Mermaid diagrams using Google's Gemini AI.
 
-## Prerequisites
+## ✨ Features
 
-- Node.js (v18 or higher recommended)
+- **AI Analysis**: Powered by Google Gemini (`gemini-1.5-flash`).
+- **Authentication**:
+  - Email/Password (JWT)
+  - Google OAuth 2.0
+  - GitHub OAuth 2.0
+- **Security**:
+  - `helmet` for secure HTTP headers.
+  - `express-rate-limit` for DDoS protection.
+  - Robust Input Validation.
+- **Database**: PostgreSQL with Prisma ORM.
+- **Architecture**: Modular Service-Controller pattern.
+
+## 🛠️ Prerequisites
+
+- Node.js (v18+)
 - npm
 - PostgreSQL (Local or Cloud)
 - A Google Gemini API Key
 
-## Installation
+## 🚀 Installation & Setup
 
-1.  Clone the repository.
-2.  Navigate to the `backend` directory:
+1.  **Clone & Navigate**:
     ```bash
     cd backend
     ```
-3.  Install dependencies:
+
+2.  **Install Dependencies**:
     ```bash
     npm install
     ```
-4.  Create a `.env` file in the root directory and add your Gemini API key:
 
-    | Variable | Description | Required |
-    | :--- | :--- | :--- |
-    | `GEMINI_API_KEY` | Your Google Gemini API key. | Yes |
-    | `PORT` | The port the backend server listens on. Default is `3000`. | No |
-    | `DATABASE_URL` | PostgreSQL connection string. | Yes |
-    | `JWT_SECRET` | Secret key for JWT token generation. | Yes |
-    | `GOOGLE_CLIENT_ID` | OAuth 2.0 Client ID for Google Authentication. | Yes |
-    | `GOOGLE_CLIENT_SECRET` | OAuth 2.0 Client Secret for Google Authentication. | Yes |
-    | `GOOGLE_REDIRECT_URI` | OAuth 2.0 Redirect URI. | Yes |
-    | `FRONTEND_URL` | URL of the frontend application (for CORS). | Yes |
-    | `ANALYZER_URL` | URL for the internal analysis service. | Yes |
-5.  Initialize the database:
-    ```bash
-    npx prisma generate
-    npx prisma db push
+3.  **Environment Configuration**:
+    Create a `.env` file in the `backend` directory:
+
+    ```env
+    # Server Configuration
+    PORT=3000
+    FRONTEND_URL=http://localhost:3001
+    ANALYZER_URL=http://localhost:3000/internal/analyze
+
+    # Database
+    DATABASE_URL="postgresql://user:pass@localhost:5432/sra?schema=public"
+
+    # Security
+    JWT_SECRET=your_jwt_secret_key
+
+    # Google OAuth
+    GOOGLE_CLIENT_ID=your_google_client_id
+    GOOGLE_CLIENT_SECRET=your_google_client_secret
+    GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
+
+    # GitHub OAuth
+    GITHUB_CLIENT_ID=your_github_client_id
+    GITHUB_CLIENT_SECRET=your_github_client_secret
+    GITHUB_CALLBACK_URL=http://localhost:3000/api/auth/github/callback
+
+    # AI Service
+    GEMINI_API_KEY=your_gemini_api_key
     ```
 
+4.  **Database Migration**:
+    Initialize the database and apply migrations (includes performance indexes):
+    ```bash
+    npx prisma migrate dev --name init
+    ```
 
-## Project Structure
+5.  **Start Server**:
+    ```bash
+    # Development (Hot Reload)
+    npm run dev
+
+    # Production
+    npm start
+    ```
+
+## 📂 Project Structure
 
 ```
 backend/
-├── prisma/             # Database schema and migrations
+├── prisma/             # Database schema & migrations
 ├── src/
-│   ├── config/         # App configuration
-│   ├── controllers/    # Route controllers
-│   ├── middleware/     # Custom middleware (auth, error)
-│   ├── routes/         # API routes
-│   ├── services/       # Business logic and external services
-│   ├── utils/          # Utility functions
-│   ├── app.js          # Express app setup
-│   ├── index.js        # Entry point
-│   └── server.js      
-├── .env                # Environment variables
-└── package.json
-```
-55: 
-56: ## Usage
-
-
-### Development
-
-To start the server in development mode with hot reloading:
-
-```bash
-npm run dev
+│   ├── config/         # OAuth & DB configuration
+│   ├── controllers/    # API Controllers
+│   ├── middleware/     # Auth, RateLimit, ErrorHandler
+│   ├── routes/         # Express Routes
+│   ├── services/       # Business Logic & AI integration
+│   ├── utils/          # Helpers
+│   ├── app.js          # App mounting
+│   └── server.js       # Entry point
+└── ...
 ```
 
-### Production
+## 🔗 API Endpoints
 
-To start the server in production mode:
+### Authentication
 
-```bash
-npm start
-```
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/auth/signup` | Register a new user. |
+| `POST` | `/api/auth/login` | Login and receive a token. |
+| `GET` | `/api/auth/google/start` | Initiate Google OAuth. |
+| `GET` | `/api/auth/github/start` | Initiate GitHub OAuth. |
+| `GET` | `/api/auth/me` | Get current user profile. |
 
-The server will start on port 3000 (or the port specified in your `.env` file).
+### Analysis
 
-## API Documentation
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/analyze` | Submit text for analysis. |
+| `GET` | `/api/analyze` | Get analysis history. |
+| `GET` | `/api/analyze/:id` | Get specific analysis details. |
 
-### Auth Endpoints
+_Note: The API supports both `/api` prefix and root paths (e.g., `/auth/login` is also valid) for backward compatibility._
 
-#### POST /auth/register
-Register a new user.
-- **Body**: `{ "email": "...", "password": "...", "name": "..." }`
+## 🔒 Security Measures
 
-#### POST /auth/login
-Login and receive a JWT cookie.
-- **Body**: `{ "email": "...", "password": "..." }`
-
-### Analysis Endpoints
-
-All analysis endpoints require authentication (Cookie).
-
-#### POST /analyze
-Analyzes the provided text and returns structured software requirements.
-- **Body**: `{ "text": "Description of your software project..." }`
-- **Response**: JSON object with requirements, user stories, mermaid code, etc.
-
-#### GET /analyze
-Get the analysis history for the logged-in user.
-- **Response**: List of past analyses (ID, Input Text, Timestamp).
-
-#### GET /analyze/:id
-Get the full details of a specific analysis.
-- **Response**: Full analysis JSON object.
-
-### Internal
-#### POST /internal/analyze
-Direct AI endpoint (used for testing or internal services).
+- **Rate Limiting**: Limited to 100 requests per 15 minutes per IP.
+- **Input Validation**: Analysis text is capped at 20,000 characters.
+- **Headers**: Secure headers enforced via Helmet.

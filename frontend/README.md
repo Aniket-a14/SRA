@@ -1,6 +1,6 @@
 # SRA Frontend
 
-The frontend interface for the Software Requirements Analyst (SRA) system. Built with Next.js 15, it provides a modern, interactive dashboard for generating and viewing software requirements.
+The frontend interface for the Software Requirements Analyst (SRA) system. Built with Next.js 15, it provides a modern, interactive dashboard for generating and viewing software requirements, now with enhanced security and social login features.
 
 ## 🛠️ Tech Stack
 
@@ -8,17 +8,25 @@ The frontend interface for the Software Requirements Analyst (SRA) system. Built
 - **Language**: TypeScript
 - **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
 - **Components**: [Shadcn/ui](https://ui.shadcn.com/) (Radix UI)
-- **State/Forms**: React Hook Form, Zod
+- **Notifications**: [Sonner](https://sonner.emilkowal.ski/)
 - **Visuals**: Framer Motion (Animations), Lucide React (Icons), Mermaid.js (Diagrams)
 
 ## ✨ Features
 
-- **Dashboard**: Central hub for managing analyses.
-- **New Analysis**: Interactive chat-like input for generating requirements.
-- **Detailed Results**: Tabbed view for Requirements, User Stories, Diagrams, and APIs.
-- **History**: View past analyses.
-- **Authentication**: User login and registration pages.
-- **Responsive Design**: Fully optimized for desktop and mobile.
+- **Project Dashboard**: Central hub for managing analyses.
+- **AI Analysis Chat**: Interactive input for generating requirements.
+- **Detailed Results View**:
+  - **Requirements**: Functional & Non-functional lists.
+  - **User Stories**: Agile-ready stories with acceptance criteria.
+  - **Diagrams**: Interactive Mermaid.js Flowcharts and Sequence diagrams.
+  - **API Specs**: Proposed API contracts.
+- **Analysis History**: View and review past analyses.
+- **Authentication**:
+  - Email/Password.
+  - **Social Login**: Google and GitHub.
+- **User Experience**:
+  - Global Toast Notifications (Success/Error).
+  - Responsive, beautiful UI.
 
 ## 🚀 Getting Started
 
@@ -29,36 +37,52 @@ The frontend interface for the Software Requirements Analyst (SRA) system. Built
 
 ### Installation
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
+1.  **Install dependencies**:
+    ```bash
+    cd frontend
+    npm install
+    ```
 
-2. Create a `.env.local` file:
+2.  **Environment Setup**:
+    Create a `.env.local` file:
 
-    | Variable | Description | Required |
-    | :--- | :--- | :--- |
-    | `NEXT_PUBLIC_BACKEND_URL` | URL of the backend API (e.g., `http://localhost:3000`). | Yes |
+    ```env
+    NEXT_PUBLIC_BACKEND_URL=http://localhost:3000/api
+    ```
+    *(Note: The backend supports `http://localhost:3000/api` or `http://localhost:3000`)*
 
-3. Start the development server:
-   ```bash
-   npm run dev
-   ```
+3.  **Start Development Server**:
+    ```bash
+    npm run dev
+    ```
 
-   The app will be available at [http://localhost:3001](http://localhost:3001).
+    The app will be available at [http://localhost:3001](http://localhost:3001).
 
 ## 📂 Project Structure
 
 ```
-SRA/
+frontend/
 ├── app/              # Next.js App Router pages
-│   ├── (auth)/       # Authentication routes (login, register)
-│   ├── (dashboard)/  # Protected dashboard routes
+│   ├── (auth)/       # Login, Signup (with Social Auth)
+│   ├── analysis/     # Analysis Results & History
+│   ├── error/        # Error handling pages
 │   └── page.tsx      # Landing page
 ├── components/       # React components
-│   ├── ui/           # Reusable UI primitives (buttons, inputs)
-│   └── ...           # Feature-specific components
-├── lib/              # Utilities and helper functions
-├── hooks/            # Custom React hooks
+│   ├── ui/           # Reusable UI primitives (Shadcn)
+│   ├── ...           # Feature components (Navbar, Hero, etc.)
+├── lib/              # Utilities (Auth context, API helpers)
 └── package.json
+```
+
+## 🔒 Security
+
+- **Secure Auth**: Token-based authentication integration.
+- **Protected Routes**: Middleware protects dashboard and analysis pages.
+- **Input Handling**: Clean interfaces that respect backend validation limits.
+
+## 🤝 Contributing
+
+Run the linter before pushing changes:
+```bash
+npm run lint
 ```
