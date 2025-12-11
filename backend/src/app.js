@@ -1,15 +1,12 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import dotenv from 'dotenv';
-
 import authRoutes from './routes/authRoutes.js';
 import analysisRoutes from './routes/analysisRoutes.js';
 import aiEndpoint from './routes/aiEndpoint.js';
 import { errorHandler } from './middleware/errorMiddleware.js';
 import { logger } from './middleware/logger.js';
 
-dotenv.config();
 
 const app = express();
 
