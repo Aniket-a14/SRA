@@ -3,8 +3,14 @@ import { performAnalysis, getUserAnalyses, getAnalysisById } from '../services/a
 export const analyze = async (req, res, next) => {
     try {
         const { text } = req.body;
-        if (!text) {
-            const error = new Error('Text input is required');
+        if (!text || typeof text !== 'string') {
+            const error = new Error('Text input is required and must be a string');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        if (text.length > 20000) {
+            const error = new Error('Text input exceeds maximum limit of 20,000 characters');
             error.statusCode = 400;
             throw error;
         }

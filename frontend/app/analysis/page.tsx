@@ -7,13 +7,13 @@ import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { AnalysisHistory } from "@/components/analysis-history"
 import { Loader2 } from "lucide-react"
+import { toast } from "sonner"
 
 export default function AnalysisPage() {
     const router = useRouter()
     const { user, token, isLoading: authLoading } = useAuth()
     const [history, setHistory] = useState([])
     const [isLoading, setIsLoading] = useState(true)
-    const [error, setError] = useState("")
 
     useEffect(() => {
         const fetchHistory = async () => {
@@ -32,7 +32,7 @@ export default function AnalysisPage() {
                 setHistory(data)
             } catch (err) {
                 console.error("Error fetching history:", err)
-                setError("Failed to load your analysis history. Please try again later.")
+                toast.error("Failed to load your analysis history. Please try again later.")
             } finally {
                 setIsLoading(false)
             }
@@ -76,13 +76,8 @@ export default function AnalysisPage() {
                         </p>
                     </div>
 
-                    {error ? (
-                        <div className="p-4 rounded-lg bg-destructive/10 text-destructive text-sm">
-                            {error}
-                        </div>
-                    ) : (
-                        <AnalysisHistory items={history} />
-                    )}
+                    {/* Optimized render: Removed inline error div as we use Toast now */}
+                    <AnalysisHistory items={history} />
                 </div>
             </main>
             <Footer />

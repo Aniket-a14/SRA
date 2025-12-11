@@ -2,11 +2,11 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { toast } from "sonner"
 import { Sparkles, Loader2 } from "lucide-react"
 
 export default function SignupPage() {
@@ -14,13 +14,11 @@ export default function SignupPage() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [isLoading, setIsLoading] = useState(false)
-    const [error, setError] = useState("")
     const { login } = useAuth()
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault()
         setIsLoading(true)
-        setError("")
 
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/signup`, {
@@ -37,7 +35,7 @@ export default function SignupPage() {
 
             login(data.token, data.user)
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Signup failed")
+            toast.error(err instanceof Error ? err.message : "Signup failed")
         } finally {
             setIsLoading(false)
         }
@@ -73,11 +71,6 @@ export default function SignupPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        {error && (
-                            <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
-                                {error}
-                            </div>
-                        )}
                         <form onSubmit={handleSignup} className="space-y-4">
                             <div className="space-y-2">
                                 <div className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
