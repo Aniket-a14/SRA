@@ -104,3 +104,61 @@ export const getUserById = async (userId) => {
         select: { id: true, email: true, name: true, image: true, createdAt: true },
     });
 };
+
+export const handleGithubAuth = async (githubUser, tokens) => {
+    const { email, name, avatar_url, id, login } = githubUser;
+
+    // 1. Check if user exists by email
+    let user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+        // Create new user
+        user = await prisma.user.create({
+            data: {
+                email,
+                name: name || login,
+                image: avatar_url,
+                accounts: {
+                    create: {
+                        provider: 'github',
+                        providerAccountId: id.toString(),
+                        access_token: tokens.access_token,
+                    },
+                },
+            },
+        });
+    } else {
+        // User exists - ensure Account link exists
+        const existingAccount = await prisma.account.findUnique({
+            where: {
+                provider_providerAccountId: {
+                    provider: 'github',
+                    providerAccountId: id.toString(),
+                },
+            },
+        });
+
+        if (!existingAccount) {
+            // Link GitHub account to existing user
+            await prisma.account.create({
+                data: {
+                    userId: user.id,
+                    provider: 'github',
+                    providerAccountId: id.toString(),
+                    access_token: tokens.access_token,
+                },
+            });
+        } else {
+            // Update tokens
+            await prisma.account.update({
+                where: { id: existingAccount.id },
+                data: {
+                    access_token: tokens.access_token,
+                }
+            });
+        }
+    }
+
+    const token = signToken({ userId: user.id, email: user.email });
+    return { user, token };
+};

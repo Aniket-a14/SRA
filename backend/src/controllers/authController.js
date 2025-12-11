@@ -1,5 +1,6 @@
-import { registerUser, loginUser, handleGoogleAuth, getUserById } from '../services/authService.js';
+import { registerUser, loginUser, handleGoogleAuth, handleGithubAuth, getUserById } from '../services/authService.js';
 import { getGoogleAuthURL, getGoogleTokens, getGoogleUser } from '../config/googleOAuth.js';
+import { getGithubAuthURL, getGithubTokens, getGithubUser } from '../config/githubOAuth.js';
 
 export const signup = async (req, res, next) => {
     try {
@@ -50,6 +51,28 @@ export const googleCallback = async (req, res, next) => {
 
         // Redirect to frontend with token
         // Update FRONTEND_URL in .env if needed, defaulting to root provided in requirements or same host
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+        res.redirect(`${frontendUrl}/?token=${result.token}`);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const githubStart = (req, res) => {
+    const url = getGithubAuthURL();
+    res.redirect(url);
+};
+
+export const githubCallback = async (req, res, next) => {
+    try {
+        const { code } = req.query;
+        if (!code) throw new Error('Authorization code missing');
+
+        const tokens = await getGithubTokens(code);
+        const githubUser = await getGithubUser(tokens.access_token);
+
+        const result = await handleGithubAuth(githubUser, tokens);
+
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
         res.redirect(`${frontendUrl}/?token=${result.token}`);
     } catch (error) {
