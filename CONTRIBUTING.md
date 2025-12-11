@@ -13,11 +13,16 @@ Understanding the project structure is key to making effective contributions.
 
 ### Backend (`/backend`)
 The backend is built with **Node.js** and **Express**.
--   **`src/index.js`**: The main entry point. This file contains the server setup, API routes, and the integration logic with Google Gemini.
--   **`.env`**: Stores environment variables like your API key. **Do not commit this file.**
+-   **`src/server.js`**: The main entry point to start the server.
+-   **`src/app.js`**: Express app configuration.
+-   **`src/routes/`**: API route definitions.
+-   **`src/controllers/`**: Logic for handling API requests.
+-   **`src/services/`**: Business logic and AI integration.
+-   **`src/middleware/`**: Middleware for auth, validation, and error handling.
+-   **`.env`**: Stores environment variables like your API key and database URL. **Do not commit this file.**
 
 ### Frontend (`/frontend`)
-The frontend is built with **Next.js 15 (App Router)** and **TypeScript**.
+The frontend is built with **Next.js 15 (App Router)** and **TypeScript**, styled with **Tailwind CSS v4**.
 -   **`app/`**: Contains the application routes and pages.
     -   `page.tsx`: The main landing page and UI.
     -   `layout.tsx`: The root layout wrapper.
@@ -34,6 +39,7 @@ The frontend is built with **Next.js 15 (App Router)** and **TypeScript**.
 Ensure you have the following installed:
 -   **Node.js** (v18 or higher)
 -   **npm** (comes with Node.js)
+-   **PostgreSQL** (for the database)
 -   A **Google Gemini API Key** (Get one [here](https://aistudio.google.com/app/apikey))
 
 ### Backend Setup
@@ -45,12 +51,37 @@ Ensure you have the following installed:
     ```bash
     npm install
     ```
-3.  Create a `.env` file and add your API key:
+3.  Create a `.env` file and add the following variables:
     ```env
-    GEMINI_API_KEY=your_gemini_api_key_here
+    # Server
     PORT=3000
+    FRONTEND_URL=http://localhost:3001
+    ANALYZER_URL=http://localhost:3000/internal/analyze
+
+    # Database
+    DATABASE_URL="postgresql://user:password@localhost:5432/sra_db?schema=public"
+
+    # Auth
+    JWT_SECRET=your_super_secret_jwt_key
+
+    # Google OAuth
+    GOOGLE_CLIENT_ID=your_google_client_id
+    GOOGLE_CLIENT_SECRET=your_google_client_secret
+    GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
+
+    # GitHub OAuth
+    GITHUB_CLIENT_ID=your_github_client_id
+    GITHUB_CLIENT_SECRET=your_github_client_secret
+    GITHUB_CALLBACK_URL=http://localhost:3000/api/auth/github/callback
+
+    # AI
+    GEMINI_API_KEY=your_gemini_api_key_here
     ```
-4.  Start the development server:
+4.  Initialize the database:
+    ```bash
+    npx prisma migrate dev --name init
+    ```
+5.  Start the development server:
     ```bash
     npm run dev
     ```
@@ -73,13 +104,15 @@ Ensure you have the following installed:
 ## 🛠️ Where to Make Changes
 
 ### Adding New Features
--   **Backend Logic**: If you're adding a new AI capability or API endpoint, modify `backend/src/index.js`.
+-   **Backend Logic**:
+    -   Add new routes in `src/routes/`.
+    -   Implement logic in `src/controllers/` and `src/services/`.
 -   **Frontend UI**:
     -   To add a new section to the results, update `frontend/components/ResultsTabs.tsx`.
-    -   To change the input form, check `frontend/components/InputSection.tsx` (if applicable) or the main page `frontend/app/page.tsx`.
+    -   To change the input form, check `frontend/app/page.tsx`.
 
 ### Styling
--   We use **Tailwind CSS**. You can apply utility classes directly to your JSX elements.
+-   We use **Tailwind CSS v4**. You can apply utility classes directly to your JSX elements.
 -   For complex components, check `frontend/components/ui` to see if a pre-built component (like a Button or Card) already exists.
 
 ## 🔄 Contribution Workflow
