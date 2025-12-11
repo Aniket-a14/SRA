@@ -32,8 +32,9 @@ app.get('/', (req, res) => {
 app.use('/internal/analyze', aiEndpoint);
 
 // Public/Protected Routes
-app.use('/auth', authRoutes);
-app.use('/analyze', analysisRoutes);
+// Public/Protected Routes
+app.use(['/auth', '/api/auth'], authRoutes);
+app.use(['/analyze', '/api/analyze'], analysisRoutes);
 
 // Error Handler
 app.use(errorHandler);
