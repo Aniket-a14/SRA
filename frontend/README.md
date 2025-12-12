@@ -18,19 +18,24 @@ The frontend interface for the Software Requirements Analyst (SRA) system. Built
 - **AI Analysis Chat**: Interactive input for generating requirements.
 - **Real-time Status Updates**: Live feedback on long-running analysis jobs.
 - **Detailed Results View**:
+  - **Overview Tab**: Dashboard with identified entities, missing logic warnings, and contradiction alerts.
   - **Requirements**: Functional & Non-functional lists.
   - **User Stories**: Agile-ready stories with acceptance criteria.
-  - **Diagrams**: Interactive Mermaid.js Flowcharts and Sequence diagrams.
+  - **Diagrams**: Interactive **Mermaid Editor** for Flowcharts and Sequence diagrams.
+  - **Quality Audit**: Dedicated tab for quality scoring and specific improvement suggestions.
   - **API Specs**: Proposed API contracts.
-  - **Generated Code**: View and download starter code assets.
+  - **Generated Code**: Syntax-highlighted code explorer with regeneration options.
 - **Export & Share**:
-    - **Download Bundle**: Zip file with all assets (PDF, JSON, Images).
+    - **Download Bundle**: Zip file with all assets (PDF, JSON).
+    - **Image Export**: Convert diagrams to high-res PNGs via `html-to-image`.
     - **Codebase Export**: Download the generated project code.
-- **Analysis History**: View and review past analyses.
+- **Analysis History**: Full version history UI to browse and revert changes.
 - **Authentication**:
   - Email/Password.
   - **Social Login**: Google and GitHub.
 - **User Experience**:
+  - **Dark Mode**: Fully themed UI.
+  - **Animations**: Scroll animations and fluid transitions.
   - Global Toast Notifications (Success/Error).
   - Responsive, beautiful UI.
 

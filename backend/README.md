@@ -5,19 +5,27 @@ This is the backend service for the Software Requirements Analyst (SRA) project.
 ## ✨ Features
 
 - **AI Analysis**: Powered by Google Gemini (`gemini-2.5-flash`).
+  - **Context-Aware Chat Engine**: Interactive chat for refining requirements, maintaining context, and generating new versions.
+  - **Smart Processing**: Entity extraction, requirement cleaning, and detailed AI output validation.
+  - **Logic Analysis**: Automatic detection of contradictions and logic gaps.
 - **Authentication**:
   - Email/Password (JWT)
   - Google OAuth 2.0
   - GitHub OAuth 2.0
+  - **Session Management**: Secure refresh tokens, session revocation, and multi-device support.
+- **Quality Assurance**:
+  - **Linting Engine**: automated requirement quality scoring (0-100).
+  - **Ambiguity Detection**: Flags vague terms and missing metrics.
 - **Queueing & Performance**:
   - **Asynchronous Processing**: Uses Bull Queue & Redis to handle long-running analysis tasks without blocking.
   - Rate Limiting & Input Validation.
 - **Code Generation**:
-  - Generates full starter codebases (Schema, API, Frontend) in JSON format.
+  - **Full Pipeline**: Generates complete Schema, API Routes, Frontend Components, and Tests.
   - **Robust JSON Mode**: Ensures valid output structure.
-- **Security**:
+- **Security & Reliability**:
   - `helmet` for secure HTTP headers.
   - `express-rate-limit` for DDoS protection.
+  - **Robustness**: Centralized error middleware, request logging, and health checks.
 - **Database**: PostgreSQL with Prisma ORM.
 
 ## 🛠️ Prerequisites
