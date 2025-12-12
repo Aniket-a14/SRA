@@ -106,7 +106,14 @@ export const updateAnalysis = async (req, res, next) => {
             data: { resultJson: updatedResultJson }
         });
 
-        res.json(updatedAnalysis);
+        res.json({
+            ...updatedAnalysis.resultJson,
+            id: updatedAnalysis.id,
+            title: updatedAnalysis.title,
+            version: updatedAnalysis.version,
+            createdAt: updatedAnalysis.createdAt,
+            generatedCode: updatedAnalysis.generatedCode
+        });
     } catch (error) {
         next(error);
     }
