@@ -29,22 +29,29 @@
 -   **ORM**: [Prisma](https://www.prisma.io/)
 -   **Authentication**: [JWT](https://jwt.io/), [Google OAuth](https://developers.google.com/identity/protocols/oauth2), [GitHub OAuth](https://docs.github.com/en/apps/oauth-apps)
 -   **Security**: `helmet`, `express-rate-limit`, `express-validator`
--   **AI Integration**: [Google Gemini API](https://ai.google.dev/) (`@google/generative-ai`)
+-   **AI Integration**: [Google Gemini 2.5 Flash](https://ai.google.dev/) (via `@google/generative-ai`)
+-   **Queueing**: [Bull](https://github.com/OptimalBits/bull) & [Redis](https://redis.io/) (Asynchronous Processing)
 
 ## ✨ Features
 
 -   **Requirement Extraction**: Automatically identifies and categorizes Functional and Non-Functional requirements.
 -   **User Story Generation**: Creates standard user stories with "As a... I want to... So that..." format.
 -   **Acceptance Criteria**: Defines clear success metrics for each user story.
+-   **Code Generation**: Generates a full starter codebase (schema, routes, simple frontend) based on requirements.
 -   **Visual Modeling**:
     -   **Flowchart Diagrams**: Visualizes actors and their interactions with the system.
     -   **Sequence Diagrams**: Shows the flow of logic and data between system components.
 -   **Entity Recognition**: Identifies key data entities and their attributes.
 -   **API Contract Proposal**: Suggests potential API endpoints based on the requirements.
+-   **Export & Download**:
+    -   **SRS PDF**: standardized requirements document.
+    -   **Project Bundle**: Includes diagrams (PNG/SVG), API docs, and JSON data.
+    -   **Codebase Zip**: Download the AI-generated starter code.
 -   **Security & Performance**:
     -   Rate Limiting to prevent abuse.
     -   Secure HTTP headers.
     -   Robust input validation.
+    -   **Background Job Queue**: Handles heavy AI analysis tasks asynchronously using Redis.
 -   **User System**:
     -   Secure User Authentication (Register/Login).
     -   Social Login (Google & GitHub).
@@ -59,6 +66,7 @@ Follow these steps to set up the project locally.
 -   npm or yarn
 -   A Google Gemini API Key
 -   PostgreSQL Database
+-   Redis Server (Required for Job Queue)
 
 ### 1. Backend Setup
 
@@ -79,6 +87,7 @@ ANALYZER_URL=http://localhost:3000/internal/analyze
 
 # Database
 DATABASE_URL="postgresql://user:password@localhost:5432/sra_db?schema=public"
+REDIS_URL="redis://127.0.0.1:6379"
 
 # Auth
 JWT_SECRET=your_super_secret_jwt_key
@@ -139,7 +148,8 @@ SRA/
 │   │   ├── controllers/    # API Request handlers
 │   │   ├── middleware/     # Auth, Security, Error middleware
 │   │   ├── routes/         # Express routes definitions
-│   │   ├── services/       # AI & business logic
+│   │   ├── services/       # AI (Gemini), Queue (Bull), & business logic
+│   │   ├── workers/        # Background workers for analysis
 │   │   ├── utils/          # Helper functions
 │   │   └── app.js          # App setup
 │   └── .env
@@ -163,7 +173,7 @@ SRA/
 - [x] **Social Login**: Google & GitHub OAuth.
 - [x] **History**: Save and view past analyses.
 - [x] **Security**: Rate limiting and payload validation.
-- [ ] **Export Options**: Export requirements to PDF, CSV, or Jira.
+- [x] **Export Options**: Export requirements to PDF, CSV, or Jira.
 - [ ] **Custom Prompts**: Allow users to tweak the AI system prompt.
 - [ ] **Dark Mode**: Full dark mode support for the UI (Partially implemented).
 

@@ -4,23 +4,28 @@ This is the backend service for the Software Requirements Analyst (SRA) project.
 
 ## ✨ Features
 
-- **AI Analysis**: Powered by Google Gemini (`gemini-1.5-flash`).
+- **AI Analysis**: Powered by Google Gemini (`gemini-2.5-flash`).
 - **Authentication**:
   - Email/Password (JWT)
   - Google OAuth 2.0
   - GitHub OAuth 2.0
+- **Queueing & Performance**:
+  - **Asynchronous Processing**: Uses Bull Queue & Redis to handle long-running analysis tasks without blocking.
+  - Rate Limiting & Input Validation.
+- **Code Generation**:
+  - Generates full starter codebases (Schema, API, Frontend) in JSON format.
+  - **Robust JSON Mode**: Ensures valid output structure.
 - **Security**:
   - `helmet` for secure HTTP headers.
   - `express-rate-limit` for DDoS protection.
-  - Robust Input Validation.
 - **Database**: PostgreSQL with Prisma ORM.
-- **Architecture**: Modular Service-Controller pattern.
 
 ## 🛠️ Prerequisites
 
 - Node.js (v18+)
 - npm
 - PostgreSQL (Local or Cloud)
+- Redis Server (Required for Job Queue)
 - A Google Gemini API Key
 
 ## 🚀 Installation & Setup
@@ -34,6 +39,7 @@ This is the backend service for the Software Requirements Analyst (SRA) project.
     ```bash
     npm install
     ```
+    *Note: A `postinstall` script will automatically run `prisma generate` to update the database client.*
 
 3.  **Environment Configuration**:
     Create a `.env` file in the `backend` directory:
@@ -46,6 +52,7 @@ This is the backend service for the Software Requirements Analyst (SRA) project.
 
     # Database
     DATABASE_URL="postgresql://user:pass@localhost:5432/sra?schema=public"
+    REDIS_URL="redis://127.0.0.1:6379"
 
     # Security
     JWT_SECRET=your_jwt_secret_key

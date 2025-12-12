@@ -10,16 +10,22 @@ The frontend interface for the Software Requirements Analyst (SRA) system. Built
 - **Components**: [Shadcn/ui](https://ui.shadcn.com/) (Radix UI)
 - **Notifications**: [Sonner](https://sonner.emilkowal.ski/)
 - **Visuals**: Framer Motion (Animations), Lucide React (Icons), Mermaid.js (Diagrams)
+- **Utilities**: `jspdf` (PDF Generation), `jszip` (Bundling), `html-to-image` (Diagram Export)
 
 ## ✨ Features
 
 - **Project Dashboard**: Central hub for managing analyses.
 - **AI Analysis Chat**: Interactive input for generating requirements.
+- **Real-time Status Updates**: Live feedback on long-running analysis jobs.
 - **Detailed Results View**:
   - **Requirements**: Functional & Non-functional lists.
   - **User Stories**: Agile-ready stories with acceptance criteria.
   - **Diagrams**: Interactive Mermaid.js Flowcharts and Sequence diagrams.
   - **API Specs**: Proposed API contracts.
+  - **Generated Code**: View and download starter code assets.
+- **Export & Share**:
+    - **Download Bundle**: Zip file with all assets (PDF, JSON, Images).
+    - **Codebase Export**: Download the generated project code.
 - **Analysis History**: View and review past analyses.
 - **Authentication**:
   - Email/Password.
