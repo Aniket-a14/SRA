@@ -12,6 +12,9 @@ import { logger } from './middleware/logger.js';
 
 const app = express();
 
+// Trust proxy for Render deployment
+app.set('trust proxy', 1);
+
 // CORS setup
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
