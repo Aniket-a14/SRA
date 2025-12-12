@@ -25,15 +25,30 @@ interface ProjectChatPanelProps {
 export function ProjectChatPanel({ analysisId, onAnalysisUpdate }: ProjectChatPanelProps) {
     const { token, user } = useAuth()
 
-    // Safety check: Don't render if critical data is missing
-    if (!analysisId) return null;
     const [messages, setMessages] = useState<ChatMessage[]>([])
     const [input, setInput] = useState("")
     const [isLoading, setIsLoading] = useState(false)
     const [isOpen, setIsOpen] = useState(false)
     const scrollRef = useRef<HTMLDivElement>(null)
 
+    // Moved fetchHistory definition to be accessible and memoized or used inside effect
+
     useEffect(() => {
+        const fetchHistory = async () => {
+            if (!token || !analysisId) return;
+            try {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}/chat`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                })
+                if (res.ok) {
+                    const data = await res.json()
+                    setMessages(data)
+                }
+            } catch (e) {
+                console.error("Failed to load chat history", e)
+            }
+        }
+
         if (isOpen && token && analysisId) {
             fetchHistory()
         }
@@ -45,19 +60,9 @@ export function ProjectChatPanel({ analysisId, onAnalysisUpdate }: ProjectChatPa
         }
     }, [messages])
 
-    const fetchHistory = async () => {
-        try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}/chat`, {
-                headers: { Authorization: `Bearer ${token}` }
-            })
-            if (res.ok) {
-                const data = await res.json()
-                setMessages(data)
-            }
-        } catch (e) {
-            console.error("Failed to load chat history", e)
-        }
-    }
+
+    // Safety check: Don't render if critical data is missing
+    if (!analysisId) return null;
 
     const handleSend = async () => {
         if (!input.trim() || isLoading) return

@@ -129,8 +129,8 @@ export const generateSRS = (data: AnalysisResult, title: string) => {
             });
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             yPos = (doc as any).lastAutoTable.finalY + 15;
-        } catch (e) {
-            console.error("Error adding FR table", e);
+        } catch (_e) {
+            console.error("Error adding FR table", _e);
             yPos += 20;
         }
     }
@@ -149,8 +149,8 @@ export const generateSRS = (data: AnalysisResult, title: string) => {
             });
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             yPos = (doc as any).lastAutoTable.finalY + 15;
-        } catch (e) {
-            console.error("Error adding US table", e);
+        } catch (_e) {
+            console.error("Error adding US table", _e);
             yPos += 20;
         }
     }
@@ -167,7 +167,7 @@ export const generateAPI = (data: AnalysisResult) => {
             try {
                 content += "### Request Body\n```json\n" + JSON.stringify(api.requestBody || {}, null, 2) + "\n```\n\n";
                 content += "### Response Body\n```json\n" + JSON.stringify(api.responseBody || {}, null, 2) + "\n```\n\n";
-            } catch (e) {
+            } catch (_e) {
                 content += "Error parsing body JSON\n\n";
             }
             content += "---\n\n";
@@ -198,7 +198,7 @@ export const downloadBundle = async (data: AnalysisResult, title: string) => {
     // 3. raw JSON
     try {
         zip.file("analysis.json", JSON.stringify(data, null, 2));
-    } catch (e) { }
+    } catch (_e) { }
 
     // 4. Diagrams (SVG & MMD)
     // Helper to render

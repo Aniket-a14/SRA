@@ -43,16 +43,7 @@ export function CodeViewer({ fileStructure, schema, backendRoutes, frontendCompo
         return null;
     }
 
-    const handleSelect = (path: string, type: string) => {
-        if (type === "directory") return;
-        const code = findCode(path);
-        if (code) {
-            setSelectedFile({ path, code });
-        } else {
-            // If code not explicit, show placeholder from structure if available or generic
-            setSelectedFile({ path, code: "// Code content not displayed in this summary view." })
-        }
-    }
+
 
     const copyToClipboard = () => {
         if (selectedFile?.code) {

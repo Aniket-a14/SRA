@@ -8,7 +8,6 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { StoryCard } from "@/components/story-card"
 import { ApiCard } from "@/components/api-card"
-import { MermaidRenderer } from "@/components/mermaid-renderer"
 import { CheckCircle2, AlertTriangle, Bot, ShieldCheck, Bug } from "lucide-react"
 import type { AnalysisResult } from "@/types/analysis"
 import { DiagramEditor } from "@/components/diagram-editor"
@@ -49,10 +48,6 @@ export function ResultsTabs({ data }: ResultsTabsProps) {
     return () => observer.disconnect()
   }, [])
 
-  if (!data) {
-    return null
-  }
-
   const {
     cleanedRequirements = "",
     functionalRequirements = [],
@@ -67,9 +62,14 @@ export function ResultsTabs({ data }: ResultsTabsProps) {
     sequenceDiagram = "",
     qualityAudit,
     generatedCode: initialGeneratedCode,
-  } = data
+  } = data || {}
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [generatedCode, setGeneratedCode] = useState<any>(initialGeneratedCode || null)
+
+  if (!data) {
+    return null
+  }
 
   return (
     <section ref={sectionRef} className="py-12 sm:py-16">

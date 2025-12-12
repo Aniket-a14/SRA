@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -21,7 +21,7 @@ export function SecuritySettings() {
     const [sessions, setSessions] = useState<Session[]>([])
     const [isLoading, setIsLoading] = useState(true)
 
-    const fetchSessions = async () => {
+    const fetchSessions = useCallback(async () => {
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/sessions`, {
                 headers: { Authorization: `Bearer ${token}` }
@@ -35,11 +35,11 @@ export function SecuritySettings() {
         } finally {
             setIsLoading(false)
         }
-    }
+    }, [token])
 
     useEffect(() => {
         if (token) fetchSessions()
-    }, [token])
+    }, [token, fetchSessions])
 
     const revokeSession = async (sessionId: string) => {
         try {
@@ -53,7 +53,7 @@ export function SecuritySettings() {
             } else {
                 toast.error("Failed to revoke session")
             }
-        } catch (error) {
+        } catch (_error) {
             toast.error("Error revoking session")
         }
     }
