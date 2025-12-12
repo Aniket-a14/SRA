@@ -17,6 +17,7 @@
     "@prisma/client": "^5.22.0",
     "axios": "^1.13.2",
     "bcryptjs": "^3.0.3",
+    "bull": "^4.16.5",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
@@ -24,6 +25,7 @@
     "express-rate-limit": "^8.2.1",
     "express-validator": "^7.3.1",
     "helmet": "^8.1.0",
+    "ioredis": "^5.8.2",
     "jsonwebtoken": "^9.0.3",
     "nodemon": "^3.1.11",
     "prisma": "^5.22.0"

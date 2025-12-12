@@ -16,7 +16,37 @@ model User {
   createdAt DateTime  @default(now())
   
   analyses  Analysis[]
+
   accounts  Account[]
+  sessions  Session[]
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  token        String   @unique
+  userAgent    String?
+  ipAddress    String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  lastUsedAt   DateTime @default(now())
+  revoked      Boolean  @default(false)
+  
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  analysisId String
+  role      String
+  content   String
+  createdAt DateTime @default(now())
+  
+  analysis  Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  
+  @@index([analysisId])
 }
 
 model Analysis {
@@ -24,9 +54,13 @@ model Analysis {
   userId      String
   inputText   String
   resultJson  Json
+  version     Int      @default(1)
+  title       String?
+  generatedCode Json?
   createdAt   DateTime @default(now())
 
   user        User     @relation(fields: [userId], references: [id])
+  messages    ChatMessage[]
   
   @@index([userId])
 }

@@ -1,15 +1,22 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
+import { Button } from "@/components/ui/button"
 import { StoryCard } from "@/components/story-card"
 import { ApiCard } from "@/components/api-card"
 import { MermaidRenderer } from "@/components/mermaid-renderer"
-import { CheckCircle2, AlertTriangle, Bot } from "lucide-react"
+import { CheckCircle2, AlertTriangle, Bot, ShieldCheck, Bug } from "lucide-react"
 import type { AnalysisResult } from "@/types/analysis"
+import { DiagramEditor } from "@/components/diagram-editor"
+import { useAuth } from "@/lib/auth-context"
+import { Progress } from "@/components/ui/progress"
+import { useParams } from "next/navigation"
+import { CodeViewer } from "@/components/code-viewer"
+import { Code, Loader2 } from "lucide-react"
 
 interface ResultsTabsProps {
   data?: AnalysisResult
@@ -17,6 +24,12 @@ interface ResultsTabsProps {
 
 export function ResultsTabs({ data }: ResultsTabsProps) {
   const sectionRef = useRef<HTMLElement>(null)
+  const { token } = useAuth()
+  const params = useParams()
+  const analysisId = params?.id as string
+
+  const [isGeneratingCode, setIsGeneratingCode] = useState(false)
+  const [codeError, setCodeError] = useState("")
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -49,9 +62,14 @@ export function ResultsTabs({ data }: ResultsTabsProps) {
     acceptanceCriteria = [],
     apiContracts = [],
     missingLogic = [],
+    contradictions = [],
     flowchartDiagram = "",
     sequenceDiagram = "",
+    qualityAudit,
+    generatedCode: initialGeneratedCode,
   } = data
+
+  const [generatedCode, setGeneratedCode] = useState<any>(initialGeneratedCode || null)
 
   return (
     <section ref={sectionRef} className="py-12 sm:py-16">
@@ -98,6 +116,12 @@ export function ResultsTabs({ data }: ResultsTabsProps) {
                 </TabsTrigger>
                 <TabsTrigger value="diagrams" className="transition-all duration-200">
                   Diagrams
+                </TabsTrigger>
+                <TabsTrigger value="code" className="transition-all duration-200">
+                  Stack & Code
+                </TabsTrigger>
+                <TabsTrigger value="quality" className="transition-all duration-200">
+                  Quality Audit
                 </TabsTrigger>
               </TabsList>
               <ScrollBar orientation="horizontal" />
@@ -167,6 +191,27 @@ export function ResultsTabs({ data }: ResultsTabsProps) {
                   </CardContent>
                 </Card>
               </div>
+
+              {contradictions && contradictions.length > 0 && (
+                <Card className="mt-6 bg-destructive/10 border-destructive transition-all duration-300 animate-pulse-glow hover:border-destructive/80">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2 text-destructive">
+                      <Bug className="h-5 w-5" />
+                      AI Bug Detector: Critical Contradictions Found
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-3">
+                      {contradictions.map((item, index) => (
+                        <li key={index} className="flex items-start gap-3 text-sm font-medium text-destructive">
+                          <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
             {/* Functional Requirements Tab */}
@@ -343,9 +388,149 @@ export function ResultsTabs({ data }: ResultsTabsProps) {
             {/* Diagrams Tab */}
             <TabsContent value="diagrams" className="animate-fade-in">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                <MermaidRenderer title="Flowchart" chart={flowchartDiagram} />
-                <MermaidRenderer title="Sequence Diagram" chart={sequenceDiagram} />
+                <DiagramEditor
+                  title="Flowchart"
+                  initialCode={flowchartDiagram}
+                  onSave={async (newCode) => {
+                    await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
+                      method: "PUT",
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`
+                      },
+                      body: JSON.stringify({ flowchartDiagram: newCode })
+                    })
+                  }}
+                />
+                <DiagramEditor
+                  title="Sequence Diagram"
+                  initialCode={sequenceDiagram}
+                  onSave={async (newCode) => {
+                    await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
+                      method: "PUT",
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`
+                      },
+                      body: JSON.stringify({ sequenceDiagram: newCode })
+                    })
+                  }}
+                />
               </div>
+            </TabsContent>
+
+            {/* Code Generator Tab */}
+            <TabsContent value="code" className="animate-fade-in min-h-[500px]">
+              {!generatedCode && !isGeneratingCode ? (
+                <div className="flex flex-col items-center justify-center p-12 text-center space-y-4 border rounded-lg bg-card border-dashed">
+                  <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center">
+                    <Code className="h-8 w-8 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold">Generate Project Code</h3>
+                    <p className="text-muted-foreground max-w-md mt-2">
+                      Ask AI to scaffold your project structure, database schema, API routes, and React components based on these requirements.
+                    </p>
+                  </div>
+                  <Button
+                    className="mt-4"
+                    onClick={async () => {
+                      setIsGeneratingCode(true);
+                      setCodeError("");
+                      try {
+                        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}/code`, {
+                          method: "POST",
+                          headers: { Authorization: `Bearer ${token}` }
+                        });
+                        if (!res.ok) throw new Error("Failed to generate code");
+                        const js = await res.json();
+                        setGeneratedCode(js);
+                      } catch (e) {
+                        console.error(e);
+                        setCodeError("Failed to generate code. Please try again.");
+                      } finally {
+                        setIsGeneratingCode(false);
+                      }
+                    }}
+                  >
+                    Generate Code Assets
+                  </Button>
+                </div>
+              ) : isGeneratingCode ? (
+                <div className="flex flex-col items-center justify-center p-12 space-y-6">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full animate-pulse-glow" />
+                    <Loader2 className="h-12 w-12 animate-spin text-primary relative z-10" />
+                  </div>
+                  <div className="text-center space-y-2">
+                    <h3 className="text-lg font-medium">Scaffolding your project...</h3>
+                    <p className="text-sm text-muted-foreground">Generating schema, API routes, and components.</p>
+                  </div>
+                </div>
+              ) : generatedCode ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-medium flex items-center gap-2">
+                      <Code className="h-5 w-5 text-primary" />
+                      Generated Project Assets
+                    </h3>
+                    <Button variant="outline" size="sm" onClick={() => setGeneratedCode(null)}>
+                      Regeneration Options
+                    </Button>
+                  </div>
+                  <CodeViewer {...generatedCode} />
+                </div>
+              ) : (
+                <div className="p-8 text-destructive text-center">{codeError}</div>
+              )}
+            </TabsContent>
+
+            {/* Quality Audit Tab */}
+            <TabsContent value="quality" className="animate-fade-in">
+              {qualityAudit ? (
+                <Card className="bg-card border-border">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <ShieldCheck className="h-5 w-5 text-primary" />
+                      Requirements Quality Score: {qualityAudit.score}/100
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Quality Check</span>
+                        <span className={qualityAudit.score >= 80 ? "text-green-500" : qualityAudit.score >= 50 ? "text-amber-500" : "text-destructive"}>
+                          {qualityAudit.score >= 80 ? "Excellent" : qualityAudit.score >= 50 ? "Needs Improvement" : "Poor"}
+                        </span>
+                      </div>
+                      <Progress value={qualityAudit.score} className={qualityAudit.score >= 80 ? "bg-secondary text-green-500" : "bg-secondary"} indicatorClassName={qualityAudit.score >= 80 ? "bg-green-500" : qualityAudit.score >= 50 ? "bg-amber-500" : "bg-destructive"} />
+                    </div>
+
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-sm">Identified Issues</h4>
+                      {qualityAudit.issues.length > 0 ? (
+                        <ul className="space-y-3">
+                          {qualityAudit.issues.map((issue, index) => (
+                            <li key={index} className="flex items-start gap-3 text-sm bg-muted/30 p-3 rounded-md border border-border/50">
+                              <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                              <span>{issue}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div className="flex items-center gap-2 text-green-500 text-sm p-4 bg-green-500/10 rounded-md">
+                          <CheckCircle2 className="h-4 w-4" />
+                          No issues found. Great job!
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="text-center p-8 text-muted-foreground">
+                  No quality audit data available for this analysis.
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </div>

@@ -7,8 +7,12 @@ import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { ResultsTabs } from "@/components/results-tabs"
 import { Button } from "@/components/ui/button"
-import { Loader2, ArrowLeft, Calendar } from "lucide-react"
+import { Loader2, ArrowLeft, Calendar, Download } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
+import { ProjectChatPanel } from "@/components/project-chat-panel"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { generateSRS, generateAPI, downloadBundle } from "@/lib/export-utils"
+import { saveAs } from "file-saver"
 import type { AnalysisResult } from "@/types/analysis"
 
 interface AnalysisDetail {
@@ -131,13 +135,51 @@ function AnalysisDetailContent() {
                                 </div>
                             </div>
                         </div>
+
+                        <div className="mt-4 flex gap-2">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" className="gap-2">
+                                        <Download className="h-4 w-4" />
+                                        Export
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start">
+                                    <DropdownMenuItem onClick={() => {
+                                        if (analysis?.resultJson) {
+                                            const doc = generateSRS(analysis.resultJson, "SRS Report");
+                                            doc.save("SRS_Report.pdf");
+                                        }
+                                    }}>
+                                        Export SRS (PDF)
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => {
+                                        if (analysis?.resultJson) {
+                                            const md = generateAPI(analysis.resultJson);
+                                            const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+                                            saveAs(blob, "API_Blueprint.md");
+                                        }
+                                    }}>
+                                        Export API Blueprint (MD)
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => {
+                                        if (analysis?.resultJson) {
+                                            downloadBundle(analysis.resultJson, "Project_Analysis");
+                                        }
+                                    }}>
+                                        Download Bundle (.zip)
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
                     </div>
                 </div>
 
-                {analysis?.resultJson && (
-                    <ResultsTabs data={analysis.resultJson} />
+                {analysis && (
+                    <ResultsTabs data={analysis as unknown as AnalysisResult} />
                 )}
             </main>
+            <ProjectChatPanel analysisId={id} onAnalysisUpdate={(newId) => router.push(`/analysis/${newId}`)} />
             <Footer />
         </div>
     )

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import prisma from '../config/prisma.js';
+import { lintRequirements } from './qualityService.js';
 
 export const performAnalysis = async (userId, text) => {
     // Call AI Service
@@ -23,12 +24,26 @@ export const performAnalysis = async (userId, text) => {
         throw new Error('Failed to communicate with analysis service');
     }
 
+    // Run Quality Check (Linting)
+    const qualityAudit = lintRequirements(resultJson);
+    resultJson = { ...resultJson, qualityAudit };
+
+    // Calculate version
+    const count = await prisma.analysis.count({
+        where: { userId }
+    });
+    const version = count + 1;
+    const title = resultJson.projectTitle || `Version ${version}`;
+
     // Save to DB
     const analysis = await prisma.analysis.create({
         data: {
             userId,
             inputText: text,
             resultJson,
+            version,
+            title
+
         },
     });
 
@@ -43,6 +58,8 @@ export const getUserAnalyses = async (userId) => {
             id: true,
             createdAt: true,
             inputText: true,
+            version: true,
+            title: true
         }
     });
 

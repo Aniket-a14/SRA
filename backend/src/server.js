@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import app from './app.js';
+import './workers/analysisWorker.js'; // Start background worker
 
 const PORT = process.env.PORT || 3000;
 

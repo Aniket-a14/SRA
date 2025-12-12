@@ -1,4 +1,8 @@
 import { performAnalysis, getUserAnalyses, getAnalysisById } from '../services/analysisService.js';
+import { processChat } from '../services/chatService.js';
+import { generateCodeFromAnalysis } from '../services/codeGenService.js';
+import { addAnalysisJob, getJobStatus } from '../services/queueService.js';
+import prisma from '../config/prisma.js';
 
 export const analyze = async (req, res, next) => {
     try {
@@ -15,11 +19,31 @@ export const analyze = async (req, res, next) => {
             throw error;
         }
 
-        const result = await performAnalysis(req.user.userId, text);
-        res.status(201).json({
-            analysisId: result.id,
-            result: result.resultJson
+        // OFFLOAD TO QUEUE
+        const job = await addAnalysisJob(req.user.userId, text);
+
+        res.status(202).json({
+            message: "Analysis queued",
+            jobId: job.id,
+            status: "queued"
         });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const checkJobStatus = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const status = await getJobStatus(id);
+
+        if (!status) {
+            const error = new Error('Job not found');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        res.json(status);
     } catch (error) {
         next(error);
     }
@@ -43,7 +67,89 @@ export const getAnalysis = async (req, res, next) => {
             error.statusCode = 404;
             throw error;
         }
-        res.json(analysis);
+        res.json({
+            ...analysis.resultJson,
+            id: analysis.id,
+            title: analysis.title,
+            version: analysis.version,
+            createdAt: analysis.createdAt,
+            generatedCode: analysis.generatedCode
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const updateAnalysis = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { functionalRequirements, nonFunctionalRequirements, userStories, entities, apiContracts, acceptanceCriteria, flowchartDiagram, sequenceDiagram, cleanedRequirements } = req.body;
+
+        // Fetch existing to ensure ownership
+        const analysis = await getAnalysisById(req.user.userId, id);
+        if (!analysis) {
+            const error = new Error('Analysis not found');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        // Merge updates into resultJson
+        const updatedResultJson = {
+            ...analysis.resultJson,
+            ...(flowchartDiagram && { flowchartDiagram }),
+            ...(sequenceDiagram && { sequenceDiagram }),
+            // Allow other updates if needed, but primary goal is diagrams
+        };
+
+        const updatedAnalysis = await prisma.analysis.update({
+            where: { id },
+            data: { resultJson: updatedResultJson }
+        });
+
+        res.json(updatedAnalysis);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const chat = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { message } = req.body;
+
+        if (!message) throw new Error("Message is required");
+
+        const response = await processChat(req.user.userId, id, message);
+        res.json(response);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const getChatHistory = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        // Verify ownership
+        const analysis = await prisma.analysis.findUnique({ where: { id } });
+        if (!analysis || analysis.userId !== req.user.userId) {
+            return res.status(403).json({ error: "Unauthorized" });
+        }
+
+        const messages = await prisma.chatMessage.findMany({
+            where: { analysisId: id },
+            orderBy: { createdAt: 'asc' }
+        });
+        res.json(messages);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const generateCode = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const result = await generateCodeFromAnalysis(req.user.userId, id);
+        res.json(result);
     } catch (error) {
         next(error);
     }

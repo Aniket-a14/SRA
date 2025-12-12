@@ -1,8 +1,9 @@
 import prisma from '../config/prisma.js';
 import { hashPassword, comparePassword } from '../utils/passwordUtils.js';
 import { signToken } from '../config/jwt.js';
+import { createSession } from './sessionService.js';
 
-export const registerUser = async (email, password, name) => {
+export const registerUser = async (email, password, name, userAgent = null, ip = null) => {
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
         throw new Error('User already exists');
@@ -18,10 +19,12 @@ export const registerUser = async (email, password, name) => {
     });
 
     const token = signToken({ userId: user.id, email: user.email });
-    return { user, token };
+    const { refreshToken, sessionId } = await createSession(user.id, userAgent, ip);
+
+    return { user, token, refreshToken, sessionId };
 };
 
-export const loginUser = async (email, password) => {
+export const loginUser = async (email, password, userAgent = null, ip = null) => {
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user || !user.password) {
         throw new Error('Invalid email or password');
@@ -33,7 +36,9 @@ export const loginUser = async (email, password) => {
     }
 
     const token = signToken({ userId: user.id, email: user.email });
-    return { user, token };
+    const { refreshToken, sessionId } = await createSession(user.id, userAgent, ip);
+
+    return { user, token, refreshToken, sessionId };
 };
 
 export const handleGoogleAuth = async (googleUser, tokens) => {

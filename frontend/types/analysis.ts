@@ -29,4 +29,11 @@ export interface AnalysisResult {
     sequenceDiagram: string
     apiContracts: ApiContract[]
     missingLogic: string[]
+    contradictions?: string[]
+    qualityAudit?: {
+        score: number
+        issues: string[]
+
+    }
+    generatedCode?: any
 }

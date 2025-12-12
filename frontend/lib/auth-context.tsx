@@ -13,7 +13,7 @@ interface User {
 interface AuthContextType {
     user: User | null
     token: string | null
-    login: (token: string, user: User) => void
+    login: (token: string, refreshToken: string, user: User) => void
     authenticateWithToken: (token: string) => Promise<void>
     logout: () => void
     isLoading: boolean
@@ -27,8 +27,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [isLoading, setIsLoading] = useState(true)
     const router = useRouter()
 
-    const logout = React.useCallback(() => {
+    const logout = React.useCallback(async () => {
+        const rfToken = localStorage.getItem("refreshToken")
+        if (rfToken) {
+            try {
+                await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/logout`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ refreshToken: rfToken })
+                })
+            } catch (e) {
+                console.error("Logout failed", e)
+            }
+        }
         localStorage.removeItem("token")
+        localStorage.removeItem("refreshToken")
         setToken(null)
         setUser(null)
         router.push("/")
@@ -44,6 +57,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (res.ok) {
                 const userData = await res.json()
                 setUser(userData)
+            } else if (res.status === 401) {
+                // Try refreshing token
+                const rfToken = localStorage.getItem("refreshToken")
+                if (rfToken) {
+                    const refreshRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/refresh`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ refreshToken: rfToken })
+                    })
+
+                    if (refreshRes.ok) {
+                        const data = await refreshRes.json()
+                        localStorage.setItem("token", data.token)
+                        localStorage.setItem("refreshToken", data.refreshToken) // rotation
+                        setToken(data.token)
+                        // Retry fetching user with new token
+                        await fetchUser(data.token)
+                        return
+                    }
+                }
+                logout()
             } else {
                 logout()
             }
@@ -66,10 +100,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [fetchUser])
 
-    const login = React.useCallback((newToken: string, newUser: User) => {
+    const login = React.useCallback((newToken: string, newRefreshToken: string, newUser: User) => {
         localStorage.setItem("token", newToken)
+        localStorage.setItem("refreshToken", newRefreshToken)
         setToken(newToken)
         setUser(newUser)
+        // router.push("/") // Optional: Assume login component handles redirect or keep it? Original had it.
+        // Let's keep strict API: login function updates state. Redirect might be handled by caller or here. 
+        // Original code: router.push("/")
         router.push("/")
     }, [router])
 
