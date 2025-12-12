@@ -3,8 +3,8 @@
 import { useState } from "react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { File, Folder, FolderOpen, Code2, Copy, Check, Download, Database, Server, AppWindow, TestTube } from "lucide-react"
+import { Card } from "@/components/ui/card"
+import { File, Code2, Copy, Check, Download, Database, Server, AppWindow, TestTube } from "lucide-react"
 import { downloadCodebase } from "@/lib/export-utils"
 
 interface FileNode {

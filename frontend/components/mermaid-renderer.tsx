@@ -43,7 +43,7 @@ export function MermaidRenderer({ chart, title }: MermaidRendererProps) {
             .replace(/[^\x20-\x7E\n\t]/g, "")
             .trim()
 
-        console.log(`Rendering ${title}:`, formatted)
+
 
         const renderDiagram = async () => {
             try {

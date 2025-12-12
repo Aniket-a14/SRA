@@ -6,7 +6,7 @@ console.log("Starting Analysis Worker...");
 analysisQueue.process(async (job) => {
     const { userId, text } = job.data;
 
-    console.log(`Processing Job ${job.id} for User ${userId}`);
+
     job.progress(10); // 10%
 
     try {
@@ -20,7 +20,7 @@ analysisQueue.process(async (job) => {
 });
 
 analysisQueue.on('completed', (job, result) => {
-    console.log(`Job ${job.id} completed!`);
+
 });
 
 analysisQueue.on('failed', (job, err) => {

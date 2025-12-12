@@ -2,7 +2,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
-import { toPng } from 'html-to-image';
+
 import type { AnalysisResult } from '@/types/analysis';
 import mermaid from 'mermaid';
 
@@ -12,12 +12,7 @@ mermaid.initialize({
     securityLevel: 'loose',
 });
 
-// Helper to add header/footer
-const addPageHeader = (doc: jsPDF, title: string, pageNum: number) => {
-    doc.setFontSize(10);
-    doc.text(title, 14, 10);
-    doc.text(`Page ${pageNum}`, 190, 10);
-};
+
 
 // Helper: Convert SVG string to PNG Blob
 const svgToPng = (svgStr: string): Promise<Blob | null> => {
@@ -132,6 +127,7 @@ export const generateSRS = (data: AnalysisResult, title: string) => {
                 head: [['ID', 'Requirement']],
                 body: frRows,
             });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             yPos = (doc as any).lastAutoTable.finalY + 15;
         } catch (e) {
             console.error("Error adding FR table", e);
@@ -144,13 +140,14 @@ export const generateSRS = (data: AnalysisResult, title: string) => {
         doc.setFontSize(18);
         doc.text("3. User Stories", 14, yPos);
         yPos += 10;
-        const usRows = data.userStories.map((us, i) => [us.role, us.feature, us.story]);
+        const usRows = data.userStories.map((us) => [us.role, us.feature, us.story]);
         try {
             autoTable(doc, {
                 startY: yPos,
                 head: [['Role', 'Feature', 'Story']],
                 body: usRows,
             });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             yPos = (doc as any).lastAutoTable.finalY + 15;
         } catch (e) {
             console.error("Error adding US table", e);
@@ -250,6 +247,7 @@ export const downloadBundle = async (data: AnalysisResult, title: string) => {
     saveAs(content, `${title.replace(/\s+/g, '_')}_Bundle.zip`);
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const downloadCodebase = async (codeData: any, title: string) => {
     const zip = new JSZip();
 

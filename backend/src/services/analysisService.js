@@ -13,7 +13,7 @@ export const performAnalysis = async (userId, text) => {
         ? ANALYZER_URL.replace('3001', '3000')
         : ANALYZER_URL;
 
-    console.log(`[DEBUG] performAnalysis: Connecting to ${targetUrl} (Original env: ${process.env.ANALYZER_URL})`);
+
 
     let resultJson;
     try {

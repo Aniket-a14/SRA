@@ -72,7 +72,7 @@ export const generateCodeFromAnalysis = async (userId, analysisId) => {
     const response = await result.response;
     const text = response.text();
 
-    console.log("Raw AI Code Gen Response Length:", text.length);
+
 
     // 4. Parse JSON
     let generatedCode;

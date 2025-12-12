@@ -35,5 +35,6 @@ export interface AnalysisResult {
         issues: string[]
 
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     generatedCode?: any
 }
