@@ -15,6 +15,8 @@ import { generateSRS, generateAPI, downloadBundle } from "@/lib/export-utils"
 import { saveAs } from "file-saver"
 import type { AnalysisResult } from "@/types/analysis"
 
+import { toast } from "sonner"
+
 interface AnalysisDetail {
     id: string
     createdAt: string
@@ -146,25 +148,44 @@ function AnalysisDetailContent() {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="start">
                                     <DropdownMenuItem onClick={() => {
-                                        if (analysis?.resultJson) {
-                                            const doc = generateSRS(analysis.resultJson, "SRS Report");
-                                            doc.save("SRS_Report.pdf");
+                                        try {
+                                            if (analysis) {
+                                                const doc = generateSRS(analysis as unknown as AnalysisResult, "SRS Report");
+                                                doc.save("SRS_Report.pdf");
+                                                toast.success("SRS Report downloaded");
+                                            }
+                                        } catch (err) {
+                                            console.error("SRS Export Failed", err);
+                                            toast.error("Failed to generate SRS PDF");
                                         }
                                     }}>
                                         Export SRS (PDF)
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => {
-                                        if (analysis?.resultJson) {
-                                            const md = generateAPI(analysis.resultJson);
-                                            const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
-                                            saveAs(blob, "API_Blueprint.md");
+                                        try {
+                                            if (analysis) {
+                                                const md = generateAPI(analysis as unknown as AnalysisResult);
+                                                const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+                                                saveAs(blob, "API_Blueprint.md");
+                                                toast.success("API Blueprint downloaded");
+                                            }
+                                        } catch (err) {
+                                            console.error("API Export Failed", err);
+                                            toast.error("Failed to generate API Blueprint");
                                         }
                                     }}>
                                         Export API Blueprint (MD)
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => {
-                                        if (analysis?.resultJson) {
-                                            downloadBundle(analysis.resultJson, "Project_Analysis");
+                                    <DropdownMenuItem onClick={async () => {
+                                        try {
+                                            if (analysis) {
+                                                toast.info("Generating bundle...");
+                                                await downloadBundle(analysis as unknown as AnalysisResult, "Project_Analysis");
+                                                toast.success("Bundle downloaded successfully");
+                                            }
+                                        } catch (err) {
+                                            console.error("Bundle Export Failed", err);
+                                            toast.error("Failed to generate Download Bundle");
                                         }
                                     }}>
                                         Download Bundle (.zip)

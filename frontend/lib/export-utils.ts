@@ -106,74 +106,108 @@ export const generateSRS = (data: AnalysisResult, title: string) => {
     doc.addPage();
 
     // 1. Overview
-    doc.setFontSize(18);
-    doc.text("1. Overview", 14, yPos);
-    yPos += 10;
-    doc.setFontSize(12);
-    const splitText = doc.splitTextToSize(data.cleanedRequirements, 180);
-    doc.text(splitText, 14, yPos);
-    yPos += (splitText.length * 7) + 10;
+    if (data.cleanedRequirements) {
+        doc.setFontSize(18);
+        doc.text("1. Overview", 14, yPos);
+        yPos += 10;
+        doc.setFontSize(12);
+        try {
+            const splitText = doc.splitTextToSize(data.cleanedRequirements, 180);
+            doc.text(splitText, 14, yPos);
+            yPos += (splitText.length * 7) + 10;
+        } catch (e) {
+            console.error("Error adding overview text", e);
+        }
+    }
 
     // 2. Functional Requirements
-    doc.setFontSize(18);
-    doc.text("2. Functional Requirements", 14, yPos);
-    yPos += 10;
-    const frRows = data.functionalRequirements.map((req, i) => [`FR-${i + 1}`, req]);
-    autoTable(doc, {
-        startY: yPos,
-        head: [['ID', 'Requirement']],
-        body: frRows,
-    });
-    // @ts-ignore
-    yPos = doc.lastAutoTable.finalY + 15;
+    if (data.functionalRequirements?.length) {
+        doc.setFontSize(18);
+        doc.text("2. Functional Requirements", 14, yPos);
+        yPos += 10;
+        const frRows = data.functionalRequirements.map((req, i) => [`FR-${i + 1}`, req]);
+        try {
+            autoTable(doc, {
+                startY: yPos,
+                head: [['ID', 'Requirement']],
+                body: frRows,
+            });
+            yPos = (doc as any).lastAutoTable.finalY + 15;
+        } catch (e) {
+            console.error("Error adding FR table", e);
+            yPos += 20;
+        }
+    }
 
     // 3. User Stories
-    doc.setFontSize(18);
-    doc.text("3. User Stories", 14, yPos);
-    yPos += 10;
-    const usRows = data.userStories.map((us, i) => [us.role, us.feature, us.story]);
-    autoTable(doc, {
-        startY: yPos,
-        head: [['Role', 'Feature', 'Story']],
-        body: usRows,
-    });
-    // @ts-ignore
-    yPos = doc.lastAutoTable.finalY + 15;
+    if (data.userStories?.length) {
+        doc.setFontSize(18);
+        doc.text("3. User Stories", 14, yPos);
+        yPos += 10;
+        const usRows = data.userStories.map((us, i) => [us.role, us.feature, us.story]);
+        try {
+            autoTable(doc, {
+                startY: yPos,
+                head: [['Role', 'Feature', 'Story']],
+                body: usRows,
+            });
+            yPos = (doc as any).lastAutoTable.finalY + 15;
+        } catch (e) {
+            console.error("Error adding US table", e);
+            yPos += 20;
+        }
+    }
 
-    // Save
     return doc;
 };
 
 export const generateAPI = (data: AnalysisResult) => {
     let content = "# API Documentation\n\n";
-    data.apiContracts.forEach(api => {
-        content += `## ${api.method} ${api.endpoint}\n`;
-        content += `${api.description}\n\n`;
-        content += "### Request Body\n```json\n" + JSON.stringify(api.requestBody, null, 2) + "\n```\n\n";
-        content += "### Response Body\n```json\n" + JSON.stringify(api.responseBody, null, 2) + "\n```\n\n";
-        content += "---\n\n";
-    });
+    if (data.apiContracts?.length) {
+        data.apiContracts.forEach(api => {
+            content += `## ${api.method} ${api.endpoint}\n`;
+            content += `${api.description || ''}\n\n`;
+            try {
+                content += "### Request Body\n```json\n" + JSON.stringify(api.requestBody || {}, null, 2) + "\n```\n\n";
+                content += "### Response Body\n```json\n" + JSON.stringify(api.responseBody || {}, null, 2) + "\n```\n\n";
+            } catch (e) {
+                content += "Error parsing body JSON\n\n";
+            }
+            content += "---\n\n";
+        });
+    }
     return content;
 };
 
 export const downloadBundle = async (data: AnalysisResult, title: string) => {
     const zip = new JSZip();
 
-    // 1. SRS PDF
-    const srsDoc = generateSRS(data, title);
-    zip.file("SRS_Report.pdf", srsDoc.output('blob'));
+    try {
+        // 1. SRS PDF
+        const srsDoc = generateSRS(data, title);
+        zip.file("SRS_Report.pdf", srsDoc.output('blob'));
+    } catch (e) {
+        console.error("Failed to add SRS to bundle", e);
+    }
 
     // 2. API Markdown
-    const apiMd = generateAPI(data);
-    zip.file("API_Blueprint.md", apiMd);
+    try {
+        const apiMd = generateAPI(data);
+        zip.file("API_Blueprint.md", apiMd);
+    } catch (e) {
+        console.error("Failed to add API to bundle", e);
+    }
 
     // 3. raw JSON
-    zip.file("analysis.json", JSON.stringify(data, null, 2));
+    try {
+        zip.file("analysis.json", JSON.stringify(data, null, 2));
+    } catch (e) { }
 
     // 4. Diagrams (SVG & MMD)
     // Helper to render
     const renderDiagram = async (code: string, id: string) => {
         try {
+            if (!code) return null;
             // Unique ID to avoid conflicts
             const uniqueId = `${id}-${Math.random().toString(36).substr(2, 9)}`;
             const { svg } = await mermaid.render(uniqueId, code);
@@ -185,22 +219,30 @@ export const downloadBundle = async (data: AnalysisResult, title: string) => {
     };
 
     if (data.flowchartDiagram) {
-        zip.file("diagrams/flowchart.mmd", data.flowchartDiagram);
-        const svg = await renderDiagram(data.flowchartDiagram, 'export-flowchart');
-        if (svg) {
-            zip.file("diagrams/flowchart.svg", svg);
-            const png = await svgToPng(svg);
-            if (png) zip.file("diagrams/flowchart.png", png);
+        try {
+            zip.file("diagrams/flowchart.mmd", data.flowchartDiagram);
+            const svg = await renderDiagram(data.flowchartDiagram, 'export-flowchart');
+            if (svg) {
+                zip.file("diagrams/flowchart.svg", svg);
+                const png = await svgToPng(svg);
+                if (png) zip.file("diagrams/flowchart.png", png);
+            }
+        } catch (e) {
+            console.warn("Failed to process flowchart for bundle", e);
         }
     }
 
     if (data.sequenceDiagram) {
-        zip.file("diagrams/sequence.mmd", data.sequenceDiagram);
-        const svg = await renderDiagram(data.sequenceDiagram, 'export-sequence');
-        if (svg) {
-            zip.file("diagrams/sequence.svg", svg);
-            const png = await svgToPng(svg);
-            if (png) zip.file("diagrams/sequence.png", png);
+        try {
+            zip.file("diagrams/sequence.mmd", data.sequenceDiagram);
+            const svg = await renderDiagram(data.sequenceDiagram, 'export-sequence');
+            if (svg) {
+                zip.file("diagrams/sequence.svg", svg);
+                const png = await svgToPng(svg);
+                if (png) zip.file("diagrams/sequence.png", png);
+            }
+        } catch (e) {
+            console.warn("Failed to process sequence diagram for bundle", e);
         }
     }
 
