@@ -35,6 +35,19 @@ export interface AnalysisResult {
         issues: string[]
 
     }
+    projectTitle?: string
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     generatedCode?: any
+}
+
+export interface Analysis extends AnalysisResult {
+    id: string
+    userId: string
+    inputText: string
+    resultJson?: AnalysisResult // Kept checking legacy/optional just in case, but main data is flattened
+    version: number
+    title?: string
+    createdAt: string
+    rootId: string | null
+    parentId: string | null
 }

@@ -1,10 +1,26 @@
 import Queue from 'bull';
 
+let redisUrl = process.env.REDIS_URL;
 
-// Use REDIS_URL from env or default to local
-const redisConfig = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+let queueConfig = null;
 
-export const analysisQueue = new Queue('analysis-queue', redisConfig);
+if (redisUrl) {
+    const url = redisUrl;
+    const isUpstash = url.includes('upstash.io');
+
+    if (isUpstash) {
+        queueConfig = {
+            redis: {
+                port: 6379,
+                tls: { rejectUnauthorized: false },  // Required for Upstash
+            }
+        };
+    }
+}
+
+export const analysisQueue = new Queue('analysis-queue', redisUrl, queueConfig || {});
+
+console.log(`✅ Using Redis Queue: ${redisUrl?.includes('upstash') ? 'Upstash Cloud' : 'Local/Other'}`);
 
 export const addAnalysisJob = async (userId, text) => {
     const job = await analysisQueue.add({
@@ -13,7 +29,7 @@ export const addAnalysisJob = async (userId, text) => {
     }, {
         attempts: 2,
         backoff: 5000,
-        removeOnComplete: true, // Keep memory clean
+        removeOnComplete: 100, // Keep last 100 jobs so polling succeeds
         removeOnFail: false // Keep for debugging
     });
 
@@ -25,7 +41,7 @@ export const getJobStatus = async (jobId) => {
     if (!job) return null;
 
     const state = await job.getState();
-    const result = job.returnvalue;
+    const result = job.returnvalue; // Bull uses returnvalue
     const error = job.failedReason;
     const progress = job.progress();
 

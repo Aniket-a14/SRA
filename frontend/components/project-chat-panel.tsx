@@ -115,7 +115,10 @@ export function ProjectChatPanel({ analysisId, onAnalysisUpdate }: ProjectChatPa
                 <Button
                     variant="default"
                     size="icon"
-                    className="fixed bottom-8 right-8 h-14 w-14 rounded-full shadow-xl bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 transition-all z-[100]"
+                    className={cn(
+                        "fixed bottom-8 right-8 h-14 w-14 rounded-full shadow-xl bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 transition-all z-[100]",
+                        isOpen && "opacity-0 translate-x-10 pointer-events-none"
+                    )}
                 >
                     <MessageSquare className="h-6 w-6" />
                 </Button>
@@ -128,7 +131,7 @@ export function ProjectChatPanel({ analysisId, onAnalysisUpdate }: ProjectChatPa
                     </SheetTitle>
                 </SheetHeader>
 
-                <ScrollArea className="flex-1 p-6">
+                <div className="flex-1 overflow-y-auto p-6">
                     <div className="flex flex-col gap-4">
                         {messages.length === 0 && (
                             <div className="text-center text-muted-foreground py-8">
@@ -146,12 +149,9 @@ export function ProjectChatPanel({ analysisId, onAnalysisUpdate }: ProjectChatPa
                             >
                                 <Avatar className="h-8 w-8 shrink-0">
                                     {msg.role === "assistant" ? (
-                                        <>
-                                            <AvatarFallback><Bot className="h-4 w-4" /></AvatarFallback>
-                                            <div className="bg-primary/10 w-full h-full flex items-center justify-center">
-                                                <Bot className="h-4 w-4 text-primary" />
-                                            </div>
-                                        </>
+                                        <div className="bg-primary/10 w-full h-full flex items-center justify-center">
+                                            <Bot className="h-4 w-4 text-primary" />
+                                        </div>
                                     ) : (
                                         <>
                                             <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
@@ -184,7 +184,7 @@ export function ProjectChatPanel({ analysisId, onAnalysisUpdate }: ProjectChatPa
                         )}
                         <div ref={scrollRef} />
                     </div>
-                </ScrollArea>
+                </div>
 
                 <div className="p-4 border-t mt-auto">
                     <form
