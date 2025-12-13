@@ -1,11 +1,11 @@
 import { genAI } from "../config/gemini.js";
-import { MASTER_PROMPT } from "../utils/prompts.js";
+import { constructMasterPrompt } from "../utils/prompts.js";
 
-export async function analyzeText(text) {
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+export async function analyzeText(text, settings = {}) {
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
   const prompt = `
-${MASTER_PROMPT}
+${constructMasterPrompt(settings)}
 
 User Input:
 ${text}

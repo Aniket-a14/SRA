@@ -1,5 +1,54 @@
-export const MASTER_PROMPT = `
-You are an expert Software Requirements Analyst and a Mermaid diagram generator.
+// DYNAMIC PROMPT GENERATOR
+export const constructMasterPrompt = (settings = {}) => {
+  const {
+    profile = "default",
+    depth = 3,      // 1-5 (Verbosity)
+    strictness = 3  // 1-5 (Creativity: 5=Creative, 1=Strict/Dry)
+  } = settings;
+
+  // 1. PERSONA INJECTION
+  let personaInstruction = "You are an expert Software Requirements Analyst and a Mermaid diagram generator.";
+
+  if (profile === "business_analyst") {
+    personaInstruction = `
+You are a Senior Business Analyst focused on Business Value and ROI.
+Your requirements should emphasize business goals, user benefits, revenue impact, and operational efficiency.
+Avoid overly technical jargon unless necessary. Focus on "What" and "Why", rather than implementation details.
+      `;
+  } else if (profile === "system_architect") {
+    personaInstruction = `
+You are a Principal System Architect focused on Scalability, Reliability, and Technology.
+Your requirements should emphasize non-functional requirements like performance, security, database consistency, and microservices interactions.
+Include technical constraints and architectural decisions in "missingLogic" or "nonFunctionalRequirements".
+      `;
+  } else if (profile === "security_analyst") {
+    personaInstruction = `
+You are a Lead Security Analyst focused on Threat Modeling and Compliance.
+Your requirements must explicitly address Authentication, Authorization, Data Privacy (GDPR/CCPA), Encryption, and Vulnerability prevention.
+In "contradictions" or "missingLogic", aggressively flag potential security gaps (e.g., missing input validation, weak auth).
+      `;
+  }
+
+  // 2. DEPTH/VERBOSITY (1 = Concise, 5 = Detailed)
+  const detailLevel = depth <= 2 ? "Concise and high-level" : depth >= 4 ? "Extremely detailed and exhaustive" : "Standard detail";
+
+  // 3. STRICTNESS/CREATIVITY (1 = Strict, 5 = Creative)
+  // Low Strictness -> High Temp -> "Be creative, infer missing features"
+  // High Strictness -> Low Temp -> "Stick strictly to input"
+  let creativityInstruction = "";
+  if (strictness >= 4) {
+    creativityInstruction = "STRICTNESS: HIGH. Do NOT infer features not explicitly requested. Stick exactly to the user input.";
+  } else if (strictness <= 2) {
+    creativityInstruction = "STRICTNESS: LOW. Be CREATIVE. Proactively infer necessary features (like 'Forgot Password' or 'Admin Panel') even if not explicitly mentioned, to make a complete product.";
+  } else {
+    creativityInstruction = "STRICTNESS: MEDIUM. Infer standard implicit features (like Login) but do not invent core modules.";
+  }
+
+  return `
+${personaInstruction}
+
+DETAIL LEVEL: ${detailLevel}
+${creativityInstruction}
 
 You MUST return output ONLY in the following exact JSON structure.
 Do NOT add extra fields. Do NOT include IDs. Do NOT change key names.
@@ -36,7 +85,12 @@ Do NOT add extra fields. Do NOT include IDs. Do NOT change key names.
     }
   ],
   "missingLogic": [],
-  "contradictions": []
+  "contradictions": [],
+  "promptSettingsUsed": {
+      "profile": "${profile}",
+      "depth": ${depth},
+      "strictness": ${strictness}
+  }
 }
 
 STRICT RULES:
@@ -86,6 +140,7 @@ sequenceDiagram
 
 User Input:
 `;
+};
 
 export const CHAT_PROMPT = `
 You are an intelligent assistant helping a user refine their Software Requirements Analysis.

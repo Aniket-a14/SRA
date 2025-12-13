@@ -3,7 +3,7 @@ import prisma from '../config/prisma.js';
 import { lintRequirements } from './qualityService.js';
 import crypto from 'crypto';
 
-export const performAnalysis = async (userId, text, projectId = null, parentId = null, rootId = null) => {
+export const performAnalysis = async (userId, text, projectId = null, parentId = null, rootId = null, settings = {}) => {
     // Call AI Service
     // Default to local internal endpoint if env var is missing or incorrect
     const port = process.env.PORT || 3000;
@@ -27,7 +27,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         };
     } else {
         try {
-            const response = await axios.post(targetUrl, { text });
+            const response = await axios.post(targetUrl, { text, settings });
             resultJson = response.data;
         } catch (error) {
             console.error("AI Analysis connection failed:", error.message);
@@ -37,7 +37,11 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
 
     // Run Quality Check (Linting)
     const qualityAudit = lintRequirements(resultJson);
-    resultJson = { ...resultJson, qualityAudit };
+    resultJson = {
+        ...resultJson,
+        qualityAudit,
+        promptSettings: settings // Store settings used for versioning
+    };
 
     // Atomic Creation with Transaction
     return await prisma.$transaction(async (tx) => {
