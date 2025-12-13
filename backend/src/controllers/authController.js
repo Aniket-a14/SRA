@@ -55,7 +55,10 @@ export const googleCallback = async (req, res, next) => {
         const tokens = await getGoogleTokens(code);
         const googleUser = await getGoogleUser(tokens.id_token, tokens.access_token);
 
-        const result = await handleGoogleAuth(googleUser, tokens);
+        const ip = req.ip;
+        const userAgent = req.headers['user-agent'];
+
+        const result = await handleGoogleAuth(googleUser, tokens, userAgent, ip);
 
         // Redirect to frontend with token
         // Update FRONTEND_URL in .env if needed, defaulting to root provided in requirements or same host
@@ -79,7 +82,10 @@ export const githubCallback = async (req, res, next) => {
         const tokens = await getGithubTokens(code);
         const githubUser = await getGithubUser(tokens.access_token);
 
-        const result = await handleGithubAuth(githubUser, tokens);
+        const ip = req.ip;
+        const userAgent = req.headers['user-agent'];
+
+        const result = await handleGithubAuth(githubUser, tokens, userAgent, ip);
 
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
         res.redirect(`${frontendUrl}/?token=${result.token}&refreshToken=${result.refreshToken}`);

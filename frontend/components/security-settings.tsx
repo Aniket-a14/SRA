@@ -6,11 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Laptop, Smartphone, Globe, Clock, ShieldAlert } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { toast } from "sonner"
+import { UAParser } from "ua-parser-js"
 
 interface Session {
     id: string
     userAgent: string | null
     ipAddress: string | null
+    location: string | null
     lastUsedAt: string
     createdAt: string
     expiresAt: string
@@ -60,8 +62,27 @@ export function SecuritySettings() {
 
     const getIcon = (ua: string | null) => {
         if (!ua) return <Globe className="h-5 w-5" />
-        if (ua.toLowerCase().includes("mobile")) return <Smartphone className="h-5 w-5" />
+        const parser = new UAParser(ua)
+        const device = parser.getDevice()
+        if (device.type === "mobile" || device.type === "tablet") return <Smartphone className="h-5 w-5" />
         return <Laptop className="h-5 w-5" />
+    }
+
+    const getDeviceName = (ua: string | null) => {
+        if (!ua) return "Unknown Device";
+        const parser = new UAParser(ua);
+        const browser = parser.getBrowser();
+        const os = parser.getOS();
+        const device = parser.getDevice(); // type, vendor, model
+
+        const browserName = browser.name || "Unknown Browser";
+        const osName = os.name || "Unknown OS";
+
+        let deviceName = `${browserName} on ${osName}`;
+        if (device.vendor && device.model) {
+            deviceName = `${device.vendor} ${device.model} - ${deviceName}`;
+        }
+        return deviceName;
     }
 
     if (isLoading) return <div>Loading security settings...</div>
@@ -91,14 +112,15 @@ export function SecuritySettings() {
                                 <div className="space-y-1">
                                     <div className="font-medium text-sm flex items-center gap-2">
                                         {session.ipAddress || "Unknown IP"}
-                                        {/* Identify current session if possible? Requires tracking current session ID in context or matching refresh token. Omitted for simplicity now. */}
+                                        <span className="text-muted-foreground">•</span>
+                                        <span className="text-muted-foreground">{session.location || "Unknown Location"}</span>
                                     </div>
                                     <div className="text-xs text-muted-foreground flex items-center gap-1">
                                         <Clock className="h-3 w-3" />
                                         Last active {formatDistanceToNow(new Date(session.lastUsedAt))} ago
                                     </div>
                                     <div className="text-xs text-muted-foreground truncate max-w-[200px] sm:max-w-[300px]">
-                                        {session.userAgent || "Unknown Device"}
+                                        {getDeviceName(session.userAgent)}
                                     </div>
                                 </div>
                             </div>

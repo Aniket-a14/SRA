@@ -28,6 +28,7 @@ model Session {
   token        String   @unique
   userAgent    String?
   ipAddress    String?
+  location     String?
   expiresAt    DateTime
   createdAt    DateTime @default(now())
   lastUsedAt   DateTime @default(now())

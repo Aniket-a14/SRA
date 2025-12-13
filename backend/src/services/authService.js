@@ -41,7 +41,7 @@ export const loginUser = async (email, password, userAgent = null, ip = null) =>
     return { user, token, refreshToken, sessionId };
 };
 
-export const handleGoogleAuth = async (googleUser, tokens) => {
+export const handleGoogleAuth = async (googleUser, tokens, userAgent, ip) => {
     const { email, name, picture, id } = googleUser;
 
     // 1. Check if user exists by email
@@ -100,7 +100,7 @@ export const handleGoogleAuth = async (googleUser, tokens) => {
     }
 
     const token = signToken({ userId: user.id, email: user.email });
-    const { refreshToken, sessionId } = await createSession(user.id, null, null); // userAgent/IP not easily available here without passing req down, or just accept null for now
+    const { refreshToken, sessionId } = await createSession(user.id, userAgent, ip);
     return { user, token, refreshToken, sessionId };
 };
 
@@ -111,7 +111,7 @@ export const getUserById = async (userId) => {
     });
 };
 
-export const handleGithubAuth = async (githubUser, tokens) => {
+export const handleGithubAuth = async (githubUser, tokens, userAgent, ip) => {
     const { email, name, avatar_url, id, login } = githubUser;
 
     // 1. Check if user exists by email
@@ -166,6 +166,6 @@ export const handleGithubAuth = async (githubUser, tokens) => {
     }
 
     const token = signToken({ userId: user.id, email: user.email });
-    const { refreshToken, sessionId } = await createSession(user.id, null, null);
+    const { refreshToken, sessionId } = await createSession(user.id, userAgent, ip);
     return { user, token, refreshToken, sessionId };
 };

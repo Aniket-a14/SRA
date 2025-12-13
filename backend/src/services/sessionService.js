@@ -1,5 +1,19 @@
 import prisma from '../config/prisma.js';
+import axios from 'axios';
 import crypto from 'crypto';
+
+const getLocationFromIp = async (ip) => {
+    if (!ip || ip === '::1' || ip === '127.0.0.1') return 'Localhost';
+    try {
+        const response = await axios.get(`http://ip-api.com/json/${ip}`);
+        if (response.data.status === 'success') {
+            return `${response.data.city}, ${response.data.country}`;
+        }
+    } catch (error) {
+        console.error('GeoIP lookup failed', error.message);
+    }
+    return 'Unknown Location';
+};
 
 /**
  * Creates a new session/refresh token for a user.
@@ -14,12 +28,15 @@ export const createSession = async (userId, userAgent, ipAddress) => {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7); // 7 day expiry
 
+    const location = await getLocationFromIp(ipAddress);
+
     const session = await prisma.session.create({
         data: {
             userId,
             token: refreshToken,
             userAgent,
             ipAddress,
+            location,
             expiresAt
         }
     });
@@ -62,6 +79,10 @@ export const rotateSession = async (oldSession, newUserAgent, newIp) => {
     const newExpiresAt = new Date();
     newExpiresAt.setDate(newExpiresAt.getDate() + 7);
 
+    const location = (newIp && newIp !== oldSession.ipAddress)
+        ? await getLocationFromIp(newIp)
+        : oldSession.location;
+
     // Update the existing session ID with new token (Rotation)
     await prisma.session.update({
         where: { id: oldSession.id },
@@ -70,7 +91,8 @@ export const rotateSession = async (oldSession, newUserAgent, newIp) => {
             expiresAt: newExpiresAt,
             lastUsedAt: new Date(),
             userAgent: newUserAgent || oldSession.userAgent, // Update UA if changed?
-            ipAddress: newIp || oldSession.ipAddress
+            ipAddress: newIp || oldSession.ipAddress,
+            location
         }
     });
 
@@ -92,8 +114,10 @@ export const getUserSessions = async (userId) => {
             userAgent: true,
             ipAddress: true,
             lastUsedAt: true,
+            lastUsedAt: true,
             createdAt: true,
-            expiresAt: true
+            expiresAt: true,
+            location: true
         }
     });
 };
