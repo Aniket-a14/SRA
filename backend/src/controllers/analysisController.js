@@ -3,6 +3,7 @@ import { processChat } from '../services/chatService.js';
 import { generateCodeFromAnalysis } from '../services/codeGenService.js';
 import { addAnalysisJob, getJobStatus } from '../services/queueService.js';
 import { compareAnalyses } from '../services/diffService.js';
+import { lintRequirements } from '../services/qualityService.js';
 import prisma from '../config/prisma.js';
 
 export const analyze = async (req, res, next) => {
@@ -119,39 +120,71 @@ export const getAnalysis = async (req, res, next) => {
 export const updateAnalysis = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { functionalRequirements, nonFunctionalRequirements, userStories, entities, apiContracts, acceptanceCriteria, flowchartDiagram, sequenceDiagram, cleanedRequirements } = req.body;
+        const updates = req.body; // Can contain any field of resultJson
 
-        // Fetch existing to ensure ownership
-        const analysis = await getAnalysisById(req.user.userId, id);
-        if (!analysis) {
+        // 1. Fetch existing analysis
+        const currentAnalysis = await getAnalysisById(req.user.userId, id);
+        if (!currentAnalysis) {
             const error = new Error('Analysis not found');
             error.statusCode = 404;
             throw error;
         }
 
-        // Merge updates into resultJson
-        const updatedResultJson = {
-            ...analysis.resultJson,
-            ...(flowchartDiagram && { flowchartDiagram }),
-            ...(sequenceDiagram && { sequenceDiagram }),
-            // Allow other updates if needed, but primary goal is diagrams
+        // 2. Merge updates
+        const newResultJson = {
+            ...currentAnalysis.resultJson,
+            ...updates
         };
 
-        const updatedAnalysis = await prisma.analysis.update({
-            where: { id },
-            data: { resultJson: updatedResultJson }
+        // 3. Re-run Quality Check (Linting)
+        const qualityAudit = lintRequirements({ ...newResultJson });
+        newResultJson.qualityAudit = qualityAudit;
+
+        // 4. Run Diff (Previous vs New)
+        // We compare the 'currentAnalysis' (which is now 'vOld') against 'newResultJson' (which is 'vNew')
+        // We construct a mock object for v2 to match compareAnalyses signature
+        const diff = compareAnalyses(currentAnalysis, { inputText: currentAnalysis.inputText, resultJson: newResultJson });
+        newResultJson.diff = diff;
+
+        // 5. Create NEW Analysis Version (Atomic Transaction)
+        const newAnalysis = await prisma.$transaction(async (tx) => {
+            // Find root properties
+            const rootId = currentAnalysis.rootId || currentAnalysis.id;
+
+            // Find max version for this root
+            const maxVersionAgg = await tx.analysis.findFirst({
+                where: { rootId },
+                orderBy: { version: 'desc' },
+                select: { version: true }
+            });
+            const nextVersion = (maxVersionAgg?.version || 0) + 1;
+
+            // Create
+            return await tx.analysis.create({
+                data: {
+                    userId: req.user.userId,
+                    inputText: currentAnalysis.inputText, // Input text doesn't change, we are refining reqs
+                    resultJson: newResultJson,
+                    version: nextVersion, // Auto-increment version
+                    title: currentAnalysis.title || `Version ${nextVersion}`,
+                    rootId: rootId,
+                    parentId: currentAnalysis.id, // Parent is the one we edited
+                    projectId: currentAnalysis.projectId
+                }
+            });
         });
 
         res.json({
-            ...updatedAnalysis.resultJson,
-            id: updatedAnalysis.id,
-            title: updatedAnalysis.title,
-            version: updatedAnalysis.version,
-            createdAt: updatedAnalysis.createdAt,
-            generatedCode: updatedAnalysis.generatedCode,
-            rootId: updatedAnalysis.rootId,
-            parentId: updatedAnalysis.parentId
+            ...newAnalysis.resultJson,
+            id: newAnalysis.id,
+            title: newAnalysis.title,
+            version: newAnalysis.version,
+            createdAt: newAnalysis.createdAt,
+            generatedCode: newAnalysis.generatedCode,
+            rootId: newAnalysis.rootId,
+            parentId: newAnalysis.parentId
         });
+
     } catch (error) {
         next(error);
     }

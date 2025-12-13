@@ -8,14 +8,16 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { StoryCard } from "@/components/story-card"
 import { ApiCard } from "@/components/api-card"
-import { CheckCircle2, AlertTriangle, Bot, ShieldCheck, Bug } from "lucide-react"
+import { CheckCircle2, AlertTriangle, Bot, ShieldCheck, Bug, Edit, Plus } from "lucide-react"
 import type { AnalysisResult } from "@/types/analysis"
 import { DiagramEditor } from "@/components/diagram-editor"
 import { useAuth } from "@/lib/auth-context"
 import { Progress } from "@/components/ui/progress"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { CodeViewer } from "@/components/code-viewer"
 import { Code, Loader2 } from "lucide-react"
+import { EditableSection } from "@/components/editable-section"
+import { toast } from "sonner"
 
 interface ResultsTabsProps {
   data?: AnalysisResult
@@ -24,11 +26,30 @@ interface ResultsTabsProps {
 export function ResultsTabs({ data }: ResultsTabsProps) {
   const sectionRef = useRef<HTMLElement>(null)
   const { token } = useAuth()
+  const router = useRouter()
   const params = useParams()
   const analysisId = params?.id as string
 
   const [isGeneratingCode, setIsGeneratingCode] = useState(false)
   const [codeError, setCodeError] = useState("")
+
+  // Edit Mode State
+  const [isEditing, setIsEditing] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+
+  // Local Data State for Editing
+  const [localFunctionalReqs, setLocalFunctionalReqs] = useState<string[]>([])
+  const [localNonFunctionalReqs, setLocalNonFunctionalReqs] = useState<string[]>([])
+  const [localUserStories, setLocalUserStories] = useState<any[]>([]) // Using any for simplicity with complex UserStory type
+
+  useEffect(() => {
+    if (data) {
+      setLocalFunctionalReqs(data.functionalRequirements || [])
+      setLocalNonFunctionalReqs(data.nonFunctionalRequirements || [])
+      setLocalUserStories(data.userStories || [])
+    }
+  }, [data])
+
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -75,19 +96,103 @@ export function ResultsTabs({ data }: ResultsTabsProps) {
     return null
   }
 
+  const handleSaveChanges = async () => {
+    setIsSaving(true)
+    try {
+      // Construct the payload with ALL data, but updated fields
+      // Ideally backend only needs changed fields, but providing all context is safer for now if backend logic expects complete object replacement structure or partial merges
+      const payload = {
+        functionalRequirements: localFunctionalReqs,
+        nonFunctionalRequirements: localNonFunctionalReqs,
+        userStories: localUserStories
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to save changes")
+      }
+
+      const newAnalysis = await response.json()
+
+      toast.success("New version created successfully!")
+      setIsEditing(false)
+
+      // Redirect to new version
+      if (newAnalysis.id && newAnalysis.id !== analysisId) {
+        router.push(`/analysis/${newAnalysis.id}`)
+      } else {
+        // If for some reason ID didn't change (should not happen with new versioning logic), just reload
+        router.refresh()
+      }
+
+    } catch (error) {
+      console.error("Save failed:", error)
+      toast.error("Failed to save changes")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleUserStoryUpdate = (index: number, updatedStory: any) => {
+    const newStories = [...localUserStories];
+    newStories[index] = updatedStory;
+    setLocalUserStories(newStories);
+  }
+
+  const handleUserStoryDelete = (index: number) => {
+    const newStories = localUserStories.filter((_, i) => i !== index);
+    setLocalUserStories(newStories);
+  }
+
+  const handleAddUserStory = () => {
+    setLocalUserStories([
+      ...localUserStories,
+      { role: "User", feature: "New Feature", benefit: "Benefit", story: "As a User, I want New Feature so that Benefit." }
+    ])
+  }
+
+
   return (
     <section ref={sectionRef} className="py-12 sm:py-16">
       <div className="container mx-auto px-4 sm:px-6">
         <div className="max-w-5xl mx-auto">
-          <div className="flex items-start gap-3 mb-6 animate-on-scroll opacity-0">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary animate-pulse-glow">
-              <Bot className="h-4 w-4 text-primary-foreground" />
+          <div className="flex items-center justify-between mb-6 animate-on-scroll opacity-0">
+            <div className="flex items-start gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary animate-pulse-glow">
+                <Bot className="h-4 w-4 text-primary-foreground" />
+              </div>
+              <div>
+                <p className="text-sm font-medium mb-1">Analysis Complete</p>
+                <p className="text-sm text-muted-foreground">
+                  I&apos;ve analyzed your requirements and extracted the following insights:
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-medium mb-1">Analysis Complete</p>
-              <p className="text-sm text-muted-foreground">
-                I&apos;ve analyzed your requirements and extracted the following insights:
-              </p>
+
+            <div className="flex gap-2">
+              {isEditing ? (
+                <>
+                  <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isSaving}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSaveChanges} disabled={isSaving} className="min-w-[100px]">
+                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save New Version"}
+                  </Button>
+                </>
+              ) : (
+                <Button onClick={() => setIsEditing(true)} variant="outline">
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit Requirements
+                </Button>
+              )}
             </div>
           </div>
 
@@ -225,23 +330,13 @@ export function ResultsTabs({ data }: ResultsTabsProps) {
                   <CardTitle className="text-lg">Functional Requirements</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ul className="space-y-3">
-                    {functionalRequirements.length > 0 ? (
-                      functionalRequirements.map((req, index) => (
-                        <li
-                          key={index}
-                          className="flex items-start gap-3 transition-all duration-300 hover:translate-x-1"
-                        >
-                          <Badge variant="outline" className="shrink-0 mt-0.5 border-primary/50 text-primary">
-                            FR-{String(index + 1).padStart(2, "0")}
-                          </Badge>
-                          <span className="text-sm">{req}</span>
-                        </li>
-                      ))
-                    ) : (
-                      <span className="text-sm text-muted-foreground">No functional requirements found.</span>
-                    )}
-                  </ul>
+                  <EditableSection
+                    title="Functional Requirements"
+                    items={isEditing ? localFunctionalReqs : functionalRequirements}
+                    isEditing={isEditing}
+                    onUpdate={setLocalFunctionalReqs}
+                    prefix="FR"
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -253,23 +348,14 @@ export function ResultsTabs({ data }: ResultsTabsProps) {
                   <CardTitle className="text-lg">Non-Functional Requirements</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ul className="space-y-3">
-                    {nonFunctionalRequirements.length > 0 ? (
-                      nonFunctionalRequirements.map((req, index) => (
-                        <li
-                          key={index}
-                          className="flex items-start gap-3 transition-all duration-300 hover:translate-x-1"
-                        >
-                          <Badge variant="outline" className="shrink-0 mt-0.5 border-cyan-500/50 text-cyan-400">
-                            NFR-{String(index + 1).padStart(2, "0")}
-                          </Badge>
-                          <span className="text-sm">{req}</span>
-                        </li>
-                      ))
-                    ) : (
-                      <span className="text-sm text-muted-foreground">No non-functional requirements found.</span>
-                    )}
-                  </ul>
+                  <EditableSection
+                    title="Non-Functional Requirements"
+                    items={isEditing ? localNonFunctionalReqs : nonFunctionalRequirements}
+                    isEditing={isEditing}
+                    onUpdate={setLocalNonFunctionalReqs}
+                    prefix="NFR"
+                    badgeColor="border-cyan-500/50 text-cyan-400"
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -302,15 +388,30 @@ export function ResultsTabs({ data }: ResultsTabsProps) {
 
             {/* User Stories Tab */}
             <TabsContent value="stories" className="animate-fade-in">
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {userStories.length > 0 ? (
-                  userStories.map((story, index) => (
-                    <StoryCard key={index} {...story} index={index} />
-                  ))
-                ) : (
-                  <div className="col-span-full text-center text-sm text-muted-foreground p-4">
-                    No user stories generated.
-                  </div>
+              <div className="space-y-4">
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {(isEditing ? localUserStories : userStories).length > 0 ? (
+                    (isEditing ? localUserStories : userStories).map((story, index) => (
+                      <StoryCard
+                        key={index}
+                        {...story}
+                        index={index}
+                        isEditing={isEditing}
+                        onUpdate={(updated) => handleUserStoryUpdate(index, updated)}
+                        onDelete={() => handleUserStoryDelete(index)}
+                      />
+                    ))
+                  ) : (
+                    <div className="col-span-full text-center text-sm text-muted-foreground p-4">
+                      No user stories generated.
+                    </div>
+                  )}
+                </div>
+                {isEditing && (
+                  <Button variant="outline" onClick={handleAddUserStory} className="w-full border-dashed">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add User Story
+                  </Button>
                 )}
               </div>
             </TabsContent>
