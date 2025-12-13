@@ -100,7 +100,8 @@ export const handleGoogleAuth = async (googleUser, tokens) => {
     }
 
     const token = signToken({ userId: user.id, email: user.email });
-    return { user, token };
+    const { refreshToken, sessionId } = await createSession(user.id, null, null); // userAgent/IP not easily available here without passing req down, or just accept null for now
+    return { user, token, refreshToken, sessionId };
 };
 
 export const getUserById = async (userId) => {
@@ -165,5 +166,6 @@ export const handleGithubAuth = async (githubUser, tokens) => {
     }
 
     const token = signToken({ userId: user.id, email: user.email });
-    return { user, token };
+    const { refreshToken, sessionId } = await createSession(user.id, null, null);
+    return { user, token, refreshToken, sessionId };
 };

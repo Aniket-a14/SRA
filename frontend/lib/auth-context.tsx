@@ -14,7 +14,7 @@ interface AuthContextType {
     user: User | null
     token: string | null
     login: (token: string, refreshToken: string, user: User) => void
-    authenticateWithToken: (token: string) => Promise<void>
+    authenticateWithToken: (token: string, refreshToken?: string) => Promise<void>
     logout: () => void
     isLoading: boolean
 }
@@ -111,8 +111,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         router.push("/")
     }, [router])
 
-    const authenticateWithToken = React.useCallback(async (newToken: string) => {
+    const authenticateWithToken = React.useCallback(async (newToken: string, newRefreshToken?: string) => {
         localStorage.setItem("token", newToken)
+        if (newRefreshToken) {
+            localStorage.setItem("refreshToken", newRefreshToken)
+        }
         setToken(newToken)
         await fetchUser(newToken)
         router.push("/")

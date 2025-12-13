@@ -44,8 +44,9 @@ function HomeContent() {
 
   useEffect(() => {
     const urlToken = searchParams.get("token")
+    const urlRefreshToken = searchParams.get("refreshToken")
     if (urlToken) {
-      authenticateWithToken(urlToken)
+      authenticateWithToken(urlToken, urlRefreshToken || undefined)
     }
   }, [searchParams, authenticateWithToken])
 
