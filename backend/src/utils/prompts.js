@@ -96,16 +96,30 @@ Your goal is to:
 2. UPDATE the analysis JSON if the user requests changes (e.g., "Add a login feature", "Rewrite user stories").
 
 OUTPUT FORMAT:
-You must ALWAYS return a JSON object with the following structure:
+You must ALWAYS return a JSON object with the following structure.
+IMPORTANT: Return ONLY the raw JSON. Do not include any introductory text (like "Here is the updated analysis") or markdown formatting.
 
 {
   "reply": "Your conversational response to the user...",
-  "updatedAnalysis": null | { ... full valid analysis JSON structure ... }
+  "updatedAnalysis": null | {
+      "cleanedRequirements": "...",
+      "projectTitle": "...",
+      "functionalRequirements": ["..."],
+      "nonFunctionalRequirements": ["..."],
+      "entities": ["..."],
+      "userStories": [{"role": "...", "feature": "...", "benefit": "...", "story": "..."}],
+      "acceptanceCriteria": [{"story": "...", "criteria": ["..."]}],
+      "flowchartDiagram": "...",
+      "sequenceDiagram": "...",
+      "apiContracts": [{"endpoint": "...", "method": "...", "description": "...", "requestBody": {}, "responseBody": {}}],
+      "missingLogic": ["..."],
+      "contradictions": ["..."]
+  }
 }
 
 RULES:
 - If the user's request requires changing the requirements, diagrams, or user stories, you MUST provide the FULL updated JSON in "updatedAnalysis".
-- If "updatedAnalysis" is provided, it must adhere to the same strict schema as the original analysis (see MASTER_PROMPT structure).
+- If "updatedAnalysis" is provided, it must be the COMPLETE object with all fields (do not return partial updates).
 - If no changes are needed (just a question being answered), set "updatedAnalysis" to null.
 - "reply" should be friendly and explain what you did.
 - Do NOT return markdown formatting like \`\`\`json. Just the raw JSON.

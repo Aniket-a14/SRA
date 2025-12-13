@@ -3,6 +3,13 @@ import { performAnalysis } from '../services/analysisService.js';
 
 console.log("Starting Analysis Worker...");
 
+analysisQueue.on('ready', () => {
+    console.log("✅ Analysis Worker connected to Queue");
+});
+analysisQueue.on('error', (err) => {
+    console.error("❌ Analysis Worker Queue Error:", err);
+});
+
 analysisQueue.process(async (job) => {
     const { userId, text } = job.data;
 

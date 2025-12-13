@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
@@ -13,29 +13,20 @@ import { ProjectChatPanel } from "@/components/project-chat-panel"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { generateSRS, generateAPI, downloadBundle } from "@/lib/export-utils"
 import { saveAs } from "file-saver"
-import type { AnalysisResult } from "@/types/analysis"
-
+import type { Analysis, AnalysisResult } from "@/types/analysis"
+import { VersionTimeline } from "@/components/version-timeline"
 import { toast } from "sonner"
-
-interface AnalysisDetail {
-    id: string
-    createdAt: string
-    inputText: string
-    resultJson: AnalysisResult
-}
 
 export default function AnalysisDetailPage() {
     return <AnalysisDetailContent />
 }
-
-import { useParams } from "next/navigation"
 
 function AnalysisDetailContent() {
     const params = useParams()
     const id = params?.id as string
     const router = useRouter()
     const { user, token, isLoading: authLoading } = useAuth()
-    const [analysis, setAnalysis] = useState<AnalysisDetail | null>(null)
+    const [analysis, setAnalysis] = useState<Analysis | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState("")
 
@@ -55,6 +46,11 @@ function AnalysisDetailContent() {
                 }
 
                 const data = await response.json()
+                console.log("Analysis Data Fetched:", data);
+                if (data.resultJson) {
+                    console.log("Result JSON:", data.resultJson);
+                    console.log("Result JSON Keys:", Object.keys(data.resultJson));
+                }
                 setAnalysis(data)
             } catch (err) {
                 console.error("Error fetching analysis:", err)
@@ -109,97 +105,121 @@ function AnalysisDetailContent() {
     return (
         <div className="min-h-screen flex flex-col">
             <Navbar />
-            <main className="flex-1">
-                <div className="bg-muted/30 border-b border-border">
-                    <div className="container mx-auto px-4 sm:px-6 py-8">
-                        <Button
-                            variant="ghost"
-                            className="mb-4 pl-0 hover:pl-2 transition-all"
-                            onClick={() => router.push("/analysis")}
-                        >
-                            <ArrowLeft className="mr-2 h-4 w-4" />
-                            Back to History
-                        </Button>
 
-                        <div className="flex flex-col gap-4">
-                            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Analysis Result</h1>
+            <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+                {/* Timeline Sidebar - Only if rootId exists */}
+                {analysis?.rootId && (
+                    <aside className="hidden md:block w-72 border-r bg-muted/10 h-[calc(100vh-64px)] overflow-hidden">
+                        <VersionTimeline rootId={analysis.rootId} currentId={id} />
+                    </aside>
+                )}
 
-                            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                                <div className="flex items-center gap-2">
-                                    <Calendar className="h-4 w-4" />
-                                    <span>
-                                        {analysis?.createdAt && formatDistanceToNow(new Date(analysis.createdAt), { addSuffix: true })}
-                                    </span>
+                <main className="flex-1 overflow-auto h-[calc(100vh-64px)]">
+                    <div className="bg-muted/30 border-b border-border">
+                        <div className="container mx-auto px-4 sm:px-6 py-8">
+                            <Button
+                                variant="ghost"
+                                className="mb-4 pl-0 hover:pl-2 transition-all"
+                                onClick={() => router.push("/analysis")}
+                            >
+                                <ArrowLeft className="mr-2 h-4 w-4" />
+                                Back to All Analyses
+                            </Button>
+
+                            <div className="flex flex-col gap-4">
+                                <div className="flex items-center gap-3">
+                                    <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                                        {analysis?.title || "Analysis Result"}
+                                    </h1>
+                                    {analysis?.version && (
+                                        <span className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full font-medium">
+                                            v{analysis.version}
+                                        </span>
+                                    )}
                                 </div>
-                                <div className="h-4 w-px bg-border hidden sm:block" />
-                                <div className="max-w-xl truncate">
-                                    Input: <span className="font-medium text-foreground">{analysis?.inputText}</span>
+
+
+                                <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                                    <div className="flex items-center gap-2">
+                                        <Calendar className="h-4 w-4" />
+                                        <span>
+                                            {analysis?.createdAt && formatDistanceToNow(new Date(analysis.createdAt), { addSuffix: true })}
+                                        </span>
+                                    </div>
+                                    <div className="h-4 w-px bg-border hidden sm:block" />
+                                    <div className="max-w-xl truncate">
+                                        Input: <span className="font-medium text-foreground">{analysis?.inputText}</span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div className="mt-4 flex gap-2">
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" className="gap-2">
-                                        <Download className="h-4 w-4" />
-                                        Export
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="start">
-                                    <DropdownMenuItem onClick={() => {
-                                        try {
-                                            if (analysis) {
-                                                const doc = generateSRS(analysis as unknown as AnalysisResult, "SRS Report");
-                                                doc.save("SRS_Report.pdf");
-                                                toast.success("SRS Report downloaded");
+                            <div className="mt-4 flex gap-2">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" className="gap-2">
+                                            <Download className="h-4 w-4" />
+                                            Export
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="start">
+                                        <DropdownMenuItem onClick={() => {
+                                            try {
+                                                if (analysis && analysis.resultJson) {
+                                                    const doc = generateSRS(analysis.resultJson, "SRS Report");
+                                                    doc.save("SRS_Report.pdf");
+                                                    toast.success("SRS Report downloaded");
+                                                }
+                                            } catch (err) {
+                                                console.error("SRS Export Failed", err);
+                                                toast.error("Failed to generate SRS PDF");
                                             }
-                                        } catch (err) {
-                                            console.error("SRS Export Failed", err);
-                                            toast.error("Failed to generate SRS PDF");
-                                        }
-                                    }}>
-                                        Export SRS (PDF)
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => {
-                                        try {
-                                            if (analysis) {
-                                                const md = generateAPI(analysis as unknown as AnalysisResult);
-                                                const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
-                                                saveAs(blob, "API_Blueprint.md");
-                                                toast.success("API Blueprint downloaded");
+                                        }}>
+                                            Export SRS (PDF)
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => {
+                                            try {
+                                                if (analysis && analysis.resultJson) {
+                                                    const md = generateAPI(analysis.resultJson);
+                                                    const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+                                                    saveAs(blob, "API_Blueprint.md");
+                                                    toast.success("API Blueprint downloaded");
+                                                }
+                                            } catch (err) {
+                                                console.error("API Export Failed", err);
+                                                toast.error("Failed to generate API Blueprint");
                                             }
-                                        } catch (err) {
-                                            console.error("API Export Failed", err);
-                                            toast.error("Failed to generate API Blueprint");
-                                        }
-                                    }}>
-                                        Export API Blueprint (MD)
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={async () => {
-                                        try {
-                                            if (analysis) {
-                                                toast.info("Generating bundle...");
-                                                await downloadBundle(analysis as unknown as AnalysisResult, "Project_Analysis");
-                                                toast.success("Bundle downloaded successfully");
+                                        }}>
+                                            Export API Blueprint (MD)
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={async () => {
+                                            try {
+                                                if (analysis && analysis.resultJson) {
+                                                    toast.info("Generating bundle...");
+                                                    await downloadBundle(analysis.resultJson, "Project_Analysis");
+                                                    toast.success("Bundle downloaded successfully");
+                                                }
+                                            } catch (err) {
+                                                console.error("Bundle Export Failed", err);
+                                                toast.error("Failed to generate Download Bundle");
                                             }
-                                        } catch (err) {
-                                            console.error("Bundle Export Failed", err);
-                                            toast.error("Failed to generate Download Bundle");
-                                        }
-                                    }}>
-                                        Download Bundle (.zip)
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                                        }}>
+                                            Download Bundle (.zip)
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                {analysis && (
-                    <ResultsTabs data={analysis as unknown as AnalysisResult} />
-                )}
-            </main>
+                    {analysis && (
+                        <div className="border p-2 mb-4 bg-muted">
+                            <p className="text-xs text-muted-foreground mb-2">Debug Info: Data Present</p>
+                            <ResultsTabs data={analysis} />
+                        </div>
+                    )}
+                </main>
+            </div>
+
             <ProjectChatPanel analysisId={id} onAnalysisUpdate={(newId) => router.push(`/analysis/${newId}`)} />
             <Footer />
         </div>

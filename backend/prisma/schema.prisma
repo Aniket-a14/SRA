@@ -59,10 +59,20 @@ model Analysis {
   generatedCode Json?
   createdAt   DateTime @default(now())
 
+  // Versioning Relations
+  rootId      String?
+  root        Analysis? @relation("AnalysisRoot", fields: [rootId], references: [id])
+  descendants Analysis[] @relation("AnalysisRoot")
+
+  parentId    String?
+  parent      Analysis? @relation("AnalysisHistory", fields: [parentId], references: [id])
+  children    Analysis[] @relation("AnalysisHistory")
+
   user        User     @relation(fields: [userId], references: [id])
   messages    ChatMessage[]
   
   @@index([userId])
+  @@index([rootId])
 }
 
 model Account {

@@ -36,6 +36,9 @@ export function ResultsTabs({ data }: ResultsTabsProps) {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             entry.target.classList.add("animate-fade-up")
+            if (entry.target instanceof HTMLElement) {
+              entry.target.style.opacity = "1"; // Ensure opacity is set to 1 when visible
+            }
           }
         })
       },
@@ -67,7 +70,10 @@ export function ResultsTabs({ data }: ResultsTabsProps) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [generatedCode, setGeneratedCode] = useState<any>(initialGeneratedCode || null)
 
+  // console.log("ResultsTabs Received Data:", data);
+
   if (!data) {
+    // console.warn("ResultsTabs: No data provided!");
     return null
   }
 
