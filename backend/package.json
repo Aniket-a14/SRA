@@ -29,6 +29,7 @@
     "ioredis": "^5.8.2",
     "jsonwebtoken": "^9.0.3",
     "nodemon": "^3.1.11",
+    "openai": "^6.10.0",
     "prisma": "^5.22.0"
   }
 }

@@ -40,7 +40,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
     resultJson = {
         ...resultJson,
         qualityAudit,
-        promptSettings: settings // Store settings used for versioning
+        promptSettings: settings // Store settings (including model info) used for versioning
     };
 
     // Atomic Creation with Transaction

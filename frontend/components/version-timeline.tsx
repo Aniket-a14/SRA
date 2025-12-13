@@ -21,6 +21,8 @@ interface Version {
         source?: 'ai' | 'user'
         promptSettings?: {
             profile?: string
+            modelName?: string
+            modelProvider?: string
         }
     }
 }
@@ -76,6 +78,8 @@ export function VersionTimeline({ rootId, currentId, className }: VersionTimelin
                         const trigger = version.metadata?.trigger || 'initial';
                         const source = version.metadata?.source || 'ai';
                         const profile = version.metadata?.promptSettings?.profile;
+                        const modelName = version.metadata?.promptSettings?.modelName;
+                        const modelProvider = version.metadata?.promptSettings?.modelProvider;
 
                         let BadgeIcon = GitCommit;
                         let badgeLabel = "Update";
@@ -83,6 +87,19 @@ export function VersionTimeline({ rootId, currentId, className }: VersionTimelin
                         if (trigger === 'chat') { BadgeIcon = Sparkles; badgeLabel = "Chat"; }
                         else if (trigger === 'edit') { BadgeIcon = FileText; badgeLabel = "Edit"; }
                         else if (trigger === 'initial') { BadgeIcon = GitBranch; badgeLabel = "Initial"; }
+
+                        // Model Badge Logic
+                        let ModelIcon = Sparkles;
+                        let modelLabel = "";
+                        if (modelName) {
+                            if (modelName.includes('gpt')) {
+                                modelLabel = modelName.includes('4') ? 'GPT-4o' : 'GPT-3.5';
+                            } else if (modelName.includes('gemini')) {
+                                modelLabel = modelName.includes('pro') ? 'Gemini Pro' : 'Gemini Flash';
+                            } else {
+                                modelLabel = modelName;
+                            }
+                        }
 
                         return (
                             <div key={version.id} className="relative pl-6 pb-6 last:pb-0">
@@ -111,11 +128,17 @@ export function VersionTimeline({ rootId, currentId, className }: VersionTimelin
                                         {isCurrent && <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">Current</span>}
                                     </div>
 
-                                    <div className="flex items-center gap-2 mb-1">
+                                    <div className="flex flex-wrap items-center gap-2 mb-1">
                                         <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-muted border font-medium text-muted-foreground">
                                             <BadgeIcon className="h-3 w-3" /> {badgeLabel}
                                         </span>
                                         {source === 'user' && <span className="text-[10px] text-muted-foreground">(User)</span>}
+
+                                        {modelLabel && source === 'ai' && (
+                                            <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-600 border border-blue-200 font-medium">
+                                                {modelLabel}
+                                            </span>
+                                        )}
                                     </div>
 
                                     <p className="text-xs text-muted-foreground truncate font-medium" title={version.title || `Version ${version.version}`}>

@@ -141,7 +141,12 @@ User: ${userMessage}
                     metadata: {
                         trigger: 'chat',
                         source: 'ai',
-                        promptSettings: currentAnalysis.metadata?.promptSettings || {} // Inherit or default
+                        promptSettings: {
+                            ...(currentAnalysis.metadata?.promptSettings || {}),
+                            // Ensure model info is carried over or defaults
+                            modelName: currentAnalysis.metadata?.promptSettings?.modelName || "gemini-2.5-flash",
+                            modelProvider: currentAnalysis.metadata?.promptSettings?.modelProvider || "google"
+                        }
                     }
                 }
             });

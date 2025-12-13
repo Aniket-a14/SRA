@@ -4,6 +4,8 @@ export interface PromptSettings {
     profile: string;
     depth: number;
     strictness: number;
+    modelProvider?: 'google' | 'openai';
+    modelName?: string;
 }
 
 export interface Project {

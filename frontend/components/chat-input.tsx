@@ -26,7 +26,9 @@ interface ChatInputProps {
 const DEFAULT_SETTINGS: PromptSettings = {
   profile: "default",
   depth: 3,
-  strictness: 3
+  strictness: 3,
+  modelProvider: "google",
+  modelName: "gemini-2.5-flash"
 };
 
 const PROFILES = [
@@ -34,6 +36,12 @@ const PROFILES = [
   { value: "business_analyst", label: "Business Analyst (ROI Focused)" },
   { value: "system_architect", label: "System Architect (Tech Focused)" },
   { value: "security_analyst", label: "Security Analyst (Safety Focused)" },
+];
+
+const MODELS = [
+  { provider: "google", value: "gemini-2.5-flash", label: "Gemini 2.5 Flash (Fast)" },
+  { provider: "openai", value: "gpt-4o", label: "GPT-4o (Smartest)" },
+  { provider: "openai", value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo (Fast)" },
 ];
 
 export function ChatInput({ onAnalyze, isLoading, initialSettings }: ChatInputProps) {
@@ -142,6 +150,31 @@ export function ChatInput({ onAnalyze, isLoading, initialSettings }: ChatInputPr
                         <Settings2 className="h-4 w-4 text-primary" /> Analysis Settings
                       </h4>
                       <p className="text-xs text-muted-foreground">Customize how the AI analyzes your requirements.</p>
+
+                      {/* MODEL SELECT */}
+                      <div className="space-y-2">
+                        <Label htmlFor="model">AI Model</Label>
+                        <Select
+                          value={settings.modelName || "gemini-2.5-flash"}
+                          onValueChange={(val) => {
+                            const model = MODELS.find(m => m.value === val);
+                            setSettings(prev => ({
+                              ...prev,
+                              modelName: val,
+                              modelProvider: model?.provider as 'google' | 'openai'
+                            }));
+                          }}
+                        >
+                          <SelectTrigger id="model" className="h-8">
+                            <SelectValue placeholder="Select model" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {MODELS.map(m => (
+                              <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
                       {/* PROFILE SELECT */}
                       <div className="space-y-2">
