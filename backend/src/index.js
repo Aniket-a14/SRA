@@ -2,7 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import analyzeRoute from "./routes/analyze.js";
 import cors from "cors";
-import { errorHandler } from "./middleware/errorHandler.js";
+import { errorHandler } from "./middleware/errorMiddleware.js";
 import { logger } from "./middleware/logger.js";
 
 dotenv.config();

@@ -21,8 +21,16 @@ export const analyze = async (req, res, next) => {
             throw error;
         }
 
+        // Basic Sanitization
+        const sanitizedText = text.trim();
+        if (sanitizedText.length === 0) {
+            const error = new Error('Text input cannot be empty or whitespace only');
+            error.statusCode = 400;
+            throw error;
+        }
+
         // OFFLOAD TO QUEUE
-        const job = await addAnalysisJob(req.user.userId, text, req.body.projectId, req.body.settings);
+        const job = await addAnalysisJob(req.user.userId, sanitizedText, req.body.projectId, req.body.settings);
 
         res.status(202).json({
             message: "Analysis queued",

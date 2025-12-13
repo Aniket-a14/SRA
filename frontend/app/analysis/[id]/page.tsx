@@ -28,11 +28,13 @@ function AnalysisDetailContent() {
     const { user, token, isLoading: authLoading } = useAuth()
     const [analysis, setAnalysis] = useState<Analysis | null>(null)
     const [isLoading, setIsLoading] = useState(true)
+    const [loadingMessage, setLoadingMessage] = useState("Loading analysis details...")
     const [error, setError] = useState("")
 
     useEffect(() => {
         const fetchAnalysis = async (analysisId: string) => {
             try {
+                setLoadingMessage("Fetching analysis data...")
                 const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
                     headers: {
                         Authorization: `Bearer ${token}`
@@ -40,9 +42,15 @@ function AnalysisDetailContent() {
                 })
 
                 if (!response.ok) {
-                    if (response.status === 404) throw new Error("Analysis not found")
-                    if (response.status === 403) throw new Error("Unauthorized access")
-                    throw new Error("Failed to load analysis")
+                    let errMsg = "Failed to load analysis";
+                    try {
+                        const errData = await response.json();
+                        errMsg = errData.error || errData.message || errMsg;
+                    } catch { }
+
+                    if (response.status === 404) throw new Error(errMsg || "Analysis not found");
+                    if (response.status === 403) throw new Error(errMsg || "Unauthorized access");
+                    throw new Error(errMsg);
                 }
 
                 const data = await response.json()
@@ -72,7 +80,7 @@ function AnalysisDetailContent() {
                 <main className="flex-1 flex items-center justify-center">
                     <div className="flex flex-col items-center gap-4">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        <p className="text-muted-foreground">Loading analysis details...</p>
+                        <p className="text-muted-foreground">{authLoading ? "Verifying session..." : loadingMessage}</p>
                     </div>
                 </main>
                 <Footer />
@@ -85,12 +93,17 @@ function AnalysisDetailContent() {
             <div className="min-h-screen flex flex-col">
                 <Navbar />
                 <main className="flex-1 container mx-auto px-4 py-12 flex flex-col items-center justify-center text-center">
-                    <h2 className="text-2xl font-bold mb-4">Error</h2>
-                    <p className="text-muted-foreground mb-6">{error}</p>
-                    <Button onClick={() => router.push("/analysis")}>
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to History
-                    </Button>
+                    <h2 className="text-2xl font-bold mb-4 text-destructive">Unable to Load Analysis</h2>
+                    <p className="text-muted-foreground mb-6 max-w-md">{error}</p>
+                    <div className="flex gap-4">
+                        <Button variant="outline" onClick={() => window.location.reload()}>
+                            Retry
+                        </Button>
+                        <Button onClick={() => router.push("/analysis")}>
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Back to History
+                        </Button>
+                    </div>
                 </main>
                 <Footer />
             </div>
