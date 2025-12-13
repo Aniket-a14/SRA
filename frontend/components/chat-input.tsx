@@ -1,19 +1,76 @@
-"use client"
-
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Card } from "@/components/ui/card"
-import { Sparkles } from "lucide-react"
+import { Sparkles, Settings2, HelpCircle } from "lucide-react"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Slider } from "@/components/ui/slider"
+import { PromptSettings } from "@/types/project"
+import { useAuth } from "@/lib/auth-context"
+import { updateProject } from "@/lib/projects-api"
+import { toast } from "sonner"
+import { useSearchParams } from "next/navigation"
 
 interface ChatInputProps {
-  onAnalyze: (requirements: string) => void
+  onAnalyze: (requirements: string, settings: PromptSettings) => void
   isLoading: boolean
+  initialSettings?: PromptSettings
 }
 
-export function ChatInput({ onAnalyze, isLoading }: ChatInputProps) {
+const DEFAULT_SETTINGS: PromptSettings = {
+  profile: "default",
+  depth: 3,
+  strictness: 3
+};
+
+const PROFILES = [
+  { value: "default", label: "General Software (Default)" },
+  { value: "business_analyst", label: "Business Analyst (ROI Focused)" },
+  { value: "system_architect", label: "System Architect (Tech Focused)" },
+  { value: "security_analyst", label: "Security Analyst (Safety Focused)" },
+];
+
+export function ChatInput({ onAnalyze, isLoading, initialSettings }: ChatInputProps) {
   const sectionRef = useRef<HTMLElement>(null)
   const [input, setInput] = useState("")
+  const [settings, setSettings] = useState<PromptSettings>(initialSettings || DEFAULT_SETTINGS);
+  const { token } = useAuth();
+  const searchParams = useSearchParams();
+  const projectId = searchParams.get("projectId");
+
+  // Sync initial setup
+  useEffect(() => {
+    if (initialSettings) {
+      setSettings(initialSettings);
+    }
+  }, [initialSettings]);
+
+  // Debounced Save
+  useEffect(() => {
+    if (!token || !projectId) return;
+
+    // Don't save if it matches initial exactly (prevents loop/unnecessary calls on mount)
+    // Simple check: JSON stringify
+    if (JSON.stringify(settings) === JSON.stringify(initialSettings)) return;
+
+    const timeout = setTimeout(async () => {
+      try {
+        await updateProject(token, projectId, { settings });
+        // Optional: toast.success("Settings saved");
+      } catch (e) {
+        console.error("Failed to save settings", e);
+      }
+    }, 1000);
+
+    return () => clearTimeout(timeout);
+  }, [settings, token, projectId, initialSettings]);
+
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -37,10 +94,14 @@ export function ChatInput({ onAnalyze, isLoading }: ChatInputProps) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
       if (input.trim() && !isLoading) {
-        onAnalyze(input)
+        onAnalyze(input, settings)
       }
     }
   }
+
+  const handleProfileChange = (val: string) => {
+    setSettings(prev => ({ ...prev, profile: val }));
+  };
 
   return (
     <section id="analyzer" ref={sectionRef} className="py-10 sm:py-14">
@@ -55,21 +116,97 @@ export function ChatInput({ onAnalyze, isLoading }: ChatInputProps) {
 
           <Card className="p-3 sm:p-4 bg-card border-border animate-on-scroll opacity-0 delay-200 transition-all duration-500 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10">
             <div className="flex flex-col gap-4">
-              <div className="flex items-start gap-3">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 animate-pulse-glow">
-                  <Sparkles className="h-4 w-4 text-primary" />
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 animate-pulse-glow">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Hello! I can help you analyze requirements. Paste your project requirements and I&apos;ll extract
+                      functional specs, user stories, entities, and more.
+                    </p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Hello! I can help you analyze requirements. Paste your project requirements and I&apos;ll extract
-                    functional specs, user stories, entities, and more.
-                  </p>
-                </div>
+
+                {/* Settings Popover */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="icon" className="shrink-0 text-muted-foreground hover:text-primary">
+                      <Settings2 className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-4" align="end">
+                    <div className="space-y-4">
+                      <h4 className="font-medium leading-none flex items-center gap-2">
+                        <Settings2 className="h-4 w-4 text-primary" /> Analysis Settings
+                      </h4>
+                      <p className="text-xs text-muted-foreground">Customize how the AI analyzes your requirements.</p>
+
+                      {/* PROFILE SELECT */}
+                      <div className="space-y-2">
+                        <Label htmlFor="profile">Analyst Persona</Label>
+                        <Select value={settings.profile} onValueChange={handleProfileChange}>
+                          <SelectTrigger id="profile" className="h-8">
+                            <SelectValue placeholder="Select profile" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PROFILES.map(p => (
+                              <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* DEPTH SLIDER */}
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <Label>Depth & Verbosity</Label>
+                          <span className="text-xs text-muted-foreground">{settings.depth}/5</span>
+                        </div>
+                        <Slider
+                          value={[settings.depth]}
+                          min={1}
+                          max={5}
+                          step={1}
+                          onValueChange={(v: number[]) => setSettings(prev => ({ ...prev, depth: v[0] }))}
+                          className="py-2"
+                        />
+                        <p className="text-[10px] text-muted-foreground flex justify-between">
+                          <span>Concise</span>
+                          <span>Detailed</span>
+                        </p>
+                      </div>
+
+                      {/* STRICTNESS SLIDER */}
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <Label>Creative Strictness</Label>
+                          <span className="text-xs text-muted-foreground">{settings.strictness}/5</span>
+                        </div>
+                        <Slider
+                          value={[settings.strictness]}
+                          min={1}
+                          max={5}
+                          step={1}
+                          onValueChange={(v: number[]) => setSettings(prev => ({ ...prev, strictness: v[0] }))}
+                          className="py-2"
+                        />
+                        <p className="text-[10px] text-muted-foreground flex justify-between">
+                          <span>Imaginative</span>
+                          <span>Strict</span>
+                        </p>
+                      </div>
+
+                      {projectId && <p className="text-[10px] text-primary pt-2 flex items-center justify-end gap-1">Auto-saving to project</p>}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div className="relative group">
                 <Textarea
-                  placeholder="Paste your requirements here... (e.g., 'Users should be able to register with email and password. Admin can manage all users and view reports.')"
+                  placeholder={`Paste your requirements here... (Using ${PROFILES.find(p => p.value === settings.profile)?.label.split('(')[0].trim()} Profile)`}
                   className="min-h-[120px] sm:min-h-[140px] resize-none bg-secondary border-0 pr-12 text-sm placeholder:text-muted-foreground/60 transition-all duration-300 focus:ring-2 focus:ring-primary/50"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
@@ -84,7 +221,7 @@ export function ChatInput({ onAnalyze, isLoading }: ChatInputProps) {
                 </p>
                 <Button
                   className="gap-2 bg-primary hover:bg-primary/90 w-full sm:w-auto order-1 sm:order-2 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-primary/25"
-                  onClick={() => onAnalyze(input)}
+                  onClick={() => onAnalyze(input, settings)}
                   disabled={isLoading || !input.trim()}
                 >
                   <Sparkles className="h-4 w-4" />

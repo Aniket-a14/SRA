@@ -39,6 +39,8 @@ function HomeContent() {
   const projectId = searchParams.get("projectId")
   const [projectName, setProjectName] = useState<string>("")
 
+  const [projectSettings, setProjectSettings] = useState<any>(null);
+
   useEffect(() => {
     const urlToken = searchParams.get("token")
     if (urlToken) {
@@ -48,11 +50,14 @@ function HomeContent() {
 
   useEffect(() => {
     if (projectId && token) {
-      fetchProject(token, projectId).then(p => setProjectName(p.name)).catch(() => setProjectName("Unknown Project"));
+      fetchProject(token, projectId).then(p => {
+        setProjectName(p.name);
+        if (p.settings) setProjectSettings(p.settings);
+      }).catch(() => setProjectName("Unknown Project"));
     }
   }, [projectId, token])
 
-  const handleAnalyze = async (requirements: string) => {
+  const handleAnalyze = async (requirements: string, settings: any) => {
     setIsLoading(true)
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, {
@@ -63,7 +68,8 @@ function HomeContent() {
         },
         body: JSON.stringify({
           text: requirements,
-          projectId: projectId || undefined
+          projectId: projectId || undefined,
+          settings: settings || undefined
         }),
       })
 
@@ -133,7 +139,7 @@ function HomeContent() {
           </div>
         )}
 
-        <ChatInput onAnalyze={handleAnalyze} isLoading={isLoading} />
+        <ChatInput onAnalyze={handleAnalyze} isLoading={isLoading} initialSettings={projectSettings} />
         <ResultsTabs data={analysisResult} />
         <AboutSection />
         <FaqSection />

@@ -5,7 +5,7 @@ const router = express.Router();
 
 router.post("/", async (req, res, next) => {
   try {
-    const { text } = req.body;
+    const { text, settings } = req.body;
 
     if (!text || typeof text !== "string" || text.trim().length === 0) {
       const error = new Error("Text input required and must be a non-empty string.");
@@ -13,7 +13,7 @@ router.post("/", async (req, res, next) => {
       throw error;
     }
 
-    const response = await analyzeText(text);
+    const response = await analyzeText(text, settings);
 
     res.json(response);
   } catch (error) {

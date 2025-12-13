@@ -3,7 +3,7 @@ import prisma from '../config/prisma.js';
 export const createProject = async (req, res, next) => {
     try {
         const { name, description } = req.body;
-        
+
         if (!name) {
             const error = new Error('Project name is required');
             error.statusCode = 400;
@@ -82,7 +82,8 @@ export const updateProject = async (req, res, next) => {
             where: { id },
             data: {
                 name: name || undefined,
-                description: description || undefined
+                description: description || undefined,
+                settings: req.body.settings || undefined
             }
         });
 

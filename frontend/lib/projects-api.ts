@@ -31,7 +31,7 @@ export async function createProject(token: string, data: { name: string; descrip
     return res.json();
 }
 
-export async function updateProject(token: string, id: string, data: { name?: string; description?: string }): Promise<Project> {
+export async function updateProject(token: string, id: string, data: { name?: string; description?: string; settings?: any }): Promise<Project> {
     const res = await fetch(`${BACKEND_URL}/projects/${id}`, {
         method: "PUT",
         headers: {

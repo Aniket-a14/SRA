@@ -22,7 +22,7 @@ export const analyze = async (req, res, next) => {
         }
 
         // OFFLOAD TO QUEUE
-        const job = await addAnalysisJob(req.user.userId, text, req.body.projectId);
+        const job = await addAnalysisJob(req.user.userId, text, req.body.projectId, req.body.settings);
 
         res.status(202).json({
             message: "Analysis queued",
