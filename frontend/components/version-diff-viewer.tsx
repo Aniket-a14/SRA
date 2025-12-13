@@ -1,7 +1,6 @@
 "use client"
 
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Badge } from "@/components/ui/badge"
+
 
 interface DiffChange<T> {
     old: T
@@ -12,7 +11,7 @@ interface AnalysisDiff {
     inputText?: DiffChange<string>
     functionalRequirements?: DiffChange<string[]>
     nonFunctionalRequirements?: DiffChange<string[]>
-    userStories?: DiffChange<any[]> // UserStory[]
+    userStories?: DiffChange<Record<string, unknown>[]> // UserStory[]
 }
 
 interface VersionDiffViewerProps {
