@@ -1,5 +1,6 @@
 # SRA (Smart Requirements Analyzer)
 
+![Status](https://img.shields.io/badge/Status-Feature_Freeze-orange)
 ![SRA View](/assets/overview.png)
 
 **SRA** is an intelligent, AI-powered tool designed to streamline the software requirements engineering process. By leveraging Google's Gemini AI, it analyzes raw project descriptions and automatically generates comprehensive technical documentation, including functional requirements, user stories, acceptance criteria, and visual diagrams.
@@ -86,6 +87,7 @@ Create a `.env` file in the `backend` directory:
 
 ```env
 # Server
+NODE_ENV=development
 PORT=3000
 FRONTEND_URL=http://localhost:3001
 ANALYZER_URL=http://localhost:3000/internal/analyze

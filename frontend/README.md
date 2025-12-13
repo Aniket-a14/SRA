@@ -40,6 +40,7 @@ The frontend interface for the Software Requirements Analyst (SRA) system. Built
 - **User Experience**:
   - **Dark Mode**: Fully themed UI.
   - **Animations**: Scroll animations and fluid transitions.
+  - **Enhanced Feedback**: User-friendly error messages and descriptive loading states.
   - Global Toast Notifications (Success/Error).
   - Responsive, beautiful UI.
 
