@@ -26,6 +26,9 @@ const defaultAnalysis: AnalysisResult = {
   missingLogic: [],
 }
 
+import { fetchProject } from "@/lib/projects-api"
+import { Folder } from "lucide-react"
+
 function HomeContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -33,12 +36,21 @@ function HomeContent() {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult>(defaultAnalysis)
   const [isLoading, setIsLoading] = useState(false)
 
+  const projectId = searchParams.get("projectId")
+  const [projectName, setProjectName] = useState<string>("")
+
   useEffect(() => {
     const urlToken = searchParams.get("token")
     if (urlToken) {
       authenticateWithToken(urlToken)
     }
   }, [searchParams, authenticateWithToken])
+
+  useEffect(() => {
+    if (projectId && token) {
+      fetchProject(token, projectId).then(p => setProjectName(p.name)).catch(() => setProjectName("Unknown Project"));
+    }
+  }, [projectId, token])
 
   const handleAnalyze = async (requirements: string) => {
     setIsLoading(true)
@@ -49,7 +61,10 @@ function HomeContent() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ text: requirements }),
+        body: JSON.stringify({
+          text: requirements,
+          projectId: projectId || undefined
+        }),
       })
 
       if (!response.ok) {
@@ -74,6 +89,12 @@ function HomeContent() {
             setIsLoading(false);
             // Scroll to results
             document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth' });
+
+            // If in project mode, redirect back to project after short delay or show option
+            if (projectId) {
+              toast.success(`Saved to project: ${projectName}`);
+            }
+
           } else if (statusData.state === 'failed') {
             setIsLoading(false);
             toast.error(`Analysis failed: ${statusData.error}`);
@@ -102,6 +123,16 @@ function HomeContent() {
       <Navbar />
       <main className="flex-1">
         <HeroSection />
+
+        {projectId && (
+          <div className="container mx-auto px-4 mt-6 mb-2">
+            <div className="bg-primary/10 border border-primary/20 text-primary px-4 py-3 rounded-md flex items-center gap-2">
+              <Folder size={18} />
+              <span className="font-medium">Analysis Context: <strong>{projectName || "Loading..."}</strong></span>
+            </div>
+          </div>
+        )}
+
         <ChatInput onAnalyze={handleAnalyze} isLoading={isLoading} />
         <ResultsTabs data={analysisResult} />
         <AboutSection />

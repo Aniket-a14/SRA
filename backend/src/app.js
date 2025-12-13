@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import authRoutes from './routes/authRoutes.js';
 import analysisRoutes from './routes/analysisRoutes.js';
+import projectRoutes from './routes/projectRoutes.js';
 import aiEndpoint from './routes/aiEndpoint.js';
 import { errorHandler } from './middleware/errorMiddleware.js';
 import { logger } from './middleware/logger.js';
@@ -23,7 +24,7 @@ app.use(helmet());
 // Rate limiting
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
+    max: 150, // Increased for dev: Limit each IP to 5000 requests per `window`
     standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
     legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
@@ -52,6 +53,8 @@ app.use('/internal/analyze', aiEndpoint);
 // Public/Protected Routes
 app.use(['/auth', '/api/auth'], authRoutes);
 app.use(['/analyze', '/api/analyze'], analysisRoutes);
+app.use(['/projects', '/api/projects'], projectRoutes);
+
 
 // Error Handler
 app.use(errorHandler);

@@ -8,7 +8,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/co
 import { Separator } from "@/components/ui/separator"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Sparkles, Menu, X, LogOut, User } from "lucide-react"
+import { Sparkles, Menu, X, LogOut, User, Folder } from "lucide-react"
 import { AnimatedThemeToggler } from "./ui/animated-theme-toggler"
 
 export function Navbar() {
@@ -87,6 +87,10 @@ export function Navbar() {
                     <User className="mr-2 h-4 w-4" />
                     <span>My Analysis</span>
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => router.push("/projects")}>
+                    <Folder className="mr-2 h-4 w-4" />
+                    <span>Projects</span>
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => router.push("/settings")}>
                     <Sparkles className="mr-2 h-4 w-4" />
                     <span>Settings</span>
@@ -162,6 +166,10 @@ export function Navbar() {
                           <span className="text-xs text-muted-foreground">{user.email}</span>
                         </div>
                       </div>
+                      <Button variant="outline" className="w-full justify-start" onClick={() => { setIsOpen(false); router.push("/projects"); }}>
+                        <Folder className="mr-2 h-4 w-4" />
+                        Projects
+                      </Button>
                       <Button variant="outline" className="w-full justify-start" onClick={() => { setIsOpen(false); router.push("/analysis"); }}>
                         <User className="mr-2 h-4 w-4" />
                         My Analysis

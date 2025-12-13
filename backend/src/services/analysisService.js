@@ -3,7 +3,7 @@ import prisma from '../config/prisma.js';
 import { lintRequirements } from './qualityService.js';
 import crypto from 'crypto';
 
-export const performAnalysis = async (userId, text, parentId = null, rootId = null) => {
+export const performAnalysis = async (userId, text, projectId = null, parentId = null, rootId = null) => {
     // Call AI Service
     // Default to local internal endpoint if env var is missing or incorrect
     const port = process.env.PORT || 3000;
@@ -74,7 +74,8 @@ export const performAnalysis = async (userId, text, parentId = null, rootId = nu
                 version,
                 title,
                 rootId: finalRootId,
-                parentId: parentId // Can be null if new project or just branching from nothing (rare)
+                parentId: parentId, // Can be null if new project or just branching from nothing (rare)
+                projectId: projectId // Associate with Project
             },
         });
 
