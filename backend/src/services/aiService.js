@@ -22,38 +22,58 @@ ${text}
 `;
 
   let output;
+  const maxAttempts = 3;
+  const timeoutMs = 60000; // 60s timeout
 
-  try {
-    console.log(`[AI Service] Using Provider: ${modelProvider}, Model: ${modelName}`);
-    if (modelProvider === "openai") {
-      const completion = await openai.chat.completions.create({
-        messages: [{ role: "system", content: masterPrompt }, { role: "user", content: text }],
-        model: modelName,
-        temperature: 0.7,
-      });
-      output = completion.choices[0].message.content;
-    } else {
-      // Default to Google (Gemini)
-      const model = genAI.getGenerativeModel({ model: modelName || "gemini-2.5-flash" });
-      const result = await model.generateContent(finalPrompt);
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-      if (result && result.response && typeof result.response.text === "function") {
-        output = result.response.text();
-      } else if (result && result.candidates && result.candidates[0]) {
-        output = result.candidates[0].content || result.candidates[0].output || JSON.stringify(result.candidates[0]);
-      } else if (typeof result === "string") {
-        output = result;
+  const callWithTimeout = (promise, ms) => Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error("AI Request Timeout")), ms))
+  ]);
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      console.log(`[AI Service] Using Provider: ${modelProvider}, Model: ${modelName} (Attempt ${attempt}/${maxAttempts})`);
+
+      if (modelProvider === "openai") {
+        const completion = await callWithTimeout(openai.chat.completions.create({
+          messages: [{ role: "system", content: masterPrompt }, { role: "user", content: text }],
+          model: modelName,
+          temperature: 0.7,
+        }), timeoutMs);
+        output = completion.choices[0].message.content;
       } else {
-        output = JSON.stringify(result);
+        // Default to Google (Gemini)
+        const model = genAI.getGenerativeModel({ model: modelName || "gemini-2.5-flash" });
+        const result = await callWithTimeout(model.generateContent(finalPrompt), timeoutMs);
+
+        if (result && result.response && typeof result.response.text === "function") {
+          output = result.response.text();
+        } else if (result && result.candidates && result.candidates[0]) {
+          output = result.candidates[0].content || result.candidates[0].output || JSON.stringify(result.candidates[0]);
+        } else if (typeof result === "string") {
+          output = result;
+        } else {
+          output = JSON.stringify(result);
+        }
       }
+      break; // Success, exit retry loop
+    } catch (error) {
+      const isRetryable = error.message.includes("429") || error.message.includes("503") || error.message.includes("Timeout");
+
+      if (attempt === maxAttempts || !isRetryable) {
+        return {
+          success: false,
+          error: `AI Service Error (${modelProvider}) - ${error.message}`,
+          parseError: error.message,
+          raw: "",
+        };
+      }
+
+      console.warn(`[AI Service] Attempt ${attempt} failed: ${error.message}. Retrying in ${attempt * 2}s...`);
+      await sleep(attempt * 2000);
     }
-  } catch (error) {
-    return {
-      success: false,
-      error: `AI Service Error (${modelProvider})`,
-      parseError: error.message,
-      raw: "",
-    };
   }
 
   // Parse JSON safely and return a helpful structure on failure
