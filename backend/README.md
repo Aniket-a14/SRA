@@ -11,6 +11,9 @@ This is the backend service for the Software Requirements Analyst (SRA) project.
 - **Context-Aware Chat**:
    - **Persistent History**: Chat context is preserved across the entire project version chain.
    - **Smart Updates**: The AI automatically proposes detailed JSON updates while maintaining conversation flow.
+- **AI Resilience**:
+   - **Automatic Retries**: Robust handling of transient AI errors (429/5xx) with exponential backoff.
+   - **Timeout Protection**: Prevents hanging requests with enforced timeouts.
 - **Authentication**:
   - Email/Password (JWT)
   - Google OAuth 2.0
@@ -57,9 +60,11 @@ This is the backend service for the Software Requirements Analyst (SRA) project.
 
     ```env
     # Server Configuration
+    NODE_ENV=development
     PORT=3000
     FRONTEND_URL=http://localhost:3001
     ANALYZER_URL=http://localhost:3000/internal/analyze
+    ```
 
     # Database
     DATABASE_URL="postgresql://user:pass@localhost:5432/sra?schema=public"
