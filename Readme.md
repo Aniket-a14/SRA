@@ -23,6 +23,13 @@
 -   **Icons**: [Lucide React](https://lucide.dev/)
 -   **Diagrams**: [Mermaid.js](https://mermaid.js.org/)
 
+## 📚 Documentation
+
+-   [**Architecture & Design**](ARCHITECTURE.md): Deep dive into the system architecture, versioning strategy, and multi-model AI support.
+-   [**Demo Walkthrough**](DEMO.md): Step-by-step guide to demonstrating the core features.
+-   [**Backend Guide**](backend/README.md): Detailed backend setup and API documentation.
+-   [**Frontend Guide**](frontend/README.md): Frontend specific features and components.
+
 ### Backend
 -   **Runtime**: [Node.js](https://nodejs.org/)
 -   **Framework**: [Express.js](https://expressjs.com/)
