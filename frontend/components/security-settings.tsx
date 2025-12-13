@@ -105,18 +105,18 @@ export function SecuritySettings() {
                         <div className="text-muted-foreground text-sm">No active sessions found.</div>
                     )}
                     {sessions.map((session) => (
-                        <div key={session.id} className="flex items-center justify-between p-4 border rounded-lg bg-muted/20">
-                            <div className="flex items-center gap-4">
-                                <div className="p-2 bg-background rounded-full border">
+                        <div key={session.id} className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg bg-muted/20">
+                            <div className="flex items-center gap-4 w-full sm:w-auto">
+                                <div className="p-2 bg-background rounded-full border shrink-0">
                                     {getIcon(session.userAgent)}
                                 </div>
-                                <div className="space-y-1">
-                                    <div className="font-medium text-sm flex items-center gap-2">
+                                <div className="space-y-1 min-w-0">
+                                    <div className="font-medium text-sm flex flex-wrap items-center gap-2">
                                         {session.ipAddress || "Unknown IP"}
-                                        <span className="text-muted-foreground">•</span>
+                                        <span className="text-muted-foreground hidden sm:inline">•</span>
                                         <span className="text-muted-foreground">{session.location || "Unknown Location"}</span>
                                         {session.isCurrent && (
-                                            <span className="bg-green-500/10 text-green-600 text-[10px] px-2 py-0.5 rounded-full border border-green-500/20 font-medium">
+                                            <span className="bg-green-500/10 text-green-600 text-[10px] px-2 py-0.5 rounded-full border border-green-500/20 font-medium shrink-0">
                                                 Active Now
                                             </span>
                                         )}
@@ -137,6 +137,7 @@ export function SecuritySettings() {
                             <Button
                                 variant="destructive"
                                 size="sm"
+                                className="w-full sm:w-auto"
                                 onClick={() => revokeSession(session.id)}
                             >
                                 Revoke
