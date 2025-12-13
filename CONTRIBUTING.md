@@ -15,9 +15,11 @@ Understanding the project structure is key to making effective contributions.
 The backend is built with **Node.js** and **Express**.
 -   **`src/server.js`**: The main entry point to start the server.
 -   **`src/app.js`**: Express app configuration.
+-   **`src/config/`**: App configuration and OAuth setup.
 -   **`src/routes/`**: API route definitions.
 -   **`src/controllers/`**: Logic for handling API requests.
 -   **`src/services/`**: Business logic and AI integration.
+-   **`src/workers/`**: Background workers for handling async tasks.
 -   **`src/middleware/`**: Middleware for auth, validation, and error handling.
 -   **`.env`**: Stores environment variables like your API key and database URL. **Do not commit this file.**
 
@@ -40,6 +42,7 @@ Ensure you have the following installed:
 -   **Node.js** (v18 or higher)
 -   **npm** (comes with Node.js)
 -   **PostgreSQL** (for the database)
+-   **Redis** (for the background job queue)
 -   A **Google Gemini API Key** (Get one [here](https://aistudio.google.com/app/apikey))
 
 ### Backend Setup
@@ -54,12 +57,14 @@ Ensure you have the following installed:
 3.  Create a `.env` file and add the following variables:
     ```env
     # Server
+    NODE_ENV=development
     PORT=3000
     FRONTEND_URL=http://localhost:3001
     ANALYZER_URL=http://localhost:3000/internal/analyze
 
     # Database
     DATABASE_URL="postgresql://user:password@localhost:5432/sra_db?schema=public"
+    REDIS_URL="redis://127.0.0.1:6379"
 
     # Auth
     JWT_SECRET=your_super_secret_jwt_key
