@@ -13,6 +13,7 @@ interface Session {
     userAgent: string | null
     ipAddress: string | null
     location: string | null
+    isCurrent?: boolean
     lastUsedAt: string
     createdAt: string
     expiresAt: string
@@ -114,10 +115,19 @@ export function SecuritySettings() {
                                         {session.ipAddress || "Unknown IP"}
                                         <span className="text-muted-foreground">•</span>
                                         <span className="text-muted-foreground">{session.location || "Unknown Location"}</span>
+                                        {session.isCurrent && (
+                                            <span className="bg-green-500/10 text-green-600 text-[10px] px-2 py-0.5 rounded-full border border-green-500/20 font-medium">
+                                                Active Now
+                                            </span>
+                                        )}
                                     </div>
                                     <div className="text-xs text-muted-foreground flex items-center gap-1">
                                         <Clock className="h-3 w-3" />
-                                        Last active {formatDistanceToNow(new Date(session.lastUsedAt))} ago
+                                        {session.isCurrent ? (
+                                            <span className="text-green-600 font-medium">Active Now</span>
+                                        ) : (
+                                            <span>Last active {formatDistanceToNow(new Date(session.lastUsedAt))} ago</span>
+                                        )}
                                     </div>
                                     <div className="text-xs text-muted-foreground truncate max-w-[200px] sm:max-w-[300px]">
                                         {getDeviceName(session.userAgent)}

@@ -18,8 +18,8 @@ export const registerUser = async (email, password, name, userAgent = null, ip =
         },
     });
 
-    const token = signToken({ userId: user.id, email: user.email });
     const { refreshToken, sessionId } = await createSession(user.id, userAgent, ip);
+    const token = signToken({ userId: user.id, email: user.email, sessionId });
 
     return { user, token, refreshToken, sessionId };
 };
@@ -35,8 +35,8 @@ export const loginUser = async (email, password, userAgent = null, ip = null) =>
         throw new Error('Invalid email or password');
     }
 
-    const token = signToken({ userId: user.id, email: user.email });
     const { refreshToken, sessionId } = await createSession(user.id, userAgent, ip);
+    const token = signToken({ userId: user.id, email: user.email, sessionId });
 
     return { user, token, refreshToken, sessionId };
 };
@@ -99,8 +99,8 @@ export const handleGoogleAuth = async (googleUser, tokens, userAgent, ip) => {
         }
     }
 
-    const token = signToken({ userId: user.id, email: user.email });
     const { refreshToken, sessionId } = await createSession(user.id, userAgent, ip);
+    const token = signToken({ userId: user.id, email: user.email, sessionId });
     return { user, token, refreshToken, sessionId };
 };
 
@@ -165,7 +165,7 @@ export const handleGithubAuth = async (githubUser, tokens, userAgent, ip) => {
         }
     }
 
-    const token = signToken({ userId: user.id, email: user.email });
     const { refreshToken, sessionId } = await createSession(user.id, userAgent, ip);
+    const token = signToken({ userId: user.id, email: user.email, sessionId });
     return { user, token, refreshToken, sessionId };
 };

@@ -122,7 +122,7 @@ export const refreshToken = async (req, res, next) => {
         const newRefreshToken = await rotateSession(session, userAgent, ip);
 
         // Issue new Access Token
-        const newAccessToken = signToken({ userId: session.userId, email: session.user.email });
+        const newAccessToken = signToken({ userId: session.userId, email: session.user.email, sessionId: session.id });
 
         res.json({ token: newAccessToken, refreshToken: newRefreshToken });
     } catch (error) {
@@ -152,8 +152,15 @@ export const logout = async (req, res, next) => {
 export const getSessions = async (req, res, next) => {
     try {
         const sessions = await getUserSessions(req.user.userId);
-        // Mask token
-        res.json(sessions);
+
+        // Mark current session
+        const currentSessionId = req.user.sessionId;
+        const result = sessions.map(s => ({
+            ...s,
+            isCurrent: s.id === currentSessionId
+        }));
+
+        res.json(result);
     } catch (error) {
         next(error);
     }
