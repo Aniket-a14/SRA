@@ -70,8 +70,6 @@ export function ResultsTabs({ data }: ResultsTabsProps) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [generatedCode, setGeneratedCode] = useState<any>(initialGeneratedCode || null)
 
-  // console.log("ResultsTabs Received Data:", data);
-
   if (!data) {
     // console.warn("ResultsTabs: No data provided!");
     return null

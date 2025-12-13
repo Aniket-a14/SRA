@@ -4,10 +4,13 @@ This is the backend service for the Software Requirements Analyst (SRA) project.
 
 ## ✨ Features
 
-- **AI Analysis**: Powered by Google Gemini (`gemini-2.5-flash`).
-  - **Context-Aware Chat Engine**: Interactive chat for refining requirements, maintaining context, and generating new versions.
-  - **Smart Processing**: Entity extraction, requirement cleaning, and detailed AI output validation.
-  - **Logic Analysis**: Automatic detection of contradictions and logic gaps.
+- **Analysis Versioning**:
+   - **Atomic Version Control**: Every chat interaction that modifies requirements creates a new, immutable version.
+   - **History Tracking**: Full lineage tracking via `rootId` and `parentId` pointers.
+   - **Diffing Engine**: Compare any two versions to see exactly what changed.
+- **Context-Aware Chat**:
+   - **Persistent History**: Chat context is preserved across the entire project version chain.
+   - **Smart Updates**: The AI automatically proposes detailed JSON updates while maintaining conversation flow.
 - **Authentication**:
   - Email/Password (JWT)
   - Google OAuth 2.0

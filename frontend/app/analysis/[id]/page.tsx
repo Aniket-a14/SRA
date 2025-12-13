@@ -46,11 +46,6 @@ function AnalysisDetailContent() {
                 }
 
                 const data = await response.json()
-                console.log("Analysis Data Fetched:", data);
-                if (data.resultJson) {
-                    console.log("Result JSON:", data.resultJson);
-                    console.log("Result JSON Keys:", Object.keys(data.resultJson));
-                }
                 setAnalysis(data)
             } catch (err) {
                 console.error("Error fetching analysis:", err)
@@ -109,7 +104,7 @@ function AnalysisDetailContent() {
             <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
                 {/* Timeline Sidebar - Only if rootId exists */}
                 {analysis?.rootId && (
-                    <aside className="hidden md:block w-72 border-r bg-muted/10 h-[calc(100vh-64px)] overflow-hidden">
+                    <aside className="hidden md:block w-72 border-r bg-muted/10 h-[calc(100vh-64px)] overflow-y-auto">
                         <VersionTimeline rootId={analysis.rootId} currentId={id} />
                     </aside>
                 )}

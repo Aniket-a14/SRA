@@ -52,6 +52,11 @@
     -   Secure HTTP headers.
     -   Robust input validation.
     -   **Background Job Queue**: Handles heavy AI analysis tasks asynchronously using Redis.
+-   **Versioning & History**:
+    -   **Smart Versioning System**:
+    -   **Iterative Refinement**: Chat with the AI to refine requirements, automatically creating new versions.
+    -   **Time Travel**: Browse the full history of your project analysis.
+    -   **Diff Views**: Compare versions to see exactly what changed.
 -   **User System**:
     -   Secure User Authentication (Register/Login).
     -   Social Login (Google & GitHub).

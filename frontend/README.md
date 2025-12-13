@@ -15,8 +15,12 @@ The frontend interface for the Software Requirements Analyst (SRA) system. Built
 ## ✨ Features
 
 - **Project Dashboard**: Central hub for managing analyses.
-- **AI Analysis Chat**: Interactive input for generating requirements.
-- **Real-time Status Updates**: Live feedback on long-running analysis jobs.
+- **Interactive Version Control**:
+  - **Version Timeline**: Sidebar navigation to browse past iterations of your analysis.
+  - **Visual Diff Viewer**: See what changed between versions (Added/Removed/Modified Requirements).
+- **Persistent AI Chat**:
+  - **Context Retention**: Chat history "follows" you across versions.
+  - **Smart Commands**: Ask for specific component updates (e.g., "Add a login button").
 - **Detailed Results View**:
   - **Overview Tab**: Dashboard with identified entities, missing logic warnings, and contradiction alerts.
   - **Requirements**: Functional & Non-functional lists.
