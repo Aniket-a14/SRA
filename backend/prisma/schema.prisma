@@ -58,6 +58,7 @@ model Analysis {
   version     Int      @default(1)
   title       String?
   generatedCode Json?
+  metadata    Json?    // Stores trigger, source, promptSettings
   createdAt   DateTime @default(now())
 
   // Versioning Relations

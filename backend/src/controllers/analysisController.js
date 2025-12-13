@@ -169,7 +169,12 @@ export const updateAnalysis = async (req, res, next) => {
                     title: currentAnalysis.title || `Version ${nextVersion}`,
                     rootId: rootId,
                     parentId: currentAnalysis.id, // Parent is the one we edited
-                    projectId: currentAnalysis.projectId
+                    projectId: currentAnalysis.projectId,
+                    metadata: {
+                        trigger: 'edit',
+                        source: 'user',
+                        promptSettings: currentAnalysis.metadata?.promptSettings || {} // Inherit settings
+                    }
                 }
             });
         });

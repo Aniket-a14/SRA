@@ -79,7 +79,12 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                 title,
                 rootId: finalRootId,
                 parentId: parentId, // Can be null if new project or just branching from nothing (rare)
-                projectId: projectId // Associate with Project
+                projectId: projectId, // Associate with Project
+                metadata: {
+                    trigger: 'initial',
+                    source: 'ai',
+                    promptSettings: settings
+                }
             },
         });
 
@@ -112,7 +117,8 @@ export const getUserAnalyses = async (userId) => {
             version: true,
             title: true,
             rootId: true,
-            parentId: true
+            parentId: true,
+            metadata: true
         }
     });
 
@@ -136,7 +142,8 @@ export const getAnalysisHistory = async (userId, rootId) => {
             version: true,
             title: true,
             parentId: true,
-            rootId: true
+            rootId: true,
+            metadata: true
         }
     });
     return history;

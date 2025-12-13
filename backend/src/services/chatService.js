@@ -135,8 +135,14 @@ User: ${userMessage}
                     resultJson: parsedResponse.updatedAnalysis,
                     version,
                     title,
+                    title,
                     rootId,
-                    parentId: currentAnalysis.id
+                    parentId: currentAnalysis.id,
+                    metadata: {
+                        trigger: 'chat',
+                        source: 'ai',
+                        promptSettings: currentAnalysis.metadata?.promptSettings || {} // Inherit or default
+                    }
                 }
             });
             newAnalysisId = newAnalysis.id;

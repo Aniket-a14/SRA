@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth-context"
 import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
-import { Loader2, GitCommit, GitBranch, ArrowLeftRight, Clock } from "lucide-react"
+import { Loader2, GitCommit, GitBranch, ArrowLeftRight, Clock, Sparkles, FileText } from "lucide-react"
 
 interface Version {
     id: string
@@ -16,6 +16,13 @@ interface Version {
     title?: string
     rootId: string | null
     parentId: string | null
+    metadata?: {
+        trigger?: 'initial' | 'chat' | 'edit' | 'regenerate'
+        source?: 'ai' | 'user'
+        promptSettings?: {
+            profile?: string
+        }
+    }
 }
 
 interface VersionTimelineProps {
@@ -66,6 +73,17 @@ export function VersionTimeline({ rootId, currentId, className }: VersionTimelin
                 <div className="p-4 space-y-4">
                     {history.map((version, index) => {
                         const isCurrent = version.id === currentId
+                        const trigger = version.metadata?.trigger || 'initial';
+                        const source = version.metadata?.source || 'ai';
+                        const profile = version.metadata?.promptSettings?.profile;
+
+                        let BadgeIcon = GitCommit;
+                        let badgeLabel = "Update";
+
+                        if (trigger === 'chat') { BadgeIcon = Sparkles; badgeLabel = "Chat"; }
+                        else if (trigger === 'edit') { BadgeIcon = FileText; badgeLabel = "Edit"; }
+                        else if (trigger === 'initial') { BadgeIcon = GitBranch; badgeLabel = "Initial"; }
+
                         return (
                             <div key={version.id} className="relative pl-6 pb-6 last:pb-0">
                                 {/* Timeline Line */}
@@ -75,9 +93,11 @@ export function VersionTimeline({ rootId, currentId, className }: VersionTimelin
 
                                 <div className="absolute left-[3px] top-1">
                                     <div className={cn(
-                                        "h-4 w-4 rounded-full border-2 transition-colors",
+                                        "h-4 w-4 rounded-full border-2 transition-colors flex items-center justify-center",
                                         isCurrent ? "bg-primary border-primary" : "bg-background border-muted-foreground"
-                                    )} />
+                                    )}>
+                                        {!isCurrent && <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />}
+                                    </div>
                                 </div>
 
                                 <div className={cn(
@@ -85,15 +105,30 @@ export function VersionTimeline({ rootId, currentId, className }: VersionTimelin
                                     isCurrent ? "bg-accent text-accent-foreground border-accent" : "hover:bg-muted/50 border-transparent hover:border-border"
                                 )}>
                                     <div className="flex items-center justify-between">
-                                        <span className="font-medium text-sm">
-                                            Version {version.version}
+                                        <span className="font-medium text-sm flex items-center gap-1.5">
+                                            v{version.version}
                                         </span>
                                         {isCurrent && <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">Current</span>}
                                     </div>
-                                    <p className="text-xs text-muted-foreground truncate" title={version.title || `Version ${version.version}`}>
+
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-muted border font-medium text-muted-foreground">
+                                            <BadgeIcon className="h-3 w-3" /> {badgeLabel}
+                                        </span>
+                                        {source === 'user' && <span className="text-[10px] text-muted-foreground">(User)</span>}
+                                    </div>
+
+                                    <p className="text-xs text-muted-foreground truncate font-medium" title={version.title || `Version ${version.version}`}>
                                         {version.title || `Update ${version.version}`}
                                     </p>
-                                    <span className="text-[10px] text-muted-foreground">
+
+                                    {profile && profile !== 'default' && (
+                                        <p className="text-[10px] text-muted-foreground/70 italic">
+                                            Profile: {profile.replace('_', ' ')}
+                                        </p>
+                                    )}
+
+                                    <span className="text-[10px] text-muted-foreground mt-1">
                                         {format(new Date(version.createdAt), "MMM d, h:mm a")}
                                     </span>
 
