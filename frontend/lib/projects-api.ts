@@ -1,4 +1,4 @@
-import { Project } from "@/types/project";
+import { Project, PromptSettings } from "@/types/project";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -45,7 +45,7 @@ export async function createProject(token: string, data: { name: string; descrip
     return res.json();
 }
 
-export async function updateProject(token: string, id: string, data: { name?: string; description?: string; settings?: any }): Promise<Project> {
+export async function updateProject(token: string, id: string, data: { name?: string; description?: string; settings?: PromptSettings }): Promise<Project> {
     const res = await fetch(`${BACKEND_URL}/projects/${id}`, {
         method: "PUT",
         headers: {

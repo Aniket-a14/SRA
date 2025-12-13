@@ -19,21 +19,21 @@ export default function ProjectsPage() {
     const [newProjectName, setNewProjectName] = useState("");
 
     useEffect(() => {
+        const loadProjects = async () => {
+            try {
+                const data = await fetchProjects(token!);
+                setProjects(data);
+            } catch {
+                toast.error("Failed to load projects");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
         if (token) {
             loadProjects();
         }
     }, [token]);
-
-    const loadProjects = async () => {
-        try {
-            const data = await fetchProjects(token!);
-            setProjects(data);
-        } catch (error) {
-            toast.error("Failed to load projects");
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -43,7 +43,7 @@ export default function ProjectsPage() {
             setNewProjectName("");
             setIsCreating(false);
             toast.success("Project created");
-        } catch (error) {
+        } catch {
             toast.error("Failed to create project");
         }
     };

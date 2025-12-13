@@ -79,7 +79,6 @@ export function VersionTimeline({ rootId, currentId, className }: VersionTimelin
                         const source = version.metadata?.source || 'ai';
                         const profile = version.metadata?.promptSettings?.profile;
                         const modelName = version.metadata?.promptSettings?.modelName;
-                        const modelProvider = version.metadata?.promptSettings?.modelProvider;
 
                         let BadgeIcon = GitCommit;
                         let badgeLabel = "Update";
@@ -89,7 +88,6 @@ export function VersionTimeline({ rootId, currentId, className }: VersionTimelin
                         else if (trigger === 'initial') { BadgeIcon = GitBranch; badgeLabel = "Initial"; }
 
                         // Model Badge Logic
-                        let ModelIcon = Sparkles;
                         let modelLabel = "";
                         if (modelName) {
                             if (modelName.includes('gpt')) {

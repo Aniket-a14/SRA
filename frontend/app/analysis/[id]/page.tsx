@@ -13,7 +13,7 @@ import { ProjectChatPanel } from "@/components/project-chat-panel"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { generateSRS, generateAPI, downloadBundle } from "@/lib/export-utils"
 import { saveAs } from "file-saver"
-import type { Analysis, AnalysisResult } from "@/types/analysis"
+import type { Analysis } from "@/types/analysis"
 import { VersionTimeline } from "@/components/version-timeline"
 import { toast } from "sonner"
 

@@ -40,7 +40,7 @@ export function ResultsTabs({ data }: ResultsTabsProps) {
   // Local Data State for Editing
   const [localFunctionalReqs, setLocalFunctionalReqs] = useState<string[]>([])
   const [localNonFunctionalReqs, setLocalNonFunctionalReqs] = useState<string[]>([])
-  const [localUserStories, setLocalUserStories] = useState<any[]>([]) // Using any for simplicity with complex UserStory type
+  const [localUserStories, setLocalUserStories] = useState<NonNullable<AnalysisResult['userStories']>>([])
 
   useEffect(() => {
     if (data) {
@@ -141,7 +141,7 @@ export function ResultsTabs({ data }: ResultsTabsProps) {
     }
   }
 
-  const handleUserStoryUpdate = (index: number, updatedStory: any) => {
+  const handleUserStoryUpdate = (index: number, updatedStory: NonNullable<AnalysisResult['userStories']>[0]) => {
     const newStories = [...localUserStories];
     newStories[index] = updatedStory;
     setLocalUserStories(newStories);
@@ -331,7 +331,6 @@ export function ResultsTabs({ data }: ResultsTabsProps) {
                 </CardHeader>
                 <CardContent>
                   <EditableSection
-                    title="Functional Requirements"
                     items={isEditing ? localFunctionalReqs : functionalRequirements}
                     isEditing={isEditing}
                     onUpdate={setLocalFunctionalReqs}
@@ -349,7 +348,6 @@ export function ResultsTabs({ data }: ResultsTabsProps) {
                 </CardHeader>
                 <CardContent>
                   <EditableSection
-                    title="Non-Functional Requirements"
                     items={isEditing ? localNonFunctionalReqs : nonFunctionalRequirements}
                     isEditing={isEditing}
                     onUpdate={setLocalNonFunctionalReqs}

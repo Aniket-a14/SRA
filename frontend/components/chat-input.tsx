@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Card } from "@/components/ui/card"
-import { Sparkles, Settings2, HelpCircle } from "lucide-react"
+import { Sparkles, Settings2 } from "lucide-react"
 import {
   Popover,
   PopoverContent,
@@ -14,7 +14,6 @@ import { Slider } from "@/components/ui/slider"
 import { PromptSettings } from "@/types/project"
 import { useAuth } from "@/lib/auth-context"
 import { updateProject } from "@/lib/projects-api"
-import { toast } from "sonner"
 import { useSearchParams } from "next/navigation"
 
 interface ChatInputProps {
@@ -53,10 +52,12 @@ export function ChatInput({ onAnalyze, isLoading, initialSettings }: ChatInputPr
   const projectId = searchParams.get("projectId");
 
   // Sync initial setup
+  // Sync initial setup
   useEffect(() => {
-    if (initialSettings) {
+    if (initialSettings && JSON.stringify(settings) !== JSON.stringify(initialSettings)) {
       setSettings(initialSettings);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialSettings]);
 
   // Debounced Save

@@ -2,13 +2,11 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Plus, X, GripVertical, Trash2 } from "lucide-react"
+import { Plus, GripVertical, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 
 interface EditableSectionProps {
-    title: string
     items: string[]
     isEditing: boolean
     onUpdate: (newItems: string[]) => void
@@ -16,7 +14,7 @@ interface EditableSectionProps {
     badgeColor?: string
 }
 
-export function EditableSection({ title, items, isEditing, onUpdate, prefix = "ITEM", badgeColor = "text-primary" }: EditableSectionProps) {
+export function EditableSection({ items, isEditing, onUpdate, prefix = "ITEM", badgeColor = "text-primary" }: EditableSectionProps) {
     const [localItems, setLocalItems] = useState(items)
 
     useEffect(() => {

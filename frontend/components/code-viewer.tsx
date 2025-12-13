@@ -29,19 +29,7 @@ export function CodeViewer({ fileStructure, schema, backendRoutes, frontendCompo
     const [selectedFile, setSelectedFile] = useState<{ path: string, code: string } | null>(null)
     const [copied, setCopied] = useState(false)
 
-    // Helper to find code for a selected path from the various arrays
-    const findCode = (path: string) => {
-        if (path === "schema.prisma") return schema;
-        if (path === "backend/README.md") return backendReadme || "";
-        if (path === "frontend/README.md") return frontendReadme || "";
-        const route = backendRoutes.find(r => r.path === path);
-        if (route) return route.code;
-        const component = frontendComponents.find(c => c.path === path);
-        if (component) return component.code;
-        const test = testCases.find(t => t.path === path);
-        if (test) return test.code;
-        return null;
-    }
+
 
 
 

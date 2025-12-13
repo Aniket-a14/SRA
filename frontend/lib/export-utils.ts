@@ -167,7 +167,7 @@ export const generateAPI = (data: AnalysisResult) => {
             try {
                 content += "### Request Body\n```json\n" + JSON.stringify(api.requestBody || {}, null, 2) + "\n```\n\n";
                 content += "### Response Body\n```json\n" + JSON.stringify(api.responseBody || {}, null, 2) + "\n```\n\n";
-            } catch (_e) {
+            } catch {
                 content += "Error parsing body JSON\n\n";
             }
             content += "---\n\n";
@@ -198,7 +198,7 @@ export const downloadBundle = async (data: AnalysisResult, title: string) => {
     // 3. raw JSON
     try {
         zip.file("analysis.json", JSON.stringify(data, null, 2));
-    } catch (_e) { }
+    } catch { }
 
     // 4. Diagrams (SVG & MMD)
     // Helper to render

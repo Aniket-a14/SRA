@@ -34,24 +34,24 @@ export default function ProjectDetailPage() {
     const [editDesc, setEditDesc] = useState("");
 
     useEffect(() => {
+        const loadProject = async (id: string) => {
+            try {
+                const data = await fetchProject(token!, id);
+                setProject(data);
+                setEditName(data.name);
+                setEditDesc(data.description || "");
+            } catch {
+                toast.error("Failed to load project");
+                router.push("/projects");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
         if (token && params.id) {
             loadProject(params.id as string);
         }
-    }, [token, params.id]);
-
-    const loadProject = async (id: string) => {
-        try {
-            const data = await fetchProject(token!, id);
-            setProject(data);
-            setEditName(data.name);
-            setEditDesc(data.description || "");
-        } catch (error) {
-            toast.error("Failed to load project");
-            router.push("/projects");
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    }, [token, params.id, router]);
 
     const handleUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -63,7 +63,7 @@ export default function ProjectDetailPage() {
             setProject(updated);
             setIsEditing(false);
             toast.success("Project updated");
-        } catch (error) {
+        } catch {
             toast.error("Failed to update project");
         }
     };
@@ -73,7 +73,7 @@ export default function ProjectDetailPage() {
             await deleteProject(token!, project!.id);
             toast.success("Project deleted");
             router.push("/projects");
-        } catch (error) {
+        } catch {
             toast.error("Failed to delete project");
         }
     };

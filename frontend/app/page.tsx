@@ -27,6 +27,7 @@ const defaultAnalysis: AnalysisResult = {
 }
 
 import { fetchProject } from "@/lib/projects-api"
+import { PromptSettings } from "@/types/project";
 import { Folder } from "lucide-react"
 
 function HomeContent() {
@@ -39,7 +40,7 @@ function HomeContent() {
   const projectId = searchParams.get("projectId")
   const [projectName, setProjectName] = useState<string>("")
 
-  const [projectSettings, setProjectSettings] = useState<any>(null);
+  const [projectSettings, setProjectSettings] = useState<PromptSettings | null>(null);
 
   useEffect(() => {
     const urlToken = searchParams.get("token")
@@ -57,7 +58,7 @@ function HomeContent() {
     }
   }, [projectId, token])
 
-  const handleAnalyze = async (requirements: string, settings: any) => {
+  const handleAnalyze = async (requirements: string, settings: PromptSettings) => {
     setIsLoading(true)
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, {
@@ -139,7 +140,7 @@ function HomeContent() {
           </div>
         )}
 
-        <ChatInput onAnalyze={handleAnalyze} isLoading={isLoading} initialSettings={projectSettings} />
+        <ChatInput onAnalyze={handleAnalyze} isLoading={isLoading} initialSettings={projectSettings || undefined} />
         <ResultsTabs data={analysisResult} />
         <AboutSection />
         <FaqSection />

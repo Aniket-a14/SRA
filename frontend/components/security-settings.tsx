@@ -53,7 +53,7 @@ export function SecuritySettings() {
             } else {
                 toast.error("Failed to revoke session")
             }
-        } catch (_error) {
+        } catch {
             toast.error("Error revoking session")
         }
     }
