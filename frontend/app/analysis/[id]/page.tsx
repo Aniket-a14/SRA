@@ -31,38 +31,42 @@ function AnalysisDetailContent() {
     const [error, setError] = useState("")
     const [isDiagramEditing, setIsDiagramEditing] = useState(false)
 
-    useEffect(() => {
-        const fetchAnalysis = async (analysisId: string) => {
-            try {
-                setLoadingMessage("Fetching analysis data...")
-                const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                })
+    const fetchAnalysis = async (analysisId: string) => {
+        try {
+            // Only show full loading screen if we don't have data yet
+            if (!analysis) setLoadingMessage("Fetching analysis data...")
 
-                if (!response.ok) {
-                    let errMsg = "Failed to load analysis";
-                    try {
-                        const errData = await response.json();
-                        errMsg = errData.error || errData.message || errMsg;
-                    } catch { }
-
-                    if (response.status === 404) throw new Error(errMsg || "Analysis not found");
-                    if (response.status === 403) throw new Error(errMsg || "Unauthorized access");
-                    throw new Error(errMsg);
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
+                cache: 'no-store',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Pragma': 'no-cache'
                 }
+            })
 
-                const data = await response.json()
-                setAnalysis(data)
-            } catch (err) {
-                console.error("Error fetching analysis:", err)
-                setError(err instanceof Error ? err.message : "Failed to load analysis")
-            } finally {
-                setIsLoading(false)
+            if (!response.ok) {
+                let errMsg = "Failed to load analysis";
+                try {
+                    const errData = await response.json();
+                    errMsg = errData.error || errData.message || errMsg;
+                } catch { }
+
+                if (response.status === 404) throw new Error(errMsg || "Analysis not found");
+                if (response.status === 403) throw new Error(errMsg || "Unauthorized access");
+                throw new Error(errMsg);
             }
-        }
 
+            const data = await response.json()
+            setAnalysis(data)
+        } catch (err) {
+            console.error("Error fetching analysis:", err)
+            setError(err instanceof Error ? err.message : "Failed to load analysis")
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    useEffect(() => {
         if (!authLoading && !user) {
             router.push("/auth/login")
             return
@@ -72,6 +76,10 @@ function AnalysisDetailContent() {
             fetchAnalysis(id)
         }
     }, [user, token, id, authLoading, router])
+
+    const handleRefresh = () => {
+        if (id) fetchAnalysis(id)
+    }
 
     if (authLoading || isLoading) {
         return (
@@ -220,7 +228,11 @@ function AnalysisDetailContent() {
                     {analysis && (
                         <div className="border p-2 mb-4 bg-muted">
                             <p className="text-xs text-muted-foreground mb-2">Debug Info: Data Present</p>
-                            <ResultsTabs data={analysis} onDiagramEditChange={setIsDiagramEditing} />
+                            <ResultsTabs
+                                data={analysis}
+                                onDiagramEditChange={setIsDiagramEditing}
+                                onRefresh={handleRefresh}
+                            />
                         </div>
                     )}
                 </main>

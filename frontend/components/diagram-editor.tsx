@@ -108,7 +108,7 @@ export function DiagramEditor({ title, initialCode, onSave, onOpenChange }: Diag
                                         <h4 className="font-medium text-sm">Live Preview</h4>
                                         <div className="h-full border rounded-md overflow-hidden bg-white/50 dark:bg-black/20 p-4 relative flex-1">
                                             <div className="absolute inset-0 overflow-auto flex items-center justify-center p-4">
-                                                <MermaidRenderer chart={code} title={`${title} (Preview)`} />
+                                                <MermaidRenderer chart={code} title={`${title} (Preview)`} className="h-full" />
                                             </div>
                                         </div>
                                     </div>
@@ -130,8 +130,8 @@ export function DiagramEditor({ title, initialCode, onSave, onOpenChange }: Diag
             </div>
 
             {/* Read-only view in the main flow */}
-            <div className="border rounded-lg p-4 bg-card flex-1 min-h-[300px] flex items-center justify-center overflow-auto">
-                <MermaidRenderer chart={initialCode} title={title} />
+            <div className="flex-1 min-h-[300px] overflow-auto">
+                <MermaidRenderer key={initialCode.length} chart={initialCode} title={title} />
             </div>
         </div>
     )

@@ -3,17 +3,19 @@
 
 import { useEffect, useRef, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
 
 interface MermaidRendererProps {
     chart: string
     title: string
+    className?: string
 }
 
 interface MermaidInstance {
     render: (id: string, text: string) => Promise<{ svg: string }>
 }
 
-export function MermaidRenderer({ chart, title }: MermaidRendererProps) {
+export function MermaidRenderer({ chart, title, className }: MermaidRendererProps) {
     const ref = useRef<HTMLDivElement>(null)
     const [mermaidInstance, setMermaidInstance] = useState<MermaidInstance | null>(null)
     const [hasError, setHasError] = useState(false)
@@ -65,26 +67,27 @@ export function MermaidRenderer({ chart, title }: MermaidRendererProps) {
         renderDiagram()
     }, [chart, mermaidInstance, title])
 
-    if (!chart || hasError) {
-        return (
-            <Card className="h-[500px] bg-card border-border transition-all duration-300 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 group flex flex-col">
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-base">{title}</CardTitle>
-                </CardHeader>
-                <CardContent className="flex-1 flex items-center justify-center min-h-0 text-muted-foreground text-sm">
-                    {hasError ? "Unable to render diagram" : "No diagram available"}
-                </CardContent>
-            </Card>
-        )
-    }
-
     return (
-        <Card className="h-[500px] bg-card border-border transition-all duration-300 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 group flex flex-col">
+        <Card className={cn(
+            "h-[500px] w-full bg-card border-border transition-all duration-300 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 group flex flex-col relative",
+            className
+        )}>
             <CardHeader className="pb-2">
                 <CardTitle className="text-base">{title}</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 overflow-auto min-h-0 p-0">
-                <div ref={ref} className="flex justify-center w-full min-w-max p-4" />
+            <CardContent className="flex-1 overflow-auto min-h-0 p-0 relative">
+                {hasError || !chart ? (
+                    <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm bg-card/50 z-10 p-4 text-center">
+                        {hasError ? "Unable to render diagram. Please check syntax." : "No diagram available"}
+                    </div>
+                ) : null}
+                <div
+                    ref={ref}
+                    className={cn(
+                        "flex justify-center w-full min-w-max p-4",
+                        (hasError || !chart) ? "opacity-0 pointer-events-none" : "opacity-100"
+                    )}
+                />
             </CardContent>
         </Card>
     )
