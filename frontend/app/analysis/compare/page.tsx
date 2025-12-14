@@ -4,7 +4,6 @@ import { Suspense, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { Navbar } from "@/components/navbar"
-import { Footer } from "@/components/footer"
 import { VersionDiffViewer } from "@/components/version-diff-viewer"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Loader2 } from "lucide-react"
@@ -17,7 +16,6 @@ export default function ComparePage() {
                 <main className="flex-1 flex items-center justify-center">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </main>
-                <Footer />
             </div>
         }>
             <CompareContent />
@@ -78,7 +76,6 @@ function CompareContent() {
                 <main className="flex-1 flex items-center justify-center">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </main>
-                <Footer />
             </div>
         )
     }
@@ -111,7 +108,7 @@ function CompareContent() {
                     </div>
                 )}
             </main>
-            <Footer />
+
         </div>
     )
 }

@@ -4,7 +4,6 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { Navbar } from "@/components/navbar"
-import { Footer } from "@/components/footer"
 import { AnalysisHistory } from "@/components/analysis-history"
 import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
@@ -59,7 +58,6 @@ export default function AnalysisPage() {
                         <p className="text-muted-foreground">Loading your analyses...</p>
                     </div>
                 </main>
-                <Footer />
             </div>
         )
     }
@@ -80,7 +78,7 @@ export default function AnalysisPage() {
                     <AnalysisHistory items={history} />
                 </div>
             </main>
-            <Footer />
+
         </div>
     )
 }

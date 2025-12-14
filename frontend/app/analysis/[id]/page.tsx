@@ -4,7 +4,6 @@ import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { Navbar } from "@/components/navbar"
-import { Footer } from "@/components/footer"
 import { ResultsTabs } from "@/components/results-tabs"
 import { Button } from "@/components/ui/button"
 import { Loader2, ArrowLeft, Calendar, Download } from "lucide-react"
@@ -83,7 +82,6 @@ function AnalysisDetailContent() {
                         <p className="text-muted-foreground">{authLoading ? "Verifying session..." : loadingMessage}</p>
                     </div>
                 </main>
-                <Footer />
             </div>
         )
     }
@@ -105,7 +103,6 @@ function AnalysisDetailContent() {
                         </Button>
                     </div>
                 </main>
-                <Footer />
             </div>
         )
     }
@@ -229,7 +226,7 @@ function AnalysisDetailContent() {
             </div>
 
             <ProjectChatPanel analysisId={id} onAnalysisUpdate={(newId) => router.push(`/analysis/${newId}`)} />
-            <Footer />
+
         </div>
     )
 }
