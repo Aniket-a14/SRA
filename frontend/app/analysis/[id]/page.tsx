@@ -29,6 +29,7 @@ function AnalysisDetailContent() {
     const [isLoading, setIsLoading] = useState(true)
     const [loadingMessage, setLoadingMessage] = useState("Loading analysis details...")
     const [error, setError] = useState("")
+    const [isDiagramEditing, setIsDiagramEditing] = useState(false)
 
     useEffect(() => {
         const fetchAnalysis = async (analysisId: string) => {
@@ -219,13 +220,17 @@ function AnalysisDetailContent() {
                     {analysis && (
                         <div className="border p-2 mb-4 bg-muted">
                             <p className="text-xs text-muted-foreground mb-2">Debug Info: Data Present</p>
-                            <ResultsTabs data={analysis} />
+                            <ResultsTabs data={analysis} onDiagramEditChange={setIsDiagramEditing} />
                         </div>
                     )}
                 </main>
             </div>
 
-            <ProjectChatPanel analysisId={id} onAnalysisUpdate={(newId) => router.push(`/analysis/${newId}`)} />
+            <ProjectChatPanel
+                analysisId={id}
+                onAnalysisUpdate={(newId) => router.push(`/analysis/${newId}`)}
+                hidden={isDiagramEditing}
+            />
 
         </div>
     )

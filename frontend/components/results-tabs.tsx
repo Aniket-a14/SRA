@@ -21,9 +21,10 @@ import { toast } from "sonner"
 
 interface ResultsTabsProps {
   data?: AnalysisResult
+  onDiagramEditChange?: (isEditing: boolean) => void
 }
 
-export function ResultsTabs({ data }: ResultsTabsProps) {
+export function ResultsTabs({ data, onDiagramEditChange }: ResultsTabsProps) {
   const sectionRef = useRef<HTMLElement>(null)
   const { token } = useAuth()
   const router = useRouter()
@@ -503,7 +504,9 @@ export function ResultsTabs({ data }: ResultsTabsProps) {
                       },
                       body: JSON.stringify({ flowchartDiagram: newCode })
                     })
+                    router.refresh()
                   }}
+                  onOpenChange={onDiagramEditChange}
                 />
                 <DiagramEditor
                   title="Sequence Diagram"
@@ -517,7 +520,9 @@ export function ResultsTabs({ data }: ResultsTabsProps) {
                       },
                       body: JSON.stringify({ sequenceDiagram: newCode })
                     })
+                    router.refresh()
                   }}
+                  onOpenChange={onDiagramEditChange}
                 />
               </div>
             </TabsContent>

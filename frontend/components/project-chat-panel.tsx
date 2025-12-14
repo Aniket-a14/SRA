@@ -19,9 +19,10 @@ interface ChatMessage {
 interface ProjectChatPanelProps {
     analysisId: string
     onAnalysisUpdate?: (newAnalysisId: string) => void
+    hidden?: boolean
 }
 
-export function ProjectChatPanel({ analysisId, onAnalysisUpdate }: ProjectChatPanelProps) {
+export function ProjectChatPanel({ analysisId, onAnalysisUpdate, hidden }: ProjectChatPanelProps) {
     const { token, user } = useAuth()
 
     const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -116,7 +117,7 @@ export function ProjectChatPanel({ analysisId, onAnalysisUpdate }: ProjectChatPa
                     size="icon"
                     className={cn(
                         "fixed bottom-8 right-8 h-14 w-14 rounded-full shadow-xl bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 transition-all z-[100]",
-                        isOpen && "opacity-0 translate-x-10 pointer-events-none"
+                        (isOpen || hidden) && "opacity-0 translate-x-10 pointer-events-none"
                     )}
                 >
                     <MessageSquare className="h-6 w-6" />
