@@ -5,7 +5,6 @@ import { useAuth } from "@/lib/auth-context";
 import { fetchProjects, createProject } from "@/lib/projects-api";
 import { Project } from "@/types/project";
 import { Navbar } from "@/components/navbar";
-import { Footer } from "@/components/footer";
 import Link from "next/link";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -55,7 +54,6 @@ export default function ProjectsPage() {
                 <div className="flex-1 flex items-center justify-center">
                     <p>Please log in to view projects</p>
                 </div>
-                <Footer />
             </div>
         );
     }
@@ -133,7 +131,6 @@ export default function ProjectsPage() {
                     </div>
                 )}
             </main>
-            <Footer />
         </div>
     );
 }

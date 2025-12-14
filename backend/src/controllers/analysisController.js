@@ -118,7 +118,8 @@ export const getAnalysis = async (req, res, next) => {
             createdAt: analysis.createdAt,
             generatedCode: analysis.generatedCode,
             rootId: analysis.rootId,
-            parentId: analysis.parentId
+            parentId: analysis.parentId,
+            inputText: analysis.inputText
         });
     } catch (error) {
         next(error);
@@ -195,7 +196,8 @@ export const updateAnalysis = async (req, res, next) => {
             createdAt: newAnalysis.createdAt,
             generatedCode: newAnalysis.generatedCode,
             rootId: newAnalysis.rootId,
-            parentId: newAnalysis.parentId
+            parentId: newAnalysis.parentId,
+            inputText: newAnalysis.inputText
         });
 
     } catch (error) {

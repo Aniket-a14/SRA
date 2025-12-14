@@ -5,7 +5,6 @@ import { useAuth } from "@/lib/auth-context";
 import { fetchProject, updateProject, deleteProject } from "@/lib/projects-api";
 import { Project } from "@/types/project";
 import { Navbar } from "@/components/navbar";
-import { Footer } from "@/components/footer";
 import Link from "next/link";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -85,7 +84,6 @@ export default function ProjectDetailPage() {
                 <div className="flex-1 flex items-center justify-center">
                     <p>Please log in to view project</p>
                 </div>
-                <Footer />
             </div>
         );
     }
@@ -215,7 +213,7 @@ export default function ProjectDetailPage() {
                     )}
                 </div>
             </main>
-            <Footer />
+
         </div>
     );
 }

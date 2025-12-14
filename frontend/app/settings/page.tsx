@@ -1,7 +1,6 @@
 "use client"
 
 import { Navbar } from "@/components/navbar"
-import { Footer } from "@/components/footer"
 import { SecuritySettings } from "@/components/security-settings"
 import { useAuth } from "@/lib/auth-context"
 import { redirect } from "next/navigation"
@@ -28,7 +27,6 @@ export default function SettingsPage() {
                     </div>
                 </div>
             </main>
-            <Footer />
         </div>
     )
 }
