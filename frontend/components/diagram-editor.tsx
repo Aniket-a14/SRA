@@ -2,11 +2,18 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { MermaidRenderer } from "@/components/mermaid-renderer"
-import { Edit2, Save, X, ExternalLink } from "lucide-react"
+import { Edit2, Save, ExternalLink } from "lucide-react"
 import { toast } from "sonner"
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from "@/components/ui/sheet"
 
 interface DiagramEditorProps {
     title: string
@@ -15,7 +22,7 @@ interface DiagramEditorProps {
 }
 
 export function DiagramEditor({ title, initialCode, onSave }: DiagramEditorProps) {
-    const [isEditing, setIsEditing] = useState(false)
+    const [open, setOpen] = useState(false)
     const [code, setCode] = useState(initialCode)
     const [isSaving, setIsSaving] = useState(false)
 
@@ -28,7 +35,7 @@ export function DiagramEditor({ title, initialCode, onSave }: DiagramEditorProps
         setIsSaving(true)
         try {
             await onSave(code)
-            setIsEditing(false)
+            setOpen(false)
             toast.success("Diagram saved successfully")
         } catch {
             toast.error("Failed to save diagram")
@@ -53,62 +60,68 @@ export function DiagramEditor({ title, initialCode, onSave }: DiagramEditorProps
         window.open(`https://mermaid.live/edit#base64:${data}`, '_blank')
     }
 
-    if (!isEditing) {
-        return (
-            <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-medium">{title}</h3>
-                    <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={openLiveEditor}>
-                            <ExternalLink className="mr-2 h-4 w-4" />
-                            Mermaid Live
-                        </Button>
-                        <Button size="sm" onClick={() => setIsEditing(true)}>
-                            <Edit2 className="mr-2 h-4 w-4" />
-                            Edit Diagram
-                        </Button>
-                    </div>
-                </div>
-                <MermaidRenderer chart={code} title={title} />
-            </div>
-        )
-    }
-
     return (
-        <Card className="border-border">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle>{title} - Editor</CardTitle>
+        <div className="space-y-4 h-full flex flex-col">
+            <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium">{title}</h3>
                 <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => { setIsEditing(false); setCode(initialCode); }}>
-                        <X className="h-4 w-4 mr-2" />
-                        Cancel
+                    <Button variant="outline" size="sm" onClick={openLiveEditor}>
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        Mermaid Live
                     </Button>
-                    <Button size="sm" onClick={handleSave} disabled={isSaving}>
-                        <Save className="h-4 w-4 mr-2" />
-                        {isSaving ? "Saving..." : "Save Changes"}
-                    </Button>
+                    <Sheet open={open} onOpenChange={setOpen}>
+                        <SheetTrigger asChild>
+                            <Button size="sm">
+                                <Edit2 className="mr-2 h-4 w-4" />
+                                Edit Diagram
+                            </Button>
+                        </SheetTrigger>
+                        <SheetContent side="right" className="w-full sm:max-w-4xl sm:w-[80vw] overflow-y-auto">
+                            <SheetHeader className="mb-4">
+                                <SheetTitle>Edit {title}</SheetTitle>
+                                <SheetDescription>
+                                    Modify the Mermaid diagram code below. Changes are reflected in the preview.
+                                </SheetDescription>
+                            </SheetHeader>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-200px)]">
+                                <div className="h-full flex flex-col gap-2">
+                                    <h4 className="font-medium text-sm">Mermaid Code</h4>
+                                    <Textarea
+                                        value={code}
+                                        onChange={(e) => setCode(e.target.value)}
+                                        className="font-mono text-sm h-full resize-none p-4 leading-relaxed"
+                                        placeholder="Enter Mermaid syntax here..."
+                                    />
+                                </div>
+                                <div className="h-full flex flex-col gap-2">
+                                    <h4 className="font-medium text-sm">Live Preview</h4>
+                                    <div className="h-full border rounded-md overflow-hidden bg-white/50 dark:bg-black/20 p-4 relative">
+                                        <div className="absolute inset-0 overflow-auto flex items-center justify-center p-4">
+                                            <MermaidRenderer chart={code} title={`${title} (Preview)`} />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-2 mt-6">
+                                <Button variant="outline" onClick={() => { setOpen(false); setCode(initialCode); }}>
+                                    Cancel
+                                </Button>
+                                <Button onClick={handleSave} disabled={isSaving}>
+                                    <Save className="h-4 w-4 mr-2" />
+                                    {isSaving ? "Saving..." : "Save Changes"}
+                                </Button>
+                            </div>
+                        </SheetContent>
+                    </Sheet>
                 </div>
-            </CardHeader>
-            <CardContent>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[500px]">
-                    <div className="h-full">
-                        <Textarea
-                            value={code}
-                            onChange={(e) => setCode(e.target.value)}
-                            className="font-mono text-xs h-full resize-none p-4"
-                            placeholder="Enter Mermaid syntax here..."
-                        />
-                    </div>
-                    <div className="h-full border rounded-md overflow-hidden bg-white/50 dark:bg-black/20 p-4">
-                        <div className="h-full overflow-auto flex items-center justify-center">
-                            <MermaidRenderer chart={code} title={`${title} (Preview)`} />
-                        </div>
-                    </div>
-                </div>
-                <div className="mt-2 text-xs text-muted-foreground">
-                    Tip: Use the text editor to modify the diagram structure. Changes are reflected in the preview.
-                </div>
-            </CardContent>
-        </Card>
+            </div>
+
+            {/* Read-only view in the main flow */}
+            <div className="border rounded-lg p-4 bg-card flex-1 min-h-[300px] flex items-center justify-center overflow-auto">
+                <MermaidRenderer chart={initialCode} title={title} />
+            </div>
+        </div>
     )
 }

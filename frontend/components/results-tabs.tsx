@@ -490,7 +490,7 @@ export function ResultsTabs({ data }: ResultsTabsProps) {
 
             {/* Diagrams Tab */}
             <TabsContent value="diagrams" className="animate-fade-in">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 overflow-scroll">
                 <DiagramEditor
                   title="Flowchart"
                   initialCode={flowchartDiagram}
