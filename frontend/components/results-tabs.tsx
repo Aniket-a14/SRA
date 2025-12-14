@@ -22,9 +22,10 @@ import { toast } from "sonner"
 interface ResultsTabsProps {
   data?: AnalysisResult
   onDiagramEditChange?: (isEditing: boolean) => void
+  onRefresh?: () => void
 }
 
-export function ResultsTabs({ data, onDiagramEditChange }: ResultsTabsProps) {
+export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTabsProps) {
   const sectionRef = useRef<HTMLElement>(null)
   const { token } = useAuth()
   const router = useRouter()
@@ -496,15 +497,30 @@ export function ResultsTabs({ data, onDiagramEditChange }: ResultsTabsProps) {
                   title="Flowchart"
                   initialCode={flowchartDiagram}
                   onSave={async (newCode) => {
-                    await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
-                      method: "PUT",
-                      headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`
-                      },
-                      body: JSON.stringify({ flowchartDiagram: newCode })
-                    })
-                    router.refresh()
+                    try {
+                      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
+                        method: "PUT",
+                        headers: {
+                          "Content-Type": "application/json",
+                          Authorization: `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ flowchartDiagram: newCode })
+                      })
+
+                      if (!res.ok) throw new Error("Failed to save diagram")
+
+                      const updated = await res.json()
+                      if (updated.id && updated.id !== analysisId) {
+                        toast.success("New version created")
+                        router.push(`/analysis/${updated.id}`)
+                      } else {
+                        toast.success("Diagram saved")
+                        onRefresh?.()
+                      }
+                    } catch (e) {
+                      toast.error("Failed to save flowchart")
+                      console.error(e)
+                    }
                   }}
                   onOpenChange={onDiagramEditChange}
                 />
@@ -512,15 +528,30 @@ export function ResultsTabs({ data, onDiagramEditChange }: ResultsTabsProps) {
                   title="Sequence Diagram"
                   initialCode={sequenceDiagram}
                   onSave={async (newCode) => {
-                    await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
-                      method: "PUT",
-                      headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`
-                      },
-                      body: JSON.stringify({ sequenceDiagram: newCode })
-                    })
-                    router.refresh()
+                    try {
+                      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
+                        method: "PUT",
+                        headers: {
+                          "Content-Type": "application/json",
+                          Authorization: `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ sequenceDiagram: newCode })
+                      })
+
+                      if (!res.ok) throw new Error("Failed to save diagram")
+
+                      const updated = await res.json()
+                      if (updated.id && updated.id !== analysisId) {
+                        toast.success("New version created")
+                        router.push(`/analysis/${updated.id}`)
+                      } else {
+                        toast.success("Diagram saved")
+                        onRefresh?.()
+                      }
+                    } catch (e) {
+                      toast.error("Failed to save sequence diagram")
+                      console.error(e)
+                    }
                   }}
                   onOpenChange={onDiagramEditChange}
                 />
