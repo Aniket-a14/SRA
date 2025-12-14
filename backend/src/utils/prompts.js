@@ -104,7 +104,10 @@ FLOWCHART RULES:
 5. NEVER start a node name with lowercase "o" or "x".
    - If needed, capitalize (e.g., "Ops", "Xray") or add a space.
 6. Avoid accidental circular/cross edges caused by "o" or "x" prefixes.
-7. All nodes must be simple readable labels (e.g., "SearchFood", "PlaceOrder", "Confirm").
+7. All nodes MUST use the syntax NodeID("Node Label") if the label contains spaces.
+   - INVALID: UserAuthDecision -- Yes --> Home Screen (Space in ID)
+   - VALID: UserAuthDecision -- Yes --> HomeScreen("Home Screen")
+8. Node IDs (the part before the parens) MUST NOT contain spaces or special characters. Use CamelCase (e.g., ProcessPayment).
 
 VALID FLOWCHART EXAMPLE:
 flowchart TD
