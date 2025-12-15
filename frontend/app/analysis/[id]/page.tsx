@@ -168,6 +168,7 @@ function AnalysisDetailContent() {
                             </div>
 
                             <div className="mt-4 flex gap-2">
+
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button variant="outline" className="gap-2">
@@ -178,8 +179,8 @@ function AnalysisDetailContent() {
                                     <DropdownMenuContent align="start">
                                         <DropdownMenuItem onClick={() => {
                                             try {
-                                                if (analysis && analysis.resultJson) {
-                                                    const doc = generateSRS(analysis.resultJson, "SRS Report");
+                                                if (analysis) {
+                                                    const doc = generateSRS(analysis, "SRS_Report");
                                                     doc.save("SRS_Report.pdf");
                                                     toast.success("SRS Report downloaded");
                                                 }
@@ -192,8 +193,8 @@ function AnalysisDetailContent() {
                                         </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => {
                                             try {
-                                                if (analysis && analysis.resultJson) {
-                                                    const md = generateAPI(analysis.resultJson);
+                                                if (analysis) {
+                                                    const md = generateAPI(analysis);
                                                     const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
                                                     saveAs(blob, "API_Blueprint.md");
                                                     toast.success("API Blueprint downloaded");
@@ -207,9 +208,9 @@ function AnalysisDetailContent() {
                                         </DropdownMenuItem>
                                         <DropdownMenuItem onClick={async () => {
                                             try {
-                                                if (analysis && analysis.resultJson) {
+                                                if (analysis) {
                                                     toast.info("Generating bundle...");
-                                                    await downloadBundle(analysis.resultJson, "Project_Analysis");
+                                                    await downloadBundle(analysis, "Project_Analysis");
                                                     toast.success("Bundle downloaded successfully");
                                                 }
                                             } catch (err) {
