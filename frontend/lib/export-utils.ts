@@ -4,13 +4,7 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
 import type { AnalysisResult } from '@/types/analysis';
-import mermaid from 'mermaid';
 
-mermaid.initialize({
-    startOnLoad: false,
-    theme: 'base',
-    securityLevel: 'loose',
-});
 
 
 
@@ -179,6 +173,21 @@ export const generateAPI = (data: AnalysisResult) => {
 export const downloadBundle = async (data: AnalysisResult, title: string) => {
     const zip = new JSZip();
 
+    // Dynamically import mermaid to avoid SSR/Initial load issues
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let mermaid: any = null;
+    try {
+        const mermaidModule = await import('mermaid');
+        mermaid = mermaidModule.default;
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: 'base',
+            securityLevel: 'loose',
+        });
+    } catch (e) {
+        console.warn("Mermaid failed to load, diagram images will be skipped", e);
+    }
+
     try {
         // 1. SRS PDF
         const srsDoc = generateSRS(data, title);
@@ -204,7 +213,7 @@ export const downloadBundle = async (data: AnalysisResult, title: string) => {
     // Helper to render
     const renderDiagram = async (code: string, id: string) => {
         try {
-            if (!code) return null;
+            if (!code || !mermaid) return null;
             // Unique ID to avoid conflicts
             const uniqueId = `${id}-${Math.random().toString(36).substr(2, 9)}`;
             const { svg } = await mermaid.render(uniqueId, code);
