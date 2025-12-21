@@ -19,6 +19,7 @@ const defaultAnalysis: AnalysisResult = {
     purpose: "",
     scope: "",
     intendedAudience: "",
+    documentConventions: "",
     references: []
   },
   overallDescription: {

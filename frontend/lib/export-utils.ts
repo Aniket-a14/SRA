@@ -246,7 +246,7 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
     const projectAcronym = getAcronym(title);
 
     // --- State & Navigation ---
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const tocItems: { title: string, page: number, level: number }[] = [];
 
     // Add Revision History to ToC (Front Matter)
@@ -1231,9 +1231,12 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
 };
 
 // Keep other exports, maybe adjusting them if needed, but generateSRS is key.
-export const generateAPI = () => {
+export const generateAPI = (_data: AnalysisResult) => {
     // API logic might need to check if existing apiContracts exist in new structure
     // This part is less critical for the specific user request about SRS PDF, but good compatibility to keep.
+    // Using 'data' completely avoids the unused variable warning if we just log it or use it trivially, 
+    // but for now we just accept it to match the call signature.
+    // console.log("Generating API for", data.title); 
     return "# API Documentation\n(To be implemented for new structure)";
 };
 
