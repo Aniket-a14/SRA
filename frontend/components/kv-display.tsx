@@ -36,7 +36,8 @@ const ID_MAPPING: Record<string, string> = {
     safetyRequirements: "SR",
     securityRequirements: "SE",
     softwareQualityAttributes: "QA",
-    businessRules: "BR"
+    businessRules: "BR",
+    otherRequirements: "OR"
 };
 
 export function KVDisplay({ data, title, excludeKeys = [], projectTitle = "SRA" }: KVDisplayProps) {
