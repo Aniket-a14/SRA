@@ -20,9 +20,48 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
     if (process.env.MOCK_AI === 'true') {
         resultJson = {
             projectTitle: "Mocked Project",
-            functionalRequirements: [],
-            nonFunctionalRequirements: [],
-            userStories: [],
+            introduction: {
+                purpose: "Mock Purpose",
+                scope: "Mock Scope",
+                intendedAudience: "Developers",
+                references: []
+            },
+            overallDescription: {
+                productPerspective: "Mock Perspective",
+                productFunctions: ["Function A", "Function B"],
+                userClassesAndCharacteristics: [{ userClass: "Admin", characteristics: "High privilege" }],
+                operatingEnvironment: "Web",
+                designAndImplementationConstraints: [],
+                userDocumentation: [],
+                assumptionsAndDependencies: []
+            },
+            externalInterfaceRequirements: {
+                userInterfaces: "Mock UI",
+                hardwareInterfaces: "N/A",
+                softwareInterfaces: "N/A",
+                communicationsInterfaces: "HTTP"
+            },
+            systemFeatures: [
+                {
+                    name: "Mock Feature 1",
+                    description: "A mocked feature.",
+                    stimulusResponseSequences: ["User clicks -> System responds"],
+                    functionalRequirements: ["The system shall work."]
+                }
+            ],
+            nonFunctionalRequirements: {
+                performanceRequirements: ["Response < 1s"],
+                safetyRequirements: [],
+                securityRequirements: [],
+                softwareQualityAttributes: [],
+                businessRules: []
+            },
+            otherRequirements: [],
+            glossary: [],
+            appendices: {
+                analysisModels: {},
+                tbdList: []
+            },
             inputText: text
         };
     } else {

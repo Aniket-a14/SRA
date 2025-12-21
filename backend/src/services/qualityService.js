@@ -1,78 +1,106 @@
 
 /**
  * Lints requirements to calculate a quality score and identify issues.
- * @param {Object} analysisJson - The JSON output from the AI analysis.
+ * @param {Object} analysis - The JSON output from the AI analysis.
  * @returns {Object} { score: number, issues: string[] }
  */
 export const lintRequirements = (analysis) => {
     let score = 100;
     const issues = [];
-    const deductions = []; // To track what we gathered
 
     // Config: Deduction points
     const POINTS_AMBIGUITY = 5;
     const POINTS_NOT_MEASURABLE = 10;
-    const POINTS_MISSING_FEATURE = 15;
-    const POINTS_INCOMPLETE = 10;
+    const POINTS_MISSING_FIELD = 15;
+    const POINTS_EMPTY_SECTION = 20;
 
     // 1. Ambiguity Check
     // Words to avoid: fast, easy, user-friendly, robust, scalable, seamless, efficient
-    const ambiguousWords = ['fast', 'easy', 'user-friendly', 'robust', 'scalable', 'seamless', 'efficient', 'quickly', 'simple'];
+    const ambiguousWords = ['fast', 'easy', 'user-friendly', 'robust', 'scalable', 'seamless', 'efficient', 'quickly', 'simple', 'minimal'];
     const ambiguityRegex = new RegExp(`\\b(${ambiguousWords.join('|')})\\b`, 'gi');
 
-    // Check Functional Requirements
-    if (analysis.functionalRequirements) {
-        analysis.functionalRequirements.forEach((req, idx) => {
-            const matches = req.match(ambiguityRegex);
-            if (matches) {
-                issues.push(`Ambiguity in FR #${idx + 1}: Avoid words like "${matches[0]}". Be specific.`);
-                score -= POINTS_AMBIGUITY;
-            }
-        });
-    }
-
-    // Check User Stories
-    if (analysis.userStories) {
-        analysis.userStories.forEach((story, idx) => {
-            // Check Feature Mapping
-            if (!story.feature || story.feature.trim() === "") {
-                issues.push(`User Story #${idx + 1} is missing a mapped Feature.`);
-                score -= POINTS_MISSING_FEATURE;
-            }
-
-            // Ambiguity in Benefit
-            if (story.benefit && story.benefit.match(ambiguityRegex)) {
-                const matches = story.benefit.match(ambiguityRegex);
-                issues.push(`Ambiguity in User Story #${idx + 1} Benefit: Avoid "${matches[0]}".`);
-                score -= POINTS_AMBIGUITY;
-            }
-        });
-    }
-
-    // 2. Measurability Check (Non-Functional Requirements)
-    // Should contain numbers or units
-    if (analysis.nonFunctionalRequirements) {
-        const measureRegex = /\d+|%|ms|seconds|minutes|hours|concurrent|uptime/i;
-        analysis.nonFunctionalRequirements.forEach((req, idx) => {
-            if (!measureRegex.test(req)) {
-                issues.push(`NFR #${idx + 1} is not measurable. Add metrics (e.g., "load < 200ms", "99.9% uptime").`);
-                score -= POINTS_NOT_MEASURABLE;
-            }
-        });
-    }
-
-    // 3. Completeness (Acceptance Criteria)
-    if (analysis.acceptanceCriteria) {
-        if (analysis.acceptanceCriteria.length === 0 && analysis.userStories.length > 0) {
-            issues.push("Missing Acceptance Criteria for User Stories.");
-            score -= 20;
+    const checkAmbiguity = (text, location) => {
+        if (!text) return;
+        const matches = text.match(ambiguityRegex);
+        if (matches) {
+            // Deduplicate matches
+            const uniqueMatches = [...new Set(matches.map(m => m.toLowerCase()))];
+            issues.push(`Ambiguity in ${location}: Avoid words like "${uniqueMatches.join(', ')}". Be specific.`);
+            score -= POINTS_AMBIGUITY;
         }
-        analysis.acceptanceCriteria.forEach((ac, idx) => {
-            if (!ac.criteria || ac.criteria.length === 0) {
-                issues.push(`Acceptance Criteria for "${ac.story}" is empty.`);
-                score -= POINTS_INCOMPLETE;
+    };
+
+    // 2. Validate Introduction & Overall Description
+    if (!analysis.introduction || !analysis.introduction.purpose) {
+        issues.push("Introduction: Purpose is missing.");
+        score -= POINTS_MISSING_FIELD;
+    }
+    if (!analysis.overallDescription || !analysis.overallDescription.productFunctions || analysis.overallDescription.productFunctions.length === 0) {
+        issues.push("Overall Description: Product Functions are missing.");
+        score -= POINTS_MISSING_FIELD;
+    }
+
+    // 3. Validate System Features (Functional Requirements)
+    if (analysis.systemFeatures && Array.isArray(analysis.systemFeatures)) {
+        if (analysis.systemFeatures.length === 0) {
+            issues.push("System Features: No features identified.");
+            score -= POINTS_EMPTY_SECTION;
+        }
+
+        analysis.systemFeatures.forEach((feature, idx) => {
+            const featureName = feature.name || `Feature #${idx + 1}`;
+
+            // Check Description Ambiguity
+            checkAmbiguity(feature.description, `${featureName} Description`);
+
+            // Check Functional Requirements
+            if (!feature.functionalRequirements || feature.functionalRequirements.length === 0) {
+                issues.push(`${featureName}: No functional requirements listed.`);
+                score -= POINTS_MISSING_FIELD;
+            } else {
+                feature.functionalRequirements.forEach((req, rIdx) => {
+                    checkAmbiguity(req, `${featureName} FR #${rIdx + 1}`);
+                });
             }
         });
+    } else {
+        issues.push("System Features section is missing or invalid.");
+        score -= POINTS_EMPTY_SECTION;
+    }
+
+    // 4. Validate Non-Functional Requirements (Measurability)
+    if (analysis.nonFunctionalRequirements) {
+        const nfrs = analysis.nonFunctionalRequirements;
+        const measureRegex = /\d+|%|ms|seconds|minutes|hours|concurrent|uptime|response time/i;
+
+        // Helper to check NFR category
+        const checkNfrCategory = (categoryName, requirements) => {
+            if (!requirements) return;
+            requirements.forEach((req, idx) => {
+                if (!measureRegex.test(req)) {
+                    // Only penalize strict measurability for Performance. 
+                    // Security/Safety might be policy-based.
+                    if (categoryName === 'Performance') {
+                        issues.push(`NFR (${categoryName}) #${idx + 1} is not measurable. Add metrics (e.g., "load < 200ms").`);
+                        score -= POINTS_NOT_MEASURABLE;
+                    }
+                }
+                checkAmbiguity(req, `NFR (${categoryName}) #${idx + 1}`);
+            });
+        };
+
+        checkNfrCategory('Performance', nfrs.performanceRequirements);
+        checkNfrCategory('Safety', nfrs.safetyRequirements);
+        checkNfrCategory('Security', nfrs.securityRequirements);
+        checkNfrCategory('Quality', nfrs.softwareQualityAttributes);
+    }
+
+    // 5. External Interfaces
+    if (analysis.externalInterfaceRequirements) {
+        const eir = analysis.externalInterfaceRequirements;
+        if (!eir.userInterfaces && !eir.softwareInterfaces) {
+            // Not critical, but worth noting
+        }
     }
 
     // Clamp score
