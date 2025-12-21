@@ -113,23 +113,24 @@ export function KVDisplay({ data, title, excludeKeys = [], projectTitle = "SRA" 
                                             const cleanItem = item.replace(/^[A-Z]+-[A-Z]+-\d+\s*:?\s*/, '').trim();
                                             const finalItem = cleanItem.replace(/^\s*(?:[\-\•\d\.\)]+\s*|\*(?!\*)\s*)/, '').trim();
 
-                                            // Robust cleanup of markdown wrappers to isolate Title: Description
+                                            // Pre-clean standard bold patterns to avoid split confusion
                                             let work = finalItem;
-                                            // Handle **Title:** ...
-                                            work = work.replace(/^\*\*(.*?):\*\*/, '$1:');
-                                            // Handle **Title**: ...
-                                            work = work.replace(/^\*\*(.*?)\*\*:/, '$1:');
-                                            // Handle **Title: ... (open bold or full wrap)
-                                            work = work.replace(/^\*\*(.*?):/, '$1:');
+                                            // 1. **Title:** -> Title:
+                                            // Using [\s\S] instead of /s flag for compatibility
+                                            work = work.replace(/^\*\*([\s\S]*?):\*\*/, '$1:');
+                                            // 2. **Title**: -> Title:
+                                            work = work.replace(/^\*\*([\s\S]*?)\*\*:/, '$1:');
+                                            // 3. **Title: -> Title:
+                                            work = work.replace(/^\*\*([\s\S]*?):/, '$1:');
 
-                                            // If the original item was fully wrapped (**Title: Desc**), and we stripped the start, strip the end too.
-                                            if (finalItem.startsWith('**') && finalItem.endsWith('**')) {
-                                                if (!work.startsWith('**')) {
-                                                    work = work.replace(/\*\*$/, '');
-                                                }
+                                            // 4. Also handle case where the whole line is bolded: **Title: Description** -> Title: Description
+                                            // If starts and ends with **, and middle has :, strip outer **
+                                            if (work.startsWith('**') && work.endsWith('**') && work.includes(':')) {
+                                                work = work.substring(2, work.length - 2);
                                             }
 
-                                            const separatorIndex = work.indexOf(':');
+                                            // Now split
+                                            let separatorIndex = work.indexOf(':');
                                             let titlePart = "";
                                             let descPart = work;
 
@@ -137,12 +138,17 @@ export function KVDisplay({ data, title, excludeKeys = [], projectTitle = "SRA" 
                                                 titlePart = work.substring(0, separatorIndex).trim();
                                                 descPart = work.substring(separatorIndex + 1).trim();
 
-                                                // Final cleanup of title (remove any remaining bold markers)
-                                                titlePart = titlePart.replace(/\*/g, '');
+                                                // Clean Title: remove wrapping **, * (just in case pre-clean missed something complex)
+                                                titlePart = titlePart.replace(/^[\s*]+|[\s*]+$/g, '');
 
-                                                // Final cleanup of description (remove independent wrapping ** if present)
-                                                if (descPart.startsWith('**') && descPart.endsWith('**')) {
-                                                    descPart = descPart.slice(2, -2);
+                                                // Clean Description:
+                                                // Handle ** at start (from "Title: **Description**")
+                                                // Aggressively match leading **...** block if present
+                                                descPart = descPart.replace(/^\*\*([\s\S]*?)\*\*/, '$1');
+
+                                                // Handle single leading ** (open bold)
+                                                if (descPart.startsWith('**')) {
+                                                    descPart = descPart.substring(2);
                                                 }
                                             }
 
