@@ -126,11 +126,32 @@ export function FeatureDisplay({ features, projectTitle = "SRA", isEditing, onUp
                                     />
                                 ) : (
                                     <ul className="list-disc list-inside space-y-1">
-                                        {feature.stimulusResponseSequences.map((seq, idx) => (
-                                            <li key={idx} className="text-sm text-muted-foreground pl-2">
-                                                <span className="-ml-2">{renderMarkdown(seq)}</span>
-                                            </li>
-                                        ))}
+                                        {feature.stimulusResponseSequences.map((seq, idx) => {
+                                            const match = seq.match(/Stimulus:(.*?)Response:(.*)/i);
+                                            if (match) {
+                                                const stimulus = match[1].trim();
+                                                const response = match[2].trim();
+                                                return (
+                                                    <li key={idx} className="text-sm text-foreground/90 pl-2 mb-2">
+                                                        <div className="flex flex-col gap-1">
+                                                            <div>
+                                                                <span className="font-bold">Stimulus: </span>
+                                                                {renderMarkdown(stimulus)}
+                                                            </div>
+                                                            <div className="pl-4">
+                                                                <span className="font-bold">Response: </span>
+                                                                {renderMarkdown(response)}
+                                                            </div>
+                                                        </div>
+                                                    </li>
+                                                );
+                                            }
+                                            return (
+                                                <li key={idx} className="text-sm text-muted-foreground pl-2">
+                                                    <span className="-ml-2">{renderMarkdown(seq)}</span>
+                                                </li>
+                                            );
+                                        })}
                                     </ul>
                                 )}
                             </div>

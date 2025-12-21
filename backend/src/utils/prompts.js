@@ -116,7 +116,7 @@ Improve readability and professional clarity of SRS narrative sections (e.g., Op
     {
       "name": "Feature Name",
       "description": "1-2 paragraphs explaining business value and user value. Indicate priority.",
-      "stimulusResponseSequences": ["Structured and readable. One stimulus -> one response per line."],
+      "stimulusResponseSequences": ["Must follow exact format: 'Stimulus: [User Action] Response: [System Action]'. One sequence per string."],
       "functionalRequirements": ["EACH requirement on its own line. No inline bullets. Format: 'The system shall...'"]
     }
   ],
