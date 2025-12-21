@@ -111,15 +111,42 @@ export function KVDisplay({ data, title, excludeKeys = [], projectTitle = "SRA" 
                                     <div className="grid gap-2">
                                         {(value as string[]).map((item, idx) => {
                                             const cleanItem = item.replace(/^[A-Z]+-[A-Z]+-\d+\s*:?\s*/, '').trim();
-                                            // Only strip regex ID. But if bullet? strip bullet too.
                                             const finalItem = cleanItem.replace(/^\s*(?:[\-\•\d\.\)]+\s*|\*(?!\*)\s*)/, '').trim();
+
+                                            // Attempt to identify Title: Description pattern
+                                            const separatorIndex = finalItem.indexOf(':');
+                                            let titlePart = "";
+                                            let descPart = finalItem;
+
+                                            if (separatorIndex !== -1) {
+                                                titlePart = finalItem.substring(0, separatorIndex).trim();
+                                                descPart = finalItem.substring(separatorIndex + 1).trim();
+
+                                                // Clean up title: remove existing ** wrappers
+                                                titlePart = titlePart.replace(/^\*\*(.*)\*\*$/, '$1').replace(/^\*(.*)\*$/, '$1');
+
+                                                // Clean up description: remove existing ** wrappers if the WHOLE description is bolded (which is likely the bug)
+                                                // Or just be safe and assume description shouldn't start with ** if we are standardizing.
+                                                // Let's just strip wrapping bold from description to fix the specific "wrong side bolded" issue
+                                                if (descPart.startsWith('**') && descPart.endsWith('**')) {
+                                                    descPart = descPart.slice(2, -2);
+                                                }
+                                            }
 
                                             return (
                                                 <div key={idx} className="flex items-start gap-3 p-2 rounded-md hover:bg-muted/50 transition-colors">
                                                     <Badge variant="outline" className="shrink-0 mt-0.5 text-xs text-muted-foreground bg-muted/20 border-muted-foreground/20">
                                                         {acronym}-{idCode}-{idx + 1}
                                                     </Badge>
-                                                    <span className="text-sm text-muted-foreground leading-relaxed">{renderMarkdown(finalItem)}</span>
+                                                    <span className="text-sm text-muted-foreground leading-relaxed">
+                                                        {titlePart ? (
+                                                            <>
+                                                                <strong className="font-semibold text-foreground">{titlePart}</strong>: {renderMarkdown(descPart)}
+                                                            </>
+                                                        ) : (
+                                                            renderMarkdown(finalItem)
+                                                        )}
+                                                    </span>
                                                 </div>
                                             )
                                         })}
