@@ -35,6 +35,54 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
   const [isGeneratingCode, setIsGeneratingCode] = useState(false)
   const [codeError, setCodeError] = useState("")
 
+  // Edit Mode State
+  const [isEditing, setIsEditing] = useState(false)
+  const [editedData, setEditedData] = useState<AnalysisResult | null>(null)
+
+  // Initialize editedData when data changes or edit mode starts
+  useEffect(() => {
+    if (data) {
+      setEditedData(JSON.parse(JSON.stringify(data)))
+    }
+  }, [data])
+
+  const handleSave = async () => {
+    if (!editedData) return
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(editedData)
+      })
+
+      if (!res.ok) throw new Error("Failed to save changes")
+
+      const updated = await res.json()
+      toast.success("Changes saved successfully")
+      setIsEditing(false)
+
+      // If version changed (which it should), redirect
+      if (updated.id && updated.id !== analysisId) {
+        router.push(`/analysis/${updated.id}`)
+      } else {
+        onRefresh?.()
+      }
+    } catch (error) {
+      console.error(error)
+      toast.error("Failed to save changes")
+    }
+  }
+
+  const updateSection = (section: keyof AnalysisResult, value: any) => {
+    if (!editedData) return
+    setEditedData(prev => prev ? ({ ...prev, [section]: value }) : null)
+  }
+
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -63,6 +111,8 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
     return null
   }
 
+  const currentData = isEditing && editedData ? editedData : data
+
   const {
     introduction,
     overallDescription,
@@ -74,7 +124,7 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
     missingLogic = [],
     contradictions = [],
     qualityAudit,
-  } = data
+  } = currentData
 
   return (
     <section ref={sectionRef} className="py-12 sm:py-16">
@@ -92,6 +142,26 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                   IEEE 830-1998 Compliant Software Requirements Specification
                 </p>
               </div>
+            </div>
+
+            <div className="flex gap-2">
+              {isEditing ? (
+                <>
+                  <Button variant="outline" onClick={() => {
+                    setIsEditing(false)
+                    setEditedData(data ? JSON.parse(JSON.stringify(data)) : null)
+                  }}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSave}>
+                    Save Changes
+                  </Button>
+                </>
+              ) : (
+                <Button variant="outline" onClick={() => setIsEditing(true)}>
+                  Edit Requirements
+                </Button>
+              )}
             </div>
           </div>
 
@@ -116,11 +186,15 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                   title="1. Introduction"
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   data={introduction as unknown as Record<string, any>}
+                  isEditing={isEditing}
+                  onUpdate={(val) => updateSection('introduction', val)}
                 />
                 <KVDisplay
                   title="2. Overall Description"
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   data={overallDescription as unknown as Record<string, any>}
+                  isEditing={isEditing}
+                  onUpdate={(val) => updateSection('overallDescription', val)}
                 />
               </div>
 
@@ -170,7 +244,12 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-xl font-semibold">3. System Features</h3>
               </div>
-              <FeatureDisplay features={systemFeatures} projectTitle={data.projectTitle} />
+              <FeatureDisplay
+                features={systemFeatures}
+                projectTitle={data.projectTitle}
+                isEditing={isEditing}
+                onUpdate={(val) => updateSection('systemFeatures', val)}
+              />
             </TabsContent>
 
             {/* TAB: EXTERNAL INTERFACES */}
@@ -179,6 +258,8 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                 title="External Interface Requirements"
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 data={externalInterfaceRequirements as unknown as Record<string, any>}
+                isEditing={isEditing}
+                onUpdate={(val) => updateSection('externalInterfaceRequirements', val)}
               />
             </TabsContent>
 
@@ -189,6 +270,8 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 data={nonFunctionalRequirements as unknown as Record<string, any>}
                 projectTitle={data.projectTitle}
+                isEditing={isEditing}
+                onUpdate={(val) => updateSection('nonFunctionalRequirements', val)}
               />
 
               {data.otherRequirements && data.otherRequirements.length > 0 && (

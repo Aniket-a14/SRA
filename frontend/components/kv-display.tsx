@@ -3,6 +3,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { getAcronym } from "@/lib/utils"
+import { Textarea } from "@/components/ui/textarea"
+import { EditableSection } from "@/components/editable-section"
 
 interface KVDisplayProps {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -10,6 +12,9 @@ interface KVDisplayProps {
     title?: string
     excludeKeys?: string[]
     projectTitle?: string
+    isEditing?: boolean
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onUpdate?: (newData: Record<string, any>) => void
 }
 
 // Helper to format camelCase to Title Case
@@ -40,7 +45,7 @@ const ID_MAPPING: Record<string, string> = {
     otherRequirements: "OR"
 };
 
-export function KVDisplay({ data, title, excludeKeys = [], projectTitle = "SRA" }: KVDisplayProps) {
+export function KVDisplay({ data, title, excludeKeys = [], projectTitle = "SRA", isEditing, onUpdate }: KVDisplayProps) {
     const acronym = getAcronym(projectTitle);
 
     if (!data || Object.keys(data).length === 0) return null
@@ -59,52 +64,71 @@ export function KVDisplay({ data, title, excludeKeys = [], projectTitle = "SRA" 
             <CardContent className="space-y-6 pt-4">
                 {validKeys.map((key) => {
                     const value = data[key]
-                    if (!value) return null
+                    if (!value && !isEditing) return null
 
-                    // Handle Arrays (List of string items)
+                    // 1. Handle Arrays
                     if (Array.isArray(value)) {
-                        if (value.length === 0) return null
-
-                        // Check if array contains objects with 'userClass'
-                        if (typeof value[0] === 'object' && 'userClass' in value[0]) {
-                            return (
-                                <div key={key}>
-                                    <h4 className="text-sm font-medium mb-3 text-primary">{formatKey(key)}</h4>
-                                    <div className="grid gap-3">
-                                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                        {(value as any[]).map((item, idx) => (
-                                            <div key={idx} className="p-3 bg-secondary/30 rounded-md border border-border/50">
-                                                <div className="font-semibold text-sm mb-1">{renderMarkdown(item.userClass)}</div>
-                                                <div className="text-sm text-muted-foreground">{renderMarkdown(item.characteristics)}</div>
-                                            </div>
-                                        ))}
+                        // Check for specialized object arrays
+                        if (value.length > 0 && typeof value[0] === 'object') {
+                            // User Classes (UserCharacteristic)
+                            if ('userClass' in value[0]) {
+                                return (
+                                    <div key={key}>
+                                        <h4 className="text-sm font-medium mb-3 text-primary">{formatKey(key)}</h4>
+                                        <div className="grid gap-3">
+                                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                            {(value as any[]).map((item, idx) => (
+                                                <div key={idx} className="p-3 bg-secondary/30 rounded-md border border-border/50">
+                                                    <div className="font-semibold text-sm mb-1">{renderMarkdown(item.userClass)}</div>
+                                                    <div className="text-sm text-muted-foreground">{renderMarkdown(item.characteristics)}</div>
+                                                </div>
+                                            ))}
+                                            {isEditing && <p className="text-xs text-muted-foreground italic">Complex object editing not yet supported.</p>}
+                                        </div>
                                     </div>
-                                </div>
-                            )
+                                )
+                            }
+                            // Glossary Terms
+                            if ('term' in value[0]) {
+                                return (
+                                    <div key={key}>
+                                        <h4 className="text-sm font-medium mb-3 text-primary">{formatKey(key)}</h4>
+                                        <dl className="grid gap-3">
+                                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                            {(value as any[]).map((item, idx) => (
+                                                <div key={idx} className="p-3 bg-secondary/30 rounded-md border border-border/50">
+                                                    <dt className="font-semibold text-sm mb-1">{renderMarkdown(item.term)}</dt>
+                                                    <dd className="text-sm text-muted-foreground">{renderMarkdown(item.definition)}</dd>
+                                                </div>
+                                            ))}
+                                            {isEditing && <p className="text-xs text-muted-foreground italic">Complex object editing not yet supported.</p>}
+                                        </dl>
+                                    </div>
+                                )
+                            }
                         }
 
-                        // Check if array contains objects with 'term'
-                        if (typeof value[0] === 'object' && 'term' in value[0]) {
+                        // String Arrays (Requirements Lists)
+                        // Requirements with IDs
+                        const idCode = ID_MAPPING[key];
+                        // If it's a string array, and we are editing
+                        if (isEditing && onUpdate) {
                             return (
                                 <div key={key}>
-                                    <h4 className="text-sm font-medium mb-3 text-primary">{formatKey(key)}</h4>
-                                    <dl className="grid gap-3">
-                                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                        {(value as any[]).map((item, idx) => (
-                                            <div key={idx} className="p-3 bg-secondary/30 rounded-md border border-border/50">
-                                                <dt className="font-semibold text-sm mb-1">{renderMarkdown(item.term)}</dt>
-                                                <dd className="text-sm text-muted-foreground">{renderMarkdown(item.definition)}</dd>
-                                            </div>
-                                        ))}
-                                    </dl>
+                                    <h4 className="text-sm font-medium mb-2 text-primary">{formatKey(key)}</h4>
+                                    <EditableSection
+                                        items={value as string[]}
+                                        isEditing={true}
+                                        onUpdate={(newItems) => onUpdate({ ...data, [key]: newItems })}
+                                        prefix={idCode ? `${acronym}-${idCode}` : undefined}
+                                    />
                                 </div>
                             )
                         }
 
-                        const idCode = ID_MAPPING[key];
 
                         if (idCode) {
-                            // Render with Requirement IDs
+                            // Render with Requirement IDs (View Mode)
                             return (
                                 <div key={key}>
                                     <h4 className="text-sm font-medium mb-2 text-primary">{formatKey(key)}</h4>
@@ -174,7 +198,7 @@ export function KVDisplay({ data, title, excludeKeys = [], projectTitle = "SRA" 
                             )
                         }
 
-                        // Normal string array (bullets)
+                        // Normal string array (bullets) - View Mode
                         return (
                             <div key={key}>
                                 <h4 className="text-sm font-medium mb-2 text-primary">{formatKey(key)}</h4>
@@ -189,7 +213,7 @@ export function KVDisplay({ data, title, excludeKeys = [], projectTitle = "SRA" 
                         )
                     }
 
-                    // Handle Objects
+                    // 2. Handle Objects (Generic)
                     if (typeof value === 'object') {
                         return (
                             <div key={key}>
@@ -201,13 +225,21 @@ export function KVDisplay({ data, title, excludeKeys = [], projectTitle = "SRA" 
                         )
                     }
 
-                    // Handle Strings
+                    // 3. Handle Strings
                     return (
                         <div key={key}>
                             <h4 className="text-sm font-medium mb-1 text-primary">{formatKey(key)}</h4>
-                            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
-                                {renderMarkdown(String(value))}
-                            </p>
+                            {isEditing && onUpdate ? (
+                                <Textarea
+                                    value={String(value)}
+                                    onChange={(e) => onUpdate({ ...data, [key]: e.target.value })}
+                                    className="min-h-[100px] text-sm"
+                                />
+                            ) : (
+                                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+                                    {renderMarkdown(String(value))}
+                                </p>
+                            )}
                         </div>
                     )
                 })}
