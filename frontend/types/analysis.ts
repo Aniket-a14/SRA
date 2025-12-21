@@ -1,5 +1,13 @@
+export interface RevisionHistoryItem {
+    version: string;
+    date: string;
+    description: string;
+    author: string;
+}
+
 export interface Introduction {
     purpose: string;
+    documentConventions: string;
     scope: string;
     intendedAudience: string;
     references: string[];
@@ -54,11 +62,16 @@ export interface GlossaryItem {
     definition: string;
 }
 
+export interface Diagram {
+    code: string;
+    caption: string;
+}
+
 export interface AnalysisModels {
-    flowchartDiagram?: string;
-    sequenceDiagram?: string;
-    entityRelationshipDiagram?: string;
-    dataFlowDiagram?: string;
+    flowchartDiagram?: Diagram | string;
+    sequenceDiagram?: Diagram | string;
+    entityRelationshipDiagram?: Diagram | string;
+    dataFlowDiagram?: Diagram | string;
 }
 
 export interface Appendices {
@@ -69,6 +82,7 @@ export interface Appendices {
 export interface AnalysisResult {
     // New IEEE Structure
     projectTitle: string;
+    revisionHistory?: RevisionHistoryItem[];
     introduction: Introduction;
     overallDescription: OverallDescription;
     externalInterfaceRequirements: ExternalInterfaceRequirements;
