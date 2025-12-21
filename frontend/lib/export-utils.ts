@@ -145,6 +145,7 @@ export const renderMermaidDiagrams = async (data: AnalysisResult): Promise<Recor
         }
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const getCode = (diagram: any) => typeof diagram === 'string' ? diagram : diagram?.code;
 
     if (data.appendices.analysisModels.flowchartDiagram) {
@@ -250,8 +251,6 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
 
     // Add Revision History to ToC (Front Matter)
     tocItems.push({ title: "Revision History", page: 0, level: 1 });
-
-    let revisionHistoryPage = 0;
 
     // Requirement Counters
     let frCount = 0;
@@ -1016,21 +1015,16 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
     // Removed manual header to use global loop
 
     doc.setFontSize(12);
-
-    doc.setFontSize(12);
     doc.setFont("times", "normal");
 
     tocItems.forEach(item => {
         // Check overflow for ToC
         if (yPos > pageHeight - margins.bottom) {
             currentTocPage++;
-            // Allow using the last reserved page (revisionHistoryPage) too.
-            // In fact, allow going beyond if reservation failed, to avoid invisible text.
-            if (currentTocPage <= revisionHistoryPage + 1) {
+            // Check if page exists (safeguard)
+            if (currentTocPage <= doc.getNumberOfPages()) {
                 doc.setPage(currentTocPage);
                 yPos = margins.top + 10;
-
-                // Header handled by global loop
             }
         }
 
@@ -1134,9 +1128,9 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
         currentTocPage++;
         doc.setPage(currentTocPage);
         yPos = margins.top + 10;
-        revisionHistoryPage = currentTocPage;
+        // revisionHistoryPage = currentTocPage;
     } else {
-        revisionHistoryPage = currentTocPage; // Same page
+        // revisionHistoryPage = currentTocPage; // Same page
     }
 
     doc.setFontSize(16);
@@ -1187,10 +1181,11 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
     // Given the user constraint "blank page", closing the gap is higher priority.
 
     // Correct the page number of the "Revision History" item in ToC
-    if (tocItems.length > 0) {
-        const revItem = tocItems.find(t => t.title === "Revision History");
-        if (revItem) revItem.page = revisionHistoryPage; // Use variable, simpler
-    }
+    // Logic removed as revisionHistoryPage tracking is no longer used.
+    // if (tocItems.length > 0) {
+    //    const revItem = tocItems.find(t => t.title === "Revision History");
+    //    if (revItem) revItem.page = 0; 
+    // }
 
     // --- BLANK PAGE CLEANUP ---
     // Previous logic to delete unused pages causes crashes if links point to them.
@@ -1236,7 +1231,7 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
 };
 
 // Keep other exports, maybe adjusting them if needed, but generateSRS is key.
-export const generateAPI = (_data: AnalysisResult) => {
+export const generateAPI = () => {
     // API logic might need to check if existing apiContracts exist in new structure
     // This part is less critical for the specific user request about SRS PDF, but good compatibility to keep.
     return "# API Documentation\n(To be implemented for new structure)";

@@ -77,6 +77,7 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateSection = (section: keyof AnalysisResult, value: any) => {
     if (!editedData) return
     setEditedData(prev => prev ? ({ ...prev, [section]: value }) : null)
@@ -301,7 +302,7 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                           work = work.substring(2, work.length - 2);
                         }
 
-                        let separatorIndex = work.indexOf(':');
+                        const separatorIndex = work.indexOf(':');
                         let titlePart = "";
                         let descPart = work;
 
@@ -354,7 +355,9 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                 <div className="grid lg:grid-cols-2 gap-6">
                   <DiagramEditor
                     title="Flowchart"
-                    initialCode={appendices?.analysisModels?.flowchartDiagram || ""}
+                    initialCode={typeof appendices?.analysisModels?.flowchartDiagram === 'string'
+                      ? appendices.analysisModels.flowchartDiagram
+                      : appendices?.analysisModels?.flowchartDiagram?.code || ""}
                     onSave={async (newCode) => {
                       try {
                         const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
@@ -390,7 +393,9 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                   />
                   <DiagramEditor
                     title="Sequence Diagram"
-                    initialCode={appendices?.analysisModels?.sequenceDiagram || ""}
+                    initialCode={typeof appendices?.analysisModels?.sequenceDiagram === 'string'
+                      ? appendices.analysisModels.sequenceDiagram
+                      : appendices?.analysisModels?.sequenceDiagram?.code || ""}
                     onSave={async (newCode) => {
                       try {
                         const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
@@ -428,7 +433,9 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                 <div className="grid lg:grid-cols-2 gap-6 mt-6">
                   <DiagramEditor
                     title="Data Flow Diagram"
-                    initialCode={appendices?.analysisModels?.dataFlowDiagram || ""}
+                    initialCode={typeof appendices?.analysisModels?.dataFlowDiagram === 'string'
+                      ? appendices.analysisModels.dataFlowDiagram
+                      : appendices?.analysisModels?.dataFlowDiagram?.code || ""}
                     onSave={async (newCode) => {
                       try {
                         const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
@@ -464,7 +471,9 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                   />
                   <DiagramEditor
                     title="Entity Relationship Diagram"
-                    initialCode={appendices?.analysisModels?.entityRelationshipDiagram || ""}
+                    initialCode={typeof appendices?.analysisModels?.entityRelationshipDiagram === 'string'
+                      ? appendices.analysisModels.entityRelationshipDiagram
+                      : appendices?.analysisModels?.entityRelationshipDiagram?.code || ""}
                     onSave={async (newCode) => {
                       try {
                         const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
