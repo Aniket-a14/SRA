@@ -177,11 +177,16 @@ function AnalysisDetailContent() {
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="start">
-                                        <DropdownMenuItem onClick={() => {
+                                        <DropdownMenuItem onClick={async () => {
                                             try {
                                                 if (analysis) {
-                                                    const doc = generateSRS(analysis, "SRS_Report");
-                                                    doc.save("SRS_Report.pdf");
+                                                    toast.info("Preparing diagrams and PDF...");
+                                                    const { renderMermaidDiagrams } = await import("@/lib/export-utils");
+                                                    const images = await renderMermaidDiagrams(analysis);
+
+                                                    const projectTitle = analysis.projectTitle || analysis.title || "Project_Context";
+                                                    const doc = generateSRS(analysis, projectTitle, images);
+                                                    doc.save(`${projectTitle.replace(/\s+/g, '_')}_SRS.pdf`);
                                                     toast.success("SRS Report downloaded");
                                                 }
                                             } catch (err) {

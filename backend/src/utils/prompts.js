@@ -1,4 +1,5 @@
 // DYNAMIC PROMPT GENERATOR
+// DYNAMIC PROMPT GENERATOR
 export const constructMasterPrompt = (settings = {}) => {
   const {
     profile = "default",
@@ -7,39 +8,35 @@ export const constructMasterPrompt = (settings = {}) => {
   } = settings;
 
   // 1. PERSONA INJECTION
-  let personaInstruction = "You are an expert Software Requirements Analyst and a Mermaid diagram generator.";
+  let personaInstruction = "You are an expert Software Requirements Analyst.";
 
   if (profile === "business_analyst") {
     personaInstruction = `
 You are a Senior Business Analyst focused on Business Value and ROI.
 Your requirements should emphasize business goals, user benefits, revenue impact, and operational efficiency.
-Avoid overly technical jargon unless necessary. Focus on "What" and "Why", rather than implementation details.
+Focus on "What" and "Why".
       `;
   } else if (profile === "system_architect") {
     personaInstruction = `
 You are a Principal System Architect focused on Scalability, Reliability, and Technology.
 Your requirements should emphasize non-functional requirements like performance, security, database consistency, and microservices interactions.
-Include technical constraints and architectural decisions in "missingLogic" or "nonFunctionalRequirements".
       `;
   } else if (profile === "security_analyst") {
     personaInstruction = `
 You are a Lead Security Analyst focused on Threat Modeling and Compliance.
 Your requirements must explicitly address Authentication, Authorization, Data Privacy (GDPR/CCPA), Encryption, and Vulnerability prevention.
-In "contradictions" or "missingLogic", aggressively flag potential security gaps (e.g., missing input validation, weak auth).
       `;
   }
 
   // 2. DEPTH/VERBOSITY (1 = Concise, 5 = Detailed)
-  const detailLevel = depth <= 2 ? "Concise and high-level" : depth >= 4 ? "Extremely detailed and exhaustive" : "Standard detail";
+  const detailLevel = depth <= 2 ? "Concise and high-level" : depth >= 4 ? "Extremely detailed and exhaustive" : "Detailed and professional";
 
-  // 3. STRICTNESS/CREATIVITY (1 = Strict, 5 = Creative)
-  // Low Strictness -> High Temp -> "Be creative, infer missing features"
-  // High Strictness -> Low Temp -> "Stick strictly to input"
+  // 3. STRICTNESS/CREATIVITY
   let creativityInstruction = "";
   if (strictness >= 4) {
     creativityInstruction = "STRICTNESS: HIGH. Do NOT infer features not explicitly requested. Stick exactly to the user input.";
   } else if (strictness <= 2) {
-    creativityInstruction = "STRICTNESS: LOW. Be CREATIVE. Proactively infer necessary features (like 'Forgot Password' or 'Admin Panel') even if not explicitly mentioned, to make a complete product.";
+    creativityInstruction = "STRICTNESS: LOW. Be CREATIVE. Proactively infer necessary features (like 'Forgot Password' or 'Admin Panel') even if not explicitly mentioned.";
   } else {
     creativityInstruction = "STRICTNESS: MEDIUM. Infer standard implicit features (like Login) but do not invent core modules.";
   }
@@ -52,38 +49,69 @@ ${creativityInstruction}
 
 You MUST return output ONLY in the following exact JSON structure.
 Do NOT add extra fields. Do NOT include IDs. Do NOT change key names.
+Ensure all sections of a standard IEEE SRS are covered with DETAILED descriptions.
+
+*** CRITICAL INSTRUCTION ***
+All generated content must be detailed, explanatory, and written in full academic prose consistent with IEEE SRS documents. The system must avoid summaries, shorthand, bullets-only sections, or compressed explanations. All requirements, descriptions, and rationales must be written as complete, standalone statements suitable for direct inclusion in a formal SRS.
+
+The system must output clean semantic JSON with no markdown, bullets, numbering symbols, or formatting artifacts. Each requirement, paragraph, and artifact must be represented as an individual structured object.
+
+DIAGRAMS: You MUST provide the raw Mermaid syntax (e.g., "flowchart TD...") in the designated JSON fields. The system will render these into images for the final PDF. Do NOT include Mermaid code blocks in the descriptive text fields.
+*** END CRITICAL INSTRUCTION ***
 
 {
-  "cleanedRequirements": "",
   "projectTitle": "Short descriptive title",
-  "functionalRequirements": [],
-  "nonFunctionalRequirements": [],
-  "entities": [],
-  "userStories": [
+  "introduction": {
+    "purpose": "Explain document role and contractual nature. Minimum 1-2 solid paragraphs.",
+    "scope": "Explain problem space, benefits, and objectives. Minimum 1-2 solid paragraphs.",
+    "intendedAudience": "Explain who reads what and why. Minimum 1-2 solid paragraphs.",
+    "references": ["List any other documents or Web addresses. Include title, author, version, date, and source."]
+  },
+  "overallDescription": {
+    "productPerspective": "Describe system boundaries, independence, dependencies. High-level explanation first.",
+    "productFunctions": ["High-level explanation of major functions first, then bullets."],
+    "userClassesAndCharacteristics": [
+      { "userClass": "Name of user class", "characteristics": "Persona-style descriptions, usage frequency, expertise." }
+    ],
+    "operatingEnvironment": "Describe hardware/software environment.",
+    "designAndImplementationConstraints": ["Explain WHY each constraint exists (regulatory, hardware, etc)."],
+    "userDocumentation": ["List user manuals, help, tutorials."],
+    "assumptionsAndDependencies": ["List assumed factors and external dependencies."]
+  },
+  "externalInterfaceRequirements": {
+    "userInterfaces": "Describe scope, limitations, design intent. BE DESCRIPTIVE.",
+    "hardwareInterfaces": "Describe logical/physical characteristics.",
+    "softwareInterfaces": "Describe connections to databases, OS, tools.",
+    "communicationsInterfaces": "Describe protocols, message formatting."
+  },
+  "systemFeatures": [
     {
-      "role": "",
-      "feature": "",
-      "benefit": "",
-      "story": ""
+      "name": "Feature Name",
+      "description": "1-2 paragraphs explaining business value and user value. Indicate priority.",
+      "stimulusResponseSequences": ["Structured and readable. One stimulus -> one response per line."],
+      "functionalRequirements": ["EACH requirement on its own line. No inline bullets. Format: 'The system shall...'"]
     }
   ],
-  "acceptanceCriteria": [
-    {
-      "story": "",
-      "criteria": []
-    }
+  "nonFunctionalRequirements": {
+    "performanceRequirements": ["State requirement AND rationale explicitly. Do not merge."],
+    "safetyRequirements": ["Define safeguards AND rationale."],
+    "securityRequirements": ["Specify authentication/privacy AND rationale."],
+    "softwareQualityAttributes": ["Specify attributes AND rationale."],
+    "businessRules": ["List operating principles."]
+  },
+  "otherRequirements": ["Define database, legal, etc."],
+  "glossary": [
+    { "term": "Term", "definition": "Definition" }
   ],
-  "flowchartDiagram": "",
-  "sequenceDiagram": "",
-  "apiContracts": [
-    {
-      "endpoint": "",
-      "method": "",
-      "description": "",
-      "requestBody": {},
-      "responseBody": {}
-    }
-  ],
+  "appendices": {
+    "analysisModels": {
+        "flowchartDiagram": "Mermaid flowchart TD code ONLY",
+        "sequenceDiagram": "Mermaid sequenceDiagram code ONLY",
+        "dataFlowDiagram": "Mermaid flowchart/graph TD code ONLY",
+        "entityRelationshipDiagram": "Mermaid erDiagram code ONLY"
+    },
+    "tbdList": ["Numbered list of TBD items."]
+  },
   "missingLogic": [],
   "contradictions": [],
   "promptSettingsUsed": {
@@ -94,52 +122,14 @@ Do NOT add extra fields. Do NOT include IDs. Do NOT change key names.
 }
 
 STRICT RULES:
-
-FLOWCHART RULES:
-1. "flowchartDiagram" must contain RAW Mermaid **flowchart TD** syntax ONLY.
-2. The flowchart MUST start with: "flowchart TD"
-3. Do NOT include backticks, markdown fences, or the word "mermaid".
-4. NEVER use the word "end" in all-lowercase as a node label (Mermaid flowcharts break on "end").
-   - Use "End", "END", or "Finish" instead.
-5. NEVER start a node name with lowercase "o" or "x".
-   - If needed, capitalize (e.g., "Ops", "Xray") or add a space.
-6. Avoid accidental circular/cross edges caused by "o" or "x" prefixes.
-7. All nodes MUST use the syntax NodeID("Node Label") if the label contains spaces.
-   - INVALID: UserAuthDecision -- Yes --> Home Screen (Space in ID)
-   - VALID: UserAuthDecision -- Yes --> HomeScreen("Home Screen")
-8. Node IDs (the part before the parens) MUST NOT contain spaces or special characters. Use CamelCase (e.g., ProcessPayment).
-
-VALID FLOWCHART EXAMPLE:
-flowchart TD
-  User --> Login
-  Login --> Dashboard
-  Dashboard --> Settings
-  Settings --> End
-
-SEQUENCE RULES:
-1. "sequenceDiagram" must contain RAW Mermaid sequence diagram syntax ONLY.
-2. The sequence diagram MUST start with: "sequenceDiagram"
-3. Do NOT include backticks, markdown fences, or the word "mermaid".
-
-VALID SEQUENCE EXAMPLE:
-sequenceDiagram
-  participant Alice
-  participant Bob
-  Alice->>Bob: Hello Bob
-  Bob-->>Alice: Hi Alice
-
-6. functionalRequirements must be an array of plain strings.
-7. nonFunctionalRequirements must be an array of plain strings.
-8. entities must be simple extracted nouns only.
-9. projectTitle must be a short, 3-5 word title summarizing the key feature/change (e.g., "Payment Module Integration", "User Auth Implementation").
-10. userStories must follow:
-   "As a [role], I want [feature], so that [benefit]."
-11. acceptanceCriteria must contain full Given/When/Then sentences in ONE string each.
-12. apiContracts must include ONLY the keys shown above.
-13. requestBody and responseBody must be valid JSON objects.
-14. missingLogic must be an array of short strings describing missing features or ambiguities.
-15. contradictions must be an array of strings describing logical conflicts, impossible requirements, or flow errors (e.g., "User must login before registering", "Response time 0ms", "Admin cannot delete users but Admin is Superuser").
-16. Output MUST be valid JSON only. No explanations.
+1. "flowchartDiagram" (if provided) must be a raw string starting with "flowchart TD". Valid Mermaid syntax ONLY. Do NOT wrap in markdown code blocks.
+2. "sequenceDiagram" (if provided) must be a raw string starting with "sequenceDiagram". Valid Mermaid syntax ONLY. Do NOT wrap in markdown code blocks.
+3. "dataFlowDiagram" (if provided) must be a raw string using Mermaid graph syntax (e.g. "graph TD"). Represent processes, entities, and data stores. Valid Mermaid syntax ONLY. Do NOT wrap in markdown code blocks.
+4. "entityRelationshipDiagram" (if provided) must be a raw string starting with "erDiagram". Valid Mermaid syntax ONLY. Do NOT wrap in markdown code blocks.
+5. System Features must be detailed.
+6. "functionalRequirements" inside "systemFeatures" should be an array of strings like "The system shall...".
+7. Output MUST be valid JSON only.
+8. The content for each field MUST be DETAILED and PROFESSIONAL, strictly following IEEE SRS standards. Do not be brief.
 
 User Input:
 `;
@@ -151,38 +141,33 @@ You have access to the current state of the analysis (JSON) and the conversation
 
 Your goal is to:
 1. Answer the user's questions about the project.
-2. UPDATE the analysis JSON if the user requests changes (e.g., "Add a login feature", "Rewrite user stories").
+2. UPDATE the analysis JSON if the user requests changes.
 
 OUTPUT FORMAT:
 You must ALWAYS return a JSON object with the following structure.
-IMPORTANT: Return ONLY the raw JSON. Do not include any introductory text (like "Here is the updated analysis") or markdown formatting.
+IMPORTANT: Return ONLY the raw JSON. Do not include any introductory text.
 
 {
-  "reply": "Your conversational response to the user...",
+  "reply": "Your conversational response...",
   "updatedAnalysis": null | {
-      "cleanedRequirements": "...",
       "projectTitle": "...",
-      "functionalRequirements": ["..."],
-      "nonFunctionalRequirements": ["..."],
-      "entities": ["..."],
-      "userStories": [{"role": "...", "feature": "...", "benefit": "...", "story": "..."}],
-      "acceptanceCriteria": [{"story": "...", "criteria": ["..."]}],
-      "flowchartDiagram": "...",
-      "sequenceDiagram": "...",
-      "apiContracts": [{"endpoint": "...", "method": "...", "description": "...", "requestBody": {}, "responseBody": {}}],
-      "missingLogic": ["..."],
-      "contradictions": ["..."]
+      "introduction": { ... },
+      "overallDescription": { ... },
+      "externalInterfaceRequirements": { ... },
+      "systemFeatures": [ ... ],
+      "nonFunctionalRequirements": { ... },
+      "otherRequirements": [ ... ],
+      "glossary": [ ... ],
+      "appendices": { ... },
+      "missingLogic": [],
+      "contradictions": []
   }
 }
 
 RULES:
-- If the user's request requires changing the requirements, diagrams, or user stories, you MUST provide the FULL updated JSON in "updatedAnalysis".
-- If "updatedAnalysis" is provided, it must be the COMPLETE object with all fields (do not return partial updates).
-- If no changes are needed (just a question being answered), set "updatedAnalysis" to null.
-- "reply" should be friendly and explain what you did.
-- Do NOT return markdown formatting like \`\`\`json. Just the raw JSON.
-
-CURRENT ANALYSIS STATE:
+- If "updatedAnalysis" is provided, it must be the COMPLETE object with all fields.
+- "reply" should be friendly.
+- Do NOT return markdown formatting like \`\`\`json.
 `;
 
 export const CODE_GEN_PROMPT = `
@@ -200,7 +185,6 @@ Return ONLY a valid JSON object with the following structure:
        "type": "file" or "directory",
        "children": [] 
     }
-    // ... complete tree representation
   ],
   "databaseSchema": "Raw Prisma Schema content (schema.prisma)",
   "backendRoutes": [
@@ -208,14 +192,12 @@ Return ONLY a valid JSON object with the following structure:
         "path": "backend/src/routes/authRoutes.ts",
         "code": "Full source code..."
      }
-     // ... strictly key route files
   ],
   "frontendComponents": [
      {
         "path": "frontend/src/components/LoginForm.tsx",
         "code": "Full source code..."
      }
-     // ... key UI components based on user stories
   ],
   "testCases": [
       {
@@ -228,13 +210,12 @@ Return ONLY a valid JSON object with the following structure:
 }
 
 RULES:
-1. "fileStructure" should be a recursive tree of the proposed project.
-2. "databaseSchema" should be a valid Prisma schema with models based on the "entities" and "relationships" in the analysis.
-3. Generate REAL, WORKING code for "backendRoutes" and "frontendComponents". Do not use placeholders like "// code here".
-4. Implement the core features described in "functionalRequirements" and "userStories".
+1. "fileStructure" should be a recursive tree.
+2. "databaseSchema" should be a valid Prisma schema.
+3. Generate REAL, WORKING code.
+4. Implement the core features described in "systemFeatures".
 5. Use modern stack: Typescript, React (Tailwind), Node.js (Express), Prisma.
-6. Generate detailed "backendReadme" and "frontendReadme" with step-by-step setup instructions, environment variable examples, and command references.
-7. Return VALID JSON only. No markdown formatting.
+6. Return VALID JSON only. No markdown formatting.
 
 INPUT ANALYSIS:
 `;

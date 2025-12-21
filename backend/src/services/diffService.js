@@ -1,10 +1,7 @@
-// import { diff } from 'jest-diff'; // jest-diff is great but might not be installed.// Actually, for simple text diffing we might need 'diff' package or just simple comparison.
-// "compare two JSON objects". 
-// Let's implement a simple field-by-field comparison for v1.
 
 /**
- * Compares two analysis objects and returns differences for scoped fields.
- * Scoped Fields: inputText, functionalRequirements, nonFunctionalRequirements, userStories
+ * Compares two analysis objects and returns differences.
+ * Supports deep comparison for IEEE SRS structure.
  */
 export const compareAnalyses = (v1, v2) => {
     const changes = {};
@@ -17,32 +14,59 @@ export const compareAnalyses = (v1, v2) => {
         };
     }
 
-    // Helper for arrays (FRs, NFRs, Stories)
-    // improving it to simple JSON stringify comparison for now if they are arrays.
-    // If we want detailed array diff (added/removed items), we can do set logic.
-    const compareArrays = (arr1, arr2) => {
-        const str1 = JSON.stringify(arr1 || []);
-        const str2 = JSON.stringify(arr2 || []);
-        if (str1 !== str2) {
-            return {
-                old: arr1,
-                new: arr2
-            };
-        }
-        return null;
+    // Helper: Deep JSON compare
+    const getDiff = (obj1, obj2) => {
+        if (JSON.stringify(obj1) === JSON.stringify(obj2)) return null;
+        return {
+            old: obj1,
+            new: obj2
+        };
     };
 
-    // 2. Functional Requirements
-    const frDiff = compareArrays(v1.resultJson.functionalRequirements, v2.resultJson.functionalRequirements);
-    if (frDiff) changes.functionalRequirements = frDiff;
+    // Helper: Array compare (naive)
+    const getArrayDiff = (arr1, arr2) => {
+        if (!arr1 && !arr2) return null;
+        if (JSON.stringify(arr1) === JSON.stringify(arr2)) return null;
+        return {
+            old: arr1,
+            new: arr2
+        };
+    };
 
-    // 3. Non-Functional Requirements
-    const nfrDiff = compareArrays(v1.resultJson.nonFunctionalRequirements, v2.resultJson.nonFunctionalRequirements);
+    const r1 = v1.resultJson || {};
+    const r2 = v2.resultJson || {};
+
+    // 2. Sections Diff
+
+    // Introduction
+    const introDiff = getDiff(r1.introduction, r2.introduction);
+    if (introDiff) changes.introduction = introDiff;
+
+    // Overall Description
+    const overallDiff = getDiff(r1.overallDescription, r2.overallDescription);
+    if (overallDiff) changes.overallDescription = overallDiff;
+
+    // System Features (The most complex one)
+    // For now, simpler object diff. 
+    // Ideally we match by 'name' and diff internals, but atomic replacement view is also fine for V1.
+    const featuresDiff = getArrayDiff(r1.systemFeatures, r2.systemFeatures);
+    if (featuresDiff) changes.systemFeatures = featuresDiff;
+
+    // Non-Functional
+    const nfrDiff = getDiff(r1.nonFunctionalRequirements, r2.nonFunctionalRequirements);
     if (nfrDiff) changes.nonFunctionalRequirements = nfrDiff;
 
-    // 4. User Stories
-    const usDiff = compareArrays(v1.resultJson.userStories, v2.resultJson.userStories);
-    if (usDiff) changes.userStories = usDiff;
+    // External Interfaces
+    const extDiff = getDiff(r1.externalInterfaceRequirements, r2.externalInterfaceRequirements);
+    if (extDiff) changes.externalInterfaceRequirements = extDiff;
+
+    // Appendices (Diagrams, Glossary)
+    const appDiff = getDiff(r1.appendices, r2.appendices);
+    if (appDiff) changes.appendices = appDiff;
+
+    // Other Req
+    const otherDiff = getArrayDiff(r1.otherRequirements, r2.otherRequirements);
+    if (otherDiff) changes.otherRequirements = otherDiff;
 
     return changes;
 };

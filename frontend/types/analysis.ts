@@ -1,41 +1,83 @@
-export interface UserStory {
-    role: string
-    feature: string
-    benefit: string
-    story: string
+export interface Introduction {
+    purpose: string;
+    scope: string;
+    intendedAudience: string;
+    references: string[];
 }
 
-export interface AcceptanceCriteria {
-    story: string
-    criteria: string[]
+export interface UserCharacteristic {
+    userClass: string;
+    characteristics: string;
 }
 
-export interface ApiContract {
-    endpoint: string
-    method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH"
-    description: string
-    requestBody: Record<string, unknown>
-    responseBody: Record<string, unknown>
+export interface OverallDescription {
+    productPerspective: string;
+    productFunctions: string[];
+    userClassesAndCharacteristics: UserCharacteristic[];
+    operatingEnvironment: string;
+    designAndImplementationConstraints: string[];
+    userDocumentation: string[];
+    assumptionsAndDependencies: string[];
+}
+
+export interface ExternalInterfaceRequirements {
+    userInterfaces: string;
+    hardwareInterfaces: string;
+    softwareInterfaces: string;
+    communicationsInterfaces: string;
+}
+
+export interface SystemFeature {
+    name: string;
+    description: string;
+    stimulusResponseSequences: string[];
+    functionalRequirements: string[];
+}
+
+export interface NonFunctionalRequirements {
+    performanceRequirements: string[];
+    safetyRequirements: string[];
+    securityRequirements: string[];
+    softwareQualityAttributes: string[];
+    businessRules: string[];
+}
+
+export interface GlossaryItem {
+    term: string;
+    definition: string;
+}
+
+export interface AnalysisModels {
+    flowchartDiagram?: string;
+    sequenceDiagram?: string;
+    entityRelationshipDiagram?: string;
+    dataFlowDiagram?: string;
+}
+
+export interface Appendices {
+    analysisModels: AnalysisModels;
+    tbdList: string[];
 }
 
 export interface AnalysisResult {
-    cleanedRequirements: string
-    functionalRequirements: string[]
-    nonFunctionalRequirements: string[]
-    entities: string[]
-    userStories: UserStory[]
-    acceptanceCriteria: AcceptanceCriteria[]
-    flowchartDiagram: string
-    sequenceDiagram: string
-    apiContracts: ApiContract[]
-    missingLogic: string[]
-    contradictions?: string[]
+    // New IEEE Structure
+    projectTitle: string;
+    introduction: Introduction;
+    overallDescription: OverallDescription;
+    externalInterfaceRequirements: ExternalInterfaceRequirements;
+    systemFeatures: SystemFeature[];
+    nonFunctionalRequirements: NonFunctionalRequirements;
+    otherRequirements: string[];
+    glossary: GlossaryItem[];
+    appendices: Appendices;
+
+    // Legacy / Auxiliary fields
+    missingLogic?: string[];
+    contradictions?: string[];
     qualityAudit?: {
         score: number
         issues: string[]
-
     }
-    projectTitle?: string
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     generatedCode?: any
 }
@@ -44,7 +86,7 @@ export interface Analysis extends AnalysisResult {
     id: string
     userId: string
     inputText: string
-    resultJson?: AnalysisResult // Kept checking legacy/optional just in case, but main data is flattened
+    resultJson?: AnalysisResult
     version: number
     title?: string
     createdAt: string

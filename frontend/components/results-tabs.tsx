@@ -3,21 +3,18 @@
 import { useEffect, useRef, useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
-import { StoryCard } from "@/components/story-card"
-import { ApiCard } from "@/components/api-card"
-import { CheckCircle2, AlertTriangle, Bot, ShieldCheck, Bug, Edit, Plus } from "lucide-react"
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
+import { AlertTriangle, Bot, ShieldCheck, Code, Loader2, Bug } from "lucide-react"
 import type { AnalysisResult } from "@/types/analysis"
 import { DiagramEditor } from "@/components/diagram-editor"
 import { useAuth } from "@/lib/auth-context"
 import { Progress } from "@/components/ui/progress"
 import { useParams, useRouter } from "next/navigation"
 import { CodeViewer } from "@/components/code-viewer"
-import { Code, Loader2 } from "lucide-react"
-import { EditableSection } from "@/components/editable-section"
 import { toast } from "sonner"
+import { FeatureDisplay } from "@/components/feature-display"
+import { KVDisplay } from "@/components/kv-display"
 
 interface ResultsTabsProps {
   data?: AnalysisResult
@@ -35,24 +32,6 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
   const [isGeneratingCode, setIsGeneratingCode] = useState(false)
   const [codeError, setCodeError] = useState("")
 
-  // Edit Mode State
-  const [isEditing, setIsEditing] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
-
-  // Local Data State for Editing
-  const [localFunctionalReqs, setLocalFunctionalReqs] = useState<string[]>([])
-  const [localNonFunctionalReqs, setLocalNonFunctionalReqs] = useState<string[]>([])
-  const [localUserStories, setLocalUserStories] = useState<NonNullable<AnalysisResult['userStories']>>([])
-
-  useEffect(() => {
-    if (data) {
-      setLocalFunctionalReqs(data.functionalRequirements || [])
-      setLocalNonFunctionalReqs(data.nonFunctionalRequirements || [])
-      setLocalUserStories(data.userStories || [])
-    }
-  }, [data])
-
-
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -60,7 +39,7 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
           if (entry.isIntersecting) {
             entry.target.classList.add("animate-fade-up")
             if (entry.target instanceof HTMLElement) {
-              entry.target.style.opacity = "1"; // Ensure opacity is set to 1 when visible
+              entry.target.style.opacity = "1";
             }
           }
         })
@@ -74,250 +53,149 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
     return () => observer.disconnect()
   }, [])
 
-  const {
-    cleanedRequirements = "",
-    functionalRequirements = [],
-    nonFunctionalRequirements = [],
-    entities = [],
-    userStories = [],
-    acceptanceCriteria = [],
-    apiContracts = [],
-    missingLogic = [],
-    contradictions = [],
-    flowchartDiagram = "",
-    sequenceDiagram = "",
-    qualityAudit,
-    generatedCode: initialGeneratedCode,
-  } = data || {}
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [generatedCode, setGeneratedCode] = useState<any>(initialGeneratedCode || null)
+  const [generatedCode, setGeneratedCode] = useState<any>(data?.generatedCode || null)
 
   if (!data) {
-    // console.warn("ResultsTabs: No data provided!");
     return null
   }
 
-  const handleSaveChanges = async () => {
-    setIsSaving(true)
-    try {
-      // Construct the payload with ALL data, but updated fields
-      // Ideally backend only needs changed fields, but providing all context is safer for now if backend logic expects complete object replacement structure or partial merges
-      const payload = {
-        functionalRequirements: localFunctionalReqs,
-        nonFunctionalRequirements: localNonFunctionalReqs,
-        userStories: localUserStories
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to save changes")
-      }
-
-      const newAnalysis = await response.json()
-
-      toast.success("New version created successfully!")
-      setIsEditing(false)
-
-      // Redirect to new version
-      if (newAnalysis.id && newAnalysis.id !== analysisId) {
-        router.push(`/analysis/${newAnalysis.id}`)
-      } else {
-        // If for some reason ID didn't change (should not happen with new versioning logic), just reload
-        router.refresh()
-      }
-
-    } catch (error) {
-      console.error("Save failed:", error)
-      toast.error("Failed to save changes")
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  const handleUserStoryUpdate = (index: number, updatedStory: NonNullable<AnalysisResult['userStories']>[0]) => {
-    const newStories = [...localUserStories];
-    newStories[index] = updatedStory;
-    setLocalUserStories(newStories);
-  }
-
-  const handleUserStoryDelete = (index: number) => {
-    const newStories = localUserStories.filter((_, i) => i !== index);
-    setLocalUserStories(newStories);
-  }
-
-  const handleAddUserStory = () => {
-    setLocalUserStories([
-      ...localUserStories,
-      { role: "User", feature: "New Feature", benefit: "Benefit", story: "As a User, I want New Feature so that Benefit." }
-    ])
-  }
-
+  const {
+    introduction,
+    overallDescription,
+    externalInterfaceRequirements,
+    systemFeatures,
+    nonFunctionalRequirements,
+    glossary,
+    appendices,
+    missingLogic = [],
+    contradictions = [],
+    qualityAudit,
+  } = data
 
   return (
     <section ref={sectionRef} className="py-12 sm:py-16">
       <div className="container mx-auto px-4 sm:px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="flex items-center justify-between mb-6 animate-on-scroll opacity-0">
-            <div className="flex items-start gap-3">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary animate-pulse-glow">
-                <Bot className="h-4 w-4 text-primary-foreground" />
+        <div className="max-w-6xl mx-auto">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8 animate-on-scroll opacity-0">
+            <div className="flex items-start gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary animate-pulse-glow shadow-lg shadow-primary/20">
+                <Bot className="h-5 w-5 text-primary-foreground" />
               </div>
               <div>
-                <p className="text-sm font-medium mb-1">Analysis Complete</p>
-                <p className="text-sm text-muted-foreground">
-                  I&apos;ve analyzed your requirements and extracted the following insights:
+                <h2 className="text-2xl font-bold tracking-tight mb-1">Analysis Report</h2>
+                <p className="text-muted-foreground">
+                  IEEE 830-1998 Compliant Software Requirements Specification
                 </p>
               </div>
             </div>
-
-            <div className="flex gap-2">
-              {isEditing ? (
-                <>
-                  <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isSaving}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleSaveChanges} disabled={isSaving} className="min-w-[100px]">
-                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save New Version"}
-                  </Button>
-                </>
-              ) : (
-                <Button onClick={() => setIsEditing(true)} variant="outline">
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit Requirements
-                </Button>
-              )}
-            </div>
           </div>
 
-          <Tabs defaultValue="overview" className="w-full animate-on-scroll opacity-0 delay-200">
-            <ScrollArea className="w-full">
-              <TabsList className="inline-flex w-max mb-6 bg-secondary">
-                <TabsTrigger value="overview" className="transition-all duration-200">
-                  Overview
-                </TabsTrigger>
-                <TabsTrigger value="functional" className="transition-all duration-200">
-                  Functional
-                </TabsTrigger>
-                <TabsTrigger value="non-functional" className="transition-all duration-200">
-                  Non-Functional
-                </TabsTrigger>
-                <TabsTrigger value="entities" className="transition-all duration-200">
-                  Entities
-                </TabsTrigger>
-                <TabsTrigger value="stories" className="transition-all duration-200">
-                  User Stories
-                </TabsTrigger>
-                <TabsTrigger value="acceptance" className="transition-all duration-200">
-                  Acceptance
-                </TabsTrigger>
-                <TabsTrigger value="api" className="transition-all duration-200">
-                  API Contracts
-                </TabsTrigger>
-                <TabsTrigger value="missing" className="transition-all duration-200">
-                  Missing Logic
-                </TabsTrigger>
-                <TabsTrigger value="diagrams" className="transition-all duration-200">
-                  Diagrams
-                </TabsTrigger>
-                <TabsTrigger value="code" className="transition-all duration-200">
-                  Stack & Code
-                </TabsTrigger>
-                <TabsTrigger value="quality" className="transition-all duration-200">
-                  Quality Audit
-                </TabsTrigger>
+          <Tabs defaultValue="intro" className="w-full animate-on-scroll opacity-0 delay-200">
+            <ScrollArea className="w-full mb-8">
+              <TabsList className="inline-flex w-max bg-secondary p-1">
+                <TabsTrigger value="intro" className="px-4 py-2">Introduction</TabsTrigger>
+                <TabsTrigger value="features" className="px-4 py-2">System Features</TabsTrigger>
+                <TabsTrigger value="interfaces" className="px-4 py-2">Ext. Interfaces</TabsTrigger>
+                <TabsTrigger value="nfrs" className="px-4 py-2">Non-Functional</TabsTrigger>
+                <TabsTrigger value="appendices" className="px-4 py-2">Appendices</TabsTrigger>
+                <TabsTrigger value="code" className="px-4 py-2">Code Assets</TabsTrigger>
+                <TabsTrigger value="quality" className="px-4 py-2">Quality Audit</TabsTrigger>
               </TabsList>
               <ScrollBar orientation="horizontal" />
             </ScrollArea>
 
-            {/* Overview Tab */}
-            <TabsContent value="overview" className="space-y-6 animate-fade-in">
-              <Card className="bg-card border-border transition-all duration-300 hover:border-primary/30">
-                <CardHeader>
-                  <CardTitle className="text-lg">Cleaned Requirements</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {cleanedRequirements || "No requirements processed yet."}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                <Card className="bg-card border-border transition-all duration-300 hover:border-primary/30 hover:-translate-y-1">
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                      Identified Entities
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-wrap gap-2">
-                      {entities.length > 0 ? (
-                        entities.map((entity, index) => (
-                          <Badge
-                            key={entity}
-                            variant="secondary"
-                            className="bg-secondary transition-all duration-300 hover:scale-105 hover:bg-primary/20"
-                            style={{ animationDelay: `${index * 50}ms` }}
-                          >
-                            {entity}
-                          </Badge>
-                        ))
-                      ) : (
-                        <span className="text-sm text-muted-foreground">No entities identified.</span>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-card border-border transition-all duration-300 hover:border-primary/30 hover:-translate-y-1">
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <AlertTriangle className="h-5 w-5 text-amber-500" />
-                      Missing Logic
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2">
-                      {missingLogic.length > 0 ? (
-                        missingLogic.slice(0, 3).map((item, index) => (
-                          <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
-                            <span className="text-amber-500">•</span>
-                            {item}
-                          </li>
-                        ))
-                      ) : (
-                        <span className="text-sm text-muted-foreground">No missing logic detected.</span>
-                      )}
-                    </ul>
-                  </CardContent>
-                </Card>
+            {/* TAB: INTRODUCTION */}
+            <TabsContent value="intro" className="space-y-8 animate-fade-in outline-none">
+              <div className="grid gap-8 lg:grid-cols-2">
+                <KVDisplay
+                  title="1. Introduction"
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  data={introduction as unknown as Record<string, any>}
+                />
+                <KVDisplay
+                  title="2. Overall Description"
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  data={overallDescription as unknown as Record<string, any>}
+                />
               </div>
 
-              {contradictions && contradictions.length > 0 && (
-                <Card className="mt-6 bg-destructive/10 border-destructive transition-all duration-300 animate-pulse-glow hover:border-destructive/80">
+              {/* Issues / Contradictions (Global) */}
+              {((missingLogic && missingLogic.length > 0) || (contradictions && contradictions.length > 0)) && (
+                <div className="grid gap-6 md:grid-cols-2">
+                  {missingLogic.length > 0 && (
+                    <Card className="bg-amber-500/5 border-amber-500/20">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-amber-500 text-lg">
+                          <AlertTriangle className="h-5 w-5" />
+                          Missing Logic
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="list-disc list-inside space-y-2">
+                          {missingLogic.map((item, i) => (
+                            <li key={i} className="text-sm text-foreground/80">{item}</li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  )}
+                  {contradictions && contradictions.length > 0 && (
+                    <Card className="bg-destructive/5 border-destructive/20">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-destructive text-lg">
+                          <Bug className="h-5 w-5" />
+                          Contradictions Found
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="list-disc list-inside space-y-2">
+                          {contradictions.map((item, i) => (
+                            <li key={i} className="text-sm text-foreground/80">{item}</li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* TAB: SYSTEM FEATURES */}
+            <TabsContent value="features" className="space-y-6 animate-fade-in outline-none">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-xl font-semibold">3. System Features</h3>
+              </div>
+              <FeatureDisplay features={systemFeatures} />
+            </TabsContent>
+
+            {/* TAB: EXTERNAL INTERFACES */}
+            <TabsContent value="interfaces" className="space-y-6 animate-fade-in outline-none">
+              <KVDisplay
+                title="External Interface Requirements"
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                data={externalInterfaceRequirements as unknown as Record<string, any>}
+              />
+            </TabsContent>
+
+            {/* TAB: NON-FUNCTIONAL REQS */}
+            <TabsContent value="nfrs" className="space-y-6 animate-fade-in outline-none">
+              <KVDisplay
+                title="Non-Functional Requirements"
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                data={nonFunctionalRequirements as unknown as Record<string, any>}
+              />
+
+              {data.otherRequirements && data.otherRequirements.length > 0 && (
+                <Card className="bg-card border-border mt-6">
                   <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2 text-destructive">
-                      <Bug className="h-5 w-5" />
-                      AI Bug Detector: Critical Contradictions Found
-                    </CardTitle>
+                    <CardTitle>Other Requirements</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <ul className="space-y-3">
-                      {contradictions.map((item, index) => (
-                        <li key={index} className="flex items-start gap-3 text-sm font-medium text-destructive">
-                          <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-                          {item}
-                        </li>
+                    <ul className="list-disc list-inside space-y-2">
+                      {data.otherRequirements.map((req, i) => (
+                        <li key={i} className="text-sm text-muted-foreground">{req}</li>
                       ))}
                     </ul>
                   </CardContent>
@@ -325,241 +203,199 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
               )}
             </TabsContent>
 
-            {/* Functional Requirements Tab */}
-            <TabsContent value="functional" className="animate-fade-in">
-              <Card className="bg-card border-border">
-                <CardHeader>
-                  <CardTitle className="text-lg">Functional Requirements</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <EditableSection
-                    items={isEditing ? localFunctionalReqs : functionalRequirements}
-                    isEditing={isEditing}
-                    onUpdate={setLocalFunctionalReqs}
-                    prefix="FR"
-                  />
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Non-Functional Requirements Tab */}
-            <TabsContent value="non-functional" className="animate-fade-in">
-              <Card className="bg-card border-border">
-                <CardHeader>
-                  <CardTitle className="text-lg">Non-Functional Requirements</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <EditableSection
-                    items={isEditing ? localNonFunctionalReqs : nonFunctionalRequirements}
-                    isEditing={isEditing}
-                    onUpdate={setLocalNonFunctionalReqs}
-                    prefix="NFR"
-                    badgeColor="border-cyan-500/50 text-cyan-400"
-                  />
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Entities Tab */}
-            <TabsContent value="entities" className="animate-fade-in">
-              <Card className="bg-card border-border">
-                <CardHeader>
-                  <CardTitle className="text-lg">Identified Entities</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-3">
-                    {entities.length > 0 ? (
-                      entities.map((entity, index) => (
-                        <Badge
-                          key={entity}
-                          className="text-sm py-1.5 px-4 bg-primary/10 text-primary hover:bg-primary/20 transition-all duration-300 hover:scale-110 cursor-default"
-                          style={{ animationDelay: `${index * 100}ms` }}
-                        >
-                          {entity}
-                        </Badge>
-                      ))
-                    ) : (
-                      <span className="text-sm text-muted-foreground">No entities identified.</span>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* User Stories Tab */}
-            <TabsContent value="stories" className="animate-fade-in">
+            {/* TAB: APPENDICES */}
+            <TabsContent value="appendices" className="space-y-8 animate-fade-in outline-none">
+              {/* Diagrams */}
               <div className="space-y-4">
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {(isEditing ? localUserStories : userStories).length > 0 ? (
-                    (isEditing ? localUserStories : userStories).map((story, index) => (
-                      <StoryCard
-                        key={index}
-                        {...story}
-                        index={index}
-                        isEditing={isEditing}
-                        onUpdate={(updated) => handleUserStoryUpdate(index, updated)}
-                        onDelete={() => handleUserStoryDelete(index)}
-                      />
+                <h3 className="text-lg font-semibold border-l-4 border-primary pl-3">Analysis Models</h3>
+                <div className="grid lg:grid-cols-2 gap-6">
+                  <DiagramEditor
+                    title="Flowchart"
+                    initialCode={appendices?.analysisModels?.flowchartDiagram || ""}
+                    onSave={async (newCode) => {
+                      try {
+                        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
+                          method: "PUT",
+                          headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`
+                          },
+                          body: JSON.stringify({
+                            appendices: {
+                              ...appendices,
+                              analysisModels: {
+                                ...appendices?.analysisModels,
+                                flowchartDiagram: newCode
+                              }
+                            }
+                          })
+                        })
+                        if (!res.ok) throw new Error("Failed to save")
+                        const updated = await res.json()
+                        if (updated.id && updated.id !== analysisId) {
+                          toast.success("New version created")
+                          router.push(`/analysis/${updated.id}`)
+                        } else {
+                          toast.success("Saved")
+                          onRefresh?.()
+                        }
+                      } catch {
+                        toast.error("Failed to save diagram")
+                      }
+                    }}
+                    onOpenChange={onDiagramEditChange}
+                  />
+                  <DiagramEditor
+                    title="Sequence Diagram"
+                    initialCode={appendices?.analysisModels?.sequenceDiagram || ""}
+                    onSave={async (newCode) => {
+                      try {
+                        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
+                          method: "PUT",
+                          headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`
+                          },
+                          body: JSON.stringify({
+                            appendices: {
+                              ...appendices,
+                              analysisModels: {
+                                ...appendices?.analysisModels,
+                                sequenceDiagram: newCode
+                              }
+                            }
+                          })
+                        })
+                        if (!res.ok) throw new Error("Failed to save")
+                        const updated = await res.json()
+                        if (updated.id && updated.id !== analysisId) {
+                          toast.success("New version created")
+                          router.push(`/analysis/${updated.id}`)
+                        } else {
+                          toast.success("Saved")
+                          onRefresh?.()
+                        }
+                      } catch {
+                        toast.error("Failed to save diagram")
+                      }
+                    }}
+                    onOpenChange={onDiagramEditChange}
+                  />
+                </div>
+                <div className="grid lg:grid-cols-2 gap-6 mt-6">
+                  <DiagramEditor
+                    title="Data Flow Diagram"
+                    initialCode={appendices?.analysisModels?.dataFlowDiagram || ""}
+                    onSave={async (newCode) => {
+                      try {
+                        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
+                          method: "PUT",
+                          headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`
+                          },
+                          body: JSON.stringify({
+                            appendices: {
+                              ...appendices,
+                              analysisModels: {
+                                ...appendices?.analysisModels,
+                                dataFlowDiagram: newCode
+                              }
+                            }
+                          })
+                        })
+                        if (!res.ok) throw new Error("Failed to save")
+                        const updated = await res.json()
+                        if (updated.id && updated.id !== analysisId) {
+                          toast.success("New version created")
+                          router.push(`/analysis/${updated.id}`)
+                        } else {
+                          toast.success("Saved")
+                          onRefresh?.()
+                        }
+                      } catch {
+                        toast.error("Failed to save diagram")
+                      }
+                    }}
+                    onOpenChange={onDiagramEditChange}
+                  />
+                  <DiagramEditor
+                    title="Entity Relationship Diagram"
+                    initialCode={appendices?.analysisModels?.entityRelationshipDiagram || ""}
+                    onSave={async (newCode) => {
+                      try {
+                        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
+                          method: "PUT",
+                          headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`
+                          },
+                          body: JSON.stringify({
+                            appendices: {
+                              ...appendices,
+                              analysisModels: {
+                                ...appendices?.analysisModels,
+                                entityRelationshipDiagram: newCode
+                              }
+                            }
+                          })
+                        })
+                        if (!res.ok) throw new Error("Failed to save")
+                        const updated = await res.json()
+                        if (updated.id && updated.id !== analysisId) {
+                          toast.success("New version created")
+                          router.push(`/analysis/${updated.id}`)
+                        } else {
+                          toast.success("Saved")
+                          onRefresh?.()
+                        }
+                      } catch {
+                        toast.error("Failed to save diagram")
+                      }
+                    }}
+                    onOpenChange={onDiagramEditChange}
+                  />
+                </div>
+              </div>
+
+              {/* Glossary */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold border-l-4 border-primary pl-3">Glossary</h3>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {glossary && glossary.length > 0 ? (
+                    glossary.map((term, i) => (
+                      <Card key={i} className="bg-card">
+                        <CardContent className="pt-4">
+                          <dt className="font-semibold text-primary mb-1">{term.term}</dt>
+                          <dd className="text-sm text-muted-foreground">{term.definition}</dd>
+                        </CardContent>
+                      </Card>
                     ))
                   ) : (
-                    <div className="col-span-full text-center text-sm text-muted-foreground p-4">
-                      No user stories generated.
-                    </div>
+                    <p className="text-muted-foreground text-sm col-span-full">No glossary terms found.</p>
                   )}
                 </div>
-                {isEditing && (
-                  <Button variant="outline" onClick={handleAddUserStory} className="w-full border-dashed">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add User Story
-                  </Button>
-                )}
               </div>
-            </TabsContent>
 
-            {/* Acceptance Criteria Tab */}
-            <TabsContent value="acceptance" className="space-y-4 animate-fade-in">
-              {acceptanceCriteria.length > 0 ? (
-                acceptanceCriteria.map((item, index) => (
-                  <Card key={index} className="bg-card border-border transition-all duration-300 hover:border-primary/30">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base">{item.story}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ul className="space-y-2">
-                        {item.criteria.map((criterion, idx) => (
-                          <li
-                            key={idx}
-                            className="text-sm text-muted-foreground flex items-start gap-2 transition-all duration-200 hover:text-foreground"
-                          >
-                            <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
-                            {criterion}
-                          </li>
+              {/* TBD List */}
+              {appendices?.tbdList && appendices.tbdList.length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold border-l-4 border-primary pl-3">To Be Determined (TBD)</h3>
+                  <Card>
+                    <CardContent className="pt-4">
+                      <ul className="list-disc list-inside space-y-2">
+                        {appendices.tbdList.map((item, i) => (
+                          <li key={i} className="text-sm text-muted-foreground">{item}</li>
                         ))}
                       </ul>
                     </CardContent>
                   </Card>
-                ))
-              ) : (
-                <div className="text-center text-sm text-muted-foreground p-4">
-                  No acceptance criteria generated.
                 </div>
               )}
             </TabsContent>
 
-            {/* API Contracts Tab */}
-            <TabsContent value="api" className="space-y-4 animate-fade-in">
-              {apiContracts.length > 0 ? (
-                apiContracts.map((api, index) => (
-                  <ApiCard key={index} {...api} index={index} />
-                ))
-              ) : (
-                <div className="text-center text-sm text-muted-foreground p-4">
-                  No API contracts generated.
-                </div>
-              )}
-            </TabsContent>
-
-            {/* Missing Logic Tab */}
-            <TabsContent value="missing" className="animate-fade-in">
-              <Card className="bg-card border-border">
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5 text-amber-500" />
-                    Missing Logic & Ambiguities
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-3">
-                    {missingLogic.length > 0 ? (
-                      missingLogic.map((item, index) => (
-                        <li
-                          key={index}
-                          className="flex items-start gap-3 text-sm transition-all duration-300 hover:translate-x-1"
-                        >
-                          <Badge variant="outline" className="shrink-0 mt-0.5 text-amber-500 border-amber-500/50">
-                            #{index + 1}
-                          </Badge>
-                          {item}
-                        </li>
-                      ))
-                    ) : (
-                      <span className="text-sm text-muted-foreground">No missing logic detected.</span>
-                    )}
-                  </ul>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Diagrams Tab */}
-            <TabsContent value="diagrams" className="animate-fade-in">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 overflow-scroll">
-                <DiagramEditor
-                  title="Flowchart"
-                  initialCode={flowchartDiagram}
-                  onSave={async (newCode) => {
-                    try {
-                      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
-                        method: "PUT",
-                        headers: {
-                          "Content-Type": "application/json",
-                          Authorization: `Bearer ${token}`
-                        },
-                        body: JSON.stringify({ flowchartDiagram: newCode })
-                      })
-
-                      if (!res.ok) throw new Error("Failed to save diagram")
-
-                      const updated = await res.json()
-                      if (updated.id && updated.id !== analysisId) {
-                        toast.success("New version created")
-                        router.push(`/analysis/${updated.id}`)
-                      } else {
-                        toast.success("Diagram saved")
-                        onRefresh?.()
-                      }
-                    } catch (e) {
-                      toast.error("Failed to save flowchart")
-                      console.error(e)
-                    }
-                  }}
-                  onOpenChange={onDiagramEditChange}
-                />
-                <DiagramEditor
-                  title="Sequence Diagram"
-                  initialCode={sequenceDiagram}
-                  onSave={async (newCode) => {
-                    try {
-                      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
-                        method: "PUT",
-                        headers: {
-                          "Content-Type": "application/json",
-                          Authorization: `Bearer ${token}`
-                        },
-                        body: JSON.stringify({ sequenceDiagram: newCode })
-                      })
-
-                      if (!res.ok) throw new Error("Failed to save diagram")
-
-                      const updated = await res.json()
-                      if (updated.id && updated.id !== analysisId) {
-                        toast.success("New version created")
-                        router.push(`/analysis/${updated.id}`)
-                      } else {
-                        toast.success("Diagram saved")
-                        onRefresh?.()
-                      }
-                    } catch (e) {
-                      toast.error("Failed to save sequence diagram")
-                      console.error(e)
-                    }
-                  }}
-                  onOpenChange={onDiagramEditChange}
-                />
-              </div>
-            </TabsContent>
-
-            {/* Code Generator Tab */}
-            <TabsContent value="code" className="animate-fade-in min-h-[500px]">
+            {/* TAB: CODE GENERATION */}
+            <TabsContent value="code" className="animate-fade-in outline-none">
               {!generatedCode && !isGeneratingCode ? (
                 <div className="flex flex-col items-center justify-center p-12 text-center space-y-4 border rounded-lg bg-card border-dashed">
                   <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center">
@@ -624,8 +460,8 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
               )}
             </TabsContent>
 
-            {/* Quality Audit Tab */}
-            <TabsContent value="quality" className="animate-fade-in">
+            {/* TAB: QUALITY AUDIT */}
+            <TabsContent value="quality" className="animate-fade-in outline-none">
               {qualityAudit ? (
                 <Card className="bg-card border-border">
                   <CardHeader>
@@ -658,7 +494,7 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                         </ul>
                       ) : (
                         <div className="flex items-center gap-2 text-green-500 text-sm p-4 bg-green-500/10 rounded-md">
-                          <CheckCircle2 className="h-4 w-4" />
+                          <CheckCircle2 className="h-4 w-4" /> {/* Need to import CheckCircle2 */}
                           No issues found. Great job!
                         </div>
                       )}
@@ -677,3 +513,6 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
     </section>
   )
 }
+
+// Need to make sure CheckCircle2 is imported
+import { CheckCircle2 } from "lucide-react"
