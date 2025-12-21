@@ -111,7 +111,7 @@ export function KVDisplay({ data, title, excludeKeys = [], projectTitle = "SRA" 
                                         {(value as string[]).map((item, idx) => {
                                             const cleanItem = item.replace(/^[A-Z]+-[A-Z]+-\d+\s*:?\s*/, '').trim();
                                             // Only strip regex ID. But if bullet? strip bullet too.
-                                            const finalItem = cleanItem.replace(/^[\s\*\-\•\d\.\)]+\s*/, '').trim();
+                                            const finalItem = cleanItem.replace(/^\s*(?:[\-\•\d\.\)]+\s*|\*(?!\*)\s*)/, '').trim();
 
                                             return (
                                                 <div key={idx} className="flex items-start gap-3 p-2 rounded-md hover:bg-muted/50 transition-colors">
