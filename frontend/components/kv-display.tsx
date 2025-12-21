@@ -113,21 +113,34 @@ export function KVDisplay({ data, title, excludeKeys = [], projectTitle = "SRA" 
                                             const cleanItem = item.replace(/^[A-Z]+-[A-Z]+-\d+\s*:?\s*/, '').trim();
                                             const finalItem = cleanItem.replace(/^\s*(?:[\-\•\d\.\)]+\s*|\*(?!\*)\s*)/, '').trim();
 
-                                            // Attempt to identify Title: Description pattern
-                                            const separatorIndex = finalItem.indexOf(':');
+                                            // Robust cleanup of markdown wrappers to isolate Title: Description
+                                            let work = finalItem;
+                                            // Handle **Title:** ...
+                                            work = work.replace(/^\*\*(.*?):\*\*/, '$1:');
+                                            // Handle **Title**: ...
+                                            work = work.replace(/^\*\*(.*?)\*\*:/, '$1:');
+                                            // Handle **Title: ... (open bold or full wrap)
+                                            work = work.replace(/^\*\*(.*?):/, '$1:');
+
+                                            // If the original item was fully wrapped (**Title: Desc**), and we stripped the start, strip the end too.
+                                            if (finalItem.startsWith('**') && finalItem.endsWith('**')) {
+                                                if (!work.startsWith('**')) {
+                                                    work = work.replace(/\*\*$/, '');
+                                                }
+                                            }
+
+                                            const separatorIndex = work.indexOf(':');
                                             let titlePart = "";
-                                            let descPart = finalItem;
+                                            let descPart = work;
 
                                             if (separatorIndex !== -1) {
-                                                titlePart = finalItem.substring(0, separatorIndex).trim();
-                                                descPart = finalItem.substring(separatorIndex + 1).trim();
+                                                titlePart = work.substring(0, separatorIndex).trim();
+                                                descPart = work.substring(separatorIndex + 1).trim();
 
-                                                // Clean up title: remove existing ** wrappers
-                                                titlePart = titlePart.replace(/^\*\*(.*)\*\*$/, '$1').replace(/^\*(.*)\*$/, '$1');
+                                                // Final cleanup of title (remove any remaining bold markers)
+                                                titlePart = titlePart.replace(/\*/g, '');
 
-                                                // Clean up description: remove existing ** wrappers if the WHOLE description is bolded (which is likely the bug)
-                                                // Or just be safe and assume description shouldn't start with ** if we are standardizing.
-                                                // Let's just strip wrapping bold from description to fix the specific "wrong side bolded" issue
+                                                // Final cleanup of description (remove independent wrapping ** if present)
                                                 if (descPart.startsWith('**') && descPart.endsWith('**')) {
                                                     descPart = descPart.slice(2, -2);
                                                 }
