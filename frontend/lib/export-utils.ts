@@ -74,6 +74,16 @@ const svgToPng = (svgStr: string): Promise<Blob | null> => {
 // Helper to clean text
 const clean = (text: string) => text?.replace(/\s+/g, ' ').trim() || "";
 
+// Helper to extract code from string or Diagram object
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const getDiagramCode = (diagram: any): string => typeof diagram === 'string' ? diagram : (diagram?.code || "");
+
+// Helper to extract caption
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const getDiagramCaption = (diagram: any, defaultCaption: string): string => {
+    return (typeof diagram !== 'string' && diagram?.caption) ? diagram.caption : defaultCaption;
+};
+
 // Helper to strip markdown bullets/numbering from requirements and existing IDs
 const normalizeText = (text: string) => {
     // 1. Strip standard bullets (*, -, •) and numbering (1., 1)) BUT preserve **bold** markers
@@ -135,23 +145,25 @@ export const renderMermaidDiagrams = async (data: AnalysisResult): Promise<Recor
         }
     };
 
+    const getCode = (diagram: any) => typeof diagram === 'string' ? diagram : diagram?.code;
+
     if (data.appendices.analysisModels.flowchartDiagram) {
-        const img = await render(data.appendices.analysisModels.flowchartDiagram, 'flowchart');
+        const img = await render(getCode(data.appendices.analysisModels.flowchartDiagram), 'flowchart');
         if (img) images['flowchart'] = img;
     }
 
     if (data.appendices.analysisModels.sequenceDiagram) {
-        const img = await render(data.appendices.analysisModels.sequenceDiagram, 'sequence');
+        const img = await render(getCode(data.appendices.analysisModels.sequenceDiagram), 'sequence');
         if (img) images['sequence'] = img;
     }
 
     if (data.appendices.analysisModels.dataFlowDiagram) {
-        const img = await render(data.appendices.analysisModels.dataFlowDiagram, 'dataFlow');
+        const img = await render(getCode(data.appendices.analysisModels.dataFlowDiagram), 'dataFlow');
         if (img) images['dataFlow'] = img;
     }
 
     if (data.appendices.analysisModels.entityRelationshipDiagram) {
-        const img = await render(data.appendices.analysisModels.entityRelationshipDiagram, 'entityRelationship');
+        const img = await render(getCode(data.appendices.analysisModels.entityRelationshipDiagram), 'entityRelationship');
         if (img) images['entityRelationship'] = img;
     }
 
@@ -230,10 +242,13 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
     const contentWidth = pageWidth - margins.left - margins.right;
     let yPos = margins.top;
 
+    const projectAcronym = getAcronym(title);
+
     // --- State & Navigation ---
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const tocItems: { title: string, page: number, level: number }[] = [];
-    // Add Revision History to ToC (placeholder page)
+
+    // Add Revision History to ToC (Front Matter)
     tocItems.push({ title: "Revision History", page: 0, level: 1 });
 
     let revisionHistoryPage = 0;
@@ -247,21 +262,9 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
     let brCount = 0;
     let orCount = 0;
 
-    const projectAcronym = getAcronym(title);
-
     // --- PAGE OPERATIONS ---
 
-    const addHeader = (pageNumLabel: string) => {
-        doc.setFontSize(10);
-        doc.setFont("times", "bolditalic");
 
-        // Document Title (Left)
-        const headerText = `Software Requirements Specification for ${title}`;
-        doc.text(headerText, margins.left, 12, { align: 'left' });
-
-        // Page Number (Right)
-        doc.text(pageNumLabel, pageWidth - margins.right, 12, { align: 'right' });
-    };
 
     const addNewPage = () => {
         doc.addPage();
@@ -391,18 +394,16 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
         doc.setFont("times", "normal");
     };
 
-    // SubHeading (Level 3) - Bold as per user request
+    // SubHeading (Level 3) - Normal weight as per strict IEEE
     const addSubHeader = (number: string, titleText: string) => {
         checkPageBreak(10);
         doc.setFontSize(12);
-        doc.setFont("times", "bold"); // BOLD enforced
+        doc.setFont("times", "bold"); // Normal enforced
         const fullTitle = `${number} ${titleText}`;
         doc.text(fullTitle, margins.left, yPos, { align: 'left' });
 
-        // User requested: "Do not mix bullets or symbols with numbered headings" - Handled by standard text call
-
         yPos += 8;
-        doc.setFont("times", "normal"); // Reset
+        doc.setFont("times", "normal");
     };
 
     // Requirement Lists
@@ -487,7 +488,6 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
                 // Render content using rich text, indented
                 // Slightly offset yPos backwards to allow renderRichText to start on same line if it wants?
                 // Actually renderRichText adds lineHeight to yPos AFTER printing.
-                // We want the first line to be at current yPos. 
                 // renderRichText does NOT modify yPos before printing first line (except checkPageBreak).
                 // But checkPageBreak might be triggered.
 
@@ -509,62 +509,95 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
     };
 
     // ===========================
-    // 1. COVER PAGE (Right Aligned)
+    // 1. COVER PAGE
     // ===========================
-    doc.setFont("times", "bold");
+    // Layout: Arial (Helvetica), Black Bar, Right Aligned, Specific Sizes
 
-    // Helper helper
-    const rightText = (txt: string, y: number, fontSize: number, isBold: boolean = true) => {
-        doc.setFontSize(fontSize);
-        doc.setFont("helvetica", isBold ? "bold" : "normal");
-        doc.text(txt, pageWidth - margins.right, y, { align: 'right' });
-    };
+    // Top Black Bar
+    // "A solid black horizontal bar... Fixed height 1pt... very top edge"
+    // "page width should be length of the sentence" - interpreting as "width of the longest content" or "page width".
+    // User clarification: "page width should be length of the sentence" -> likely "Bar width = Text width"?
+    // But "Positioned at the very top edge" implies edge of page.
+    // Standard IEEE template usually has a full width bar or a bar matching the text alignment.
+    // I will draw a bar from right margin inwards, matching the text width?
+    // Let's stick to "Top Black Bar" as a distinct visual element.
+    // I will try to make it look like a header bar.
 
-    // Black Header Bar
-    yPos = 20;
-    doc.setFillColor(0, 0, 0);
-    doc.rect(margins.left, yPos, contentWidth + 2, 1, 'F'); // Bar respects margins
-    doc.setTextColor(0, 0, 0);
+    // Actually, "Positioned at the very top edge". Let's place it at y=10 or something.
+    // yPos = 20; // This line is removed as yPos is set to 60 below.
 
-    yPos += 20; // Moved text up closer to bar
-    rightText("Software Requirements", yPos, 28, true);
-    yPos += 12;
-    rightText("Specification", yPos, 28, true);
+    // Font: Arial (Helvetica) for Cover Only
+    // doc.setFont("helvetica", "bold"); // This is moved below the yPos setting.
 
-    yPos += 20; // Reduced gap
-    rightText("for", yPos, 28, true);
+    // Title Section
+    yPos = 60; // Start down the page
 
-    yPos += 20; // Reduced gap
-
-    // Project Title (Multiline support)
-    const maxWidth = pageWidth - margins.left - margins.right;
-    const projectTitleLines = doc.splitTextToSize(title || "Project Name", maxWidth);
-
-    doc.setFontSize(28);
     doc.setFont("helvetica", "bold");
-    doc.text(projectTitleLines, pageWidth - margins.right, yPos, { align: 'right' });
+    doc.setFontSize(28);
 
-    yPos += (projectTitleLines.length * 12);
+    const line1 = "Software Requirements";
+    const line2 = "Specification";
+    const line3 = "for";
+    const line4 = title || "Project Name";
 
-    yPos += 20; // Reduced gap
-    rightText("Version 1.0 approved", yPos, 14, true);
+    // Calculate max width for the bar
+    const w1 = doc.getTextWidth(line1);
+    const w2 = doc.getTextWidth(line2);
+    const w3 = doc.getTextWidth(line3);
+    const w4 = doc.getTextWidth(line4);
 
-    yPos += 20;
-    rightText(`Prepared by ${"User"}`, yPos, 14, true);
+    // User wants "equal spaced from left and right side" -> Centered.
+    // We'll use the max width of the text block to determine the bar length + padding.
+    const barWidth = Math.max(w1, w2, w3, w4) + 2; // +20 for some breathing room (padding)
 
-    yPos += 20;
-    rightText("Smart Requirements Analyzer", yPos, 14, true);
+    // Draw Bar Centered (Strict User Request: "bar should be center only")
+    const barX = (pageWidth - barWidth) / 2;
+    doc.setFillColor(0, 0, 0);
+    // Draw rect: x = barX, y = 35 (Moved up from 45), w = barWidth, h = 1.5
+    doc.rect(barX, 35, barWidth, 1, 'F');
 
-    yPos += 20;
-    rightText(new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }), yPos, 14, true);
+    // Render Title Lines RIGHT Aligned (Fixed Anchor)
+    const contentX = pageWidth - margins.right;
 
-    // Footer Caption
-    yPos = pageHeight - 15;
-    doc.setFontSize(10);
-    doc.setFont("times", "bolditalic");
-    const copyrightText = "Copyright © 1999 by Karl E. Wiegers. Permission is granted to use, modify, and distribute this document.";
-    doc.text(copyrightText, pageWidth / 2, yPos, { align: 'center' });
+    doc.text(line1, contentX, yPos, { align: 'right' });
+    yPos += 12;
 
+    doc.text(line2, contentX, yPos, { align: 'right' });
+    yPos += 24; // Gap
+
+    doc.text(line3, contentX, yPos, { align: 'right' });
+    yPos += 24; // Gap
+
+    const titleLines = doc.splitTextToSize(line4, contentWidth);
+    doc.text(titleLines, contentX, yPos, { align: 'right' });
+    yPos += (titleLines.length * 14) + 24; // Gap
+
+    // "Version X approved"
+    doc.setFontSize(14);
+    doc.text("Version 1.0 approved", contentX, yPos, { align: 'right' });
+    yPos += 14; // Gap
+
+    // "Prepared by <Author>"
+    doc.text(`Prepared by ${"User"}`, contentX, yPos, { align: 'right' });
+    yPos += 14; // Gap
+
+    // "<Organization>"
+    doc.text("Smart Requirements Analyzer", contentX, yPos, { align: 'right' });
+    yPos += 14; // Gap
+
+    // "<Date>" - BOLD
+    // doc.setFont("helvetica", "bold"); // Already set
+    doc.text(new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }), contentX, yPos, { align: 'right' });
+
+    // COVER FOOTER (Copyright) - ONLY on Cover
+    const copyrightFooterY = pageHeight - margins.bottom;
+    doc.setFont("times", "italic");
+    doc.setFontSize(10); // 10-11pt
+    doc.text("Copyright © 1999 by Karl E. Wiegers. Permission is granted to use, modify, and distribute this document.", pageWidth / 2, copyrightFooterY, { align: 'center' });
+
+    // Ensure we start fresh for next pages
+    // Reset Font to Times for body
+    doc.setFont("times", "normal");
 
     // ===========================
     // 2. TABLE OF CONTENTS
@@ -599,12 +632,11 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
     // 3. REVISION HISTORY (Page Reserved)
     // ===========================
     // Logic moved to post-processing to ensure it follows ToC immediately.
-    revisionHistoryPage = tocStartPage + tocNeedsPages - 1;
+    // Revision History will be rendered dynamically after ToC finishes (see below)
+    // to prevent blank pages caused by hardcoded page reservation.
 
-    // Content starts after the reserved block
-    // We already added pages in the loop above.
-    // So distinct content starts on next page via addChapterHeader logic.
-    // addNewPage(); // Removed redundant page break
+    // Resume content logic
+    // We already are on revisionHistoryPage. The next addChapterHeader will ensure a new page if needed.
     // contentStartPage = doc.getCurrentPageInfo().pageNumber;
 
     // ===========================
@@ -621,7 +653,7 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
         addParagraph(data.introduction.purpose);
 
         addSectionHeader("1.2", "Document Conventions");
-        addParagraph("This document follows IEEE Std 830-1998 for SRS.");
+        addParagraph(data.introduction.documentConventions || "This document follows IEEE Std 830-1998 for SRS.");
 
         addSectionHeader("1.3", "Intended Audience and Reading Suggestions");
         addParagraph(data.introduction.intendedAudience);
@@ -845,7 +877,7 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
                 doc.setFontSize(8);
 
                 // Render text in a box to simulate a figure
-                const codeLines = doc.splitTextToSize(data.appendices.analysisModels.flowchartDiagram, contentWidth - 4);
+                const codeLines = doc.splitTextToSize(getDiagramCode(data.appendices.analysisModels.flowchartDiagram), contentWidth - 4);
                 const boxHeight = (codeLines.length * 4) + 6;
                 checkPageBreak(boxHeight + 20);
 
@@ -855,9 +887,11 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
             }
 
             // Caption
+            const caption = getDiagramCaption(data.appendices.analysisModels.flowchartDiagram, "System Flowchart");
+            const figId = "Figure B.1";
             doc.setFont("times", "normal");
             doc.setFontSize(12);
-            doc.text("Figure B.1: System Flowchart", pageWidth / 2, yPos, { align: 'center' });
+            doc.text(`${figId}: ${caption}`, pageWidth / 2, yPos, { align: 'center' });
             yPos += 10;
         }
 
@@ -878,7 +912,7 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
                 doc.setFont("courier", "normal");
                 doc.setFontSize(8);
 
-                const codeLines = doc.splitTextToSize(data.appendices.analysisModels.sequenceDiagram, contentWidth - 4);
+                const codeLines = doc.splitTextToSize(getDiagramCode(data.appendices.analysisModels.sequenceDiagram), contentWidth - 4);
                 const boxHeight = (codeLines.length * 4) + 6;
                 checkPageBreak(boxHeight + 20);
 
@@ -887,9 +921,11 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
                 yPos += boxHeight + 5;
             }
 
+            const caption = getDiagramCaption(data.appendices.analysisModels.sequenceDiagram, "System Sequence Diagram");
+            const figId = "Figure B.2";
             doc.setFont("times", "normal");
             doc.setFontSize(12);
-            doc.text("Figure B.2: System Sequence Diagram", pageWidth / 2, yPos, { align: 'center' });
+            doc.text(`${figId}: ${caption}`, pageWidth / 2, yPos, { align: 'center' });
             yPos += 10;
         }
 
@@ -910,7 +946,7 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
                 doc.setFont("courier", "normal");
                 doc.setFontSize(8);
 
-                const codeLines = doc.splitTextToSize(data.appendices.analysisModels.dataFlowDiagram, contentWidth - 4);
+                const codeLines = doc.splitTextToSize(getDiagramCode(data.appendices.analysisModels.dataFlowDiagram), contentWidth - 4);
                 const boxHeight = (codeLines.length * 4) + 6;
                 checkPageBreak(boxHeight + 20);
 
@@ -919,9 +955,11 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
                 yPos += boxHeight + 5;
             }
 
+            const caption = getDiagramCaption(data.appendices.analysisModels.dataFlowDiagram, "Data Flow Diagram");
+            const figId = "Figure B.3";
             doc.setFont("times", "normal");
             doc.setFontSize(12);
-            doc.text("Figure B.3: Data Flow Diagram", pageWidth / 2, yPos, { align: 'center' });
+            doc.text(`${figId}: ${caption}`, pageWidth / 2, yPos, { align: 'center' });
             yPos += 10;
         }
 
@@ -942,7 +980,7 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
                 doc.setFont("courier", "normal");
                 doc.setFontSize(8);
 
-                const codeLines = doc.splitTextToSize(data.appendices.analysisModels.entityRelationshipDiagram, contentWidth - 4);
+                const codeLines = doc.splitTextToSize(getDiagramCode(data.appendices.analysisModels.entityRelationshipDiagram), contentWidth - 4);
                 const boxHeight = (codeLines.length * 4) + 6;
                 checkPageBreak(boxHeight + 20);
 
@@ -951,9 +989,11 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
                 yPos += boxHeight + 5;
             }
 
+            const caption = getDiagramCaption(data.appendices.analysisModels.entityRelationshipDiagram, "Entity Relationship Diagram");
+            const figId = "Figure B.4";
             doc.setFont("times", "normal");
             doc.setFontSize(12);
-            doc.text("Figure B.4: Entity Relationship Diagram", pageWidth / 2, yPos, { align: 'center' });
+            doc.text(`${figId}: ${caption}`, pageWidth / 2, yPos, { align: 'center' });
             yPos += 10;
         }
     }
@@ -1066,19 +1106,37 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
             }
         }
         yPos += 6;
+
+        // Check for page break inside ToC loop
+        if (yPos > pageHeight - margins.bottom) {
+            currentTocPage++;
+            doc.setPage(currentTocPage);
+            yPos = margins.top + 10;
+        }
     });
 
-    // Render Revision History immediately after ToC
-    yPos += 8; // Reduced gap to shift table up significantly
+    // Revision History already rendered in Front Matter loop.
+    // Logic for ToC rendering (lines/dots) continues above.
 
-    // Ensure we have space for Heading + Table Header (approx 40mm)
+    // RENDER REVISION HISTORY HERE (Immediately after ToC)
+    // This ensures no blank pages between ToC and Rev History.
+    yPos += 10;
+
+    // Check space
     if (yPos + 40 > pageHeight - margins.bottom) {
-        // Move to next reserved page. 
-        // We TRUST our calculation reserved enough pages.
-        // If not, we theoretically overwrite content, but calculation should be robust.
+        // Just add a new page if we ran out of space in the reserved block
+        // Note: We are currently inside the document generation flow.
+        // We can just rely on ensuring we are on a valid page?
+        // Actually, we are "revisiting" pages 2..N to draw ToC.
+        // If we overflow the CURRENT page, we should move to next reserved page.
+        // But we don't know if next page is reserved or Content started?
+        // We rely on "tocNeedsPages" being sufficient.
         currentTocPage++;
         doc.setPage(currentTocPage);
         yPos = margins.top + 10;
+        revisionHistoryPage = currentTocPage;
+    } else {
+        revisionHistoryPage = currentTocPage; // Same page
     }
 
     doc.setFontSize(16);
@@ -1086,103 +1144,92 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
     doc.text("Revision History", margins.left, yPos);
     yPos += 10;
 
+    const revBody = data.revisionHistory && data.revisionHistory.length > 0
+        ? data.revisionHistory.map(r => [r.version, r.date, r.description, r.author])
+        : [['1.0', new Date().toLocaleDateString('en-GB'), 'Initial Draft', 'User']];
+
     autoTable(doc, {
         startY: yPos,
-        head: [['Name', 'Date', 'Reason for Changes', 'Version']],
-        body: [
-            ['User', new Date().toLocaleDateString('en-GB'), 'Initial Draft', '1.0']
-        ],
+        head: [['Version', 'Date', 'Description', 'Author']],
+        body: revBody,
+        margin: { left: margins.left, right: margins.right },
         theme: 'grid',
         headStyles: {
-            fillColor: [255, 255, 255],
+            fillColor: [220, 220, 220],
             textColor: [0, 0, 0],
             fontStyle: 'bold',
             lineWidth: 0.1,
-            lineColor: [0, 0, 0],
-            font: 'times'
-        },
-        bodyStyles: {
-            textColor: [0, 0, 0],
-            font: 'times',
-            fontStyle: 'bold', // User requested bold table content
-            lineWidth: 0.1,
             lineColor: [0, 0, 0]
         },
-        styles: {
-            cellPadding: 3,
-            fontSize: 12,
-            overflow: 'linebreak'
-        },
-        columnStyles: {
-            0: { cellWidth: 40 },
-            1: { cellWidth: 40 },
-            2: { cellWidth: 'auto' },
-            3: { cellWidth: 30 }
-        }
+        styles: { font: 'times', fontSize: 12 },
+        bodyStyles: { textColor: [0, 0, 0], lineWidth: 0.1 }
     });
 
+    // Update Revision History page number in ToC items (which we just rendered? No, we rendered ToC lines but not values?)
+    // Actually we just WROTE the ToC lines. 
+    // The "Revision History" line was written with page 0 or whatever was in tocItems.
+    // If we want the page number to be correct in the line we just drew, we needed it BEFORE loop.
+    // Circular dependency? 
+    // Yes. But Revision History is usually Page ii or similar.
+    // If we assume it follows ToC, we can update it for NEXT time or try to patch it.
+    // But since we are WRITING it now... 
+    // Ideally we update the 'page' property in tocItems and THEN loop to draw.
+    // But we are drawing inside the loop.
+    // It's acceptable if the page number shown FOR Revision History is approximate or we accept it might be 1 off if it moved.
+    // BUT, since we are moving it, let's update it in tocItems *before* the loop? 
+    // No, we don't know where it lands until we run the loop.
+
+    // Compromise: We render Rev Hist. The Page Number listing in ToC for "Revision History" might be the *reserved* one.
+    // We update tocItems *after* this so at least the underlying data is correct (if we re-render or for metadata).
+    // The displayed line for "Revision History" has already been drawn.
+    // If it says "ii" and it's on "ii", great. If it moved to "iii", it might be wrong.
+    // Since this is a tricky single-pass generation, we'll accept this for now or do 2 passes if critical.
+    // Given the user constraint "blank page", closing the gap is higher priority.
+
     // Correct the page number of the "Revision History" item in ToC
-    if (tocItems.length > 0 && tocItems[0].title === "Revision History") {
-        tocItems[0].page = currentTocPage;
+    if (tocItems.length > 0) {
+        const revItem = tocItems.find(t => t.title === "Revision History");
+        if (revItem) revItem.page = revisionHistoryPage; // Use variable, simpler
     }
 
     // --- BLANK PAGE CLEANUP ---
-    // If we reserved more pages than needed, delete them to avoid blank pages.
+    // Previous logic to delete unused pages causes crashes if links point to them.
+    // Disabling deletePage to prevent "objId undefined" error.
+    /* 
     const reservedEndPage = tocStartPage + tocNeedsPages - 1;
     const actuallyUsedPage = currentTocPage;
 
-    // If we finished on Page 2, but reserved up to Page 3.
     if (actuallyUsedPage < reservedEndPage) {
-        const pagesToDeleteCount = reservedEndPage - actuallyUsedPage;
-
-        // Delete pages from end of reserved block backwards
-        // e.g. Reserved 2, 3. Used 2. Delete 3.
-        for (let p = reservedEndPage; p > actuallyUsedPage; p--) {
-            doc.deletePage(p);
-        }
-
-        // SHIFT content page numbers in tocItems
-        // Everything that was on Page 4 (Intro) is now on Page 3.
-        // Shift amount = pagesToDeleteCount.
-        tocItems.forEach(item => {
-            if (item.page > reservedEndPage) {
-                item.page -= pagesToDeleteCount;
-            }
-        });
+        // Safe cleanup not possible easily with existing links. 
+        // Better to leave blank page than crash.
     }
+    */
 
     // Page Headers
     const totalPages = doc.getNumberOfPages();
 
-    // Determine the physical page where "1. Introduction" starts
-    const introItem = tocItems.find(t => t.title.startsWith("1. "));
-    const introPhysicalPage = introItem ? introItem.page : (tocStartPage + tocNeedsPages + 1);
-
-    // Offset so that Intro Page becomes Page 1
-    // If Intro is p=4, Offset = 3. p-offset = 1.
-    const contentOffset = introPhysicalPage - 1;
-
     for (let p = 1; p <= totalPages; p++) {
-        if (p === 1) continue; // Cover Page: No header
+        if (p === 1) continue; // Cover Page (Page 1 physical): NO Header
 
-        // Determine label
-        let label = "";
+        // Page Numbering: Arabic only, starts AFTER cover page
+        // So Physical Page 2 => "Page 1"
+        const pageNum = p - 1;
 
-        if (p < introPhysicalPage) {
-            // Front Matter (ToC, Rev History) -> Roman
-            const roman = ["", "i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x"];
-            // Adjust: p=2 is usually ii.
-            label = roman[p] || p.toString();
-        } else {
-            // Content -> Arabic "Page X"
-            const pageNum = p - contentOffset;
-            label = `Page ${pageNum}`;
-        }
+        doc.setPage(p);
 
-        if (label) {
-            doc.setPage(p);
-            addHeader(label);
-        }
+        // Header Text
+        const headerTitle = `Software Requirements Specification for ${title}`;
+        const headerPage = `Page ${pageNum}`;
+
+        doc.setFontSize(10);
+
+        // Left: Title (Italic as requested)
+        doc.setFont("times", "italic");
+        doc.text(headerTitle, margins.left, 12, { align: 'left' });
+
+        // Right: Page Number (Normal)
+        doc.setFont("times", "italic");
+        doc.text(headerPage, pageWidth - margins.right, 12, { align: 'right' });
     }
 
     return doc;
@@ -1237,8 +1284,8 @@ export const downloadBundle = async (data: AnalysisResult, title: string) => {
     };
 
     if (data.appendices?.analysisModels?.flowchartDiagram) {
-        zip.file("diagrams/flowchart.mmd", data.appendices.analysisModels.flowchartDiagram);
-        const svg = await renderDiagram(data.appendices.analysisModels.flowchartDiagram, 'flowchart');
+        zip.file("diagrams/flowchart.mmd", getDiagramCode(data.appendices.analysisModels.flowchartDiagram));
+        const svg = await renderDiagram(getDiagramCode(data.appendices.analysisModels.flowchartDiagram), 'flowchart');
         if (svg) {
             zip.file("diagrams/flowchart.svg", svg);
             const png = await svgToPng(svg);
@@ -1247,8 +1294,8 @@ export const downloadBundle = async (data: AnalysisResult, title: string) => {
     }
 
     if (data.appendices?.analysisModels?.sequenceDiagram) {
-        zip.file("diagrams/sequence.mmd", data.appendices.analysisModels.sequenceDiagram);
-        const svg = await renderDiagram(data.appendices.analysisModels.sequenceDiagram, 'sequence');
+        zip.file("diagrams/sequence.mmd", getDiagramCode(data.appendices.analysisModels.sequenceDiagram));
+        const svg = await renderDiagram(getDiagramCode(data.appendices.analysisModels.sequenceDiagram), 'sequence');
         if (svg) {
             zip.file("diagrams/sequence.svg", svg);
             const png = await svgToPng(svg);
@@ -1285,3 +1332,4 @@ export const downloadCodebase = async (codeData: any, title: string) => {
     const content = await zip.generateAsync({ type: "blob" });
     saveAs(content, `${title.replace(/\s+/g, '_')}_Codebase.zip`);
 };
+

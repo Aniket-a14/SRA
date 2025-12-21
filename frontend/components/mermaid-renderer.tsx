@@ -5,8 +5,13 @@ import { useEffect, useRef, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 
+interface Diagram {
+    code: string;
+    caption?: string;
+}
+
 interface MermaidRendererProps {
-    chart: string
+    chart: string | Diagram
     title: string
     className?: string
 }
@@ -36,11 +41,14 @@ export function MermaidRenderer({ chart, title, className }: MermaidRendererProp
         setHasError(false)
         if (!chart || !mermaidInstance) return
 
+        // Extract code string
+        const code = typeof chart === 'string' ? chart : (chart?.code || "");
+
         // Clean the string:
         // 1. Replace escaped newlines
         // 2. Remove any non-printable characters (except newlines and tabs)
         // 3. Trim whitespace
-        const formatted = chart
+        const formatted = code
             .replace(/\\n/g, "\n")
             .replace(/[^\x20-\x7E\n\t]/g, "")
             .trim()
