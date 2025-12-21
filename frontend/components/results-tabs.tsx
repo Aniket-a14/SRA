@@ -199,15 +199,61 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                   <CardContent>
                     <div className="grid gap-2">
                       {data.otherRequirements.map((req, i) => {
-                        const cleanReq = req.replace(/^[A-Z]+-[A-Z]+-\d+\s*:?\s*/, '').replace(/^[\s\*\-\•\d\.\)]+\s*/, '').trim();
+                        const cleanReq = req.replace(/^[A-Z]+-[A-Z]+-\d+\s*:?\s*/, '').trim();
+                        const finalItem = cleanReq.replace(/^\s*(?:[\-\•\d\.\)]+\s*|\*(?!\*)\s*)/, '').trim();
                         const acronym = data.projectTitle ? data.projectTitle.replace(/[^a-zA-Z\s]/g, "").split(/\s+/).map(w => w[0]).join("").toUpperCase() : "SRA";
+
+                        // Apply the robust logic from KVDisplay to fix bolding issues
+                        // Pre-clean standard bold patterns to avoid split confusion
+                        let work = finalItem;
+                        // 1. **Title:** -> Title:
+                        work = work.replace(/^\*\*([\s\S]*?):\*\*/, '$1:');
+                        // 2. **Title**: -> Title:
+                        work = work.replace(/^\*\*([\s\S]*?)\*\*:/, '$1:');
+                        // 3. **Title: -> Title:
+                        work = work.replace(/^\*\*([\s\S]*?):/, '$1:');
+
+                        // 4. Also handle case where the whole line is bolded: **Title: Description** -> Title: Description
+                        if (work.startsWith('**') && work.endsWith('**') && work.includes(':')) {
+                          work = work.substring(2, work.length - 2);
+                        }
+
+                        let separatorIndex = work.indexOf(':');
+                        let titlePart = "";
+                        let descPart = work;
+
+                        if (separatorIndex !== -1) {
+                          titlePart = work.substring(0, separatorIndex).trim();
+                          descPart = work.substring(separatorIndex + 1).trim();
+
+                          // Clean Title: remove wrapping **, *
+                          titlePart = titlePart.replace(/^[\s*]+|[\s*]+$/g, '');
+
+                          // Clean Description:
+                          // Handle ** at start (from "Title: **Description**")
+                          // Aggressively match leading **...** block if present (dot-all safe)
+                          descPart = descPart.replace(/^\*\*([\s\S]*?)\*\*/, '$1');
+
+                          // Handle single leading ** (open bold)
+                          if (descPart.startsWith('**')) {
+                            descPart = descPart.substring(2);
+                          }
+                        }
 
                         return (
                           <div key={i} className="flex items-start gap-3 p-2 rounded-md hover:bg-muted/50 transition-colors">
                             <Badge variant="outline" className="shrink-0 mt-0.5 text-xs text-muted-foreground bg-muted/20 border-muted-foreground/20">
                               {acronym}-OR-{i + 1}
                             </Badge>
-                            <span className="text-sm text-muted-foreground leading-relaxed">{renderMarkdown(cleanReq)}</span>
+                            <span className="text-sm text-muted-foreground leading-relaxed">
+                              {titlePart ? (
+                                <>
+                                  <strong className="font-semibold text-foreground">{titlePart}</strong>: {renderMarkdown(descPart)}
+                                </>
+                              ) : (
+                                renderMarkdown(finalItem)
+                              )}
+                            </span>
                           </div>
                         );
                       })}
