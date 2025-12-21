@@ -10,6 +10,13 @@ export interface UserCharacteristic {
     characteristics: string;
 }
 
+export interface UserStory {
+    role: string;
+    feature: string;
+    benefit: string;
+    story: string;
+}
+
 export interface OverallDescription {
     productPerspective: string;
     productFunctions: string[];

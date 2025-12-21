@@ -14,16 +14,44 @@ import type { AnalysisResult } from "@/types/analysis"
 import { toast } from "sonner"
 
 const defaultAnalysis: AnalysisResult = {
-  cleanedRequirements: "",
-  functionalRequirements: [],
-  nonFunctionalRequirements: [],
-  entities: [],
-  userStories: [],
-  acceptanceCriteria: [],
-  flowchartDiagram: "",
-  sequenceDiagram: "",
-  apiContracts: [],
+  projectTitle: "Untitled Project",
+  introduction: {
+    purpose: "",
+    scope: "",
+    intendedAudience: "",
+    references: []
+  },
+  overallDescription: {
+    productPerspective: "",
+    productFunctions: [],
+    userClassesAndCharacteristics: [],
+    operatingEnvironment: "",
+    designAndImplementationConstraints: [],
+    userDocumentation: [],
+    assumptionsAndDependencies: []
+  },
+  externalInterfaceRequirements: {
+    userInterfaces: "",
+    hardwareInterfaces: "",
+    softwareInterfaces: "",
+    communicationsInterfaces: ""
+  },
+  systemFeatures: [],
+  nonFunctionalRequirements: {
+    performanceRequirements: [],
+    safetyRequirements: [],
+    securityRequirements: [],
+    softwareQualityAttributes: [],
+    businessRules: []
+  },
+  otherRequirements: [],
+  glossary: [],
+  appendices: {
+    analysisModels: {},
+    tbdList: []
+  },
   missingLogic: [],
+  contradictions: [],
 }
 
 import { fetchProject } from "@/lib/projects-api"
