@@ -154,7 +154,7 @@ export function KVDisplay({ data, title, excludeKeys = [], projectTitle = "SRA",
                                             }
 
                                             // Now split
-                                            let separatorIndex = work.indexOf(':');
+                                            const separatorIndex = work.indexOf(':');
                                             let titlePart = "";
                                             let descPart = work;
 
