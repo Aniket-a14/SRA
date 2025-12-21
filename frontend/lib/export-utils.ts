@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import { getAcronym } from '@/lib/utils';
 
 import type { AnalysisResult } from '@/types/analysis';
 
@@ -40,7 +41,7 @@ const svgToPng = (svgStr: string): Promise<Blob | null> => {
 
         img.onload = () => {
             const canvas = document.createElement('canvas');
-            const scale = 3;
+            const scale = 1.5;
             const finalWidth = width || img.width || 800;
             const finalHeight = height || img.height || 600;
 
@@ -73,9 +74,22 @@ const svgToPng = (svgStr: string): Promise<Blob | null> => {
 // Helper to clean text
 const clean = (text: string) => text?.replace(/\s+/g, ' ').trim() || "";
 
-// Helper to strip markdown bullets/numbering from requirements
+// Helper to strip markdown bullets/numbering from requirements and existing IDs
 const normalizeText = (text: string) => {
-    return text.replace(/^[\s\*\-\•\d\.\)]+\s*/, '').trim();
+    // 1. Strip standard bullets (*, -, •) and numbering (1., 1)) BUT preserve **bold** markers
+    // Regex explanation:
+    // ^\s* matches leading whitespace
+    // (?: ... ) group for alternatives
+    // [\-\•\d\.\)]+\s* matches dashes, bullets, digits, dots, parens followed by space
+    // | OR
+    // \*(?!\*)\s* matches SINGLE asterisk (bullet) not followed by another asterisk
+    let cleaned = text.replace(/^\s*(?:[\-\•\d\.\)]+\s*|\*(?!\*)\s*)/, '');
+
+    // 2. Strip existing Requirement IDs (e.g., SRA-FR-1, OFODA-FR-12) if present
+    // Pattern: Uppercase letters, hyphen, Uppercase, hyphen, digits, optional colon
+    cleaned = cleaned.replace(/^[A-Z]+-[A-Z]+-\d+\s*:?\s*/, '');
+
+    return cleaned.trim();
 };
 
 export const renderMermaidDiagrams = async (data: AnalysisResult): Promise<Record<string, string>> => {
@@ -202,7 +216,7 @@ const calculateTocItems = (data: AnalysisResult) => {
 };
 
 export const generateSRS = (data: AnalysisResult, title: string, diagramImages: Record<string, string> = {}) => {
-    const doc = new jsPDF();
+    const doc = new jsPDF({ compress: true });
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
 
@@ -221,7 +235,7 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
     const tocItems: { title: string, page: number, level: number }[] = [];
     // Add Revision History to ToC (placeholder page)
     tocItems.push({ title: "Revision History", page: 0, level: 1 });
-    let contentStartPage = 0;
+
     let revisionHistoryPage = 0;
 
     // Requirement Counters
@@ -232,6 +246,8 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
     let qaCount = 0;
     let brCount = 0;
     let orCount = 0;
+
+    const projectAcronym = getAcronym(title);
 
     // --- PAGE OPERATIONS ---
 
@@ -262,20 +278,76 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
 
     // --- TEXT LAYOUT HELPERS ---
 
-    const addParagraph = (text: string, isBold: boolean = false) => {
-        doc.setFont("times", isBold ? "bold" : "normal");
+    // Generic Rich Text Renderer
+    const renderRichText = (text: string, x: number, maxWidth: number) => {
+        const cleanText = clean(text);
         doc.setFontSize(12);
+        const lineHeight = 5;
 
-        // Justified Text
-        const lines = doc.splitTextToSize(clean(text), contentWidth);
-        const lineHeight = 5; // ~1.0 line spacing
+        // Tokenize
+        const tokens: { text: string, bold: boolean, width: number }[] = [];
+        const parts = cleanText.split(/(\*\*.*?\*\*)/g);
 
-        const height = lines.length * lineHeight;
-        checkPageBreak(height + 2);
+        parts.forEach(part => {
+            let isBold = false;
+            let str = part;
+            if (part.startsWith('**') && part.endsWith('**')) {
+                isBold = true;
+                str = part.slice(2, -2);
+            }
+            if (!str) return;
 
-        doc.text(lines, margins.left, yPos, { maxWidth: contentWidth, align: 'justify' });
-        yPos += height + 4; // Paragraph spacing
+            doc.setFont("times", isBold ? 'bold' : 'normal');
+
+            // Split by space but keep structure
+            const words = str.split(/(\s+)/);
+            words.forEach(w => {
+                if (!w) return;
+                tokens.push({
+                    text: w,
+                    bold: isBold,
+                    width: doc.getTextWidth(w)
+                });
+            });
+        });
+
+        let lineTokens: typeof tokens = [];
+        let lineWidth = 0;
+
+        const flushLine = () => {
+            checkPageBreak(lineHeight);
+            let printX = x;
+            lineTokens.forEach(t => {
+                doc.setFont("times", t.bold ? 'bold' : 'normal');
+                doc.text(t.text, printX, yPos);
+                printX += t.width;
+            });
+            yPos += lineHeight;
+            lineTokens = [];
+            lineWidth = 0;
+        };
+
+        tokens.forEach(token => {
+            if (lineWidth + token.width > maxWidth) {
+                flushLine();
+                // If token is just space, skip it at start of new line
+                if (!token.text.trim()) return;
+            }
+            lineTokens.push(token);
+            lineWidth += token.width;
+        });
+
+        if (lineTokens.length > 0) {
+            flushLine();
+        }
+
+        yPos += 6; // Spacing after block
     };
+
+    const addParagraph = (text: string) => {
+        renderRichText(text, margins.left, contentWidth);
+    };
+
 
     // Chapter (Level 1) - ALWAYS starts on new page
     const addChapterHeader = (number: string, titleText: string, addToToc: boolean = true) => {
@@ -314,111 +386,124 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
             page: doc.getCurrentPageInfo().pageNumber,
             level: 2
         });
-        yPos += 6;
+        yPos += 8;
         doc.setFontSize(12);
         doc.setFont("times", "normal");
     };
 
-    // SubHeading (Level 3) - Normal weight, Justified
+    // SubHeading (Level 3) - Bold as per user request
     const addSubHeader = (number: string, titleText: string) => {
         checkPageBreak(10);
         doc.setFontSize(12);
-        doc.setFont("times", "normal"); // NOT BOLD
+        doc.setFont("times", "bold"); // BOLD enforced
         const fullTitle = `${number} ${titleText}`;
         doc.text(fullTitle, margins.left, yPos, { align: 'left' });
 
-        // Generally subheaders are NOT in ToC for IEEE summaries unless detailed, 
-        // user prompted "Reflect exact numbering hierarchy", so we'll add logic if needed,
-        // but typically H3 clutter ToC. We will skip H3 in ToC to be clean, or add if requested.
-        // User (Step 625): "keep the table upto heading and sub-headings only... no need to add 4.1.1"
-        /*
-        tocItems.push({
-            title: fullTitle,
-            page: doc.getCurrentPageInfo().pageNumber,
-            level: 3
-        });
-        */
+        // User requested: "Do not mix bullets or symbols with numbered headings" - Handled by standard text call
 
-        yPos += 6;
+        yPos += 8;
+        doc.setFont("times", "normal"); // Reset
     };
 
     // Requirement Lists
-    const addRequirementList = (items: string[], type: 'bullet' | 'functional' | 'performance' | 'safety' | 'security' | 'quality' | 'business' | 'other' | 'stimulus' = 'bullet') => {
+    const addRequirementList = (items: string[], type: 'bullet' | 'functional' | 'performance' | 'safety' | 'security' | 'quality' | 'business' | 'other' | 'stimulus' = 'bullet', acronym: string = "SRA") => {
         if (!items || items.length === 0) return;
         doc.setFont("times", "normal");
         doc.setFontSize(12);
 
         items.forEach(item => {
-            let prefix = "• ";
-            let contentText = normalizeText(clean(item));
+            const contentText = normalizeText(clean(item));
             let idLabel = "";
 
             if (type === 'functional') {
                 frCount++;
-                idLabel = `SRA-FR-${frCount}: `;
-                prefix = "";
+                idLabel = `${acronym}-FR-${frCount}`;
             } else if (type === 'performance') {
                 prCount++;
-                idLabel = `SRA-PR-${prCount}: `;
-                prefix = "";
+                idLabel = `${acronym}-PR-${prCount}`;
             } else if (type === 'safety') {
                 safeCount++;
-                idLabel = `SRA-SR-${safeCount}: `;
-                prefix = "";
+                idLabel = `${acronym}-SR-${safeCount}`;
             } else if (type === 'security') {
                 secCount++;
-                idLabel = `SRA-SE-${secCount}: `;
-                prefix = "";
+                idLabel = `${acronym}-SE-${secCount}`;
             } else if (type === 'quality') {
                 qaCount++;
-                idLabel = `SRA-QA-${qaCount}: `;
-                prefix = "";
+                idLabel = `${acronym}-QA-${qaCount}`;
             } else if (type === 'business') {
                 brCount++;
-                idLabel = `BR-${brCount}: `;
-                prefix = "";
+                idLabel = `${acronym}-BR-${brCount}`;
             } else if (type === 'other') {
                 orCount++;
-                idLabel = `SRA-OR-${orCount}: `;
-                prefix = "";
+                idLabel = `${acronym}-OR-${orCount}`;
             }
 
+            // Special Handling for Stimulus/Response
             if (type === 'stimulus') {
+                // ... (Logic remains same mostly, but ensuring formatting)
                 const stimMatch = contentText.match(/Stimulus:(.*?)Response:(.*)/i);
                 if (stimMatch) {
                     const stimText = stimMatch[1].trim();
                     const resText = stimMatch[2].trim();
 
                     // Stimulus
-                    const sLine = `• Stimulus: ${stimText}`;
-                    let lines = doc.splitTextToSize(sLine, contentWidth - 5);
-                    let h = lines.length * 5;
-                    checkPageBreak(h);
-                    doc.text(lines, margins.left + 5, yPos);
-                    yPos += h + 2;
+                    doc.setFont("times", "bold");
+                    doc.text("• Stimulus:", margins.left + 5, yPos);
+                    const labelWidth = doc.getTextWidth("• Stimulus: ");
+
+                    doc.setFont("times", "normal");
+                    const lines = doc.splitTextToSize(stimText, contentWidth - 5 - labelWidth);
+                    checkPageBreak(lines.length * 5);
+
+                    doc.text(lines, margins.left + 5 + labelWidth, yPos);
+                    yPos += (lines.length * 5) + 2;
 
                     // Response
-                    const rLine = `Response: ${resText}`;
-                    lines = doc.splitTextToSize(rLine, contentWidth - 15);
-                    h = lines.length * 5;
-                    checkPageBreak(h);
-                    doc.text(lines, margins.left + 15, yPos);
-                    yPos += h + 4;
+                    doc.setFont("times", "bold");
+                    doc.text("Response:", margins.left + 10, yPos); // Indented slightly more? Or aligned.
+                    // User said "Stimulus/Response Sequences" -> usually pairs. 
+                    // Let's keep alignment consistent.
+                    const rLabelWidth = doc.getTextWidth("Response: ");
+
+                    doc.setFont("times", "normal");
+                    const rLines = doc.splitTextToSize(resText, contentWidth - 10 - rLabelWidth);
+                    checkPageBreak(rLines.length * 5);
+
+                    doc.text(rLines, margins.left + 10 + rLabelWidth, yPos);
+                    yPos += (rLines.length * 5) + 4;
                     return;
                 }
             }
 
             if (idLabel) {
-                contentText = `${idLabel}${contentText}`;
-            } else if (type !== 'stimulus') {
-                contentText = `${prefix}${contentText}`;
-            }
+                // **ID**: Content
+                const labelStr = `${idLabel}: `;
+                doc.setFont("times", "bold");
+                doc.setFontSize(12);
+                doc.text(labelStr, margins.left + 5, yPos);
 
-            const lines = doc.splitTextToSize(contentText, contentWidth - 5);
-            const height = lines.length * 5;
-            checkPageBreak(height);
-            doc.text(lines, margins.left + 5, yPos, { maxWidth: contentWidth - 5, align: 'justify' });
-            yPos += height + 3;
+                const labelWidth = doc.getTextWidth(labelStr);
+
+                // Render content using rich text, indented
+                // Slightly offset yPos backwards to allow renderRichText to start on same line if it wants?
+                // Actually renderRichText adds lineHeight to yPos AFTER printing.
+                // We want the first line to be at current yPos. 
+                // renderRichText does NOT modify yPos before printing first line (except checkPageBreak).
+                // But checkPageBreak might be triggered.
+
+                // If we assume it fits:
+                renderRichText(contentText, margins.left + 5 + labelWidth, contentWidth - 5 - labelWidth);
+
+                // renderRichText adds 4 space at end. We might want less for lists.
+                yPos -= 2;
+            } else {
+                // Bullet point
+                doc.text("• ", margins.left + 5, yPos);
+                const bulletWidth = doc.getTextWidth("• ");
+
+                renderRichText(contentText, margins.left + 5 + bulletWidth, contentWidth - 5 - bulletWidth);
+                yPos -= 2;
+            }
         });
         yPos += 2;
     };
@@ -566,10 +651,8 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
                 doc.text(`• ${uc.userClass}`, margins.left + 5, yPos);
                 yPos += 6;
                 doc.setFont("times", "normal");
-                const lines = doc.splitTextToSize(clean(uc.characteristics), contentWidth - 10);
-                checkPageBreak(lines.length * 5);
-                doc.text(lines, margins.left + 10, yPos, { maxWidth: contentWidth - 10, align: 'justify' });
-                yPos += (lines.length * 5) + 4;
+                // Use renderRichText for characteristics
+                renderRichText(clean(uc.characteristics), margins.left + 10, contentWidth - 10);
             });
         }
 
@@ -614,24 +697,41 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
             // Sub-sections - Level 3
             addSubHeader(`${featNum}.1`, "Description and Priority");
 
-            // Handle Description
-            if (feature.description.includes("Priority:")) {
-                const parts = feature.description.split("Priority:");
+            // Handle Description with Feature Name Bolding
+            // Rule: "If a sentence begins with a feature name followed by a colon (:), bold only the feature name."
+            const descText = feature.description;
+            // Check for Feature Name prefix
+            const cleanFeatureName = feature.name.replace(/^\d+(\.\d+)*\s*/, '').trim(); // Remove numbering if present in name
+            const featurePrefix = `${cleanFeatureName}:`;
+
+            if (descText.startsWith(featurePrefix)) {
+                const restOfText = descText.substring(featurePrefix.length).trim();
+
+
+
+                // Re-implementation using renderRichText logic for mixed content
+                // We want the prefix BOLD, followed immediately by description (with potential rich text inside it).
+
+                const fullText = `**${featurePrefix}** ${restOfText}`;
+                renderRichText(fullText, margins.left, contentWidth);
+
+            } else if (descText.includes("Priority:")) {
+                const parts = descText.split("Priority:");
                 addParagraph(parts[0]);
                 if (parts[1]) {
                     doc.setFont("times", "bold");
-                    doc.text(`Priority: ${parts[1].trim()}`, margins.left, yPos); // Explicit line
+                    doc.text(`Priority: ${parts[1].trim()}`, margins.left, yPos);
                     yPos += 8;
                 }
             } else {
-                addParagraph(feature.description);
+                addParagraph(descText);
             }
 
             addSubHeader(`${featNum}.2`, "Stimulus/Response Sequences");
-            addRequirementList(feature.stimulusResponseSequences, 'stimulus');
+            addRequirementList(feature.stimulusResponseSequences, 'stimulus', projectAcronym);
 
             addSubHeader(`${featNum}.3`, "Functional Requirements");
-            addRequirementList(feature.functionalRequirements, 'functional');
+            addRequirementList(feature.functionalRequirements, 'functional', projectAcronym);
         });
     }
 
@@ -640,25 +740,25 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
         addChapterHeader("5.", "Other Nonfunctional Requirements", true);
 
         addSectionHeader("5.1", "Performance Requirements");
-        addRequirementList(data.nonFunctionalRequirements.performanceRequirements, 'performance');
+        addRequirementList(data.nonFunctionalRequirements.performanceRequirements, 'performance', projectAcronym);
 
         addSectionHeader("5.2", "Safety Requirements");
-        addRequirementList(data.nonFunctionalRequirements.safetyRequirements, 'safety');
+        addRequirementList(data.nonFunctionalRequirements.safetyRequirements, 'safety', projectAcronym);
 
         addSectionHeader("5.3", "Security Requirements");
-        addRequirementList(data.nonFunctionalRequirements.securityRequirements, 'security');
+        addRequirementList(data.nonFunctionalRequirements.securityRequirements, 'security', projectAcronym);
 
         addSectionHeader("5.4", "Software Quality Attributes");
-        addRequirementList(data.nonFunctionalRequirements.softwareQualityAttributes, 'quality');
+        addRequirementList(data.nonFunctionalRequirements.softwareQualityAttributes, 'quality', projectAcronym);
 
         addSectionHeader("5.5", "Business Rules");
-        addRequirementList(data.nonFunctionalRequirements.businessRules, 'business');
+        addRequirementList(data.nonFunctionalRequirements.businessRules, 'business', projectAcronym);
     }
 
     // --- 6. Other Requirements ---
     if (data.otherRequirements) {
         addChapterHeader("6.", "Other Requirements", true);
-        addRequirementList(data.otherRequirements, 'other');
+        addRequirementList(data.otherRequirements, 'other', projectAcronym);
     }
 
     // --- Appendices ---
@@ -912,7 +1012,7 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
         } else {
             // Front Matter (e.g., Revision History)
             const romanVals = ["", "i", "ii", "iii", "iv", "v", "vi"];
-            const pIdx = item.page - 1; // logical page index in front matter?
+
             // Actually, we just want to know if it's page 2, 3..
             // If item.page is 2, it is ii.
             if (item.page > 0 && item.page < romanVals.length) {
@@ -1089,7 +1189,7 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
 };
 
 // Keep other exports, maybe adjusting them if needed, but generateSRS is key.
-export const generateAPI = (data: AnalysisResult) => {
+export const generateAPI = (_data: AnalysisResult) => {
     // API logic might need to check if existing apiContracts exist in new structure
     // This part is less critical for the specific user request about SRS PDF, but good compatibility to keep.
     return "# API Documentation\n(To be implemented for new structure)";

@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
-import { AlertTriangle, Bot, ShieldCheck, Code, Loader2, Bug } from "lucide-react"
+import { AlertTriangle, Bot, ShieldCheck, Code, Loader2, Bug, CheckCircle2 } from "lucide-react"
 import type { AnalysisResult } from "@/types/analysis"
 import { DiagramEditor } from "@/components/diagram-editor"
 import { useAuth } from "@/lib/auth-context"
@@ -15,6 +16,8 @@ import { CodeViewer } from "@/components/code-viewer"
 import { toast } from "sonner"
 import { FeatureDisplay } from "@/components/feature-display"
 import { KVDisplay } from "@/components/kv-display"
+import { renderMarkdown } from "@/lib/render-markdown"
+
 
 interface ResultsTabsProps {
   data?: AnalysisResult
@@ -167,7 +170,7 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-xl font-semibold">3. System Features</h3>
               </div>
-              <FeatureDisplay features={systemFeatures} />
+              <FeatureDisplay features={systemFeatures} projectTitle={data.projectTitle} />
             </TabsContent>
 
             {/* TAB: EXTERNAL INTERFACES */}
@@ -185,6 +188,7 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                 title="Non-Functional Requirements"
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 data={nonFunctionalRequirements as unknown as Record<string, any>}
+                projectTitle={data.projectTitle}
               />
 
               {data.otherRequirements && data.otherRequirements.length > 0 && (
@@ -193,11 +197,21 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                     <CardTitle>Other Requirements</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <ul className="list-disc list-inside space-y-2">
-                      {data.otherRequirements.map((req, i) => (
-                        <li key={i} className="text-sm text-muted-foreground">{req}</li>
-                      ))}
-                    </ul>
+                    <div className="grid gap-2">
+                      {data.otherRequirements.map((req, i) => {
+                        const cleanReq = req.replace(/^[A-Z]+-[A-Z]+-\d+\s*:?\s*/, '').replace(/^[\s\*\-\•\d\.\)]+\s*/, '').trim();
+                        const acronym = data.projectTitle ? data.projectTitle.replace(/[^a-zA-Z\s]/g, "").split(/\s+/).map(w => w[0]).join("").toUpperCase() : "SRA";
+
+                        return (
+                          <div key={i} className="flex items-start gap-3 p-2 rounded-md hover:bg-muted/50 transition-colors">
+                            <Badge variant="outline" className="shrink-0 mt-0.5 text-xs text-muted-foreground bg-muted/20 border-muted-foreground/20">
+                              {acronym}-OR-{i + 1}
+                            </Badge>
+                            <span className="text-sm text-muted-foreground leading-relaxed">{renderMarkdown(cleanReq)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </CardContent>
                 </Card>
               )}
@@ -514,5 +528,4 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
   )
 }
 
-// Need to make sure CheckCircle2 is imported
-import { CheckCircle2 } from "lucide-react"
+

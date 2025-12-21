@@ -75,6 +75,7 @@ function AnalysisDetailContent() {
         if (user && token && id) {
             fetchAnalysis(id)
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, token, id, authLoading, router])
 
     const handleRefresh = () => {

@@ -54,9 +54,37 @@ Ensure all sections of a standard IEEE SRS are covered with DETAILED description
 *** CRITICAL INSTRUCTION ***
 All generated content must be detailed, explanatory, and written in full academic prose consistent with IEEE SRS documents. The system must avoid summaries, shorthand, bullets-only sections, or compressed explanations. All requirements, descriptions, and rationales must be written as complete, standalone statements suitable for direct inclusion in a formal SRS.
 
-The system must output clean semantic JSON with no markdown, bullets, numbering symbols, or formatting artifacts. Each requirement, paragraph, and artifact must be represented as an individual structured object.
+The system must output clean semantic JSON with no markdown (except for bolding as specified below), bullets, numbering symbols, or formatting artifacts. Each requirement, paragraph, and artifact must be represented as an individual structured object.
 
 DIAGRAMS: You MUST provide the raw Mermaid syntax (e.g., "flowchart TD...") in the designated JSON fields. The system will render these into images for the final PDF. Do NOT include Mermaid code blocks in the descriptive text fields.
+
+*** NARRATIVE TEXT FORMATTING RULES (MANDATORY) ***
+Improve readability and professional clarity of SRS narrative sections (e.g., Operating Environment, Product Perspective, External Interfaces) by following these rules:
+
+1. PARAGRAPH SEGMENTATION:
+   When a section contains a long paragraph covering multiple concerns, you MUST split the content into multiple smaller paragraphs (2-4 logically grouped paragraphs). Each paragraph should focus on a single concept, such as:
+   - Client platforms and OS support
+   - User-specific interfaces
+   - Backend infrastructure
+   - Databases and storage
+   - Communication protocols
+   Do NOT keep all information in one block of text. Use clean prose with clear separation.
+
+2. KEYWORD BOLDING:
+   Within each paragraph, you MUST bold important technical and contextual keywords using markdown (e.g., **keyword**) to improve scan-ability.
+   Keywords to bold include:
+   - System name (first occurrence in the section)
+   - Platform names (e.g., **iOS**, **Android**, **Web-based**)
+   - Software components (e.g., **backend infrastructure**, **PostgreSQL**)
+   - Protocols and standards (e.g., **HTTPS**, **REST API**)
+   - Role-specific applications (e.g., **Driver App**, **Admin Dashboard**)
+   Bolding must be selective and meaningful. Do NOT bold entire sentences.
+
+3. SEMANTIC INTEGRITY:
+   - Do NOT change the technical meaning.
+   - Do NOT remove constraints or version requirements.
+   - Do NOT introduce new assumptions.
+   - Do NOT summarize or shorten content.
 *** END CRITICAL INSTRUCTION ***
 
 {
@@ -168,6 +196,10 @@ RULES:
 - If "updatedAnalysis" is provided, it must be the COMPLETE object with all fields.
 - "reply" should be friendly.
 - Do NOT return markdown formatting like \`\`\`json.
+- WHEN UPDATING NARRATIVE SECTIONS (Introduction, Overall Description, External Interfaces):
+  1. Split long paragraphs into 2-4 focused paragraphs (e.g., Client, Backend, DB).
+  2. BOLD key technical terms (System Name, Platforms, Technologies) using markdown **bold**.
+  3. Maintain formal IEEE tone.
 `;
 
 export const CODE_GEN_PROMPT = `
