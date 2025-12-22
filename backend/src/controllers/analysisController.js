@@ -4,6 +4,8 @@ import { generateCodeFromAnalysis } from '../services/codeGenService.js';
 import { addAnalysisJob, getJobStatus } from '../services/queueService.js';
 import { compareAnalyses } from '../services/diffService.js';
 import { lintRequirements } from '../services/qualityService.js';
+import { analyzeText } from '../services/aiService.js';
+import { FEATURE_EXPANSION_PROMPT } from '../utils/prompts.js';
 import prisma from '../config/prisma.js';
 import crypto from 'crypto';
 
@@ -233,7 +235,7 @@ export const getAnalysis = async (req, res, next) => {
 export const updateAnalysis = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const updates = req.body; // Can contain any field of resultJson
+        const { metadata, ...resultUpdates } = req.body;
 
         // 1. Fetch existing analysis
         const currentAnalysis = await getAnalysisById(req.user.userId, id);
@@ -243,28 +245,46 @@ export const updateAnalysis = async (req, res, next) => {
             throw error;
         }
 
-        // 2. Merge updates
+        // 2. Determine merge logic
+        const existingMetadata = (currentAnalysis.metadata && typeof currentAnalysis.metadata === 'object' && !Array.isArray(currentAnalysis.metadata))
+            ? currentAnalysis.metadata
+            : {};
+        const newMetadata = metadata ? { ...existingMetadata, ...metadata } : existingMetadata;
+
+        const isDraft = newMetadata.status === 'DRAFT';
+        const inPlace = req.body.inPlace || isDraft;
+
+        if (inPlace) {
+            // Update in place (Layer 1 drafting or explicit request)
+            const updated = await prisma.analysis.update({
+                where: { id },
+                data: {
+                    metadata: newMetadata,
+                    resultJson: Object.keys(resultUpdates).length > 0
+                        ? { ...currentAnalysis.resultJson, ...resultUpdates }
+                        : currentAnalysis.resultJson
+                }
+            });
+            return res.json({ ...updated.resultJson, id: updated.id, metadata: updated.metadata });
+        }
+
+        // 3. Versioning Path (Layer 4+ refinements)
         const newResultJson = {
             ...currentAnalysis.resultJson,
-            ...updates
+            ...resultUpdates
         };
 
-        // 3. Re-run Quality Check (Linting)
+        // Re-run Quality Check
         const qualityAudit = lintRequirements({ ...newResultJson });
         newResultJson.qualityAudit = qualityAudit;
 
-        // 4. Run Diff (Previous vs New)
-        // We compare the 'currentAnalysis' (which is now 'vOld') against 'newResultJson' (which is 'vNew')
-        // We construct a mock object for v2 to match compareAnalyses signature
+        // Run Diff
         const diff = compareAnalyses(currentAnalysis, { inputText: currentAnalysis.inputText, resultJson: newResultJson });
         newResultJson.diff = diff;
 
-        // 5. Create NEW Analysis Version (Atomic Transaction)
+        // Create NEW Analysis Version
         const newAnalysis = await prisma.$transaction(async (tx) => {
-            // Find root properties
             const rootId = currentAnalysis.rootId || currentAnalysis.id;
-
-            // Find max version for this root
             const maxVersionAgg = await tx.analysis.findFirst({
                 where: { rootId },
                 orderBy: { version: 'desc' },
@@ -272,22 +292,17 @@ export const updateAnalysis = async (req, res, next) => {
             });
             const nextVersion = (maxVersionAgg?.version || 0) + 1;
 
-            // Create
             return await tx.analysis.create({
                 data: {
                     userId: req.user.userId,
-                    inputText: currentAnalysis.inputText, // Input text doesn't change, we are refining reqs
+                    inputText: currentAnalysis.inputText,
                     resultJson: newResultJson,
-                    version: nextVersion, // Auto-increment version
+                    version: nextVersion,
                     title: currentAnalysis.title || `Version ${nextVersion}`,
                     rootId: rootId,
-                    parentId: currentAnalysis.id, // Parent is the one we edited
+                    parentId: currentAnalysis.id,
                     projectId: currentAnalysis.projectId,
-                    metadata: {
-                        trigger: 'edit',
-                        source: 'user',
-                        promptSettings: currentAnalysis.metadata?.promptSettings || {} // Inherit settings
-                    }
+                    metadata: newMetadata
                 }
             });
         });
@@ -298,10 +313,7 @@ export const updateAnalysis = async (req, res, next) => {
             title: newAnalysis.title,
             version: newAnalysis.version,
             createdAt: newAnalysis.createdAt,
-            generatedCode: newAnalysis.generatedCode,
-            rootId: newAnalysis.rootId,
-            parentId: newAnalysis.parentId,
-            inputText: newAnalysis.inputText
+            metadata: newAnalysis.metadata
         });
 
     } catch (error) {
@@ -548,9 +560,54 @@ export const validateAnalysis = async (req, res, next) => {
             issues.push({ id: 'feat-1', severity: 'warning', message: 'No System Features defined', section: 'Features' });
         }
 
-        // 3. User Classes
-        if (!draftData.overallDescription?.userClassesAndCharacteristics?.content) {
-            issues.push({ id: 'user-1', severity: 'critical', message: 'User Classes undefined', section: 'Overall Description' });
+        // 3. Overall Description
+        if (!draftData.overallDescription?.userClasses?.content || draftData.overallDescription.userClasses.content.length < 10) {
+            issues.push({ id: 'user-1', severity: 'critical', message: 'User Classes and Characteristics are required', section: 'Overall Description' });
+        }
+        if (!draftData.overallDescription?.constraints?.content) {
+            issues.push({ id: 'cons-1', severity: 'critical', message: 'Design and Implementation Constraints are required', section: 'Overall Description' });
+        }
+        if (!draftData.overallDescription?.userDocumentation?.content) {
+            issues.push({ id: 'doc-1', severity: 'critical', message: 'User Documentation info is required', section: 'Overall Description' });
+        }
+        if (!draftData.overallDescription?.assumptionsDependencies?.content) {
+            issues.push({ id: 'assump-1', severity: 'critical', message: 'Assumptions and Dependencies are required', section: 'Overall Description' });
+        }
+
+        // 4. External Interfaces
+        if (!draftData.externalInterfaces?.userInterfaces?.content) {
+            issues.push({ id: 'ext-1', severity: 'critical', message: 'User Interfaces info is required', section: 'External Interfaces' });
+        }
+        if (!draftData.externalInterfaces?.hardwareInterfaces?.content) {
+            issues.push({ id: 'ext-2', severity: 'critical', message: 'Hardware Interfaces info is required', section: 'External Interfaces' });
+        }
+        if (!draftData.externalInterfaces?.softwareInterfaces?.content) {
+            issues.push({ id: 'ext-3', severity: 'critical', message: 'Software Interfaces info is required', section: 'External Interfaces' });
+        }
+        if (!draftData.externalInterfaces?.communicationInterfaces?.content) {
+            issues.push({ id: 'ext-4', severity: 'critical', message: 'Communication Interfaces info is required', section: 'External Interfaces' });
+        }
+
+        // 5. Nonfunctional Requirements
+        if (!draftData.nonFunctional?.performance?.content) {
+            issues.push({ id: 'nf-1', severity: 'critical', message: 'Performance requirements are required', section: 'Nonfunctional Requirements' });
+        }
+        if (!draftData.nonFunctional?.security?.content) {
+            issues.push({ id: 'nf-2', severity: 'critical', message: 'Security requirements are required', section: 'Nonfunctional Requirements' });
+        }
+        if (!draftData.nonFunctional?.safety?.content) {
+            issues.push({ id: 'nf-3', severity: 'critical', message: 'Safety requirements are required', section: 'Nonfunctional Requirements' });
+        }
+        if (!draftData.nonFunctional?.quality?.content) {
+            issues.push({ id: 'nf-4', severity: 'critical', message: 'Software Quality Attributes are required', section: 'Nonfunctional Requirements' });
+        }
+        if (!draftData.nonFunctional?.businessRules?.content) {
+            issues.push({ id: 'nf-5', severity: 'critical', message: 'Business Rules are required', section: 'Nonfunctional Requirements' });
+        }
+
+        // 6. Other Requirements
+        if (!draftData.other?.appendix?.content) {
+            issues.push({ id: 'other-1', severity: 'critical', message: 'Other Requirements (Appendix) info is required', section: 'Other Requirements' });
         }
 
         // Determine Status
@@ -571,6 +628,34 @@ export const validateAnalysis = async (req, res, next) => {
 
         res.status(200).json({ status: newStatus, issues });
 
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const expandFeature = async (req, res, next) => {
+    try {
+        const { name, prompt, settings } = req.body;
+
+        if (!name || !prompt) {
+            const error = new Error('Feature name and prompt are required');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        // Prepare prompt
+        const finalPrompt = FEATURE_EXPANSION_PROMPT
+            .replace('{{name}}', name)
+            .replace('{{prompt}}', prompt);
+
+        // Call AI Service
+        const result = await analyzeText(finalPrompt, settings || {});
+
+        if (result.error) {
+            throw new Error(result.error);
+        }
+
+        res.json(result);
     } catch (error) {
         next(error);
     }

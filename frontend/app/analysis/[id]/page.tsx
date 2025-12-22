@@ -110,28 +110,151 @@ function AnalysisDetailContent() {
     const handleDraftUpdate = useCallback((section: string, field: string, value: string) => {
         setDraftData((prev) => {
             const newData = prev ? { ...prev } : {};
-            const sectionData = (newData as Record<string, Record<string, { content: string }>>)[section] || {};
+            const sectionData = (newData as any)[section] || {};
             const fieldData = sectionData[field] || { content: "" };
 
             fieldData.content = value;
             sectionData[field] = fieldData;
-            (newData as Record<string, Record<string, { content: string }>>)[section] = sectionData;
+            (newData as any)[section] = sectionData;
 
+            return newData;
+        });
+    }, []);
+
+    const handleFeatureUpdate = useCallback((featureId: string, field: string, value: string) => {
+        setDraftData((prev: any) => {
+            if (!prev) return prev;
+            const newData = { ...prev };
+            const sectionData = newData.systemFeatures || { features: [] };
+            sectionData.features = sectionData.features.map((f: any) => {
+                if (f.id !== featureId) return f;
+                if (field === 'name') return { ...f, name: value };
+                if (field === 'rawInput') return { ...f, rawInput: value };
+
+                // For IntakeField updates (description, functionalRequirements)
+                const intakeField = f[field] || { content: '', metadata: {} };
+                return {
+                    ...f,
+                    [field]: { ...intakeField, content: value, metadata: { ...intakeField.metadata, completion_status: value.trim() ? 'complete' : 'empty' } }
+                };
+            });
+            newData.systemFeatures = sectionData;
+            return newData;
+        });
+    }, []);
+
+    const handleFeatureExpand = useCallback(async (featureId: string) => {
+        const features = (draftData as any)?.systemFeatures?.features || [];
+        const feature = features.find((f: any) => f.id === featureId);
+        if (!feature || !feature.name || !feature.rawInput) {
+            toast.error("Please provide both a feature name and a description first.");
+            return;
+        }
+
+        const loadingToast = toast.loading(`Expanding "${feature.name}"...`);
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/expand-feature`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    name: feature.name,
+                    prompt: feature.rawInput
+                })
+            });
+
+            if (!res.ok) throw new Error("Expansion failed");
+            const expanded = await res.json();
+
+            setDraftData((prev: any) => {
+                const newData = { ...prev };
+                newData.systemFeatures.features = newData.systemFeatures.features.map((f: any) => {
+                    if (f.id !== featureId) return f;
+                    return {
+                        ...f,
+                        description: { ...f.description, content: expanded.description },
+                        stimulusResponse: { ...f.stimulusResponse, content: (expanded.stimulusResponseSequences || []).join('\n') },
+                        functionalRequirements: { ...f.functionalRequirements, content: (expanded.functionalRequirements || []).join('\n') }
+                    };
+                });
+                return newData;
+            });
+
+            toast.success("Feature expanded!", { id: loadingToast });
+        } catch (e) {
+            console.error(e);
+            toast.error("Expansion failed", { id: loadingToast });
+        }
+    }, [draftData, token]);
+
+    const handleAddFeature = useCallback(() => {
+        setDraftData((prev: any) => {
+            const newData = prev ? { ...prev } : {};
+            const sectionData = newData.systemFeatures || { features: [] };
+            const newFeature = {
+                id: crypto.randomUUID(),
+                name: 'New Feature',
+                rawInput: '',
+                description: { content: '', metadata: { section_id: '4', subsection_id: '4.1.1', domain_type: 'web', is_required: true, completion_status: 'empty' } },
+                stimulusResponse: { content: '', metadata: { section_id: '4', subsection_id: '4.1.2', domain_type: 'web', is_required: true, completion_status: 'empty' } },
+                functionalRequirements: { content: '', metadata: { section_id: '4', subsection_id: '4.1.3', domain_type: 'web', is_required: true, completion_status: 'empty' } }
+            };
+            sectionData.features = [...sectionData.features, newFeature];
+            newData.systemFeatures = sectionData;
+            return newData;
+        });
+    }, []);
+
+    const handleRemoveFeature = useCallback((featureId: string) => {
+        setDraftData((prev: any) => {
+            if (!prev) return prev;
+            const newData = { ...prev };
+            const sectionData = newData.systemFeatures || { features: [] };
+            sectionData.features = sectionData.features.filter((f: any) => f.id !== featureId);
+            newData.systemFeatures = sectionData;
             return newData;
         });
     }, []);
 
     const handleSaveDraft = async () => {
         if (!id || !draftData) return;
+        const loadingToast = toast.loading("Saving draft to cloud...");
         try {
-            toast.success("Draft saved locally");
-            // Add backend PUT logic if needed
-        } catch { toast.error("Failed to save draft"); }
+            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${id}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    metadata: { ...analysis?.metadata, draftData, status: 'DRAFT' }
+                })
+            });
+            if (!res.ok) throw new Error("Save failed");
+            toast.success("Draft saved", { id: loadingToast });
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to save draft", { id: loadingToast });
+        }
     }
 
     const handleRunValidation = async () => {
         setIsValidating(true);
         try {
+            // First Save current draft to ensure validation uses latest data
+            await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${id}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    metadata: { ...analysis?.metadata, draftData, status: 'DRAFT' }
+                })
+            });
+
             const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${id}/validate`, {
                 method: "POST",
                 headers: { Authorization: `Bearer ${token}` }
@@ -267,6 +390,10 @@ function AnalysisDetailContent() {
                     <AccordionInput
                         data={draftData || {}}
                         onUpdate={handleDraftUpdate}
+                        onFeatureUpdate={handleFeatureUpdate}
+                        onAddFeature={handleAddFeature}
+                        onRemoveFeature={handleRemoveFeature}
+                        onFeatureExpand={handleFeatureExpand}
                         onValidate={handleRunValidation}
                         isValidating={isValidating}
                     />

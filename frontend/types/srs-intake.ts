@@ -50,6 +50,7 @@ export interface SystemFeatureItem {
     description: IntakeField; // 4.1.1
     stimulusResponse: IntakeField; // 4.1.2
     functionalRequirements: IntakeField; // 4.1.3
+    rawInput?: string; // Simplification prompt
 }
 export interface SystemFeaturesSection {
     features: SystemFeatureItem[];

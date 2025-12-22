@@ -17,6 +17,7 @@ import { toast } from "sonner"
 import { FeatureDisplay } from "@/components/feature-display"
 import { KVDisplay } from "@/components/kv-display"
 import { renderMarkdown } from "@/lib/render-markdown"
+import { EditableSection } from "@/components/editable-section"
 
 
 interface ResultsTabsProps {
@@ -48,6 +49,29 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
 
   const handleSave = async () => {
     if (!editedData) return
+
+    // Validation
+    const errors: string[] = []
+    if (!editedData.introduction?.purpose) errors.push("1.1 Purpose is required")
+    if (!editedData.introduction?.scope) errors.push("1.2 Product Scope is required")
+    if (!editedData.overallDescription?.productPerspective) errors.push("2.1 Product Perspective is required")
+    if (!editedData.overallDescription?.productFunctions || editedData.overallDescription.productFunctions.length === 0) errors.push("2.2 Product Functions are required")
+    if (!editedData.overallDescription?.userClassesAndCharacteristics || editedData.overallDescription.userClassesAndCharacteristics.length === 0) errors.push("2.3 User Classes and Characteristics are required")
+    if (!editedData.overallDescription?.designAndImplementationConstraints || editedData.overallDescription.designAndImplementationConstraints.length === 0) errors.push("2.4 Design and Implementation Constraints are required")
+    if (!editedData.overallDescription?.userDocumentation || editedData.overallDescription.userDocumentation.length === 0) errors.push("2.5 User Documentation is required")
+    if (!editedData.overallDescription?.assumptionsAndDependencies || editedData.overallDescription.assumptionsAndDependencies.length === 0) errors.push("2.6 Assumptions and Dependencies are required")
+
+    if (!editedData.externalInterfaceRequirements?.userInterfaces) errors.push("3.1 User Interfaces is required")
+    if (!editedData.externalInterfaceRequirements?.hardwareInterfaces) errors.push("3.2 Hardware Interfaces is required")
+    if (!editedData.externalInterfaceRequirements?.softwareInterfaces) errors.push("3.3 Software Interfaces is required")
+    if (!editedData.externalInterfaceRequirements?.communicationsInterfaces) errors.push("3.4 Communication Interfaces is required")
+
+    if (!editedData.systemFeatures || editedData.systemFeatures.length === 0) errors.push("System Features are required")
+
+    if (errors.length > 0) {
+      toast.error("Please fill in all compulsory fields: \n" + errors.slice(0, 3).join(", ") + (errors.length > 3 ? "..." : ""))
+      return
+    }
 
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
@@ -275,75 +299,74 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                 onUpdate={(val) => updateSection('nonFunctionalRequirements', val)}
               />
 
-              {data.otherRequirements && data.otherRequirements.length > 0 && (
-                <Card className="bg-card border-border mt-6">
-                  <CardHeader>
-                    <CardTitle>Other Requirements</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid gap-2">
-                      {data.otherRequirements.map((req, i) => {
-                        const cleanReq = req.replace(/^[A-Z]+-[A-Z]+-\d+\s*:?\s*/, '').trim();
-                        const finalItem = cleanReq.replace(/^\s*(?:[\-\•\d\.\)]+\s*|\*(?!\*)\s*)/, '').trim();
-                        const acronym = data.projectTitle ? data.projectTitle.replace(/[^a-zA-Z\s]/g, "").split(/\s+/).map(w => w[0]).join("").toUpperCase() : "SRA";
+              {isEditing ? (
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold mb-4">Other Requirements</h3>
+                  <EditableSection
+                    items={currentData.otherRequirements || []}
+                    isEditing={true}
+                    onUpdate={(val: string[]) => updateSection('otherRequirements', val)}
+                    prefix={`${data.projectTitle ? data.projectTitle.replace(/[^a-zA-Z\s]/g, "").split(/\s+/).map(w => w[0]).join("").toUpperCase() : "SRA"}-OR`}
+                  />
+                </div>
+              ) : (
+                data.otherRequirements && data.otherRequirements.length > 0 && (
+                  <Card className="bg-card border-border mt-6">
+                    <CardHeader>
+                      <CardTitle>Other Requirements</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid gap-2">
+                        {data.otherRequirements.map((req, i) => {
+                          const cleanReq = req.replace(/^[A-Z]+-[A-Z]+-\d+\s*:?\s*/, '').trim();
+                          const finalItem = cleanReq.replace(/^\s*(?:[\-\•\d\.\)]+\s*|\*(?!\*)\s*)/, '').trim();
+                          const acronym = data.projectTitle ? data.projectTitle.replace(/[^a-zA-Z\s]/g, "").split(/\s+/).map(w => w[0]).join("").toUpperCase() : "SRA";
 
-                        // Apply the robust logic from KVDisplay to fix bolding issues
-                        // Pre-clean standard bold patterns to avoid split confusion
-                        let work = finalItem;
-                        // 1. **Title:** -> Title:
-                        work = work.replace(/^\*\*([\s\S]*?):\*\*/, '$1:');
-                        // 2. **Title**: -> Title:
-                        work = work.replace(/^\*\*([\s\S]*?)\*\*:/, '$1:');
-                        // 3. **Title: -> Title:
-                        work = work.replace(/^\*\*([\s\S]*?):/, '$1:');
+                          // Apply the robust logic from KVDisplay to fix bolding issues
+                          let work = finalItem;
+                          work = work.replace(/^\*\*([\s\S]*?):\*\*/, '$1:');
+                          work = work.replace(/^\*\*([\s\S]*?)\*\*:/, '$1:');
+                          work = work.replace(/^\*\*([\s\S]*?):/, '$1:');
 
-                        // 4. Also handle case where the whole line is bolded: **Title: Description** -> Title: Description
-                        if (work.startsWith('**') && work.endsWith('**') && work.includes(':')) {
-                          work = work.substring(2, work.length - 2);
-                        }
-
-                        const separatorIndex = work.indexOf(':');
-                        let titlePart = "";
-                        let descPart = work;
-
-                        if (separatorIndex !== -1) {
-                          titlePart = work.substring(0, separatorIndex).trim();
-                          descPart = work.substring(separatorIndex + 1).trim();
-
-                          // Clean Title: remove wrapping **, *
-                          titlePart = titlePart.replace(/^[\s*]+|[\s*]+$/g, '');
-
-                          // Clean Description:
-                          // Handle ** at start (from "Title: **Description**")
-                          // Aggressively match leading **...** block if present (dot-all safe)
-                          descPart = descPart.replace(/^\*\*([\s\S]*?)\*\*/, '$1');
-
-                          // Handle single leading ** (open bold)
-                          if (descPart.startsWith('**')) {
-                            descPart = descPart.substring(2);
+                          if (work.startsWith('**') && work.endsWith('**') && work.includes(':')) {
+                            work = work.substring(2, work.length - 2);
                           }
-                        }
 
-                        return (
-                          <div key={i} className="flex items-start gap-3 p-2 rounded-md hover:bg-muted/50 transition-colors">
-                            <Badge variant="outline" className="shrink-0 mt-0.5 text-xs text-muted-foreground bg-muted/20 border-muted-foreground/20">
-                              {acronym}-OR-{i + 1}
-                            </Badge>
-                            <span className="text-sm text-muted-foreground leading-relaxed">
-                              {titlePart ? (
-                                <>
-                                  <strong className="font-semibold text-foreground">{titlePart}</strong>: {renderMarkdown(descPart)}
-                                </>
-                              ) : (
-                                renderMarkdown(finalItem)
-                              )}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
+                          const separatorIndex = work.indexOf(':');
+                          let titlePart = "";
+                          let descPart = work;
+
+                          if (separatorIndex !== -1) {
+                            titlePart = work.substring(0, separatorIndex).trim();
+                            descPart = work.substring(separatorIndex + 1).trim();
+                            titlePart = titlePart.replace(/^[\s*]+|[\s*]+$/g, '');
+                            descPart = descPart.replace(/^\*\*([\s\S]*?)\*\*/, '$1');
+                            if (descPart.startsWith('**')) {
+                              descPart = descPart.substring(2);
+                            }
+                          }
+
+                          return (
+                            <div key={i} className="flex items-start gap-3 p-2 rounded-md hover:bg-muted/50 transition-colors">
+                              <Badge variant="outline" className="shrink-0 mt-0.5 text-xs text-muted-foreground bg-muted/20 border-muted-foreground/20">
+                                {acronym}-OR-{i + 1}
+                              </Badge>
+                              <span className="text-sm text-muted-foreground leading-relaxed">
+                                {titlePart ? (
+                                  <>
+                                    <strong className="font-semibold text-foreground">{titlePart}</strong>: {renderMarkdown(descPart)}
+                                  </>
+                                ) : (
+                                  renderMarkdown(finalItem)
+                                )}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
               )}
             </TabsContent>
 

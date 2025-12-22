@@ -228,8 +228,32 @@ RULES:
   4. Ensure 'revisionHistory' and 'documentConventions' are preserved or updated if relevant.
 `;
 
+export const FEATURE_EXPANSION_PROMPT = `
+You are an expert Software Requirements Analyst. 
+The user has provided a feature name and a brief plain-text description or prompt.
+Your task is to expand this into a detailed, structured IEEE 830-1998 compliant section.
+
+OUTPUT FORMAT:
+Return ONLY a valid JSON object with the following fields. No markdown wrappers, no explanations.
+
+{
+  "description": "2 paragraphs explaining business value and user value. Indicate priority (High/Medium/Low).",
+  "stimulusResponseSequences": ["Stimulus: [Action] Response: [Behavior]"],
+  "functionalRequirements": ["The system shall..."]
+}
+
+RULES:
+1. Use professional technical prose.
+2. Stimulus/Response sequences must follow the "Stimulus: X Response: Y" pattern.
+3. Functional requirements must be specific and verifiable, starting with "The system shall".
+4. Do NOT invent unrelated features; focus only on the provided input.
+
+Input Feature Name: {{name}}
+Input Description/Prompt: {{prompt}}
+`;
+
 export const CODE_GEN_PROMPT = `
-You are an expert full-stack developer (React, Node.js, Prisma).
+You are an expert full - stack developer(React, Node.js, Prisma).
 Your task is to generate a complete project structure and key code files based on the provided software requirements analysis.
 
 OUTPUT FORMAT:
@@ -237,34 +261,34 @@ Return ONLY a valid JSON object with the following structure:
 
 {
   "explanation": "Brief summary of the stack and architecture decisions.",
-  "fileStructure": [
-    {
-       "path": "backend/src/server.ts",
-       "type": "file" or "directory",
-       "children": [] 
-    }
-  ],
-  "databaseSchema": "Raw Prisma Schema content (schema.prisma)",
-  "backendRoutes": [
-     {
-        "path": "backend/src/routes/authRoutes.ts",
-        "code": "Full source code..."
-     }
-  ],
-  "frontendComponents": [
-     {
-        "path": "frontend/src/components/LoginForm.tsx",
-        "code": "Full source code..."
-     }
-  ],
-  "testCases": [
+    "fileStructure": [
       {
-         "path": "tests/auth.test.ts",
-         "code": "Full source code for Jest/Playwright tests"
+        "path": "backend/src/server.ts",
+        "type": "file" or "directory",
+        "children": []
       }
-  ],
-  "backendReadme": "Markdown content for backend/README.md including setup, env vars, and run instructions.",
-  "frontendReadme": "Markdown content for frontend/README.md including Next.js setup, dependencies, and run instructions."
+    ],
+      "databaseSchema": "Raw Prisma Schema content (schema.prisma)",
+        "backendRoutes": [
+          {
+            "path": "backend/src/routes/authRoutes.ts",
+            "code": "Full source code..."
+          }
+        ],
+          "frontendComponents": [
+            {
+              "path": "frontend/src/components/LoginForm.tsx",
+              "code": "Full source code..."
+            }
+          ],
+            "testCases": [
+              {
+                "path": "tests/auth.test.ts",
+                "code": "Full source code for Jest/Playwright tests"
+              }
+            ],
+              "backendReadme": "Markdown content for backend/README.md including setup, env vars, and run instructions.",
+                "frontendReadme": "Markdown content for frontend/README.md including Next.js setup, dependencies, and run instructions."
 }
 
 RULES:
@@ -272,8 +296,8 @@ RULES:
 2. "databaseSchema" should be a valid Prisma schema.
 3. Generate REAL, WORKING code.
 4. Implement the core features described in "systemFeatures".
-5. Use modern stack: Typescript, React (Tailwind), Node.js (Express), Prisma.
-6. Return VALID JSON only. No markdown formatting.
+5. Use modern stack: Typescript, React(Tailwind), Node.js(Express), Prisma.
+6. Return VALID JSON only.No markdown formatting.
 
 INPUT ANALYSIS:
 `;

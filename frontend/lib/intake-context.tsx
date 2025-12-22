@@ -3,13 +3,14 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { SRSIntakeModel, IntakeField, SystemFeatureItem, DomainType, ValidationResult } from '../types/srs-intake';
 import { SRS_STRUCTURE, createInitialIntakeState } from './srs-structure';
+import { toast } from 'sonner';
 
 interface IntakeContextType {
     data: SRSIntakeModel;
     activeSectionId: string;
     activeSectionIndex: number;
     updateField: (sectionKey: keyof SRSIntakeModel, fieldKey: string, value: string) => void;
-    updateFeature: (featureId: string, field: keyof SystemFeatureItem, value: string | DomainType) => void;
+    updateFeature: (featureId: string, field: keyof SystemFeatureItem, value: string | DomainType, isDomain?: boolean) => void;
     addFeature: () => void;
     removeFeature: (featureId: string) => void;
     updateDomainType: (sectionKey: keyof SRSIntakeModel, fieldKey: string, domain: DomainType) => void;
@@ -22,6 +23,7 @@ interface IntakeContextType {
     validationResult: ValidationResult | null;
     isValidating: boolean;
     clearValidation: () => void;
+    expandFeature: (id: string) => Promise<void>;
 }
 
 // Helper for backend URL
@@ -112,6 +114,7 @@ export const IntakeProvider = ({ children }: { children: ReactNode }) => {
             const newFeature: SystemFeatureItem = {
                 id: crypto.randomUUID(),
                 name: 'New Feature',
+                rawInput: '',
                 description: { content: '', metadata: { section_id: '4', subsection_id: '4.1.1', domain_type: 'web', is_required: true, completion_status: 'empty' } },
                 stimulusResponse: { content: '', metadata: { section_id: '4', subsection_id: '4.1.2', domain_type: 'web', is_required: true, completion_status: 'empty' } },
                 functionalRequirements: { content: '', metadata: { section_id: '4', subsection_id: '4.1.3', domain_type: 'web', is_required: true, completion_status: 'empty' } }
@@ -134,22 +137,19 @@ export const IntakeProvider = ({ children }: { children: ReactNode }) => {
         }));
     };
 
-    const updateFeature = (id: string, field: keyof SystemFeatureItem, value: string | DomainType) => {
+    const updateFeature = (id: string, field: keyof SystemFeatureItem, value: string | DomainType, isDomain: boolean = false) => {
         setData(prev => ({
             ...prev,
             systemFeatures: {
                 features: prev.systemFeatures.features.map(f => {
                     if (f.id !== id) return f;
                     if (field === 'name') return { ...f, name: value as string };
+                    if (field === 'rawInput') return { ...f, rawInput: value as string };
 
                     // It's an IntakeField
                     const intakeField = f[field] as IntakeField;
-                    const content = value as string; // Ideally discriminate, but for now assuming string for content update
-                    const status = content.trim().length > 0 ? 'complete' : 'empty';
 
-                    // If it's a domain update, value is domain type.
-                    // This logic is slightly brittle without clearer separation, but following the established pattern.
-                    if (['web', 'mobile', 'system', 'hybrid'].includes(value as string)) {
+                    if (isDomain) {
                         return {
                             ...f,
                             [field]: {
@@ -158,6 +158,9 @@ export const IntakeProvider = ({ children }: { children: ReactNode }) => {
                             }
                         }
                     }
+
+                    const content = value as string;
+                    const status = content.trim().length > 0 ? 'complete' : 'empty';
 
                     return {
                         ...f,
@@ -171,6 +174,70 @@ export const IntakeProvider = ({ children }: { children: ReactNode }) => {
             }
         }))
     }
+
+    const expandFeature = async (id: string) => {
+        const feature = data.systemFeatures.features.find(f => f.id === id);
+        if (!feature || !feature.name || !feature.rawInput) {
+            toast.error("Please provide both a feature name and a description first.");
+            return;
+        }
+
+        const loadingToast = toast.loading(`Expanding "${feature.name}"...`);
+        try {
+            // Note: Since this is intake flow (before login/project creation), 
+            // the backend route might need some special handling if it's protected.
+            // But usually this intake is run by logged-in users? 
+            // Let me check if I have a token.
+            const token = localStorage.getItem('sra_auth_token');
+
+            const response = await fetch(`${API_URL}/api/analyze/expand-feature`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({
+                    name: feature.name,
+                    prompt: feature.rawInput
+                })
+            });
+
+            if (!response.ok) throw new Error("Expansion failed");
+            const expanded = await response.json();
+
+            setData(prev => ({
+                ...prev,
+                systemFeatures: {
+                    features: prev.systemFeatures.features.map(f => {
+                        if (f.id !== id) return f;
+                        return {
+                            ...f,
+                            description: {
+                                ...f.description,
+                                content: expanded.description,
+                                metadata: { ...f.description.metadata, completion_status: 'complete' }
+                            },
+                            stimulusResponse: {
+                                ...f.stimulusResponse,
+                                content: (expanded.stimulusResponseSequences || []).join('\n'),
+                                metadata: { ...f.stimulusResponse.metadata, completion_status: 'complete' }
+                            },
+                            functionalRequirements: {
+                                ...f.functionalRequirements,
+                                content: (expanded.functionalRequirements || []).join('\n'),
+                                metadata: { ...f.functionalRequirements.metadata, completion_status: 'complete' }
+                            }
+                        };
+                    })
+                }
+            }));
+
+            toast.success("Feature expanded!", { id: loadingToast });
+        } catch (error) {
+            console.error(error);
+            toast.error("Expansion failed", { id: loadingToast });
+        }
+    };
 
     // Validation Logic
     const checkCanProceed = () => {
@@ -274,7 +341,8 @@ export const IntakeProvider = ({ children }: { children: ReactNode }) => {
             validateRequirements,
             validationResult,
             isValidating,
-            clearValidation
+            clearValidation,
+            expandFeature
         }}>
             {children}
         </IntakeContext.Provider>

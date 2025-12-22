@@ -164,11 +164,29 @@ export const getUserAnalyses = async (userId) => {
     // Sort resulting list by createdAt desc (most recent projects first)
     analyses.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    // Return truncated review
-    return analyses.map(a => ({
-        ...a,
-        inputPreview: a.inputText.substring(0, 50) + (a.inputText.length > 50 ? '...' : '')
-    }));
+    // Return truncated review with intelligent JSON preview extraction
+    return analyses.map(a => {
+        let preview = a.inputText;
+
+        // If it looks like JSON (starts with {), try to extract purpose or scope
+        if (preview && preview.trim().startsWith('{')) {
+            try {
+                const parsed = JSON.parse(preview);
+                // Extract purpose or scope for a better preview, otherwise fallback to name
+                preview = parsed.introduction?.purpose?.content ||
+                    parsed.introduction?.productScope?.content ||
+                    parsed.projectTitle ||
+                    "Draft analysis data";
+            } catch (e) {
+                // Not valid JSON, fallback to standard truncation
+            }
+        }
+
+        return {
+            ...a,
+            inputPreview: preview.substring(0, 100) + (preview.length > 100 ? '...' : '')
+        };
+    });
 };
 
 export const getAnalysisHistory = async (userId, rootId) => {

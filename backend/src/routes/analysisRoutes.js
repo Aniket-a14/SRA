@@ -1,5 +1,5 @@
 import express from 'express';
-import { analyze, getHistory, getAnalysis, chat, getChatHistory, updateAnalysis, generateCode, checkJobStatus, getHistoryForRoot, performComparison, regenerate, finalizeAnalysis, validateAnalysis } from '../controllers/analysisController.js';
+import { analyze, getHistory, getAnalysis, chat, getChatHistory, updateAnalysis, generateCode, checkJobStatus, getHistoryForRoot, performComparison, regenerate, finalizeAnalysis, validateAnalysis, expandFeature } from '../controllers/analysisController.js';
 import { authenticate } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -20,5 +20,6 @@ router.post('/:id/regenerate', regenerate);
 router.post('/:id/validate', validateAnalysis); // Layer 2 Check
 router.post('/:id/chat', chat);
 router.get('/:id/chat', getChatHistory);
+router.post('/expand-feature', expandFeature);
 
 export default router;

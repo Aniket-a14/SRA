@@ -136,7 +136,7 @@ export const SRS_STRUCTURE: SectionConfig[] = [
                 title: 'User Documentation',
                 description: 'List the user documentation components (such as user manuals, on-line help, and tutorials) that will be delivered along with the software.',
                 hints: ['Online Help', 'User Manuals', 'Tutorials'],
-                isRequired: false,
+                isRequired: true,
                 inputType: 'textarea'
             },
             {
@@ -145,7 +145,7 @@ export const SRS_STRUCTURE: SectionConfig[] = [
                 title: 'Assumptions and Dependencies',
                 description: 'List any assumed factors that would affect the requirements stated in the SRS.',
                 hints: ['Third-party components', 'Operating system availability'],
-                isRequired: false,
+                isRequired: true,
                 inputType: 'textarea'
             }
         ]
@@ -170,7 +170,7 @@ export const SRS_STRUCTURE: SectionConfig[] = [
                 title: 'Hardware Interfaces',
                 description: 'Describe the logical and physical characteristics of each interface between the software product and the hardware components.',
                 hints: ['Supported devices', 'Communication protocols'],
-                isRequired: false,
+                isRequired: true,
                 inputType: 'textarea'
             },
             {
@@ -188,7 +188,7 @@ export const SRS_STRUCTURE: SectionConfig[] = [
                 title: 'Communication Interfaces',
                 description: 'Describe the requirements associated with any communications functions required by this product.',
                 hints: ['Email', 'Web browser', 'Network server communications protocols'],
-                isRequired: false,
+                isRequired: true,
                 inputType: 'textarea'
             }
         ]
@@ -229,7 +229,7 @@ export const SRS_STRUCTURE: SectionConfig[] = [
                 title: 'Safety Requirements',
                 description: 'Specify those requirements that are concerned with possible loss, damage, or harm that could result from the use of the product.',
                 hints: ['Safeguards', 'Data integrity'],
-                isRequired: false,
+                isRequired: true,
                 inputType: 'textarea'
             },
             {
@@ -247,7 +247,7 @@ export const SRS_STRUCTURE: SectionConfig[] = [
                 title: 'Software Quality Attributes',
                 description: 'Specify any additional quality characteristics for the product.',
                 hints: ['Availability', 'Maintainability', 'Portability'],
-                isRequired: false,
+                isRequired: true,
                 inputType: 'textarea'
             },
             {
@@ -256,7 +256,7 @@ export const SRS_STRUCTURE: SectionConfig[] = [
                 title: 'Business Rules',
                 description: 'Define the business rules that the software must enforce.',
                 hints: ['Workflows', 'Calculations', 'Policies'],
-                isRequired: false,
+                isRequired: true,
                 inputType: 'textarea'
             }
         ]
@@ -272,7 +272,7 @@ export const SRS_STRUCTURE: SectionConfig[] = [
                 title: 'Appendix',
                 description: 'Any other requirements or information.',
                 hints: ['Legal requirements', 'Temporary features'],
-                isRequired: false,
+                isRequired: true,
                 inputType: 'textarea'
             }
         ]
@@ -307,27 +307,27 @@ export const createInitialIntakeState = (): SRSIntakeModel => {
             userClasses: field('2', '2.3', true),
             operatingEnvironment: field('2', '2.4', false),
             constraints: field('2', '2.5', true),
-            userDocumentation: field('2', '2.6', false),
-            assumptionsDependencies: field('2', '2.7', false),
+            userDocumentation: field('2', '2.6', true),
+            assumptionsDependencies: field('2', '2.7', true),
         },
         externalInterfaces: {
             userInterfaces: field('3', '3.1', true),
-            hardwareInterfaces: field('3', '3.2', false),
+            hardwareInterfaces: field('3', '3.2', true),
             softwareInterfaces: field('3', '3.3', true),
-            communicationInterfaces: field('3', '3.4', false),
+            communicationInterfaces: field('3', '3.4', true),
         },
         systemFeatures: {
             features: [] // Starts empty
         },
         nonFunctional: {
             performance: field('5', '5.1', true),
-            safety: field('5', '5.2', false),
+            safety: field('5', '5.2', true),
             security: field('5', '5.3', true),
-            quality: field('5', '5.4', false),
-            businessRules: field('5', '5.5', false),
+            quality: field('5', '5.4', true),
+            businessRules: field('5', '5.5', true),
         },
         other: {
-            appendix: field('6', '6.1', false)
+            appendix: field('6', '6.1', true)
         }
     }
 }
