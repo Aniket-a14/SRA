@@ -50,7 +50,7 @@ export function AccordionInput({
                     const isComplete = section.subsections.every(sub => {
                         if (sub.inputType === 'textarea') {
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            const val = (sectionData as any)[sub.key]?.content || "";
+                            const val = (sectionData as any)?.[sub.key]?.content || "";
                             return !sub.isRequired || val.trim().length > 0;
                         } else {
                             // For features, we require at least one feature if it's required (for now assuming true)
@@ -100,7 +100,7 @@ export function AccordionInput({
                                                     placeholder={sub.placeholder || "Enter details..."}
                                                     className="min-h-[120px] resize-none"
                                                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                                    value={(sectionData as any)[sub.key]?.content || ""}
+                                                    value={(sectionData as any)?.[sub.key]?.content || ""}
                                                     onChange={(e) => onUpdate(section.key, sub.key, e.target.value)}
                                                 />
 
