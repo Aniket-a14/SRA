@@ -2,72 +2,81 @@
 
 ## Overview
 
-The SRA (Smart Requirements Analyst) system is designed as a modern, event-driven web application that leverages Generative AI to automate the software requirements engineering process. It follows a client-server architecture with a decoupled asynchronous worker for heavy AI processing.
+The SRA (Smart Requirements Analyst) system is a modern, event-driven ecosystem designed as a highly decoupled multi-layer pipeline. It follows a **Pipeline-as-a-Service** pattern where each layer adds increasing levels of fidelity and verification to the requirements.
 
 ```mermaid
 graph TD
     User[User] -->|Interacts| Client[Frontend (Next.js 15)]
     Client -->|REST API| API[Backend API (Express)]
     
-    subgraph "Backend Services"
+    subgraph "Orchestration Layer"
         API -->|Auth| Auth[Auth Service]
         API -->|CRUD| DB[(PostgreSQL)]
-        API -->|Enqueue Job| Queue[Redis Job Queue]
-        
-        Worker[Background Worker] -->|Polls| Queue
-        Worker -->|Updates| DB
+        API -->|Queue| Queue[Redis Job Queue]
+    end
+
+    subgraph "Analysis Pipeline"
+        Queue --> W1[Layer 1: Intake Model]
+        W1 --> W2[Layer 2: Validation Gate]
+        W2 --> W3[Layer 3: SRS Constructor]
+        W3 --> W4[Layer 4: Refinement Hub]
+        W4 --> W5[Layer 5: KB Shredder]
     end
     
-    subgraph "AI Integration"
-        Worker -->|Request| AIService[AI Service Layer]
-        AIService -->|Abstracted Call| Gemini[Google Gemini]
-        AIService -->|Abstracted Call| OpenAI[OpenAI (Optional)]
+    subgraph "AI Core"
+        W1 & W2 & W3 & W4 & W5 -->|Abstracted Call| AIService[AI Service Layer]
+        AIService -->|Google| Gemini[Gemini 2.5 Flash]
+        AIService -->|OpenAI| GPT[GPT-4o]
     end
 ```
 
-## Core Components
+## The 5-Layer Analysis Strategy
 
-### 1. Frontend Client
-Built with **Next.js 15 (App Router)** and **TypeScript**, the frontend provides a responsive Single Page Application (SPA) experience.
--   **State Management**: Uses React Server Components and Client Components for optimal performance.
--   **UI Library**: Shadcn/ui (Radix Primitives) + Tailwind CSS v4.
--   **Visualization**: Renders Mermaid.js diagrams dynamically on the client side.
+SRA moves beyond simple "prompt-and-result" patterns by treating requirement generation as a multi-step manufacturing process.
 
-### 2. Backend API
-The backend is a **Node.js/Express** application serving a RESTful API.
--   **Security**: Implements Helmet, Rate Limiting, and JWT/OAuth authentication.
--   **ORM**: Uses **Prisma** for type-safe database interactions.
--   **Queueing**: Utilizes **Bull** (Redis-based queue) to offload long-running AI analysis tasks, preventing request timeouts and ensuring scalability.
+### Layer 1: Structured Intake
+Converts raw, unstructured user intent into a **Standard Intake Model**. This ensures that even the most chaotic descriptions are mapped to the correct IEEE sections early in the process.
 
-### 3. AI Service Layer & Multi-Model Support
-The system implements a **Provider Pattern** in `src/services/aiService.js` to abstract the underlying AI Model.
--   **Default Provider**: Google Gemini 2.5 Flash (Optimized for speed/cost).
--   **Secondary Provider**: OpenAI GPT-4o (Supported via configuration).
--   **Mechanism**: The service accepts a `settings` object containing the preferred `modelProvider` and `modelName`. It normalizes the prompt and response format, ensuring the rest of the application remains agnostic to the specific AI model being used.
+### Layer 2: Validation Gatekeeper
+A critical "Quality Gate" that analyzes the Layer 1 output for ambiguity, missing context, or internal contradictions. 
+- **PASS**: Proceeds to full generation.
+- **FAIL**: Returns to user with specific "Clarity Requests".
 
-## Versioning System
+### Layer 3: Final Analysis (IEEE SRS)
+This layer consumes the validated intake model to generate the "Source of Truth" SRS. It synthesizes user stories, functional specs, and visual Mermaid.js models.
 
-One of the core features of SRA is its ability to track the evolution of requirements. This is implemented via a **Linked List / Tree** structure in the PostgreSQL database.
+### Layer 4: Refinement Cycle (Chat & Patch)
+Enables iterative human-in-the-loop improvements. Users talk to the AI to "nudge" specific requirements, and the system performs a non-destructive patch to the existing model, creating a new version.
 
-### Data Model
-The `Analysis` entity in `schema.prisma` contains the following fields to enable versioning:
--   **`id`**: Unique identifier for the specific version.
--   **`rootId`**: Points to the original ancestor of the analysis chain. All versions of a project share the same `rootId`.
--   **`parentId`**: Points to the immediate predecessor. This creates a linked history.
--   **`version`**: An incremental integer (1, 2, 3...) for easy user reference.
+### Layer 5: Knowledge Base Reuse
+Finalized SRS modules are shredded into semantic chunks and stored in the **Knowledge Base**. Identical or sufficiently similar future requests are served directly from this pre-validated cache, ensuring sub-second response times.
 
-### How it Works
-1.  **Creation**: The first analysis has `version: 1`, `rootId: self`, and `parentId: null`.
-2.  **Refinement**: When a user chats with the AI to refine requirements, a **new** `Analysis` record is created.
-    -   It copies valid data from the parent.
-    -   It applies the AI-generated changes (JSON Patch or full replacement).
-    -   It links back via `parentId`.
-3.  **Time Travel**: The frontend fetches the lineage using `rootId` to display a navigable timeline. Users can "branch" off any previous point by refining an older version.
+## Versioning & Data Tree
 
-## API Surface
+SRA uses a **Branching Version Tree** to manage the evolution of projects.
 
-| Service | Base Route | Description |
-| :--- | :--- | :--- |
-| **Auth** | `/api/auth` | Handling Login, Signup, OAuth (Google/GitHub). |
-| **Analysis** | `/api/analyze` | Core endpoints for creating and retrieving analyses. |
-| **Project** | `/api/projects` | Managing grouped analyses and user settings. |
+### Entity Relationship
+- **Analysis**: Each version is a standalone record linked via `rootId` and `parentId`.
+- **Project**: A top-level container that tracks user ownership and metadata.
+
+```mermaid
+classDiagram
+    class Project {
+        +String id
+        +String name
+        +String description
+        +DateTime createdAt
+    }
+    class Analysis {
+        +String id
+        +String rootId
+        +String parentId
+        +Integer version
+        +Boolean isFinalized
+        +JSON resultJson
+    }
+    Project "1" -- "*" Analysis : contains
+```
+
+## AI Service Tier
+The system implements a **Provider Abstraction** pattern. This allows the same logic (e.g., Layer 3 generation) to run on different LLMs (Gemini, GPT-4, etc.) without code changes, simply by toggling a setting in the `Analysis` metadata.

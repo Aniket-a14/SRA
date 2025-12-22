@@ -1,148 +1,74 @@
-# SRA Backend
+# SRA Backend: 5-Layer Analysis Engine
 
-This is the backend service for the Software Requirements Analyst (SRA) project. It provides a secure API to analyze text and generate software requirements, user stories, and Mermaid diagrams using Google's Gemini AI.
+The SRA Backend is a high-performance Express.js ecosystem powered by Google Gemini, designed to orchestrate the transition from raw project intent to validated IEEE-830 requirements.
 
-## ✨ Features
+## 🏗️ 5-Layer Service Architecture
 
-- **Analysis Versioning**:
-   - **Atomic Version Control**: Every chat interaction that modifies requirements creates a new, immutable version.
-   - **History Tracking**: Full lineage tracking via `rootId` and `parentId` pointers.
-   - **Diffing Engine**: Compare any two versions to see exactly what changed.
-- **Context-Aware Chat**:
-   - **Persistent History**: Chat context is preserved across the entire project version chain.
-   - **Smart Updates**: The AI automatically proposes detailed JSON updates while maintaining conversation flow.
-- **AI Resilience**:
-   - **Automatic Retries**: Robust handling of transient AI errors (429/5xx) with exponential backoff.
-   - **Timeout Protection**: Prevents hanging requests with enforced timeouts.
-- **Authentication**:
-  - Email/Password (JWT)
-  - Google OAuth 2.0
-  - GitHub OAuth 2.0
-  - **Session Management**: Secure refresh tokens, session revocation, and multi-device support.
-- **Quality Assurance**:
-  - **Linting Engine**: automated requirement quality scoring (0-100).
-  - **Ambiguity Detection**: Flags vague terms and missing metrics.
-- **Queueing & Performance**:
-  - **Asynchronous Processing**: Uses Bull Queue & Redis to handle long-running analysis tasks without blocking.
-  - Rate Limiting & Input Validation.
-- **Code Generation**:
-  - **Full Pipeline**: Generates complete Schema, API Routes, Frontend Components, and Tests.
-  - **Robust JSON Mode**: Ensures valid output structure.
-- **Security & Reliability**:
-  - `helmet` for secure HTTP headers.
-  - `express-rate-limit` for DDoS protection.
-  - **Robustness**: Centralized error middleware, request logging, and health checks.
-- **Database**: PostgreSQL with Prisma ORM.
+Our core logic is partitioned into five distinct service layers for maximum reliability and scalability.
 
-## 🛠️ Prerequisites
-
-- Node.js (v18+)
-- npm
-- PostgreSQL (Local or Cloud)
-- Redis Server (Required for Job Queue)
-- A Google Gemini API Key
-
-## 🚀 Installation & Setup
-
-1.  **Clone & Navigate**:
-    ```bash
-    cd backend
-    ```
-
-2.  **Install Dependencies**:
-    ```bash
-    npm install
-    ```
-    *Note: A `postinstall` script will automatically run `prisma generate` to update the database client.*
-
-3.  **Environment Configuration**:
-    Create a `.env` file in the `backend` directory:
-
-    ```env
-    # Server Configuration
-    NODE_ENV=development
-    PORT=3000
-    FRONTEND_URL=http://localhost:3001
-    ANALYZER_URL=http://localhost:3000/internal/analyze
-    ```
-
-    # Database
-    DATABASE_URL="postgresql://user:pass@localhost:5432/sra?schema=public"
-    REDIS_URL="redis://127.0.0.1:6379"
-
-    # Security
-    JWT_SECRET=your_jwt_secret_key
-
-    # Google OAuth
-    GOOGLE_CLIENT_ID=your_google_client_id
-    GOOGLE_CLIENT_SECRET=your_google_client_secret
-    GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
-
-    # GitHub OAuth
-    GITHUB_CLIENT_ID=your_github_client_id
-    GITHUB_CLIENT_SECRET=your_github_client_secret
-    GITHUB_CALLBACK_URL=http://localhost:3000/api/auth/github/callback
-
-    # AI Service
-    GEMINI_API_KEY=your_gemini_api_key
-    ```
-
-4.  **Database Migration**:
-    Initialize the database and apply migrations (includes performance indexes):
-    ```bash
-    npx prisma migrate dev --name init
-    ```
-
-5.  **Start Server**:
-    ```bash
-    # Development (Hot Reload)
-    npm run dev
-
-    # Production
-    npm start
-    ```
-
-## 📂 Project Structure
-
-```
-backend/
-├── prisma/             # Database schema & migrations
-├── src/
-│   ├── config/         # OAuth & DB configuration
-│   ├── controllers/    # API Controllers
-│   ├── middleware/     # Auth, RateLimit, ErrorHandler
-│   ├── routes/         # Express Routes
-│   ├── services/       # Business Logic & AI integration
-│   ├── utils/          # Helpers
-│   ├── app.js          # App mounting
-│   └── server.js       # Entry point
-└── ...
+```mermaid
+graph TD
+    A[API Controllers] -->|Enqueue| Q[Bull/Redis Queue]
+    Q -->|Job| W[Worker Services]
+    
+    subgraph "The Analysis Pipeline"
+        W --> L1[IntakeService: Structural Mapping]
+        L1 --> L2[ValidationService: Quality Gate]
+        L2 -->|PASS| L3[AnalysisService: IEEE SRS Gen]
+        L3 --> L4[RefinementService: Context Patching]
+        L4 --> L5[KnowledgeBaseService: Shred & Reuse]
+    end
 ```
 
-## 🔗 API Endpoints
+### 1. **IntakeService** (Structural Mapping)
+Translates unstructured text into the `SRSIntakeModel`. This ensures that even early-stage inputs occupy a structured schema before complex AI analysis begins.
 
-### Authentication
+### 2. **ValidationService** (The Gatekeeper)
+Runs a dedicated "Quality Audit" on the Intake model. It scores requirements for ambiguity and completeness. Only high-confidence models proceed to Layer 3.
 
-| Method | Endpoint | Description |
+### 3. **AnalysisService** (IEEE Construction)
+The heavy-lifter. Consumes validated intake data to generate a complete SRS including user stories, acceptance criteria, and Mermaid diagrams.
+
+### 4. **RefinementService** (Context Patching)
+Handles iterative improvements via chat. It uses a "context-injection" strategy to inform the AI of existing project state while applying new user directives.
+
+### 5. **KnowledgeBaseService** (KB Shredder)
+Shreds finalized analyses into semantic chunks. Implements the "Hash-and-Match" strategy for Layer 5 reuse, enabling sub-second response times for identical project descriptions.
+
+## 🛠️ Performance & Reliability
+
+### Background Processing
+- **Bull + Redis**: All heavy AI operations are offloaded to background workers.
+- **Atomic Responses**: Users receive immediate "Analysis Started" responses, with progress updates delivered via subsequent polling.
+
+### AI Robustness
+- **Dynamic Provider Switching**: Abstraction layer supports Gemini 2.5 and OpenAI GPT-4o.
+- **Error Backoff**: Automated exponential backoff for 429 (Rate Limit) and 5xx (AI Downtime) errors.
+
+## 🚀 Setup & Deployment
+
+### Prerequisites
+- Node.js (v18+) & npm
+- PostgreSQL (Database)
+- Redis (Job Queueing)
+- Gemini API Key
+
+### Installation
+1. `npm install`
+2. Configure `.env` (see root README for template)
+3. `npx prisma migrate dev`
+4. `npm run dev`
+
+## 🔗 Key API Domains
+
+| Domain | Controller | Description |
 | :--- | :--- | :--- |
-| `POST` | `/api/auth/signup` | Register a new user. |
-| `POST` | `/api/auth/login` | Login and receive a token. |
-| `GET` | `/api/auth/google/start` | Initiate Google OAuth. |
-| `GET` | `/api/auth/github/start` | Initiate GitHub OAuth. |
-| `GET` | `/api/auth/me` | Get current user profile. |
+| **Auth** | `authController` | JWT, Google/GitHub OAuth, Session Mgmt |
+| **Analysis** | `analysisController` | Layer 1-3 creation and Layer 4 refinements |
+| **Knowledge** | `knowledgeController` | Layer 5 finalization and reuse queries |
 
-### Analysis
-
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `POST` | `/api/analyze` | Submit text for analysis. |
-| `GET` | `/api/analyze` | Get analysis history. |
-| `GET` | `/api/analyze/:id` | Get specific analysis details. |
-
-_Note: The API supports both `/api` prefix and root paths (e.g., `/auth/login` is also valid) for backward compatibility._
-
-## 🔒 Security Measures
-
-- **Rate Limiting**: Limited to 100 requests per 15 minutes per IP.
-- **Input Validation**: Analysis text is capped at 20,000 characters.
-- **Headers**: Secure headers enforced via Helmet.
+## 🧪 Integration Testing
+We maintain high coverage of the analysis layers via specialized integration scripts:
+- `test-layer1-integration.js`: Verifies intake structured mapping.
+- `test-validation-integration.js`: Benchmarks the AI gatekeeper accuracy.
+- `test-layer5-integration.js`: Confirms Knowledge Base shredding and hash-reuse consistency.

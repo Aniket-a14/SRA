@@ -1,74 +1,73 @@
 # SRA (Smart Requirements Analyzer)
 
-![Status](https://img.shields.io/badge/Status-Feature_Freeze-orange)
+![Status](https://img.shields.io/badge/Status-V2_Verified-brightgreen)
+![Pipeline](https://img.shields.io/badge/Strategy-5_Layer_Analysis-blue)
 ![SRA View](/assets/overview.png)
 
-**SRA** is an intelligent, AI-powered tool designed to streamline the software requirements engineering process. By leveraging Google's Gemini AI, it analyzes raw project descriptions and automatically generates comprehensive technical documentation, including functional requirements, user stories, acceptance criteria, and visual diagrams.
+**SRA** is an intelligent, AI-powered ecosystem designed to automate and professionalize the software requirements engineering process. By leveraging a multi-layer analysis pipeline, it transforms raw project visions into high-fidelity IEEE-830 artifacts.
 
-## 🚀 How It Works
+## 🚀 The 5-Stage Analysis Pipeline
 
-1.  **Input**: The user provides a high-level description of their software project in the web interface.
-2.  **Analysis**: The backend sends this text to the Google Gemini API with a specialized prompt to extract structured requirements.
-3.  **Generation**: The AI returns a structured JSON response containing categorized requirements, entities, and Mermaid.js diagram code.
-4.  **Visualization**: The frontend parses this data and renders it into interactive tabs, formatted lists, and dynamic diagrams.
+SRA follows a rigid, automated pipeline to ensure requirement quality and architectural consistency.
+
+```mermaid
+graph LR
+    L1[<b>Layer 1: Intake</b><br/>Raw Description] --> L2[<b>Layer 2: Validation</b><br/>AI Gatekeeper]
+    L2 -->|PASS| L3[<b>Layer 3: Analysis</b><br/>IEEE SRS Generation]
+    L2 -->|FAIL| L1
+    L3 --> L4[<b>Layer 4: Refinement</b><br/>Chat & Patch]
+    L4 --> L5[<b>Layer 5: Knowledge Base</b><br/>Shred & Reuse]
+```
+
+### 1. **Structured Intake** (Layer 1)
+Translates free-text descriptions into an initial structured JSON model mapping to IEEE SRS sections.
+
+### 2. **Validation Gatekeeper** (Layer 2)
+An AI logic-check that ensures input is clear, consistent, and has sufficient detail before proceeding to heavy analysis.
+
+### 3. **Final Analysis & SRS Generation** (Layer 3)
+Generates the full SRS document, including User Stories, Acceptance Criteria, and UML/Mermaid diagrams.
+
+### 4. **Iterative Refinement** (Layer 4)
+Real-time chat interface to tweak requirements, automatically creating new versions and diffs.
+
+### 5. **Knowledge Base Reuse** (Layer 5)
+Finalized requirements are shredded into the Knowledge Base, allowing for optimized sub-second responses on recurring project patterns.
+
+## ✨ Core Features
+
+### 📊 Professional Analysis
+-   **IEEE-830 Compliance**: Generates standardized sections from Introduction to Appendices.
+-   **User Story Generator**: Standardized "As a... I want to... So that..." format.
+-   **Acceptance Criteria**: Fine-grained success metrics for every feature.
+-   **Entity Mapping**: Automated identification of data models.
+
+### 🎨 Visual Modeling
+-   **System Diagrams**: Automated generation of Sequence and Flowchart diagrams using Mermaid.js.
+-   **Interactive Workspace**: Edit requirements in-place with real-time preview.
+
+### 📦 Export & Portability
+-   **Standardized PDF**: Professional export with Table of Contents and Revision History.
+-   **Project Bundle**: Download zip containing diagrams, API docs, and raw JSON data.
+-   **API Blueprint**: AI-generated Markdown contract for frontend/backend development.
+
+### 🔒 Enterprise Ready
+-   **Smart Versioning**: Branching and merging logic for requirements evolution.
+-   **RBAC & Security**: Secure JWT authentication with Google/GitHub OAuth support.
+-   **Background Queues**: Redis-backed asynchronous processing for complex AI tasks.
 
 ## 🛠️ Tech Stack
 
 ### Frontend
--   **Framework**: [Next.js 15](https://nextjs.org/) (App Router)
--   **Language**: TypeScript
--   **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
--   **UI Components**: [Radix UI](https://www.radix-ui.com/) (via [shadcn/ui](https://ui.shadcn.com/))
--   **Notifications**: [Sonner](https://sonner.emilkowal.ski/)
--   **Icons**: [Lucide React](https://lucide.dev/)
--   **Diagrams**: [Mermaid.js](https://mermaid.js.org/)
-
-## 📚 Documentation
-
--   [**Architecture & Design**](ARCHITECTURE.md): Deep dive into the system architecture, versioning strategy, and multi-model AI support.
--   [**Demo Walkthrough**](DEMO.md): Step-by-step guide to demonstrating the core features.
--   [**Backend Guide**](backend/README.md): Detailed backend setup and API documentation.
--   [**Frontend Guide**](frontend/README.md): Frontend specific features and components.
+-   **Core**: [Next.js 15](https://nextjs.org/) (App Router), TypeScript.
+-   **Styling**: [Tailwind CSS v4](https://tailwindcss.com/), Radix UI.
+-   **Visualization**: [Mermaid.js](https://mermaid.js.org/).
 
 ### Backend
--   **Runtime**: [Node.js](https://nodejs.org/)
--   **Framework**: [Express.js](https://expressjs.com/)
--   **Database**: [PostgreSQL](https://www.postgresql.org/)
--   **ORM**: [Prisma](https://www.prisma.io/)
--   **Authentication**: [JWT](https://jwt.io/), [Google OAuth](https://developers.google.com/identity/protocols/oauth2), [GitHub OAuth](https://docs.github.com/en/apps/oauth-apps)
--   **Security**: `helmet`, `express-rate-limit`, `express-validator`
--   **AI Integration**: [Google Gemini 2.5 Flash](https://ai.google.dev/) (via `@google/generative-ai`)
--   **Queueing**: [Bull](https://github.com/OptimalBits/bull) & [Redis](https://redis.io/) (Asynchronous Processing)
-
-## ✨ Features
-
--   **Requirement Extraction**: Automatically identifies and categorizes Functional and Non-Functional requirements.
--   **User Story Generation**: Creates standard user stories with "As a... I want to... So that..." format.
--   **Acceptance Criteria**: Defines clear success metrics for each user story.
--   **Code Generation**: Generates a full starter codebase (schema, routes, simple frontend) based on requirements.
--   **Visual Modeling**:
-    -   **Flowchart Diagrams**: Visualizes actors and their interactions with the system.
-    -   **Sequence Diagrams**: Shows the flow of logic and data between system components.
--   **Entity Recognition**: Identifies key data entities and their attributes.
--   **API Contract Proposal**: Suggests potential API endpoints based on the requirements.
--   **Export & Download**:
-    -   **SRS PDF**: standardized requirements document.
-    -   **Project Bundle**: Includes diagrams (PNG/SVG), API docs, and JSON data.
-    -   **Codebase Zip**: Download the AI-generated starter code.
--   **Security & Performance**:
-    -   Rate Limiting to prevent abuse.
-    -   Secure HTTP headers.
-    -   Robust input validation.
-    -   **Background Job Queue**: Handles heavy AI analysis tasks asynchronously using Redis.
--   **Versioning & History**:
-    -   **Smart Versioning System**:
-    -   **Iterative Refinement**: Chat with the AI to refine requirements, automatically creating new versions.
-    -   **Time Travel**: Browse the full history of your project analysis.
-    -   **Diff Views**: Compare versions to see exactly what changed.
--   **User System**:
-    -   Secure User Authentication (Register/Login).
-    -   Social Login (Google & GitHub).
-    -   Analysis History tracking.
+-   **Runtime**: [Node.js](https://nodejs.org/), [Express.js](https://expressjs.com/).
+-   **Data**: [PostgreSQL](https://www.postgresql.org/) + [Prisma ORM](https://www.prisma.io/).
+-   **Async**: [Bull](https://github.com/OptimalBits/bull) + [Redis](https://redis.io/).
+-   **AI**: [Google Gemini 2.5 Flash](https://ai.google.dev/).
 
 ## 🏁 Getting Started
 
