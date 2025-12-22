@@ -6,10 +6,10 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle2, AlertCircle } from "lucide-react"
+import { CheckCircle2 } from "lucide-react"
 
 interface AccordionInputProps {
-    data: any;
+    data: Record<string, unknown>;
     onUpdate: (section: string, field: string, value: string) => void;
     onValidate: () => void;
     isValidating: boolean;
@@ -18,12 +18,7 @@ interface AccordionInputProps {
 export function AccordionInput({ data, onUpdate, onValidate, isValidating }: AccordionInputProps) {
     const [openItem, setOpenItem] = useState("item-0")
 
-    // Helper to calculate progress
-    const getSectionStatus = (sectionKey: string) => {
-        // Simple check: are all required fields filled?
-        // This logic mimics IntakeContext but simplified for display
-        return "incomplete";
-    }
+    // Helper to calculate progress is TBD
 
     return (
         <div className="w-full max-w-4xl mx-auto space-y-6 pb-20">
@@ -34,7 +29,7 @@ export function AccordionInput({ data, onUpdate, onValidate, isValidating }: Acc
 
             <Accordion type="single" collapsible value={openItem} onValueChange={setOpenItem} className="w-full border rounded-lg bg-card">
                 {SRS_STRUCTURE.map((section, idx) => {
-                    const sectionData = data[section.key] || {};
+                    const sectionData = (data[section.key] as Record<string, { content: string }>) || {};
                     const isComplete = false; // TODO: Real check
 
                     return (

@@ -1,4 +1,4 @@
-import { SRSIntakeModel, DomainType } from '../types/srs-intake';
+import { type SRSIntakeModel, type DomainType, type IntakeField } from '../types/srs-intake';
 
 export interface SubsectionConfig {
     id: string; // e.g., "1.1"
@@ -282,7 +282,7 @@ export const SRS_STRUCTURE: SectionConfig[] = [
 // Initial State Factory
 export const createInitialIntakeState = (): SRSIntakeModel => {
     // Helper to create empty field
-    const field = (sec: string, sub: string, req: boolean): any => ({
+    const field = (sec: string, sub: string, req: boolean): IntakeField => ({
         content: '',
         metadata: {
             section_id: sec,

@@ -463,7 +463,7 @@ export const finalizeAnalysis = async (req, res, next) => {
         const signature = {
             domainTag: analysis.resultJson?.introduction?.scope?.slice(0, 50) || "General",
             featuresTag: analysis.resultJson?.systemFeatures?.map(f => f.name.slice(0, 30)) || [],
-            textHash: crypto.createHash('md5').update(analysis.inputText).digest('hex')
+            textHash: crypto.createHash('md5').update(analysis.inputText.trim()).digest('hex')
         };
 
         // 2. Update DB with Finalization

@@ -75,6 +75,13 @@ export interface AnalysisModels {
     dataFlowDiagram?: Diagram | string;
 }
 
+export interface ValidationIssue {
+    id: string;
+    severity: 'critical' | 'warning' | 'info';
+    message: string;
+    section?: string;
+}
+
 export interface Appendices {
     analysisModels: AnalysisModels;
     tbdList: string[];
@@ -101,7 +108,7 @@ export interface AnalysisResult {
         issues: string[]
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    generatedCode?: any
+    generatedCode?: Record<string, unknown> | null
 }
 
 export interface Analysis extends AnalysisResult {
@@ -110,6 +117,7 @@ export interface Analysis extends AnalysisResult {
     inputText?: string
     resultJson?: AnalysisResult
     version: number
+    isFinalized?: boolean
     title?: string
     createdAt: string
     rootId: string | null
@@ -117,17 +125,17 @@ export interface Analysis extends AnalysisResult {
     projectId?: string
     metadata?: {
         status?: 'DRAFT' | 'VALIDATING' | 'VALIDATED' | 'NEEDS_FIX' | 'COMPLETED'
-        draftData?: any
+        draftData?: Record<string, unknown> | null
         validationResult?: {
             timestamp: Date | string
-            issues: { id: string, severity: 'critical' | 'warning' | 'info', message: string, section?: string }[]
+            issues: ValidationIssue[]
         }
         trigger?: string
         source?: string
         optimized?: boolean
         reusedFrom?: string
-        promptSettings?: any
+        promptSettings?: Record<string, unknown> | null
     }
     reusedFrom?: string
-    promptSettings?: any
+    promptSettings?: Record<string, unknown> | null
 }
