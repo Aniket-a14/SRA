@@ -4,12 +4,12 @@ import React from 'react';
 import { useIntake } from '@/lib/intake-context';
 import { SRS_STRUCTURE, SubsectionConfig } from '@/lib/srs-structure';
 import { SubsectionInput } from './SubsectionInput';
+import { SystemFeatureItem } from '@/types/srs-intake';
 import { Button } from '../ui/button';
 import { Plus, Trash2, Box, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '../ui/card';
 import { Separator } from '../ui/separator';
 import { Textarea } from '../ui/textarea';
-import { toast } from 'sonner';
 
 export function SectionRenderer() {
     const {
@@ -18,9 +18,6 @@ export function SectionRenderer() {
         updateField,
         updateDomainType,
         addFeature,
-        removeFeature,
-        updateFeature,
-        expandFeature
     } = useIntake();
 
     const config = SRS_STRUCTURE[activeSectionIndex];
@@ -55,99 +52,14 @@ export function SectionRenderer() {
                     </div>
                 ) : (
                     <div className="space-y-6">
-                        {features.map((feature, index) => {
-                            const [isExpanded, setIsExpanded] = React.useState(false);
-
-                            return (
-                                <Card key={feature.id} className="relative group overflow-hidden border-l-4 border-l-primary">
-                                    <CardHeader className="bg-muted/20 pb-4">
-                                        <div className="flex items-start justify-between">
-                                            <div className="space-y-1 flex-1">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="bg-primary text-primary-foreground text-xs font-mono px-2 py-1 rounded">
-                                                        4.{index + 1}
-                                                    </span>
-                                                    <input
-                                                        className="bg-transparent text-xl font-bold border-none focus:outline-none focus:ring-0 w-full"
-                                                        value={feature.name}
-                                                        onChange={(e) => updateFeature(feature.id, 'name', e.target.value)}
-                                                        placeholder="Feature Name (e.g., Login System)"
-                                                    />
-                                                </div>
-                                            </div>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
-                                                onClick={() => removeFeature(feature.id)}
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </Button>
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent className="pt-6 space-y-6">
-                                        <div className="space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <label className="text-sm font-semibold tracking-tight">Feature Description (Plain Text)</label>
-                                                <Button
-                                                    size="sm"
-                                                    variant="secondary"
-                                                    className="h-8 gap-2 bg-primary/5 text-primary hover:bg-primary/10 border-primary/20"
-                                                    onClick={() => expandFeature(feature.id)}
-                                                >
-                                                    <Sparkles className="h-4 w-4" />
-                                                    Auto-Generate IEEE Details
-                                                </Button>
-                                            </div>
-                                            <Textarea
-                                                placeholder="What should this feature do? (e.g. Customers can browse books by category and author, add to cart, and checkout with Stripe.)"
-                                                className="min-h-[100px] bg-background border-dashed resize-none"
-                                                value={feature.rawInput || ""}
-                                                onChange={(e) => updateFeature(feature.id, 'rawInput', e.target.value)}
-                                            />
-                                            <p className="text-[10px] text-muted-foreground italic">
-                                                Tip: A short description here helps the AI generate precise technical requirements.
-                                            </p>
-                                        </div>
-
-                                        <Separator />
-
-                                        <div className="space-y-4">
-                                            <button
-                                                onClick={() => setIsExpanded(!isExpanded)}
-                                                className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground/60 hover:text-muted-foreground transition-colors"
-                                            >
-                                                {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                                                Structured IEEE Details {(!feature.description?.content) && "(Empty)"}
-                                            </button>
-
-                                            {isExpanded && (
-                                                <div className="space-y-6 animate-in fade-in slide-in-from-top-2">
-                                                    <SubsectionInput
-                                                        config={{ ...config.subsections[0], id: `4.${index + 1}.1`, title: 'Description & Priority', description: 'Detailed description of the feature and its priority.' } as SubsectionConfig}
-                                                        field={feature.description}
-                                                        onChange={(val) => updateFeature(feature.id, 'description', val)}
-                                                        onDomainChange={(d) => updateFeature(feature.id, 'description', d, true)}
-                                                    />
-                                                    <Separator />
-                                                    <SubsectionInput
-                                                        config={{ ...config.subsections[0], id: `4.${index + 1}.2`, title: 'Stimulus/Response Sequences', description: 'Trigger events and expected system responses.' } as SubsectionConfig}
-                                                        field={feature.stimulusResponse}
-                                                        onChange={(val) => updateFeature(feature.id, 'stimulusResponse', val)}
-                                                    />
-                                                    <Separator />
-                                                    <SubsectionInput
-                                                        config={{ ...config.subsections[0], id: `4.${index + 1}.3`, title: 'Functional Requirements', description: 'Specific functional checks and behaviors.' } as SubsectionConfig}
-                                                        field={feature.functionalRequirements}
-                                                        onChange={(val) => updateFeature(feature.id, 'functionalRequirements', val)}
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            );
-                        })}
+                        {features.map((feature, index) => (
+                            <FeatureCard
+                                key={feature.id}
+                                feature={feature}
+                                index={index}
+                                config={config}
+                            />
+                        ))}
                     </div>
                 )}
             </div>
@@ -186,4 +98,107 @@ export function SectionRenderer() {
             </div>
         </div>
     );
+}
+
+interface FeatureCardProps {
+    feature: SystemFeatureItem;
+    index: number;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    config: any;
+}
+
+function FeatureCard({ feature, index, config }: FeatureCardProps) {
+    const { updateFeature, removeFeature, expandFeature } = useIntake();
+    const [isExpanded, setIsExpanded] = React.useState(false);
+
+    return (
+        <Card className="relative group overflow-hidden border-l-4 border-l-primary">
+            <CardHeader className="bg-muted/20 pb-4">
+                <div className="flex items-start justify-between">
+                    <div className="space-y-1 flex-1">
+                        <div className="flex items-center gap-3">
+                            <span className="bg-primary text-primary-foreground text-xs font-mono px-2 py-1 rounded">
+                                4.{index + 1}
+                            </span>
+                            <input
+                                className="bg-transparent text-xl font-bold border-none focus:outline-none focus:ring-0 w-full"
+                                value={feature.name}
+                                onChange={(e) => updateFeature(feature.id, 'name', e.target.value)}
+                                placeholder="Feature Name (e.g., Login System)"
+                            />
+                        </div>
+                    </div>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
+                        onClick={() => removeFeature(feature.id)}
+                    >
+                        <Trash2 className="w-4 h-4" />
+                    </Button>
+                </div>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-6">
+                <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                        <label className="text-sm font-semibold tracking-tight">Feature Description (Plain Text)</label>
+                        <Button
+                            size="sm"
+                            variant="secondary"
+                            className="h-8 gap-2 bg-primary/5 text-primary hover:bg-primary/10 border-primary/20"
+                            onClick={() => expandFeature(feature.id)}
+                        >
+                            <Sparkles className="h-4 w-4" />
+                            Auto-Generate IEEE Details
+                        </Button>
+                    </div>
+                    <Textarea
+                        placeholder="What should this feature do? (e.g. Customers can browse books by category and author, add to cart, and checkout with Stripe.)"
+                        className="min-h-[100px] bg-background border-dashed resize-none"
+                        value={feature.rawInput || ""}
+                        onChange={(e) => updateFeature(feature.id, 'rawInput', e.target.value)}
+                    />
+                    <p className="text-[10px] text-muted-foreground italic">
+                        Tip: A short description here helps the AI generate precise technical requirements.
+                    </p>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                    <button
+                        onClick={() => setIsExpanded(!isExpanded)}
+                        className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+                    >
+                        {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        Structured IEEE Details {(!feature.description?.content) && "(Empty)"}
+                    </button>
+
+                    {isExpanded && (
+                        <div className="space-y-6 animate-in fade-in slide-in-from-top-2">
+                            <SubsectionInput
+                                config={{ ...config.subsections[0], id: `4.${index + 1}.1`, title: 'Description & Priority', description: 'Detailed description of the feature and its priority.' } as SubsectionConfig}
+                                field={feature.description}
+                                onChange={(val) => updateFeature(feature.id, 'description', val)}
+                                onDomainChange={(d) => updateFeature(feature.id, 'description', d, true)}
+                            />
+                            <Separator />
+                            <SubsectionInput
+                                config={{ ...config.subsections[0], id: `4.${index + 1}.2`, title: 'Stimulus/Response Sequences', description: 'Trigger events and expected system responses.' } as SubsectionConfig}
+                                field={feature.stimulusResponse}
+                                onChange={(val) => updateFeature(feature.id, 'stimulusResponse', val)}
+                            />
+                            <Separator />
+                            <SubsectionInput
+                                config={{ ...config.subsections[0], id: `4.${index + 1}.3`, title: 'Functional Requirements', description: 'Specific functional checks and behaviors.' } as SubsectionConfig}
+                                field={feature.functionalRequirements}
+                                onChange={(val) => updateFeature(feature.id, 'functionalRequirements', val)}
+                            />
+                        </div>
+                    )}
+                </div>
+            </CardContent>
+        </Card>
+    );
+
 }

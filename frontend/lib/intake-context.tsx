@@ -63,9 +63,9 @@ export const IntakeProvider = ({ children }: { children: ReactNode }) => {
 
     const updateField = (sectionKey: keyof SRSIntakeModel, fieldKey: string, value: string) => {
         setData(prev => {
+            const section = prev[sectionKey];
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const section = prev[sectionKey] as any;
-            const field = section[fieldKey] as IntakeField;
+            const field = (section as any)[fieldKey] as IntakeField;
 
             // Determine status
             const status = value.trim().length > 0 ? 'complete' : 'empty';
@@ -89,9 +89,9 @@ export const IntakeProvider = ({ children }: { children: ReactNode }) => {
 
     const updateDomainType = (sectionKey: keyof SRSIntakeModel, fieldKey: string, domain: DomainType) => {
         setData(prev => {
+            const section = prev[sectionKey];
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const section = prev[sectionKey] as any;
-            const field = section[fieldKey] as IntakeField;
+            const field = (section as any)[fieldKey] as IntakeField;
             return {
                 ...prev,
                 [sectionKey]: {
@@ -256,8 +256,9 @@ export const IntakeProvider = ({ children }: { children: ReactNode }) => {
         // Standard Sections
         return activeSectionConfig.subsections.every(sub => {
             if (!sub.isRequired) return true;
+            const section = data[activeSectionConfig.key as keyof SRSIntakeModel];
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const field = (data[activeSectionConfig.key] as any)[sub.key] as IntakeField;
+            const field = (section as any)[sub.key] as IntakeField;
             return field && field.content && field.content.trim().length > 0;
         });
     };

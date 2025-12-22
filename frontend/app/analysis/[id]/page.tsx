@@ -14,6 +14,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { generateSRS, generateAPI, downloadBundle } from "@/lib/export-utils"
 import { saveAs } from "file-saver"
 import type { Analysis, ValidationIssue } from "@/types/analysis"
+import { SRSIntakeModel, SystemFeatureItem } from "@/types/srs-intake"
 import { cn } from "@/lib/utils"
 import { VersionTimeline } from "@/components/version-timeline"
 import { toast } from "sonner"
@@ -44,7 +45,7 @@ function AnalysisDetailContent() {
     const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([]);
 
     // Draft State
-    const [draftData, setDraftData] = useState<Record<string, unknown> | null>(null)
+    const [draftData, setDraftData] = useState<SRSIntakeModel | null>(null)
 
     const fetchAnalysis = async (analysisId: string) => {
         try {
@@ -108,31 +109,34 @@ function AnalysisDetailContent() {
     }
 
     const handleDraftUpdate = useCallback((section: string, field: string, value: string) => {
-        setDraftData((prev) => {
-            const newData = prev ? { ...prev } : {};
+        setDraftData((prev: SRSIntakeModel | null) => {
+            const newData = (prev ? { ...prev } : {}) as Record<string, unknown>;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const sectionData = (newData as any)[section] || {};
             const fieldData = sectionData[field] || { content: "" };
 
             fieldData.content = value;
             sectionData[field] = fieldData;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (newData as any)[section] = sectionData;
 
-            return newData;
+            return newData as unknown as SRSIntakeModel;
         });
     }, []);
 
     const handleFeatureUpdate = useCallback((featureId: string, field: string, value: string) => {
-        setDraftData((prev: any) => {
+        setDraftData((prev: SRSIntakeModel | null) => {
             if (!prev) return prev;
             const newData = { ...prev };
             const sectionData = newData.systemFeatures || { features: [] };
-            sectionData.features = sectionData.features.map((f: any) => {
+            sectionData.features = sectionData.features.map((f: SystemFeatureItem) => {
                 if (f.id !== featureId) return f;
                 if (field === 'name') return { ...f, name: value };
                 if (field === 'rawInput') return { ...f, rawInput: value };
 
-                // For IntakeField updates (description, functionalRequirements)
-                const intakeField = f[field] || { content: '', metadata: {} };
+                // For IntakeField updates (description, functional Requirements)
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const intakeField = (f as any)[field] || { content: '', metadata: {} };
                 return {
                     ...f,
                     [field]: { ...intakeField, content: value, metadata: { ...intakeField.metadata, completion_status: value.trim() ? 'complete' : 'empty' } }
@@ -144,8 +148,8 @@ function AnalysisDetailContent() {
     }, []);
 
     const handleFeatureExpand = useCallback(async (featureId: string) => {
-        const features = (draftData as any)?.systemFeatures?.features || [];
-        const feature = features.find((f: any) => f.id === featureId);
+        const features = (draftData as unknown as SRSIntakeModel)?.systemFeatures?.features || [];
+        const feature = features.find((f: SystemFeatureItem) => f.id === featureId);
         if (!feature || !feature.name || !feature.rawInput) {
             toast.error("Please provide both a feature name and a description first.");
             return;
@@ -168,9 +172,10 @@ function AnalysisDetailContent() {
             if (!res.ok) throw new Error("Expansion failed");
             const expanded = await res.json();
 
-            setDraftData((prev: any) => {
+            setDraftData((prev: SRSIntakeModel | null) => {
+                if (!prev) return prev;
                 const newData = { ...prev };
-                newData.systemFeatures.features = newData.systemFeatures.features.map((f: any) => {
+                newData.systemFeatures.features = newData.systemFeatures.features.map((f: SystemFeatureItem) => {
                     if (f.id !== featureId) return f;
                     return {
                         ...f,
@@ -190,8 +195,9 @@ function AnalysisDetailContent() {
     }, [draftData, token]);
 
     const handleAddFeature = useCallback(() => {
-        setDraftData((prev: any) => {
-            const newData = prev ? { ...prev } : {};
+        setDraftData((prev: SRSIntakeModel | null) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const newData = (prev ? { ...prev } : {}) as any;
             const sectionData = newData.systemFeatures || { features: [] };
             const newFeature = {
                 id: crypto.randomUUID(),
@@ -203,16 +209,16 @@ function AnalysisDetailContent() {
             };
             sectionData.features = [...sectionData.features, newFeature];
             newData.systemFeatures = sectionData;
-            return newData;
+            return newData as unknown as SRSIntakeModel;
         });
     }, []);
 
     const handleRemoveFeature = useCallback((featureId: string) => {
-        setDraftData((prev: any) => {
+        setDraftData((prev: SRSIntakeModel | null) => {
             if (!prev) return prev;
             const newData = { ...prev };
             const sectionData = newData.systemFeatures || { features: [] };
-            sectionData.features = sectionData.features.filter((f: any) => f.id !== featureId);
+            sectionData.features = sectionData.features.filter((f: SystemFeatureItem) => f.id !== featureId);
             newData.systemFeatures = sectionData;
             return newData;
         });
@@ -388,7 +394,7 @@ function AnalysisDetailContent() {
                 </div>
                 <div className="flex-1 overflow-auto bg-muted/5 p-6">
                     <AccordionInput
-                        data={draftData || {}}
+                        data={(draftData as unknown as SRSIntakeModel) || {}}
                         onUpdate={handleDraftUpdate}
                         onFeatureUpdate={handleFeatureUpdate}
                         onAddFeature={handleAddFeature}

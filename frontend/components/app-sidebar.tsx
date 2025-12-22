@@ -11,7 +11,6 @@ import {
     Sparkles,
     Database,
     Lock,
-    ChevronRight,
     Folder
 } from "lucide-react"
 import { useLayer } from "@/lib/layer-context"

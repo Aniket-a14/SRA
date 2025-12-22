@@ -1231,7 +1231,8 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
 };
 
 // Keep other exports, maybe adjusting them if needed, but generateSRS is key.
-export const generateAPI = (_data: AnalysisResult) => {
+export const generateAPI = (data: AnalysisResult) => {
+    console.log("Generating API for", data.projectTitle);
     // API logic might need to check if existing apiContracts exist in new structure
     // This part is less critical for the specific user request about SRS PDF, but good compatibility to keep.
     // Using 'data' completely avoids the unused variable warning if we just log it or use it trivially, 

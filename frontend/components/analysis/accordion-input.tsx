@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { SRS_STRUCTURE } from "@/lib/srs-structure"
+import { SRSIntakeModel, SystemFeatureItem } from "@/types/srs-intake"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -9,7 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { CheckCircle2, Trash2, Sparkles, ChevronDown, ChevronUp } from "lucide-react"
 
 interface AccordionInputProps {
-    data: Record<string, any>;
+    data: SRSIntakeModel;
     onUpdate: (section: string, field: string, value: string) => void;
     onFeatureUpdate: (featureId: string, field: string, value: string) => void;
     onAddFeature: () => void;
@@ -45,17 +46,19 @@ export function AccordionInput({
 
             <Accordion type="single" collapsible value={openItem} onValueChange={setOpenItem} className="w-full border rounded-lg bg-card">
                 {SRS_STRUCTURE.map((section, idx) => {
-                    const sectionData = (data[section.key] as any) || {};
+                    const sectionData = data[section.key as keyof SRSIntakeModel];
                     const isComplete = section.subsections.every(sub => {
                         if (sub.inputType === 'textarea') {
-                            const val = sectionData[sub.key]?.content || "";
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            const val = (sectionData as any)[sub.key]?.content || "";
                             return !sub.isRequired || val.trim().length > 0;
                         } else {
                             // For features, we require at least one feature if it's required (for now assuming true)
                             // And each feature must have description and functional requirements
-                            const features = (sectionData.features as any[]) || [];
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            const features = (sectionData && 'features' in sectionData) ? (sectionData as any).features : [];
                             if (sub.isRequired && features.length === 0) return false;
-                            return features.every(f =>
+                            return (features as SystemFeatureItem[]).every((f: SystemFeatureItem) =>
                                 f.name.trim() &&
                                 f.description?.content?.trim() &&
                                 f.functionalRequirements?.content?.trim()
@@ -96,7 +99,8 @@ export function AccordionInput({
                                                 <Textarea
                                                     placeholder={sub.placeholder || "Enter details..."}
                                                     className="min-h-[120px] resize-none"
-                                                    value={sectionData[sub.key]?.content || ""}
+                                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                                    value={(sectionData as any)[sub.key]?.content || ""}
                                                     onChange={(e) => onUpdate(section.key, sub.key, e.target.value)}
                                                 />
 
@@ -114,7 +118,8 @@ export function AccordionInput({
                                     }
 
                                     // Dynamic List Implementation (Features)
-                                    const features = (sectionData.features as any[]) || [];
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                    const features = (sectionData && 'features' in sectionData) ? (sectionData as any).features : [];
                                     return (
                                         <div key={sub.id} className="space-y-4">
                                             <div className="flex items-center justify-between">
@@ -136,7 +141,7 @@ export function AccordionInput({
                                                 </div>
                                             ) : (
                                                 <div className="space-y-4">
-                                                    {features.map((feature, fIdx) => (
+                                                    {features.map((feature: SystemFeatureItem) => (
                                                         <div key={feature.id} className="p-4 border rounded-md bg-muted/10 space-y-4 relative group">
                                                             <div className="flex items-center justify-between gap-4 mr-8">
                                                                 <div className="flex-1 space-y-2">

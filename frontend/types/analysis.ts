@@ -107,7 +107,6 @@ export interface AnalysisResult {
         score: number
         issues: string[]
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     generatedCode?: Record<string, unknown> | null
 }
 

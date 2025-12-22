@@ -11,7 +11,7 @@ import { format } from "date-fns";
 import { Plus, Folder } from "lucide-react";
 
 export default function ProjectsPage() {
-    const { token, user } = useAuth();
+    const { token } = useAuth();
     const [projects, setProjects] = useState<Project[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);

@@ -1,4 +1,4 @@
-import { type SRSIntakeModel, type DomainType, type IntakeField } from '../types/srs-intake';
+import { type SRSIntakeModel, type IntakeField } from '../types/srs-intake';
 
 export interface SubsectionConfig {
     id: string; // e.g., "1.1"

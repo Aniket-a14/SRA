@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/alert-dialog"
 
 export default function ProjectDetailPage() {
-    const { token, user } = useAuth();
+    const { token } = useAuth();
     const params = useParams();
     const router = useRouter();
     const [project, setProject] = useState<Project | null>(null);

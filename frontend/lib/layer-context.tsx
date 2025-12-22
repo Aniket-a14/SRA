@@ -1,7 +1,6 @@
 "use client"
 
-import React, { createContext, useContext, useState, useEffect } from "react"
-import { useParams } from "next/navigation"
+import React, { createContext, useContext, useState } from "react"
 
 export type Layer = 1 | 2 | 3 | 4 | 5
 export type ValidationStatus = "pending" | "pass" | "fail" | "blocked"

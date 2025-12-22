@@ -1,6 +1,6 @@
 "use client"
 
-import { Check, Clock, CheckCircle2, ShieldCheck, Database } from "lucide-react"
+import { Check, Clock, ShieldCheck, Database } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface WorkflowPhasesProps {
