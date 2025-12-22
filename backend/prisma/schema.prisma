@@ -62,6 +62,9 @@ model Analysis {
   metadata    Json?    // Stores trigger, source, promptSettings
   createdAt   DateTime @default(now())
 
+  isFinalized Boolean @default(false)
+  vectorSignature Json? // Stores simplified embedding/keywords for reuse logic
+
   // Versioning Relations
   rootId      String?
   root        Analysis? @relation("AnalysisRoot", fields: [rootId], references: [id])
@@ -77,6 +80,7 @@ model Analysis {
   project     Project? @relation(fields: [projectId], references: [id])
 
   messages    ChatMessage[]
+  knowledgeChunks KnowledgeChunk[]
   
   @@index([userId])
   @@index([rootId])
@@ -109,4 +113,20 @@ model Project {
   analyses    Analysis[]
 
   @@index([userId])
+}
+
+model KnowledgeChunk {
+  id          String   @id @default(uuid())
+  type        String   // FEATURE, NFR_PERFORMANCE, NFR_SECURITY, INTRO, etc.
+  content     Json     // The actual reusable data (e.g. a single feature object)
+  hash        String   // Content hash for exact dedup
+  tags        String[] // Keywords for search
+  
+  sourceAnalysisId String
+  sourceAnalysis   Analysis @relation(fields: [sourceAnalysisId], references: [id])
+  
+  createdAt   DateTime @default(now())
+
+  @@index([type])
+  @@index([hash])
 }

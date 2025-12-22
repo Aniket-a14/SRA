@@ -31,9 +31,10 @@ interface VersionTimelineProps {
     rootId: string
     currentId: string
     className?: string
+    hideHeader?: boolean
 }
 
-export function VersionTimeline({ rootId, currentId, className }: VersionTimelineProps) {
+export function VersionTimeline({ rootId, currentId, className, hideHeader = false }: VersionTimelineProps) {
     const router = useRouter()
     const { token } = useAuth()
     const [history, setHistory] = useState<Version[]>([])
@@ -67,10 +68,12 @@ export function VersionTimeline({ rootId, currentId, className }: VersionTimelin
 
     return (
         <div className={cn("flex flex-col h-full border-l bg-muted/10", className)}>
-            <div className="p-4 border-b flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                <h3 className="font-semibold">Version History</h3>
-            </div>
+            {!hideHeader && (
+                <div className="p-4 border-b flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    <h3 className="font-semibold">Version History</h3>
+                </div>
+            )}
             <ScrollArea className="flex-1">
                 <div className="p-4 space-y-4">
                     {history.map((version, index) => {

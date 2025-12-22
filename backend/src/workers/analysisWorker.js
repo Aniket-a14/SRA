@@ -11,13 +11,13 @@ analysisQueue.on('error', (err) => {
 });
 
 analysisQueue.process(async (job) => {
-    const { userId, text, projectId, settings } = job.data;
+    const { userId, text, projectId, settings, parentId, rootId } = job.data;
 
 
     job.progress(10); // 10%
 
     try {
-        const result = await performAnalysis(userId, text, projectId, null, null, settings);
+        const result = await performAnalysis(userId, text, projectId, parentId, rootId, settings);
         job.progress(100);
         return result;
     } catch (error) {
