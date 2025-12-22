@@ -19,7 +19,7 @@ import { useRouter, usePathname, useParams } from "next/navigation"
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 
-interface AppSidebarProps extends React.HTMLAttributes<HTMLDivElement> { }
+type AppSidebarProps = React.HTMLAttributes<HTMLDivElement>
 
 export function AppSidebar({ className }: AppSidebarProps) {
     const { currentLayer, setLayer, isLayerLocked, maxAllowedLayer } = useLayer()
@@ -27,7 +27,7 @@ export function AppSidebar({ className }: AppSidebarProps) {
     const pathname = usePathname()
     const params = useParams()
     const { token } = useAuth()
-    const [projects, setProjects] = useState<any[]>([])
+    const [projects, setProjects] = useState<{ id: string, name: string }[]>([])
 
     const analysisId = params?.id
 
@@ -105,7 +105,7 @@ export function AppSidebar({ className }: AppSidebarProps) {
                                             isActive && "bg-primary/10 text-primary hover:bg-primary/15"
                                         )}
                                         disabled={isLocked}
-                                        onClick={() => !isLocked && setLayer(layer.id as any)}
+                                        onClick={() => !isLocked && setLayer(layer.id as 1 | 2 | 3 | 4 | 5)}
                                     >
                                         {/* Connector Line */}
                                         <div className="absolute left-4 top-0 bottom-0 w-px bg-border group-last:bottom-1/2"></div>

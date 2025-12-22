@@ -13,7 +13,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { generateSRS, generateAPI, downloadBundle } from "@/lib/export-utils"
 import { saveAs } from "file-saver"
-import type { Analysis } from "@/types/analysis"
+import type { Analysis, ValidationIssue } from "@/types/analysis"
 import { cn } from "@/lib/utils"
 import { VersionTimeline } from "@/components/version-timeline"
 import { toast } from "sonner"
@@ -31,7 +31,7 @@ function AnalysisDetailContent() {
     const id = params?.id as string
     const router = useRouter()
     const { user, token, isLoading: authLoading } = useAuth()
-    const { setLayer, updateValidationStatus, unlockAndNavigate } = useLayer()
+    const { unlockAndNavigate } = useLayer()
 
     const [analysis, setAnalysis] = useState<Analysis | null>(null)
     const [isLoading, setIsLoading] = useState(true)
@@ -41,10 +41,10 @@ function AnalysisDetailContent() {
     const [isImproveDialogOpen, setIsImproveDialogOpen] = useState(false)
     const [isFinalizing, setIsFinalizing] = useState(false)
     const [isValidating, setIsValidating] = useState(false)
-    const [validationIssues, setValidationIssues] = useState<any[]>([]);
+    const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([]);
 
     // Draft State
-    const [draftData, setDraftData] = useState<any>(null)
+    const [draftData, setDraftData] = useState<Record<string, unknown> | null>(null)
 
     const fetchAnalysis = async (analysisId: string) => {
         try {
@@ -100,6 +100,7 @@ function AnalysisDetailContent() {
         if (user && token && id) {
             fetchAnalysis(id)
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, token, id, authLoading, router])
 
     const handleRefresh = () => {
@@ -107,11 +108,15 @@ function AnalysisDetailContent() {
     }
 
     const handleDraftUpdate = useCallback((section: string, field: string, value: string) => {
-        setDraftData((prev: any) => {
-            const newData = { ...prev };
-            if (!newData[section]) newData[section] = {};
-            if (!newData[section][field]) newData[section][field] = {};
-            newData[section][field].content = value;
+        setDraftData((prev) => {
+            const newData = prev ? { ...prev } : {};
+            const sectionData = (newData as Record<string, Record<string, { content: string }>>)[section] || {};
+            const fieldData = sectionData[field] || { content: "" };
+
+            fieldData.content = value;
+            sectionData[field] = fieldData;
+            (newData as Record<string, Record<string, { content: string }>>)[section] = sectionData;
+
             return newData;
         });
     }, []);
@@ -121,7 +126,7 @@ function AnalysisDetailContent() {
         try {
             toast.success("Draft saved locally");
             // Add backend PUT logic if needed
-        } catch (e) { toast.error("Failed to save draft"); }
+        } catch { toast.error("Failed to save draft"); }
     }
 
     const handleRunValidation = async () => {
@@ -137,7 +142,7 @@ function AnalysisDetailContent() {
             setValidationIssues(result.issues || []);
             handleRefresh();
             toast.success("Validation Complete");
-        } catch (e) {
+        } catch {
             toast.error("Failed to run validation");
         } finally {
             setIsValidating(false);
@@ -168,6 +173,7 @@ function AnalysisDetailContent() {
             router.push(`/analysis/${result.id}`);
 
         } catch (e) {
+            console.error("Failed to proceed to analysis", e);
             toast.error("Failed to proceed to analysis");
         }
     }
@@ -185,7 +191,9 @@ function AnalysisDetailContent() {
                 })
             });
             handleRefresh();
-        } catch (e) { }
+        } catch (e) {
+            console.error("Failed to reset draft status", e);
+        }
     }
 
     const handleFinalize = async () => {
@@ -202,7 +210,8 @@ function AnalysisDetailContent() {
             } else {
                 throw new Error("Failed to finalize");
             }
-        } catch (error) {
+        } catch (err) {
+            console.error("Could not finalize SRS", err);
             toast.error("Could not finalize SRS");
         } finally {
             setIsFinalizing(false);
@@ -305,7 +314,7 @@ function AnalysisDetailContent() {
                                             </span>
                                         )}
 
-                                        {(analysis as any)?.metadata?.optimized && (
+                                        {analysis?.metadata?.optimized && (
                                             <span className="hidden sm:inline-flex px-2 py-0.5 bg-green-500/10 text-green-600 text-xs rounded-full border border-green-200 items-center gap-1">
                                                 <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
                                                 KB Optimized
@@ -368,17 +377,17 @@ function AnalysisDetailContent() {
                                     {/* Layer 5: Finalize */}
                                     <Button
                                         onClick={handleFinalize}
-                                        variant={((analysis as any)?.isFinalized) ? "outline" : "default"}
+                                        variant={(analysis?.isFinalized) ? "outline" : "default"}
                                         className={cn(
                                             "gap-2 transition-all",
-                                            ((analysis as any)?.isFinalized)
+                                            (analysis?.isFinalized)
                                                 ? "border-green-500/30 text-green-600 bg-green-500/5 hover:bg-green-500/10"
                                                 : "bg-primary hover:bg-primary/90"
                                         )}
-                                        disabled={isFinalizing || (analysis as any)?.isFinalized}
+                                        disabled={isFinalizing || analysis?.isFinalized}
                                     >
                                         {isFinalizing ? <Loader2 className="h-4 w-4 animate-spin" /> :
-                                            (analysis as any)?.isFinalized ? (
+                                            analysis?.isFinalized ? (
                                                 <>
                                                     <Database className="h-4 w-4" />
                                                     Finalized

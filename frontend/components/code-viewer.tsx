@@ -14,7 +14,7 @@ interface FileNode {
     code?: string
 }
 
-interface CodeViewerProps {
+export interface CodeViewerProps {
     fileStructure: FileNode[]
     schema: string
     backendRoutes: { path: string, code: string }[]

@@ -132,7 +132,7 @@ export function ChatInput({ onAnalyze, isLoading, initialSettings }: ChatInputPr
                   </div>
                   <div className="flex-1">
                     <p className="text-sm text-muted-foreground mb-3">
-                      Hello! I can help you build a professional IEEE-830 SRS. Start by describing your project goal, and we'll refine it layer by layer through our 5-stage pipeline.
+                      Hello! I can help you build a professional IEEE-830 SRS. Start by describing your project goal, and we&apos;ll refine it layer by layer through our 5-stage pipeline.
                     </p>
                   </div>
                 </div>

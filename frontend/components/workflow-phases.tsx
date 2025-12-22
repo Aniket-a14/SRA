@@ -1,6 +1,6 @@
 "use client"
 
-import { Check, Circle, Clock, CheckCircle2, ShieldCheck, Database } from "lucide-react"
+import { Check, Clock, CheckCircle2, ShieldCheck, Database } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface WorkflowPhasesProps {
@@ -8,7 +8,7 @@ interface WorkflowPhasesProps {
     qualityScore?: number
 }
 
-export function WorkflowPhases({ status, qualityScore }: WorkflowPhasesProps) {
+export function WorkflowPhases({ status }: WorkflowPhasesProps) {
     const steps = [
         {
             id: 'draft',

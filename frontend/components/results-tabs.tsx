@@ -12,7 +12,7 @@ import { DiagramEditor } from "@/components/diagram-editor"
 import { useAuth } from "@/lib/auth-context"
 import { Progress } from "@/components/ui/progress"
 import { useParams, useRouter } from "next/navigation"
-import { CodeViewer } from "@/components/code-viewer"
+import { CodeViewer, type CodeViewerProps } from "@/components/code-viewer"
 import { toast } from "sonner"
 import { FeatureDisplay } from "@/components/feature-display"
 import { KVDisplay } from "@/components/kv-display"
@@ -78,7 +78,7 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const updateSection = (section: keyof AnalysisResult, value: any) => {
+  const updateSection = (section: keyof AnalysisResult, value: unknown) => {
     if (!editedData) return
     setEditedData(prev => prev ? ({ ...prev, [section]: value }) : null)
   }
@@ -106,7 +106,7 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
   }, [])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [generatedCode, setGeneratedCode] = useState<any>(data?.generatedCode || null)
+  const [generatedCode, setGeneratedCode] = useState<CodeViewerProps | null>((data?.generatedCode as unknown as CodeViewerProps) || null)
 
   if (!data) {
     return null
@@ -186,14 +186,14 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                 <KVDisplay
                   title="1. Introduction"
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  data={introduction as unknown as Record<string, any>}
+                  data={introduction as unknown as Record<string, unknown>}
                   isEditing={isEditing}
                   onUpdate={(val) => updateSection('introduction', val)}
                 />
                 <KVDisplay
                   title="2. Overall Description"
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  data={overallDescription as unknown as Record<string, any>}
+                  data={overallDescription as unknown as Record<string, unknown>}
                   isEditing={isEditing}
                   onUpdate={(val) => updateSection('overallDescription', val)}
                 />
@@ -258,7 +258,7 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
               <KVDisplay
                 title="External Interface Requirements"
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                data={externalInterfaceRequirements as unknown as Record<string, any>}
+                data={externalInterfaceRequirements as unknown as Record<string, unknown>}
                 isEditing={isEditing}
                 onUpdate={(val) => updateSection('externalInterfaceRequirements', val)}
               />
@@ -269,7 +269,7 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
               <KVDisplay
                 title="Non-Functional Requirements"
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                data={nonFunctionalRequirements as unknown as Record<string, any>}
+                data={nonFunctionalRequirements as unknown as Record<string, unknown>}
                 projectTitle={data.projectTitle}
                 isEditing={isEditing}
                 onUpdate={(val) => updateSection('nonFunctionalRequirements', val)}
