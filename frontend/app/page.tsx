@@ -91,6 +91,7 @@ function HomeContent() {
   const handleAnalyze = async (requirements: string, settings: PromptSettings) => {
     setIsLoading(true)
     try {
+      // LAYER 1 TRANSITION: Create Draft instead of immediate analysis
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, {
         method: "POST",
         headers: {
@@ -98,58 +99,38 @@ function HomeContent() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          text: requirements,
+          // Map single input to Draft Data
+          srsData: {
+            introduction: {
+              purpose: { content: requirements }
+            }
+          },
           projectId: projectId || undefined,
-          settings: settings || undefined
+          settings: settings || undefined,
+          draft: true // Signal to backend to create draft only
         }),
       })
 
       if (!response.ok) {
-        throw new Error("Analysis failed")
+        throw new Error("Failed to start project")
       }
 
       const data = await response.json()
 
-      // Handle Async Job Queue
-      if (response.status === 202 && data.jobId) {
-        toast.info("Analysis queued. Please wait...");
-        // Poll for completion
-        const poll = async () => {
-          const statusRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/job/${data.jobId}`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          const statusData = await statusRes.json();
-
-          if (statusData.state === 'completed' && statusData.result) {
-            setAnalysisResult(statusData.result.resultJson);
-            toast.success("Analysis complete!");
-            setIsLoading(false);
-            // Scroll to results
-            document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth' });
-
-            // If in project mode, redirect back to project after short delay or show option
-            if (projectId) {
-              toast.success(`Saved to project: ${projectName}`);
-            }
-
-          } else if (statusData.state === 'failed') {
-            setIsLoading(false);
-            toast.error(`Analysis failed: ${statusData.error}`);
-          } else {
-            // Continue polling
-            setTimeout(poll, 2000);
-          }
-        };
-        poll();
-      } else {
-        // Fallback for synchronous (should not happen with new backend)
-        setAnalysisResult(data.result);
-        setIsLoading(false);
+      // Redirect to Layer 1 (Input Phase)
+      if (data.status === 'draft' && data.id) {
+        toast.success("Project initialized! Proceeding to Structured Input.");
+        router.push(`/analysis/${data.id}`);
+        return;
       }
+
+      // Fallback for unexpected states (should not reach here with draft:true)
+      setAnalysisResult(data.result);
+
     } catch (error) {
-      console.error("Error analyzing requirements:", error)
+      console.error("Error starting project:", error)
       const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred"
-      router.push(`/error?message=${encodeURIComponent(errorMessage)}`)
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false)
     }

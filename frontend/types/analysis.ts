@@ -1,3 +1,4 @@
+
 export interface RevisionHistoryItem {
     version: string;
     date: string;
@@ -106,11 +107,27 @@ export interface AnalysisResult {
 export interface Analysis extends AnalysisResult {
     id: string
     userId: string
-    inputText: string
+    inputText?: string
     resultJson?: AnalysisResult
     version: number
     title?: string
     createdAt: string
     rootId: string | null
     parentId: string | null
+    projectId?: string
+    metadata?: {
+        status?: 'DRAFT' | 'VALIDATING' | 'VALIDATED' | 'NEEDS_FIX' | 'COMPLETED'
+        draftData?: any
+        validationResult?: {
+            timestamp: Date | string
+            issues: { id: string, severity: 'critical' | 'warning' | 'info', message: string, section?: string }[]
+        }
+        trigger?: string
+        source?: string
+        optimized?: boolean
+        reusedFrom?: string
+        promptSettings?: any
+    }
+    reusedFrom?: string
+    promptSettings?: any
 }

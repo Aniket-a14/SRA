@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit';
 import authRoutes from './routes/authRoutes.js';
 import analysisRoutes from './routes/analysisRoutes.js';
 import projectRoutes from './routes/projectRoutes.js';
+import validationRoutes from './routes/validationRoutes.js';
 import aiEndpoint from './routes/aiEndpoint.js';
 import { errorHandler } from './middleware/errorMiddleware.js';
 import { logger } from './middleware/logger.js';
@@ -35,7 +36,7 @@ app.use(cors({
     credentials: true,
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // Increase limit for large SRS data
 app.use(cookieParser());
 app.use(logger);
 
@@ -54,6 +55,7 @@ app.use('/internal/analyze', aiEndpoint);
 app.use(['/auth', '/api/auth'], authRoutes);
 app.use(['/analyze', '/api/analyze'], analysisRoutes);
 app.use(['/projects', '/api/projects'], projectRoutes);
+app.use(['/validation', '/api/validation'], validationRoutes);
 
 
 // Error Handler

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
-import { Navbar } from "@/components/navbar"
+
 import { AnalysisHistory } from "@/components/analysis-history"
 import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
@@ -50,35 +50,27 @@ export default function AnalysisPage() {
 
     if (authLoading || isLoading) {
         return (
-            <div className="min-h-screen flex flex-col">
-                <Navbar />
-                <main className="flex-1 flex items-center justify-center">
-                    <div className="flex flex-col items-center gap-4">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        <p className="text-muted-foreground">Loading your analyses...</p>
-                    </div>
-                </main>
+            <div className="h-full flex flex-col items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="text-muted-foreground">Loading your analyses...</p>
+                </div>
             </div>
         )
     }
 
     return (
-        <div className="min-h-screen flex flex-col">
-            <Navbar />
-            <main className="flex-1 container mx-auto px-4 sm:px-6 py-12">
-                <div className="max-w-5xl mx-auto space-y-8">
-                    <div className="flex flex-col gap-2">
-                        <h1 className="text-3xl font-bold tracking-tight">My Analysis</h1>
-                        <p className="text-muted-foreground">
-                            View and manage your previous requirements analyses.
-                        </p>
-                    </div>
-
-                    {/* Optimized render: Removed inline error div as we use Toast now */}
-                    <AnalysisHistory items={history} />
+        <div className="h-full flex flex-col container mx-auto px-4 sm:px-6 py-12">
+            <div className="max-w-5xl mx-auto space-y-8 w-full">
+                <div className="flex flex-col gap-2">
+                    <h1 className="text-3xl font-bold tracking-tight">My Analysis</h1>
+                    <p className="text-muted-foreground">
+                        View and manage your previous requirements analyses.
+                    </p>
                 </div>
-            </main>
 
+                <AnalysisHistory items={history} />
+            </div>
         </div>
     )
 }

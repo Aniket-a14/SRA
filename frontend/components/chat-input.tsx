@@ -117,9 +117,9 @@ export function ChatInput({ onAnalyze, isLoading, initialSettings }: ChatInputPr
       <div className="container mx-auto px-4 sm:px-6">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-8 animate-on-scroll opacity-0">
-            <h2 className="text-xl sm:text-2xl font-semibold mb-2">Start Analyzing</h2>
+            <h2 className="text-xl sm:text-2xl font-semibold mb-2">Create New Project</h2>
             <p className="text-muted-foreground text-sm sm:text-base">
-              Paste your requirements below and let AI do the heavy lifting
+              Describe your project vision to get started with the Structured Analysis Pipeline.
             </p>
           </div>
 
@@ -132,8 +132,7 @@ export function ChatInput({ onAnalyze, isLoading, initialSettings }: ChatInputPr
                   </div>
                   <div className="flex-1">
                     <p className="text-sm text-muted-foreground mb-3">
-                      Hello! I can help you analyze requirements. Paste your project requirements and I&apos;ll extract
-                      functional specs, user stories, entities, and more.
+                      Hello! I can help you build a professional IEEE-830 SRS. Start by describing your project goal, and we'll refine it layer by layer through our 5-stage pipeline.
                     </p>
                   </div>
                 </div>
@@ -148,7 +147,7 @@ export function ChatInput({ onAnalyze, isLoading, initialSettings }: ChatInputPr
                   <PopoverContent className="w-80 p-4" align="end">
                     <div className="space-y-4">
                       <h4 className="font-medium leading-none flex items-center gap-2">
-                        <Settings2 className="h-4 w-4 text-primary" /> Analysis Settings
+                        <Settings2 className="h-4 w-4 text-primary" /> Project Settings
                       </h4>
                       <p className="text-xs text-muted-foreground">Customize how the AI analyzes your requirements.</p>
 
@@ -240,7 +239,7 @@ export function ChatInput({ onAnalyze, isLoading, initialSettings }: ChatInputPr
 
               <div className="relative group">
                 <Textarea
-                  placeholder={`Paste your requirements here... (Using ${PROFILES.find(p => p.value === settings.profile)?.label.split('(')[0].trim()} Profile)`}
+                  placeholder="Describe your project vision here... (e.g. 'A telemedicine app for elderly patients with AI diagnostics')"
                   className="min-h-[120px] sm:min-h-[140px] resize-none bg-secondary border-0 pr-12 text-sm placeholder:text-muted-foreground/60 transition-all duration-300 focus:ring-2 focus:ring-primary/50"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
@@ -251,7 +250,7 @@ export function ChatInput({ onAnalyze, isLoading, initialSettings }: ChatInputPr
 
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <p className="text-xs text-muted-foreground order-2 sm:order-1">
-                  Press Enter to send, Shift+Enter for new line
+                  Press Enter to start, moving to Layer 1 (Input)
                 </p>
                 <Button
                   className="gap-2 bg-primary hover:bg-primary/90 w-full sm:w-auto order-1 sm:order-2 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-primary/25"
@@ -259,7 +258,7 @@ export function ChatInput({ onAnalyze, isLoading, initialSettings }: ChatInputPr
                   disabled={isLoading || !input.trim()}
                 >
                   <Sparkles className="h-4 w-4" />
-                  {isLoading ? "Analyzing..." : "Analyze Requirements"}
+                  {isLoading ? "Starting..." : "Start Project"}
                 </Button>
               </div>
             </div>

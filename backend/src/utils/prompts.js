@@ -47,6 +47,25 @@ ${personaInstruction}
 DETAIL LEVEL: ${detailLevel}
 ${creativityInstruction}
 
+*** LAYER 3 INTEGRATION INSTRUCTION ***
+The "User Input" below may be a structured JSON object (from Layer 1 Intake).
+IF the input is JSON:
+1.  **TRUST THE CONTENT**: The input is already validated. Do not filter it. Use it as the ground truth for the respective sections.
+2.  **MAP EXACTLY**: 
+    - Input 'purpose' -> Output 'introduction.purpose'
+    - Input 'scope' -> Output 'introduction.productScope'
+    - Input 'features' -> Output 'systemFeatures'
+    - etc.
+3.  **GENERATE MISSING ARTIFACTS**: You MUST generate the following based on the context of the input:
+    - 1.2 Document Conventions (Standard IEEE conventions)
+    - 1.3 Intended Audience (Infer from User Classes)
+    - 1.5 References (Standard placeholders if none provided)
+    - 2.4 Operating Environment (Infer from context, e.g. "Web" -> Browsers)
+    - Appendix A: Glossary (Extract terms)
+    - Appendix B: Analysis Models (Generate Mermaid diagrams based on the logic)
+    - Appendix C: TBD List (If any)
+4.  **FORMATTING**: Apply the strict IEEE formatting rules below to the raw input content (e.g. converting raw lists to narrative prose where required).
+
 *** CRITICAL INSTRUCTION: IEEE SRS FORMATTING & DISCIPLINE ***
 You must adhere to the following strict formatting rules. ANY violation will render the output invalid.
 

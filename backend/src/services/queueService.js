@@ -22,12 +22,14 @@ export const analysisQueue = new Queue('analysis-queue', redisUrl, queueConfig |
 
 console.log(`✅ Using Redis Queue: ${redisUrl?.includes('upstash') ? 'Upstash Cloud' : 'Local/Other'}`);
 
-export const addAnalysisJob = async (userId, text, projectId, settings) => {
+export const addAnalysisJob = async (userId, text, projectId, settings, parentId = null, rootId = null) => {
     const job = await analysisQueue.add({
         userId,
         text,
         projectId,
-        settings
+        settings,
+        parentId,
+        rootId
     }, {
         attempts: 2,
         backoff: 5000,
