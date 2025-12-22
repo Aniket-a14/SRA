@@ -6,8 +6,8 @@ The SRA (Smart Requirements Analyst) system is a modern, event-driven ecosystem 
 
 ```mermaid
 graph TD
-    User[User] -->|Interacts| Client[Frontend (Next.js 15)]
-    Client -->|REST API| API[Backend API (Express)]
+    User[User] -->|Interacts| Client["Frontend (Next.js 15)"]
+    Client["Frontend (Next.js 15)"] -->|REST API| API["Backend API (Express)"]
     
     subgraph "Orchestration Layer"
         API -->|Auth| Auth[Auth Service]
