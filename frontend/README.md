@@ -1,104 +1,64 @@
-# SRA Frontend
+# SRA Frontend: Modern SRS Workspace
 
-The frontend interface for the Software Requirements Analyst (SRA) system. Built with Next.js 15, it provides a modern, interactive dashboard for generating and viewing software requirements, now with enhanced security and social login features.
+The SRA Frontend is a premium, type-safe Next.js 15 application designed to visualize and refine complex software requirements using a state-of-the-art interactive workspace.
 
-## 🛠️ Tech Stack
+## 💎 Design Philosophy & Standards
 
-- **Framework**: [Next.js 15](https://nextjs.org/) (App Router)
-- **Language**: TypeScript
+The frontend emphasizes **Visual Excellence** and **Absolute Type Safety**, ensuring a robust developer experience and a professional user interface.
+
+- **Zero-Error Standard**: The project maintains 100% clean linting (Zero errors, zero warnings in critical paths).
+- **Strict Typing**: Generic `any` types have been systematically replaced with precise interfaces derived from the backend's `SRSIntakeModel` and `Analysis` schemas.
+- **Responsive Aesthetics**: built with Tailwind CSS v4 and Framer Motion for fluid, high-fidelity transitions.
+
+## 🛠️ Feature Breakdown
+
+### The Analysis Workspace
+The core of the application, orchestrating complex state across multiple tabs:
+- **`ResultsTabs`**: The main container managing synchronization between Diagrams, User Stories, and Appendix items.
+- **`KVDisplay`**: A modular component for rendering and editing key-value requirement pairs with auto-generated IDs.
+- **`MermaidViewer`**: Client-side rendering and high-res export of system diagrams.
+
+### SRS Versioning & Diffing
+- **Visual Versioning**: Browse the project lineage via a dedicated timeline sidebar.
+- **Requirement Diffing**: Instant visual feedback of what changed between AI refinement cycles.
+
+### Quality Audit Dashboard
+Integrated directly into the workspace, providing real-time Feedback on:
+- Requirement clarity/vagueness.
+- Technical completeness.
+- Architectural consistency.
+
+## 🚀 Tech Stack
+
+- **Framework**: [Next.js 15 (App Router)](https://nextjs.org/)
+- **Logic**: TypeScript (Strict Mode)
 - **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
-- **Components**: [Shadcn/ui](https://ui.shadcn.com/) (Radix UI)
-- **Notifications**: [Sonner](https://sonner.emilkowal.ski/)
-- **Visuals**: Framer Motion (Animations), Lucide React (Icons), Mermaid.js (Diagrams)
-- **Utilities**: `jspdf` (PDF Generation), `jszip` (Bundling), `html-to-image` (Diagram Export)
+- **UI primitives**: [Radix UI](https://www.radix-ui.com/)
+- **Visuals**: [Mermaid.js](https://mermaid.js.org/) & [Lucide](https://lucide.dev/)
 
-## ✨ Features
-
-- **Project Dashboard**: Central hub for managing analyses.
-- **Interactive Version Control**:
-  - **Version Timeline**: Sidebar navigation to browse past iterations of your analysis.
-  - **Visual Diff Viewer**: See what changed between versions (Added/Removed/Modified Requirements).
-- **Persistent AI Chat**:
-  - **Context Retention**: Chat history "follows" you across versions.
-  - **Smart Commands**: Ask for specific component updates (e.g., "Add a login button").
-- **Detailed Results View**:
-  - **Overview Tab**: Dashboard with identified entities, missing logic warnings, and contradiction alerts.
-  - **Requirements**: Functional & Non-functional lists.
-  - **User Stories**: Agile-ready stories with acceptance criteria.
-  - **Diagrams**: Interactive **Mermaid Editor** for Flowcharts and Sequence diagrams.
-  - **Quality Audit**: Dedicated tab for quality scoring and specific improvement suggestions.
-  - **API Specs**: Proposed API contracts.
-  - **Generated Code**: Syntax-highlighted code explorer with regeneration options.
-- **Export & Share**:
-    - **Download Bundle**: Zip file with all assets (PDF, JSON).
-    - **Image Export**: Convert diagrams to high-res PNGs via `html-to-image`.
-    - **Codebase Export**: Download the generated project code.
-- **Analysis History**: Full version history UI to browse and revert changes.
-- **Authentication**:
-  - Email/Password.
-  - **Social Login**: Google and GitHub.
-- **User Experience**:
-  - **Dark Mode**: Fully themed UI.
-  - **Animations**: Scroll animations and fluid transitions.
-  - **Enhanced Feedback**: User-friendly error messages and descriptive loading states.
-  - Global Toast Notifications (Success/Error).
-  - Responsive, beautiful UI.
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- Backend running on port 3000 (default)
-
-### Installation
-
-1.  **Install dependencies**:
-    ```bash
-    cd frontend
-    npm install
-    ```
-
-2.  **Environment Setup**:
-    Create a `.env.local` file:
-
-    ```env
-    NEXT_PUBLIC_BACKEND_URL=http://localhost:3000/api
-    ```
-    *(Note: The backend supports `http://localhost:3000/api` or `http://localhost:3000`)*
-
-3.  **Start Development Server**:
-    ```bash
-    npm run dev
-    ```
-
-    The app will be available at [http://localhost:3001](http://localhost:3001).
-
-## 📂 Project Structure
+## 📂 Architecture
 
 ```
 frontend/
-├── app/              # Next.js App Router pages
-│   ├── (auth)/       # Login, Signup (with Social Auth)
-│   ├── analysis/     # Analysis Results & History
-│   ├── error/        # Error handling pages
-│   └── page.tsx      # Landing page
-├── components/       # React components
-│   ├── ui/           # Reusable UI primitives (Shadcn)
-│   ├── ...           # Feature components (Navbar, Hero, etc.)
-├── lib/              # Utilities (Auth context, API helpers)
-└── package.json
+├── app/analysis/     # Core Workspace & Logic
+├── components/
+│   ├── ui/           # Design System primitives (Shadcn/Tailwind v4)
+│   ├── analysis/     # Specialized workspace components
+├── lib/
+│   ├── auth-context  # Social & JWT Session Mgmt
+│   ├── projects-api  # Type-safe API client
+├── types/
+│   ├── analysis.ts   # Shared Analysis & SRS definitions
 ```
 
-## 🔒 Security
+## 🏁 Getting Started
 
-- **Secure Auth**: Token-based authentication integration.
-- **Protected Routes**: Middleware protects dashboard and analysis pages.
-- **Input Handling**: Clean interfaces that respect backend validation limits.
+1. `cd frontend && npm install`
+2. Create `.env.local`: `NEXT_PUBLIC_BACKEND_URL=http://localhost:3000/api`
+3. `npm run dev`
 
-## 🤝 Contributing
-
-Run the linter before pushing changes:
+All production-ready code must pass the build and lint checks:
 ```bash
 npm run lint
+npm run build
 ```
