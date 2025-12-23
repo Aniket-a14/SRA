@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Calendar, ArrowRight, FileText } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { cleanInputText } from "@/lib/utils"
+import { toast } from "sonner"
 
 interface AnalysisHistoryItem {
     id: string
@@ -41,9 +42,15 @@ export function AnalysisHistory({ items }: AnalysisHistoryProps) {
         <div className="relative border-l-2 border-muted ml-3 md:ml-6 space-y-8 pl-6 md:pl-10 py-4">
             {items.map((item) => (
                 <div
-                    key={item.id}
+                    key={item.id || Math.random()}
                     className="relative group cursor-pointer"
-                    onClick={() => router.push(`/analysis/${item.id}`)}
+                    onClick={() => {
+                        if (item.id && item.id !== 'undefined') {
+                            router.push(`/analysis/${item.id}`)
+                        } else {
+                            toast.error("Analysis ID is invalid");
+                        }
+                    }}
                 >
                     {/* Timeline Dot */}
                     <span className="absolute -left-[31px] md:-left-[47px] top-5 h-4 w-4 rounded-full border-2 border-primary bg-background group-hover:bg-primary transition-colors duration-300" />
