@@ -136,8 +136,11 @@ function AnalysisDetailContent() {
             return
         }
 
-        if (id) {
+        if (id && id !== 'undefined') {
             fetchAnalysis(id)
+        } else if (id === 'undefined') {
+            setError("Invalid Analysis ID");
+            setIsLoading(false);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, token, id, authLoading, router])

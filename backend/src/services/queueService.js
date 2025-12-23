@@ -88,8 +88,9 @@ export const addAnalysisJob = async (userId, text, projectId, settings, parentId
     }
 
     try {
+        const baseUrl = BACKEND_URL.replace(/\/$/, "");
         const result = await qstashClient.publishJSON({
-            url: `${BACKEND_URL}/api/worker/process`,
+            url: `${baseUrl}/api/worker/process`,
             body: payload,
             retries: 3,
         });

@@ -118,9 +118,14 @@ function HomeContent() {
       const data = await response.json()
 
       // Redirect to Layer 1 (Input Phase)
-      if (data.status === 'draft' && data.id) {
+      // Redirect to Layer 1 (Input Phase)
+      if (data.status === 'draft' && data.id && data.id !== 'undefined') {
         toast.success("Project initialized! Proceeding to Structured Input.");
         router.push(`/analysis/${data.id}`);
+        return;
+      } else if (data.status === 'draft') {
+        console.error("Analysis created but ID is missing:", data);
+        toast.error("Created draft but ID is missing.");
         return;
       }
 

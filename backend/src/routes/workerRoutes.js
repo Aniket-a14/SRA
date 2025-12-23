@@ -19,13 +19,17 @@ const verifyQStash = async (req, res, next) => {
     }
 
     const signature = req.headers["upstash-signature"];
-    const body = req.rawBody;
+    const body = req.rawBody ? req.rawBody.toString() : "";
+
+    // Ensure no double slashes if BACKEND_URL ends with /
+    const baseUrl = process.env.BACKEND_URL.replace(/\/$/, "");
+    const url = `${baseUrl}/api/worker/process`;
 
     try {
         const isValid = await receiver.verify({
             signature,
             body,
-            url: `${process.env.BACKEND_URL}/api/worker/process`
+            url
         });
 
         if (!isValid) {

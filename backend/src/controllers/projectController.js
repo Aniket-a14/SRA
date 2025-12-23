@@ -26,6 +26,20 @@ export const createProject = async (req, res, next) => {
 
 export const getProjects = async (req, res, next) => {
     try {
+        console.log("getProjects: Start");
+
+        if (!req.user || !req.user.userId) {
+            console.error("getProjects: No user in request!", req.headers);
+            return res.status(401).json({ error: "User context missing" });
+        }
+
+        console.log("getProjects: Fetching for user", req.user.userId);
+
+        if (!prisma) {
+            console.error("getProjects: Prisma instance is null!");
+            throw new Error("Database connection not initialized");
+        }
+
         const projects = await prisma.project.findMany({
             where: { userId: req.user.userId },
             orderBy: { updatedAt: 'desc' },
@@ -35,8 +49,12 @@ export const getProjects = async (req, res, next) => {
                 }
             }
         });
+
+        console.log(`getProjects: Found ${projects.length} projects`);
         res.json(projects);
     } catch (error) {
+        console.error("getProjects: Fatal Error:", error);
+        console.error("getProjects: Stack:", error.stack);
         next(error);
     }
 };
