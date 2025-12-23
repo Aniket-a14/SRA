@@ -43,7 +43,7 @@ function AnalysisDetailContent() {
     const id = params?.id as string
     const router = useRouter()
     const { user, token, isLoading: authLoading } = useAuth()
-    const { unlockAndNavigate, unlockLayer, setLayer } = useLayer()
+    const { unlockAndNavigate, unlockLayer, setLayer, setIsFinalized } = useLayer()
 
     const [analysis, setAnalysis] = useState<Analysis | null>(null)
     const [isLoading, setIsLoading] = useState(true)
@@ -105,8 +105,10 @@ function AnalysisDetailContent() {
                 // This handles 'COMPLETED', undefined (legacy), and any other post-analysis state.
 
                 if (data.isFinalized) {
+                    setIsFinalized(true);
                     unlockAndNavigate(5);
                 } else {
+                    setIsFinalized(false);
                     // Unlock everything (including 4 and 5) so user can choose to Improve or Finalize
                     // But keep them on the Analysis Report (Layer 3) initially
                     unlockLayer(5);
@@ -381,6 +383,7 @@ function AnalysisDetailContent() {
             });
             if (res.ok) {
                 toast.success("SRS Finalized & Added to Knowledge Base");
+                setIsFinalized(true);
                 fetchAnalysis(id);
             } else {
                 throw new Error("Failed to finalize");
