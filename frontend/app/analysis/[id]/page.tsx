@@ -11,6 +11,17 @@ import { formatDistanceToNow } from "date-fns"
 import { ProjectChatPanel } from "@/components/project-chat-panel"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { generateSRS, generateAPI, downloadBundle } from "@/lib/export-utils"
 import { saveAs } from "file-saver"
 import type { Analysis, ValidationIssue } from "@/types/analysis"
@@ -32,7 +43,7 @@ function AnalysisDetailContent() {
     const id = params?.id as string
     const router = useRouter()
     const { user, token, isLoading: authLoading } = useAuth()
-    const { unlockAndNavigate } = useLayer()
+    const { unlockAndNavigate, unlockLayer, setLayer } = useLayer()
 
     const [analysis, setAnalysis] = useState<Analysis | null>(null)
     const [isLoading, setIsLoading] = useState(true)
@@ -81,6 +92,7 @@ function AnalysisDetailContent() {
 
             // Layer Synchronization from Metadata
             const status = data.metadata?.status;
+
             if (status === 'DRAFT') {
                 unlockAndNavigate(1);
                 setDraftData((data.metadata?.draftData as unknown as SRSIntakeModel) || null);
@@ -88,15 +100,18 @@ function AnalysisDetailContent() {
                 unlockAndNavigate(2);
                 setDraftData((data.metadata?.draftData as unknown as SRSIntakeModel) || null); // Keep draft data loaded if back nav needed
                 setValidationIssues(data.metadata?.validationResult?.issues || []);
-            } else if (status === 'COMPLETED' || data.status === 'COMPLETED') { // Handle top-level status too
-                // Ensure we unlock up to 3 first, then check specialized states
+            } else {
+                // Default: COMPLETED (Layer 3 done)
+                // This handles 'COMPLETED', undefined (legacy), and any other post-analysis state.
+
                 if (data.isFinalized) {
                     unlockAndNavigate(5);
                 } else {
-                    unlockAndNavigate(3);
+                    // Unlock everything (including 4 and 5) so user can choose to Improve or Finalize
+                    // But keep them on the Analysis Report (Layer 3) initially
+                    unlockLayer(5);
+                    setLayer(3);
                 }
-            } else {
-                unlockAndNavigate(3);
             }
 
         } catch (err) {
@@ -533,31 +548,53 @@ function AnalysisDetailContent() {
                                         onClick={() => setIsImproveDialogOpen(true)}
                                         variant="outline"
                                         className="gap-2 border-primary/20 hover:bg-primary/5 hover:text-primary"
+                                        disabled={analysis?.isFinalized}
                                     >
                                         <Sparkles className="h-4 w-4 text-amber-500" />
                                         Improve SRS
                                     </Button>
 
                                     {/* Layer 5: Finalize */}
-                                    <Button
-                                        onClick={handleFinalize}
-                                        variant={(analysis?.isFinalized) ? "outline" : "default"}
-                                        className={cn(
-                                            "gap-2 transition-all",
-                                            (analysis?.isFinalized)
-                                                ? "border-green-500/30 text-green-600 bg-green-500/5 hover:bg-green-500/10"
-                                                : "bg-primary hover:bg-primary/90"
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button
+                                                variant={(analysis?.isFinalized) ? "outline" : "default"}
+                                                className={cn(
+                                                    "gap-2 transition-all",
+                                                    (analysis?.isFinalized)
+                                                        ? "border-green-500/30 text-green-600 bg-green-500/5 hover:bg-green-500/10"
+                                                        : "bg-primary hover:bg-primary/90"
+                                                )}
+                                                disabled={isFinalizing || analysis?.isFinalized}
+                                            >
+                                                {isFinalizing ? <Loader2 className="h-4 w-4 animate-spin" /> :
+                                                    analysis?.isFinalized ? (
+                                                        <>
+                                                            <Database className="h-4 w-4" />
+                                                            Finalized
+                                                        </>
+                                                    ) : "Finalize & Save"}
+                                            </Button>
+                                        </AlertDialogTrigger>
+
+                                        {!analysis?.isFinalized && (
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Finalize SRS Analysis?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        Once you finalize, you cannot "Improve" this specific SRS version again using the AI refinement tools.
+                                                        Further changes will require performing a separate analysis.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={handleFinalize} className="bg-primary hover:bg-primary/90">
+                                                        Yes, Finalize
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
                                         )}
-                                        disabled={isFinalizing || analysis?.isFinalized}
-                                    >
-                                        {isFinalizing ? <Loader2 className="h-4 w-4 animate-spin" /> :
-                                            analysis?.isFinalized ? (
-                                                <>
-                                                    <Database className="h-4 w-4" />
-                                                    Finalized
-                                                </>
-                                            ) : "Finalize & Save"}
-                                    </Button>
+                                    </AlertDialog>
 
                                     <div className="h-6 w-px bg-border mx-1" />
 
@@ -640,6 +677,7 @@ function AnalysisDetailContent() {
                 analysisId={id}
                 onAnalysisUpdate={(newId) => router.push(`/analysis/${newId}`)}
                 hidden={isDiagramEditing}
+                isFinalized={analysis?.isFinalized}
             />
 
             {analysis && (

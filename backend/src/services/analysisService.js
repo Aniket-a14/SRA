@@ -111,111 +111,61 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         }
 
         // --- LEGACY / DIRECT SYNC FLOW ---
-
-        // 1. Determine Root and Version
-        let finalRootId = rootId;
-        let version = 1;
-
-        // Generate a new ID upfront to use as rootId if needed
-        const newId = crypto.randomUUID();
-
-        if (!finalRootId) {
-            // New Analysis Project -> It is its own root
-            finalRootId = newId;
-            version = 1;
-        } else {
-            // Existing Project -> Find max version
-            const maxVersionAgg = await tx.analysis.findFirst({
-                where: { rootId: finalRootId },
-                orderBy: { version: 'desc' },
-                select: { version: true }
-            });
-            version = (maxVersionAgg?.version || 0) + 1;
-        }
-
-        const title = resultJson.projectTitle || `Version ${version}`;
-
-        // 2. Create Analysis
-        const analysis = await tx.analysis.create({
-            data: {
-                id: newId,
-                userId,
-                inputText: text,
-                resultJson,
-                version,
-                title,
-                rootId: finalRootId,
-                parentId: parentId, // Can be null if new project or just branching from nothing (rare)
-                projectId: projectId, // Associate with Project
-                status: 'COMPLETED',
-                metadata: {
-                    trigger: 'initial',
-                    source: 'ai',
-                    promptSettings: settings
-                }
-            },
-        });
-
-        return analysis;
+        // DEPRECATED: All analyses should now be created via queueService with an ID upfront.
+        throw new Error("performAnalysis called without analysisId. Legacy direct creation is deprecated.");
     });
 };
 
 export const getUserAnalyses = async (userId) => {
-    // Get LATEST version for each rootId
-    // Prisma doesn't support "DISTINCT ON" easily with other databases, but for Postgres we can use distinct.
-    // However, finding the *latest* by date per rootId is better done by fetching distinct rootIds or using native query.
-    // Simpler approach for now: Fetch all, group in code (if dataset small) OR findMany with distinct.
+    // Optimized: Get LATEST version for each rootId using PostgreSQL DISTINCT ON
+    try {
+        const analyses = await prisma.$queryRaw`
+            SELECT DISTINCT ON ("rootId")
+                id,
+                "createdAt",
+                "inputText",
+                version,
+                title,
+                "rootId",
+                "parentId",
+                metadata
+            FROM "Analysis"
+            WHERE "userId" = ${userId}
+            ORDER BY "rootId", version DESC
+        `;
 
-    // Better: Fetch all where it's the latest version.
-    // BUT we don't store "isLatest".
-    // Strategy: distinct on rootId, order by version desc? Prisma `distinct` selects the *first* it finds.
-    // So if we order by rootId asc, version desc, distinct rootId will give us the latest.
+        // Sort resulting list by createdAt desc (most recent projects first)
+        // Note: Raw query returns objects, we can sort them in JS or wrap the SQL.
+        // Sorting in JS is fine for reasonable page sizes.
+        analyses.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    const analyses = await prisma.analysis.findMany({
-        where: { userId },
-        distinct: ['rootId'],
-        orderBy: [
-            { rootId: 'asc' },
-            { version: 'desc' }
-        ],
-        select: {
-            id: true,
-            createdAt: true,
-            inputText: true,
-            version: true,
-            title: true,
-            rootId: true,
-            parentId: true,
-            metadata: true
-        }
-    });
+        // Return truncated review with intelligent JSON preview extraction
+        return analyses.map(a => {
+            let preview = a.inputText;
 
-    // Sort resulting list by createdAt desc (most recent projects first)
-    analyses.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-    // Return truncated review with intelligent JSON preview extraction
-    return analyses.map(a => {
-        let preview = a.inputText;
-
-        // If it looks like JSON (starts with {), try to extract purpose or scope
-        if (preview && preview.trim().startsWith('{')) {
-            try {
-                const parsed = JSON.parse(preview);
-                // Extract purpose or scope for a better preview, otherwise fallback to name
-                preview = parsed.introduction?.purpose?.content ||
-                    parsed.introduction?.productScope?.content ||
-                    parsed.projectTitle ||
-                    "Draft analysis data";
-            } catch (e) {
-                // Not valid JSON, fallback to standard truncation
+            // If it looks like JSON (starts with {), try to extract purpose or scope
+            if (preview && preview.trim().startsWith('{')) {
+                try {
+                    const parsed = JSON.parse(preview);
+                    // Extract purpose or scope for a better preview, otherwise fallback to name
+                    preview = parsed.introduction?.purpose?.content ||
+                        parsed.introduction?.productScope?.content ||
+                        parsed.projectTitle ||
+                        "Draft analysis data";
+                } catch (e) {
+                    // Not valid JSON, fallback to standard truncation
+                }
             }
-        }
 
-        return {
-            ...a,
-            inputPreview: preview.substring(0, 100) + (preview.length > 100 ? '...' : '')
-        };
-    });
+            return {
+                ...a,
+                inputPreview: preview.substring(0, 100) + (preview.length > 100 ? '...' : '')
+            };
+        });
+    } catch (error) {
+        console.error("Error fetching user analyses:", error);
+        throw error;
+    }
 };
 
 export const getAnalysisHistory = async (userId, rootId) => {

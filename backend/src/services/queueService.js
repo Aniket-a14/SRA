@@ -19,38 +19,40 @@ export const addAnalysisJob = async (userId, text, projectId, settings, parentId
     let version = 1;
     const newId = crypto.randomUUID();
 
-    // Determine version/root if needed (similar logic to what was in service, but simplified for initial creation)
-    if (!finalRootId) {
-        finalRootId = newId;
-    } else {
-        const maxVersionAgg = await prisma.analysis.findFirst({
-            where: { rootId: finalRootId },
-            orderBy: { version: 'desc' },
-            select: { version: true }
-        });
-        version = (maxVersionAgg?.version || 0) + 1;
-    }
-
-    const title = `Analysis in Progress (v${version})`;
-
-    const analysis = await prisma.analysis.create({
-        data: {
-            id: newId,
-            userId,
-            inputText: text,
-            resultJson: {}, // Empty initially
-            version,
-            title,
-            rootId: finalRootId,
-            parentId,
-            projectId,
-            status: 'PENDING',
-            metadata: {
-                trigger: 'initial',
-                source: 'ai',
-                promptSettings: settings
-            }
+    const analysis = await prisma.$transaction(async (tx) => {
+        // Determine version/root if needed (ATOMICALLY)
+        if (!finalRootId) {
+            finalRootId = newId;
+        } else {
+            const maxVersionAgg = await tx.analysis.findFirst({
+                where: { rootId: finalRootId },
+                orderBy: { version: 'desc' },
+                select: { version: true }
+            });
+            version = (maxVersionAgg?.version || 0) + 1;
         }
+
+        const title = `Analysis in Progress (v${version})`;
+
+        return await tx.analysis.create({
+            data: {
+                id: newId,
+                userId,
+                inputText: text,
+                resultJson: {}, // Empty initially
+                version,
+                title,
+                rootId: finalRootId,
+                parentId,
+                projectId,
+                status: 'PENDING',
+                metadata: {
+                    trigger: 'initial',
+                    source: 'ai',
+                    promptSettings: settings
+                }
+            }
+        });
     });
 
     const payload = {
@@ -62,6 +64,28 @@ export const addAnalysisJob = async (userId, text, projectId, settings, parentId
         parentId,
         rootId: finalRootId
     };
+
+    const useMockQueue = process.env.MOCK_QSTASH === 'true' || process.env.NODE_ENV === 'development';
+
+    if (useMockQueue) {
+        log.info({ msg: "MOCK_QSTASH enabled: Skipping QStash publish and processing locally", analysisId: newId });
+        // Asynchronously invoke the analysis logic to simulate a worker
+        (async () => {
+            try {
+                const { performAnalysis } = await import('./analysisService.js');
+                await performAnalysis(userId, text, projectId, parentId, finalRootId, settings, newId);
+                log.info({ msg: "MOCK_QSTASH: Local job completed", analysisId: newId });
+            } catch (error) {
+                log.error({ msg: "MOCK_QSTASH: Local job failed", error: error.message });
+                await prisma.analysis.update({
+                    where: { id: newId },
+                    data: { status: 'FAILED' }
+                });
+            }
+        })();
+
+        return { id: newId, status: 'PENDING' };
+    }
 
     try {
         const result = await qstashClient.publishJSON({

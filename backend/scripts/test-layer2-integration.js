@@ -48,13 +48,16 @@ User: ${userMessage}
 
         if (checks["Has Updated Analysis"] && checks["Feature Added"]) {
             console.log("Layer 2 Verification: PASSED");
+            process.exit(0);
         } else {
             console.error("Layer 2 Verification: FAILED - Dark Mode feature not found or analysis not updated.");
             console.log("AI Reply:", parsed.reply);
+            process.exit(1);
         }
 
     } catch (e) {
         console.error("Layer 2 Error:", e);
+        process.exit(1);
     }
 }
 

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, ArrowRight, FileText } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
+import { cleanInputText } from "@/lib/utils"
 
 interface AnalysisHistoryItem {
     id: string
@@ -69,7 +70,7 @@ export function AnalysisHistory({ items }: AnalysisHistoryProps) {
 
                         <CardContent>
                             <p className="text-sm text-muted-foreground line-clamp-2">
-                                {item.inputPreview}
+                                {cleanInputText(item.inputPreview)}
                             </p>
 
                             <div className="flex items-center gap-1 text-xs text-primary font-medium mt-3 opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0">

@@ -5,6 +5,7 @@ import { addAnalysisJob, getJobStatus } from '../services/queueService.js';
 import { compareAnalyses } from '../services/diffService.js';
 import { lintRequirements } from '../services/qualityService.js';
 import { analyzeText } from '../services/aiService.js';
+import { embedText } from '../services/embeddingService.js';
 import { FEATURE_EXPANSION_PROMPT } from '../utils/prompts.js';
 import prisma from '../config/prisma.js';
 import crypto from 'crypto';
@@ -89,43 +90,65 @@ export const analyze = async (req, res, next) => {
 
         // LAYER 5: Reuse Strategy (Vector Search)
         // Generate Embedding for the input
-        let cachedAnalysis = null;
+
+        // LAYER 5: Reuse Strategy (Vector Search)
+        // Generate Embedding for the input
+        let reuseMetadata = { found: false };
         try {
-            // We can do this sync or async. For now sync to check cache.
-            // But if embeddings are slow, this might block Vercel. 
-            // Ideally we'd do a quick check or move this into the worker too.
-            // For Vercel, let's skip embedding check on the Main Thread if it takes > 2s?
-            // Actually, we moved to QStash. So we can just queue eagerly?
-            // Requirement says: "Reuse Found".
-            // Let's keep it here but note performance.
+            if (process.env.MOCK_AI !== 'true') {
+                // Generate embedding
+                const embeddingVector = await embedText(sanitizedText);
 
-            // Import dynamically to avoid circle if needed, or use service
-            // import { embedText } from '../services/embeddingService.js';
-        } catch (e) { }
+                // Search for similar analyses (cosine distance)
+                // We look for finalized analyses that are NOT the current new one
+                if (embeddingVector && embeddingVector.length > 0) {
+                    const vectorString = `[${embeddingVector.join(',')}]`;
+                    const matches = await prisma.$queryRaw`
+                        SELECT id, 1 - ("vectorSignature" <=> ${vectorString}::vector) as similarity
+                        FROM "Analysis"
+                        WHERE "isFinalized" = true
+                        AND "vectorSignature" IS NOT NULL
+                        ORDER BY "vectorSignature" <=> ${vectorString}::vector ASC
+                        LIMIT 1;
+                     `;
 
-        // ... Keeping logic simple for now: Queue it.
-        // The Worker will check for reuse or generate it.
-        // Wait, the Prompt/Plan said "Search" in controller.
-        // Let's simply queue the job. The Worker *is* where the heavy lifting happens.
-        // But if we want *instant* return for cache hits, we need to do it here.
+                    if (matches && matches.length > 0) {
+                        const match = matches[0];
+                        const similarity = match.similarity;
 
-        // REFACTOR: We will move the "Check Cache" logic to the Worker to keep the API fast?
-        // OR we check cache here. Let's check cache here for better UX (instant result).
+                        if (similarity > 0.90) {
+                            reuseMetadata = { found: true, id: match.id, similarity, type: 'EXACT', behavior: 'REUSE_CANDIDATE' };
+                        } else if (similarity >= 0.60) {
+                            reuseMetadata = { found: true, id: match.id, similarity, type: 'HIGH', behavior: 'REFERENCE' };
+                        } else if (similarity >= 0.30) {
+                            reuseMetadata = { found: true, id: match.id, similarity, type: 'PARTIAL', behavior: 'CONTEXT' };
+                        } else if (similarity >= 0.15) {
+                            reuseMetadata = { found: true, id: match.id, similarity, type: 'LOW', behavior: 'IGNORE' };
+                        } else {
+                            // < 15% - No effective match
+                        }
 
-        // This requires `embedText`
+                        if (reuseMetadata.found) {
+                            console.log(`[Reuse] Found ${reuseMetadata.type} match: ${match.id} (Similarity: ${similarity.toFixed(4)})`);
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn("Reuse search failed:", e.message);
+        }
 
-        // For now, let's trust the Plan: "Search: Use prisma.$queryRaw"
-        // But I need to import embedText. 
-
-        // Let's just Queue it. The user gets "Queued". 
-        // If the worker finds a cache hit, it finishes instantly. The polling frontend sees "Completed" quickly.
-
-        const job = await addAnalysisJob(req.user.userId, sanitizedText, req.body.projectId, req.body.settings);
+        const job = await addAnalysisJob(req.user.userId, sanitizedText, req.body.projectId, {
+            ...req.body.settings,
+            reuseMetadata // Pass tiered reuse info to worker
+        });
 
         res.status(202).json({
             message: "Analysis queued",
             jobId: job.id,
-            status: "queued"
+            status: "queued",
+            reuseFound: reuseMetadata.found,
+            reuseType: reuseMetadata.type
         });
     } catch (error) {
         next(error);
@@ -456,22 +479,55 @@ export const finalizeAnalysis = async (req, res, next) => {
         }
 
         // 1. Generate Signature for Knowledge Base
-        // A simple heuristic signature: First 200 chars + extracted keywords (mocked)
-        // In reality, this would be an embedding vector from an AI model.
-        const signature = {
+        // Generate real embedding for the input text
+        let embeddingVector = [];
+        try {
+            if (process.env.MOCK_AI === 'true') {
+                // Mock 768-dim vector
+                embeddingVector = Array(768).fill(0.1);
+            } else {
+                embeddingVector = await embedText(analysis.inputText.trim());
+            }
+        } catch (e) {
+            console.error("Embedding generation failed, proceeding with finalization without vector:", e);
+            // We proceed, but vectorSignature will be null.
+        }
+
+        const heuristicSignature = {
             domainTag: analysis.resultJson?.introduction?.scope?.slice(0, 50) || "General",
             featuresTag: analysis.resultJson?.systemFeatures?.map(f => f.name.slice(0, 30)) || [],
             textHash: crypto.createHash('md5').update(analysis.inputText.trim()).digest('hex')
         };
 
         // 2. Update DB with Finalization
-        const finalized = await prisma.analysis.update({
+        // Store heuristic tags in metadata for keyword filtering
+        const updatedMetadata = {
+            ...(analysis.metadata || {}),
+            heuristicSignature: heuristicSignature
+        };
+
+        // Update standard fields via Prisma Client
+        await prisma.analysis.update({
             where: { id },
             data: {
                 isFinalized: true,
-                vectorSignature: signature
+                metadata: updatedMetadata
             }
         });
+
+        // Update vectorSignature via Raw SQL (Prisma doesn't support writing to Unsupported columns directly)
+        if (embeddingVector && embeddingVector.length > 0) {
+            try {
+                // Ensure vector format is like '[0.1, 0.2, ...]' string
+                const vectorString = `[${embeddingVector.join(',')}]`;
+                await prisma.$executeRaw`UPDATE "Analysis" SET "vectorSignature" = ${vectorString}::vector WHERE "id" = ${id}`;
+            } catch (rawError) {
+                console.error("Failed to update vectorSignature:", rawError);
+                // Don't fail the whole request, just log it.
+            }
+        }
+
+        const finalized = { id, isFinalized: true }; // Minimal response obj since we did raw update
 
         // 3. Shred & Store Chunks (Layer 5 Advanced Reuse)
         const chunks = [];

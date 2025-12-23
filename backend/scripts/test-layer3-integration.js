@@ -31,6 +31,7 @@ async function testLayer3() {
         if (result.success === false) { // Check specific failure flag
             console.error("AI FAILED:", result.error);
             console.error("RAW OUTPUT:", result.raw);
+            process.exit(1);
             return;
         }
 
@@ -46,8 +47,11 @@ async function testLayer3() {
         console.log("CHECK: Generated Glossary:", result.glossary ? "PRESENT" : "MISSING");
         console.log("CHECK: Generated Analysis Models:", result.appendices?.analysisModels ? "PRESENT" : "MISSING");
 
+        process.exit(0);
+
     } catch (e) {
         console.error("Layer 3 Error:", e);
+        process.exit(1);
     }
 }
 

@@ -20,9 +20,10 @@ interface ProjectChatPanelProps {
     analysisId: string
     onAnalysisUpdate?: (newAnalysisId: string) => void
     hidden?: boolean
+    isFinalized?: boolean
 }
 
-export function ProjectChatPanel({ analysisId, onAnalysisUpdate, hidden }: ProjectChatPanelProps) {
+export function ProjectChatPanel({ analysisId, onAnalysisUpdate, hidden, isFinalized }: ProjectChatPanelProps) {
     const { token, user } = useAuth()
 
     const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -192,12 +193,12 @@ export function ProjectChatPanel({ analysisId, onAnalysisUpdate, hidden }: Proje
                         className="flex gap-2"
                     >
                         <Input
-                            placeholder="Type a message..."
+                            placeholder={isFinalized ? "Analysis finalized - Chat disabled" : "Type a message..."}
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
-                            disabled={isLoading}
+                            disabled={isLoading || isFinalized}
                         />
-                        <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
+                        <Button type="submit" size="icon" disabled={isLoading || !input.trim() || isFinalized}>
                             <Send className="h-4 w-4" />
                         </Button>
                     </form>
