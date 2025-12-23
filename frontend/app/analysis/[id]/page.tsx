@@ -529,7 +529,7 @@ function AnalysisDetailContent() {
                                                         <SheetHeader className="px-6 py-4 border-b">
                                                             <SheetTitle>Project History</SheetTitle>
                                                         </SheetHeader>
-                                                        <div className="h-full pb-20">
+                                                        <div className="flex-1 overflow-hidden">
                                                             <VersionTimeline
                                                                 rootId={analysis.rootId}
                                                                 currentId={id}
