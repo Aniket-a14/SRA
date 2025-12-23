@@ -582,7 +582,7 @@ function AnalysisDetailContent() {
                                                 <AlertDialogHeader>
                                                     <AlertDialogTitle>Finalize SRS Analysis?</AlertDialogTitle>
                                                     <AlertDialogDescription>
-                                                        Once you finalize, you cannot "Improve" this specific SRS version again using the AI refinement tools.
+                                                        Once you finalize, you cannot &quot;Improve&quot; this specific SRS version again using the AI refinement tools.
                                                         Further changes will require performing a separate analysis.
                                                     </AlertDialogDescription>
                                                 </AlertDialogHeader>
