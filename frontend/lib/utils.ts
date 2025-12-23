@@ -17,6 +17,26 @@ export const getAcronym = (title: string): string => {
 
 export function cleanInputText(text: string): string {
   if (!text) return ""
+
+  // Try parsing as JSON first (for srsData structures)
+  try {
+    if (text.trim().startsWith('{') || text.trim().startsWith('[')) {
+      const parsed = JSON.parse(text);
+      // Case 1: SRS Draft Data style { introduction: { purpose: { content: "..." } } }
+      if (typeof parsed === 'object' && parsed !== null) {
+        // Heuristic: breadth-first search for first "content" string or "purpose" string
+        // Or specific known paths
+        if (parsed.introduction?.purpose?.content) return parsed.introduction.purpose.content;
+        if (parsed.srsData?.introduction?.purpose?.content) return parsed.srsData.introduction.purpose.content;
+
+        // General fallback: return values of first level keys joined? 
+        // Better: Just check if it's the specific structure we know.
+      }
+    }
+  } catch {
+    // Not valid JSON, proceed to regex cleanup
+  }
+
   return text
     // 1. Remove the entire Previous SRS Context block (JSON state)
     .replace(/\[PREVIOUS_SRS_CONTEXT_START\][\s\S]*?\[PREVIOUS_SRS_CONTEXT_END\]/g, "")

@@ -14,6 +14,33 @@ export const analyze = async (req, res, next) => {
     try {
         let { text, srsData, validationResult } = req.body;
 
+        // Auto-Create Project if missing
+        if (!req.body.projectId) {
+            console.log("Analysis started without Project ID. Auto-creating...");
+            let projectName = "New Project";
+
+            // Try to extract a meaningful name
+            if (srsData?.introduction?.purpose?.content) {
+                projectName = srsData.introduction.purpose.content.split('\n')[0].slice(0, 50).trim();
+            } else if (text) {
+                projectName = text.split('\n')[0].slice(0, 50).trim();
+            }
+
+            if (!projectName || projectName.length < 3) {
+                projectName = `Project ${new Date().toLocaleDateString()}`;
+            }
+
+            const newProject = await prisma.project.create({
+                data: {
+                    name: projectName,
+                    description: "Auto-created from analysis",
+                    userId: req.user.userId
+                }
+            });
+            console.log("Auto-created project:", newProject.id);
+            req.body.projectId = newProject.id;
+        }
+
         // LAYER 3 INTEGRATION: Structured Input Handling
         if (srsData) {
             // LAYER 1: Draft / Validation Mode

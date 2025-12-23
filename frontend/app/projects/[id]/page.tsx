@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { fetchProject, updateProject, deleteProject } from "@/lib/projects-api";
 import { Project } from "@/types/project";
+import { cleanInputText } from "@/lib/utils";
 
 import Link from "next/link";
 import { toast } from "sonner";
@@ -187,7 +188,7 @@ export default function ProjectDetailPage() {
                                         <span className="text-xs text-muted-foreground">v{analysis.version}</span>
                                     </div>
                                     <p className="text-sm text-muted-foreground line-clamp-1">
-                                        {analysis.inputText}
+                                        {cleanInputText(analysis.inputText || "")}
                                     </p>
                                     <div className="flex justify-between mt-2 text-xs text-muted-foreground">
                                         <span>{format(new Date(analysis.createdAt), 'MMM d, h:mm a')}</span>
