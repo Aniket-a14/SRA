@@ -1,11 +1,13 @@
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
+  extensions = [vector]
 }
 
 model User {
@@ -64,7 +66,10 @@ model Analysis {
   createdAt   DateTime @default(now())
 
   isFinalized Boolean @default(false)
-  vectorSignature Json? // Stores simplified embedding/keywords for reuse logic
+  
+  // Use Unsupported type for pgvector column
+  // This requires the migration to manually create the column as vector(768)
+  vectorSignature Unsupported("vector(768)")? 
 
   // Versioning Relations
   rootId      String?

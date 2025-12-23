@@ -55,7 +55,10 @@ app.use('/internal/analyze', aiEndpoint);
 app.use(['/auth', '/api/auth'], authRoutes);
 app.use(['/analyze', '/api/analyze'], analysisRoutes);
 app.use(['/projects', '/api/projects'], projectRoutes);
+import workerRoutes from './routes/workerRoutes.js';
+
 app.use(['/validation', '/api/validation'], validationRoutes);
+app.use(['/worker', '/api/worker'], workerRoutes);
 
 
 // Error Handler

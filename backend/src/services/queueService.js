@@ -1,59 +1,43 @@
-import Queue from 'bull';
+import { Client } from "@upstash/qstash";
+import { log } from "../middleware/logger.js";
 
-let redisUrl = process.env.REDIS_URL;
+const qstashClient = new Client({
+    token: process.env.QSTASH_TOKEN,
+});
 
-let queueConfig = null;
-
-if (redisUrl) {
-    const url = redisUrl;
-    const isUpstash = url.includes('upstash.io');
-
-    if (isUpstash) {
-        queueConfig = {
-            redis: {
-                port: 6379,
-                tls: { rejectUnauthorized: false },  // Required for Upstash
-            }
-        };
-    }
-}
-
-export const analysisQueue = new Queue('analysis-queue', redisUrl, queueConfig || {});
-
-console.log(`✅ Using Redis Queue: ${redisUrl?.includes('upstash') ? 'Upstash Cloud' : 'Local/Other'}`);
+const BACKEND_URL = process.env.BACKEND_URL;
 
 export const addAnalysisJob = async (userId, text, projectId, settings, parentId = null, rootId = null) => {
-    const job = await analysisQueue.add({
+    if (!BACKEND_URL) {
+        throw new Error("BACKEND_URL is not defined");
+    }
+
+    const payload = {
         userId,
         text,
         projectId,
         settings,
         parentId,
         rootId
-    }, {
-        attempts: 2,
-        backoff: 5000,
-        removeOnComplete: 100, // Keep last 100 jobs so polling succeeds
-        removeOnFail: false // Keep for debugging
-    });
+    };
 
-    return job;
+    try {
+        const result = await qstashClient.publishJSON({
+            url: `${BACKEND_URL}/api/worker/process`,
+            body: payload,
+            retries: 3,
+        });
+
+        log.info({ msg: "Job sent to QStash", jobId: result.messageId, userId });
+        return { id: result.messageId };
+    } catch (error) {
+        log.error({ msg: "Failed to send job to QStash", error: error.message });
+        throw error;
+    }
 };
 
 export const getJobStatus = async (jobId) => {
-    const job = await analysisQueue.getJob(jobId);
-    if (!job) return null;
-
-    const state = await job.getState();
-    const result = job.returnvalue; // Bull uses returnvalue
-    const error = job.failedReason;
-    const progress = job.progress();
-
-    return {
-        id: job.id,
-        state,
-        progress,
-        result,
-        error
-    };
+    // QStash doesn't store state like Bull. We'd need to query a DB table if we tracked jobs there.
+    // For now, return a placeholder or implement Job tracking in Postgres.
+    return { state: 'unknown', progress: 0 };
 };
