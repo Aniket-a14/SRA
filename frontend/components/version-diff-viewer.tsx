@@ -20,6 +20,12 @@ interface VersionDiffViewerProps {
     diff: AnalysisDiff
 }
 
+interface UserStory {
+    userStory?: string
+    description?: string
+    acceptanceCriteria?: string | string[]
+}
+
 export function VersionDiffViewer({ diff }: VersionDiffViewerProps) {
     if (Object.keys(diff).length === 0) {
         return <div className="p-8 text-center text-muted-foreground">No changes detected in the scoped fields (Input, FRs, NFRs, Stories).</div>
@@ -54,7 +60,7 @@ export function VersionDiffViewer({ diff }: VersionDiffViewerProps) {
                         <div className="border rounded-md p-4 bg-muted/20">
                             <h5 className="font-semibold mb-2 text-red-500">Version 1</h5>
                             <ul className="space-y-3">
-                                {Array.isArray(diff.userStories.old) && diff.userStories.old.map((story: any, i: number) => (
+                                {Array.isArray(diff.userStories.old) && (diff.userStories.old as unknown as UserStory[]).map((story, i: number) => (
                                     <li key={i} className="text-sm border p-2 rounded bg-background/50">
                                         <div className="font-medium mb-1">{story.userStory || story.description || JSON.stringify(story)}</div>
                                         {story.acceptanceCriteria && (
@@ -71,7 +77,7 @@ export function VersionDiffViewer({ diff }: VersionDiffViewerProps) {
                         <div className="border rounded-md p-4 bg-muted/20">
                             <h5 className="font-semibold mb-2 text-green-500">Version 2</h5>
                             <ul className="space-y-3">
-                                {Array.isArray(diff.userStories.new) && diff.userStories.new.map((story: any, i: number) => (
+                                {Array.isArray(diff.userStories.new) && (diff.userStories.new as unknown as UserStory[]).map((story, i: number) => (
                                     <li key={i} className="text-sm border p-2 rounded bg-background/50">
                                         <div className="font-medium mb-1">{story.userStory || story.description || JSON.stringify(story)}</div>
                                         {story.acceptanceCriteria && (
