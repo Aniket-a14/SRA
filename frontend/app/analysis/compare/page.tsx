@@ -59,15 +59,21 @@ function CompareContent() {
             }
         }
 
-        if (!authLoading && token) {
-            if (v1 && v2) {
-                fetchDiff()
-            } else {
-                setError("Missing version IDs to compare.")
-                setIsLoading(false)
-            }
+        if (authLoading) return;
+
+        if (!token) {
+            setIsLoading(false);
+            router.push("/auth/login");
+            return;
         }
-    }, [v1, v2, token, authLoading])
+
+        if (v1 && v2) {
+            fetchDiff()
+        } else {
+            setError("Missing version IDs to compare.")
+            setIsLoading(false)
+        }
+    }, [v1, v2, token, authLoading, router])
 
     if (authLoading || isLoading) {
         return (

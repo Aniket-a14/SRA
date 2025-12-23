@@ -137,4 +137,5 @@ export interface Analysis extends AnalysisResult {
     }
     reusedFrom?: string
     promptSettings?: Record<string, unknown> | null
+    status?: 'PENDING' | 'COMPLETED' | 'FAILED' | 'DRAFT' | 'VALIDATING' | 'VALIDATED' | 'NEEDS_FIX'
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { fetchProjects, createProject } from "@/lib/projects-api";
 import { Project } from "@/types/project";
@@ -11,13 +12,18 @@ import { format } from "date-fns";
 import { Plus, Folder } from "lucide-react";
 
 export default function ProjectsPage() {
-    const { token } = useAuth();
+    const { token, isLoading: isAuthLoading } = useAuth();
+    const router = useRouter(); // Helper needed
     const [projects, setProjects] = useState<Project[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
     const [newProjectName, setNewProjectName] = useState("");
 
     useEffect(() => {
+        // Wait for auth to initialize
+        if (isAuthLoading) return;
+
+        // processing logic
         const loadProjects = async () => {
             try {
                 const data = await fetchProjects(token!);
@@ -31,8 +37,12 @@ export default function ProjectsPage() {
 
         if (token) {
             loadProjects();
+        } else {
+            // Not authenticated, redirect or stop loading
+            setIsLoading(false);
+            router.push("/");
         }
-    }, [token]);
+    }, [token, isAuthLoading, router]);
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();

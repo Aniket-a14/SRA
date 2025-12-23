@@ -61,19 +61,34 @@ function AnalysisDetailContent() {
 
             if (!response.ok) throw new Error("Failed to load analysis");
 
-            const data = await response.json()
+            const data: Analysis = await response.json()
             setAnalysis(data)
+
+            // STATUS HANDLING
+            // If PENDING, poll again in 2s
+            if (data.status === 'PENDING') {
+                setLoadingMessage("Processing your analysis... This may take a moment.")
+                setTimeout(() => fetchAnalysis(analysisId), 2000)
+                return
+            }
+
+            // If FAILED, show error
+            if (data.status === 'FAILED') {
+                setError("Analysis generation failed. Please try again.")
+                setIsLoading(false)
+                return
+            }
 
             // Layer Synchronization from Metadata
             const status = data.metadata?.status;
             if (status === 'DRAFT') {
                 unlockAndNavigate(1);
-                setDraftData(data.metadata?.draftData || {});
+                setDraftData((data.metadata?.draftData as unknown as SRSIntakeModel) || null);
             } else if (status === 'VALIDATING' || status === 'VALIDATED' || status === 'NEEDS_FIX') {
                 unlockAndNavigate(2);
-                setDraftData(data.metadata?.draftData || {}); // Keep draft data loaded if back nav needed
+                setDraftData((data.metadata?.draftData as unknown as SRSIntakeModel) || null); // Keep draft data loaded if back nav needed
                 setValidationIssues(data.metadata?.validationResult?.issues || []);
-            } else if (status === 'COMPLETED') {
+            } else if (status === 'COMPLETED' || data.status === 'COMPLETED') { // Handle top-level status too
                 // Ensure we unlock up to 3 first, then check specialized states
                 if (data.isFinalized) {
                     unlockAndNavigate(5);
@@ -87,18 +102,24 @@ function AnalysisDetailContent() {
         } catch (err) {
             console.error("Error fetching analysis:", err)
             setError(err instanceof Error ? err.message : "Failed to load analysis")
-        } finally {
             setIsLoading(false)
+        } finally {
+            // No-op
         }
     }
 
     useEffect(() => {
-        if (!authLoading && !user) {
+        // Wait for auth initialization
+        if (authLoading) return
+
+        if (!user || !token) {
+            // Not authenticated, stop loading and redirect
+            setIsLoading(false)
             router.push("/auth/login")
             return
         }
 
-        if (user && token && id) {
+        if (id) {
             fetchAnalysis(id)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -107,6 +128,16 @@ function AnalysisDetailContent() {
     const handleRefresh = () => {
         if (id) fetchAnalysis(id)
     }
+
+    useEffect(() => {
+        if (analysis) {
+            const s = analysis.status;
+            // PENDING keeps loading. All others (DRAFT, COMPLETED, FAILED, VALIDATING, etc) stop loading.
+            if (s !== 'PENDING') {
+                setIsLoading(false)
+            }
+        }
+    }, [analysis])
 
     const handleDraftUpdate = useCallback((section: string, field: string, value: string) => {
         setDraftData((prev: SRSIntakeModel | null) => {
@@ -128,8 +159,8 @@ function AnalysisDetailContent() {
         setDraftData((prev: SRSIntakeModel | null) => {
             if (!prev) return prev;
             const newData = { ...prev };
-            const sectionData = newData.systemFeatures || { features: [] };
-            sectionData.features = sectionData.features.map((f: SystemFeatureItem) => {
+            const sectionData = { ...(newData.systemFeatures || { features: [] }) };
+            sectionData.features = (sectionData.features || []).map((f: SystemFeatureItem) => {
                 if (f.id !== featureId) return f;
                 if (field === 'name') return { ...f, name: value };
                 if (field === 'rawInput') return { ...f, rawInput: value };

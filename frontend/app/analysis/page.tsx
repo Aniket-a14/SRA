@@ -37,8 +37,11 @@ export default function AnalysisPage() {
             }
         }
 
-        // If auth is done loading and no user, redirect
-        if (!authLoading && !user) {
+        // If auth is done loading...
+        if (authLoading) return
+
+        if (!user || !token) {
+            setIsLoading(false)
             router.push("/auth/login")
             return
         }

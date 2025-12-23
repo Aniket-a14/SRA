@@ -89,7 +89,7 @@ export function SectionRenderer() {
                         key={sub.id}
                         config={sub}
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        field={(data[config.key] as any)[sub.key]}
+                        field={(data[config.key] as any)?.[sub.key]}
                         onChange={(val) => updateField(config.key, sub.key, val)}
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         onDomainChange={(d) => updateDomainType(config.key, sub.key, d as any)}

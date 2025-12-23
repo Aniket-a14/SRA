@@ -19,7 +19,7 @@ const verifyQStash = async (req, res, next) => {
     }
 
     const signature = req.headers["upstash-signature"];
-    const body = JSON.stringify(req.body);
+    const body = req.rawBody;
 
     try {
         const isValid = await receiver.verify({

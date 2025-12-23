@@ -134,6 +134,7 @@ export function KVDisplay({ data, title, excludeKeys = [], projectTitle = "SRA",
                                     <h4 className="text-sm font-medium mb-2 text-primary">{formatKey(key)}</h4>
                                     <div className="grid gap-2">
                                         {(value as string[]).map((item, idx) => {
+                                            if (typeof item !== 'string') return null;
                                             const cleanItem = item.replace(/^[A-Z]+-[A-Z]+-\d+\s*:?\s*/, '').trim();
                                             const finalItem = cleanItem.replace(/^\s*(?:[\-\•\d\.\)]+\s*|\*(?!\*)\s*)/, '').trim();
 

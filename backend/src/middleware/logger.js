@@ -13,7 +13,7 @@ const pinoLogger = pino({
 
 export const logger = pinoHttp({
     logger: pinoLogger,
-    autoLogging: false, // We'll log manually if needed or let standard requests log
+    autoLogging: true, // Enable logging for debugging
     customProps: (req, res) => ({
         method: req.method,
         url: req.url,

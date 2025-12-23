@@ -66,6 +66,7 @@ model Analysis {
   createdAt   DateTime @default(now())
 
   isFinalized Boolean @default(false)
+  status      String  @default("COMPLETED") // PENDING, COMPLETED, FAILED
   
   // Use Unsupported type for pgvector column
   // This requires the migration to manually create the column as vector(768)

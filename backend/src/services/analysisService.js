@@ -3,7 +3,7 @@ import prisma from '../config/prisma.js';
 import { lintRequirements } from './qualityService.js';
 import crypto from 'crypto';
 
-export const performAnalysis = async (userId, text, projectId = null, parentId = null, rootId = null, settings = {}) => {
+export const performAnalysis = async (userId, text, projectId = null, parentId = null, rootId = null, settings = {}, analysisId = null) => {
     // Call AI Service
     // Default to local internal endpoint if env var is missing or incorrect
     const port = process.env.PORT || 3000;
@@ -66,10 +66,17 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         };
     } else {
         try {
-            const response = await axios.post(targetUrl, { text, settings });
+            const response = await axios.post(targetUrl, { text, settings }, { timeout: 120000 }); // 2 min timeout
             resultJson = response.data;
         } catch (error) {
             console.error("AI Analysis connection failed:", error.message);
+            // If we have an ID, we should fail it
+            if (analysisId) {
+                await prisma.analysis.update({
+                    where: { id: analysisId },
+                    data: { status: 'FAILED' }
+                });
+            }
             throw new Error('Failed to communicate with analysis service');
         }
     }
@@ -84,6 +91,27 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
 
     // Atomic Creation with Transaction
     return await prisma.$transaction(async (tx) => {
+        // If analysisId is provided, we update the existing record
+        if (analysisId) {
+            const existing = await tx.analysis.findUnique({ where: { id: analysisId } });
+            if (!existing) throw new Error("Analysis ID not found during processing");
+
+            // We still need to calculate title if missing
+            const title = resultJson.projectTitle || `Version ${existing.version}`;
+
+            return await tx.analysis.update({
+                where: { id: analysisId },
+                data: {
+                    resultJson,
+                    title,
+                    status: 'COMPLETED',
+                    isFinalized: false // default
+                }
+            });
+        }
+
+        // --- LEGACY / DIRECT SYNC FLOW ---
+
         // 1. Determine Root and Version
         let finalRootId = rootId;
         let version = 1;
@@ -119,6 +147,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                 rootId: finalRootId,
                 parentId: parentId, // Can be null if new project or just branching from nothing (rare)
                 projectId: projectId, // Associate with Project
+                status: 'COMPLETED',
                 metadata: {
                     trigger: 'initial',
                     source: 'ai',
