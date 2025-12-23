@@ -41,7 +41,15 @@ Walk through the generated tabs:
     -   The UI highlights the **Diff** (changes made).
 -   **Validation**: Use the **Timeline** sidebar to switch back to Version 1, then forward to Version 2 to demonstrate "Time Travel".
 
-## 6. Exporting
+## 6. Finalizing
+-   **Scenario**: The user is happy with the requirements.
+-   **Action**: Click the **"Finalize SRS"** button in the header.
+-   **Outcome**:
+    -   The SRS is locked and marked as final.
+    -   Refinement/editing is disabled.
+    -   The "Finalize" button changes to "Finalized".
+
+## 7. Exporting
 -   **Scenario**: The user needs to share this with their team.
 -   **Action**: Click the **Export** button.
 -   **Outcome**:

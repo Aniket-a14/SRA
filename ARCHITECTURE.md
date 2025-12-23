@@ -7,26 +7,27 @@ The SRA (Smart Requirements Analyst) system is a modern, event-driven ecosystem 
 ```mermaid
 graph TD
     User[User] -->|Interacts| Client["Frontend (Next.js 15)"]
-    Client["Frontend (Next.js 15)"] -->|REST API| API["Backend API (Express)"]
+    Client -->|REST API| API["Backend API (Vercel Serverless)"]
     
     subgraph "Orchestration Layer"
         API -->|Auth| Auth[Auth Service]
-        API -->|CRUD| DB[(PostgreSQL)]
-        API -->|Queue| Queue[Redis Job Queue]
+        API -->|CRUD| DB[(Supabase <br/> PostgreSQL + pgvector)]
+        API -->|Publish Job| QStash[Upstash QStash]
     end
 
-    subgraph "Analysis Pipeline"
-        Queue --> W1[Layer 1: Intake Model]
+    subgraph "Async Analysis Pipeline"
+        QStash -->|Webhook| Worker["Worker Endpoint (Vercel)"]
+        Worker --> W1[Layer 1: Intake Model]
         W1 --> W2[Layer 2: Validation Gate]
         W2 --> W3[Layer 3: SRS Constructor]
         W3 --> W4[Layer 4: Refinement Hub]
         W4 --> W5[Layer 5: KB Shredder]
+        W5 -->|Embeddings| DB
     end
     
     subgraph "AI Core"
         W1 & W2 & W3 & W4 & W5 -->|Abstracted Call| AIService[AI Service Layer]
         AIService -->|Google| Gemini[Gemini 2.5 Flash]
-        AIService -->|OpenAI| GPT[GPT-4o]
     end
 ```
 

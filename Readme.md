@@ -64,9 +64,10 @@ Finalized requirements are shredded into the Knowledge Base, allowing for optimi
 -   **Visualization**: [Mermaid.js](https://mermaid.js.org/).
 
 ### Backend
--   **Runtime**: [Node.js](https://nodejs.org/), [Express.js](https://expressjs.com/).
--   **Data**: [PostgreSQL](https://www.postgresql.org/) + [Prisma ORM](https://www.prisma.io/).
--   **Async**: [Bull](https://github.com/OptimalBits/bull) + [Redis](https://redis.io/).
+-   **Runtime**: [Node.js](https://nodejs.org/) (Deployed to Vercel Serverless).
+-   **Data**: [PostgreSQL](https://www.postgresql.org/) + [Prisma ORM](https://www.prisma.io/) (Supabase).
+-   **Vector DB**: [pgvector](https://github.com/pgvector/pgvector) for Retrieval Augmented Generation (RAG).
+-   **Async**: [Upstash QStash](https://upstash.com/docs/qstash/overall/getstarted) for Serverless Job Queues.
 -   **AI**: [Google Gemini 2.5 Flash](https://ai.google.dev/).
 
 ## 🏁 Getting Started
@@ -77,8 +78,8 @@ Follow these steps to set up the project locally.
 -   Node.js (v18 or higher)
 -   npm or yarn
 -   A Google Gemini API Key
--   PostgreSQL Database
--   Redis Server (Required for Job Queue)
+-   Supabase Project (PostgreSQL + pgvector)
+-   Upstash Account (Redis + QStash)
 
 ### 1. Backend Setup
 
@@ -98,11 +99,11 @@ PORT=3000
 FRONTEND_URL=http://localhost:3001
 ANALYZER_URL=http://localhost:3000/internal/analyze
 
-# Database
-DATABASE_URL="postgresql://user:password@localhost:5432/sra_db?schema=public"
-REDIS_URL="redis://127.0.0.1:6379"
+# Database (Supabase)
+DATABASE_URL="postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true"
+DIRECT_URL="postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:5432/postgres"
 
-# Auth
+# Authentication
 JWT_SECRET=your_super_secret_jwt_key
 
 # Google OAuth
@@ -117,6 +118,12 @@ GITHUB_CALLBACK_URL=http://localhost:3000/api/auth/github/callback
 
 # AI
 GEMINI_API_KEY=your_gemini_api_key_here
+
+# Upstash QStash (Async Job Queue)
+QSTASH_URL=https://qstash.upstash.io/v2/publish/
+QSTASH_TOKEN=your_qstash_token
+QSTASH_CURRENT_SIGNING_KEY=your_current_signing_key
+QSTASH_NEXT_SIGNING_KEY=your_next_signing_key
 ```
 
 Initialize the database:

@@ -1,5 +1,10 @@
 # SRA Backend: 5-Layer Analysis Engine
 
+![Node.js](https://img.shields.io/badge/Node.js-v18.x-green)
+![Express](https://img.shields.io/badge/Express-v4.x-lightgrey)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue)
+![Redis](https://img.shields.io/badge/Redis-Upstash-red)
+
 The SRA Backend is a high-performance Express.js ecosystem powered by Google Gemini, designed to orchestrate the transition from raw project intent to validated IEEE-830 requirements.
 
 ## 🏗️ 5-Layer Service Architecture
@@ -8,15 +13,15 @@ Our core logic is partitioned into five distinct service layers for maximum reli
 
 ```mermaid
 graph TD
-    A[API Controllers] -->|Enqueue| Q[Bull/Redis Queue]
-    Q -->|Job| W[Worker Services]
+    A[API Controllers] -->|Publish| Q[Upstash QStash]
+    Q -->|Webhook| W[Serverless Worker Services]
     
     subgraph "The Analysis Pipeline"
-        W --> L1[IntakeService: Structural Mapping]
-        L1 --> L2[ValidationService: Quality Gate]
-        L2 -->|PASS| L3[AnalysisService: IEEE SRS Gen]
-        L3 --> L4[RefinementService: Context Patching]
-        L4 --> L5[KnowledgeBaseService: Shred & Reuse]
+        W --> L1[IntakeService<br/>Structural Mapping]
+        L1 --> L2[ValidationService<br/>Quality Gate]
+        L2 -->|PASS| L3[AnalysisService<br/>IEEE SRS Gen]
+        L3 --> L4[RefinementService<br/>Context Patching]
+        L4 --> L5[KnowledgeBaseService<br/>Shred & Reuse]
     end
 ```
 
@@ -38,26 +43,40 @@ Shreds finalized analyses into semantic chunks. Implements the "Hash-and-Match" 
 ## 🛠️ Performance & Reliability
 
 ### Background Processing
-- **Bull + Redis**: All heavy AI operations are offloaded to background workers.
-- **Atomic Responses**: Users receive immediate "Analysis Started" responses, with progress updates delivered via subsequent polling.
+-   **Upstash QStash**: Serverless async messaging for scalable AI operations.
+-   **Atomic Responses**: Users receive immediate "Analysis Started" responses, with progress updates delivered via subsequent polling.
 
 ### AI Robustness
-- **Dynamic Provider Switching**: Abstraction layer supports Gemini 2.5 and OpenAI GPT-4o.
-- **Error Backoff**: Automated exponential backoff for 429 (Rate Limit) and 5xx (AI Downtime) errors.
+-   **Dynamic Provider Switching**: Abstraction layer supports Gemini 2.5 and OpenAI GPT-4o.
+-   **Error Backoff**: Automated exponential backoff for 429 (Rate Limit) and 5xx (AI Downtime) errors.
 
 ## 🚀 Setup & Deployment
 
 ### Prerequisites
-- Node.js (v18+) & npm
-- PostgreSQL (Database)
-- Redis (Job Queueing)
-- Gemini API Key
+-   Node.js (v18+) & npm
+-   PostgreSQL (Database)
+-   Upstash QStash (Serverless Queue)
+-   Gemini API Key
 
 ### Installation
-1. `npm install`
-2. Configure `.env` (see root README for template)
-3. `npx prisma migrate dev`
-4. `npm run dev`
+
+1.  **Install Dependencies**:
+    ```bash
+    npm install
+    ```
+
+2.  **Environment Configuration**:
+    Configure `.env` (see root README for template).
+
+3.  **Database Migration**:
+    ```bash
+    npx prisma migrate dev
+    ```
+
+4.  **Start Server**:
+    ```bash
+    npm run dev
+    ```
 
 ## 🔗 Key API Domains
 
@@ -68,7 +87,9 @@ Shreds finalized analyses into semantic chunks. Implements the "Hash-and-Match" 
 | **Knowledge** | `knowledgeController` | Layer 5 finalization and reuse queries |
 
 ## 🧪 Integration Testing
+
 We maintain high coverage of the analysis layers via specialized integration scripts:
-- `test-layer1-integration.js`: Verifies intake structured mapping.
-- `test-validation-integration.js`: Benchmarks the AI gatekeeper accuracy.
-- `test-layer5-integration.js`: Confirms Knowledge Base shredding and hash-reuse consistency.
+
+-   `test-layer1-integration.js`: Verifies intake structured mapping.
+-   `test-validation-integration.js`: Benchmarks the AI gatekeeper accuracy.
+-   `test-layer5-integration.js`: Confirms Knowledge Base shredding and hash-reuse consistency.

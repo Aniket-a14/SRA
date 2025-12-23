@@ -12,14 +12,15 @@ The following is a set of guidelines for contributing to SRA. These are mostly g
 Understanding the project structure is key to making effective contributions.
 
 ### Backend (`/backend`)
-The backend is built with **Node.js** and **Express**.
--   **`src/server.js`**: The main entry point to start the server.
--   **`src/app.js`**: Express app configuration.
+The backend is built with **Node.js** and designed for **Vercel Serverless**.
+-   **`src/server.js`**: The local entry point to start the server.
+-   **`src/app.js`**: Express app configuration (also used by Vercel).
+-   **`api/`**: Vercel Serverless Function entry points.
 -   **`src/config/`**: App configuration and OAuth setup.
 -   **`src/routes/`**: API route definitions.
 -   **`src/controllers/`**: Logic for handling API requests.
 -   **`src/services/`**: Business logic and AI integration.
--   **`src/workers/`**: Background workers for handling async tasks.
+-   **`src/workers/`**: Background workers for handling async tasks triggered by QStash.
 -   **`src/middleware/`**: Middleware for auth, validation, and error handling.
 -   **`.env`**: Stores environment variables like your API key and database URL. **Do not commit this file.**
 
@@ -38,11 +39,11 @@ The frontend is built with **Next.js 15 (App Router)** and **TypeScript**, style
 ## 🚀 Getting Started
 
 ### Prerequisites
-Ensure you have the following installed:
+Ensure you have the following installed or set up:
 -   **Node.js** (v18 or higher)
 -   **npm** (comes with Node.js)
--   **PostgreSQL** (for the database)
--   **Redis** (for the background job queue)
+-   **Supabase Project** (PostgreSQL + pgvector)
+-   **Upstash Account** (Redis + QStash)
 -   A **Google Gemini API Key** (Get one [here](https://aistudio.google.com/app/apikey))
 
 ### Backend Setup
@@ -62,9 +63,9 @@ Ensure you have the following installed:
     FRONTEND_URL=http://localhost:3001
     ANALYZER_URL=http://localhost:3000/internal/analyze
 
-    # Database
-    DATABASE_URL="postgresql://user:password@localhost:5432/sra_db?schema=public"
-    REDIS_URL="redis://127.0.0.1:6379"
+    # Database (Supabase)
+    DATABASE_URL="postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true"
+    DIRECT_URL="postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:5432/postgres"
 
     # Auth
     JWT_SECRET=your_super_secret_jwt_key
@@ -81,6 +82,12 @@ Ensure you have the following installed:
 
     # AI
     GEMINI_API_KEY=your_gemini_api_key_here
+
+    # Upstash QStash (Async Job Queue)
+    QSTASH_URL=https://qstash.upstash.io/v2/publish/
+    QSTASH_TOKEN=your_qstash_token
+    QSTASH_CURRENT_SIGNING_KEY=your_current_signing_key
+    QSTASH_NEXT_SIGNING_KEY=your_next_signing_key
     ```
 4.  Initialize the database:
     ```bash
