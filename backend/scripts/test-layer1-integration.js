@@ -28,12 +28,15 @@ async function testLayer1() {
 
         if (checks["Introduction"] && checks["System Features"]) {
             console.log("Layer 1 Verification: PASSED");
+            process.exit(0);
         } else {
             console.error("Layer 1 Verification: FAILED - Missing sections");
+            process.exit(1);
         }
 
     } catch (e) {
         console.error("Layer 1 Error:", e);
+        process.exit(1);
     }
 }
 

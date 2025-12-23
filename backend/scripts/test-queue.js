@@ -1,7 +1,8 @@
 
 import 'dotenv/config';
 process.env.MOCK_AI = 'true';
-import { addAnalysisJob, getJobStatus, analysisQueue } from '../src/services/queueService.js';
+process.env.MOCK_QSTASH = 'true';
+import { addAnalysisJob, getJobStatus } from '../src/services/queueService.js';
 import prisma from '../src/config/prisma.js';
 
 async function run() {
@@ -21,13 +22,13 @@ async function run() {
         const interval = setInterval(async () => {
             attempts++;
             const status = await getJobStatus(job.id);
-            console.log(`Attempt ${attempts}: Status = ${status?.state || 'missing'}`);
+            console.log(`Attempt ${attempts}: Status = ${status?.status || 'missing'}`);
 
-            if (status?.state === 'completed') {
+            if (status?.status === 'COMPLETED' || status?.status === 'completed') {
                 console.log("Job Completed Successfully and Persisted in History!");
                 clearInterval(interval);
                 process.exit(0);
-            } else if (status?.state === 'failed') {
+            } else if (status?.status === 'FAILED' || status?.status === 'failed') {
                 console.error("Job Failed:", status.error);
                 clearInterval(interval);
                 process.exit(1);

@@ -2,6 +2,8 @@
 
 
 
+import { cleanInputText } from "@/lib/utils"
+
 interface DiffChange<T> {
     old: T
     new: T
@@ -26,8 +28,11 @@ export function VersionDiffViewer({ diff }: VersionDiffViewerProps) {
     return (
         <div className="space-y-8">
             {diff.inputText && (
-                <DiffSection title="Input Text">
-                    <DiffText oldText={diff.inputText.old} newText={diff.inputText.new} />
+                <DiffSection title="Input / Refinement Context">
+                    <DiffText
+                        oldText={cleanInputText(diff.inputText.old)}
+                        newText={cleanInputText(diff.inputText.new)}
+                    />
                 </DiffSection>
             )}
 
@@ -48,11 +53,37 @@ export function VersionDiffViewer({ diff }: VersionDiffViewerProps) {
                     <div className="grid grid-cols-2 gap-4">
                         <div className="border rounded-md p-4 bg-muted/20">
                             <h5 className="font-semibold mb-2 text-red-500">Version 1</h5>
-                            <pre className="text-xs whitespace-pre-wrap">{JSON.stringify(diff.userStories.old, null, 2)}</pre>
+                            <ul className="space-y-3">
+                                {Array.isArray(diff.userStories.old) && diff.userStories.old.map((story: any, i: number) => (
+                                    <li key={i} className="text-sm border p-2 rounded bg-background/50">
+                                        <div className="font-medium mb-1">{story.userStory || story.description || JSON.stringify(story)}</div>
+                                        {story.acceptanceCriteria && (
+                                            <ul className="list-disc pl-4 text-xs text-muted-foreground">
+                                                {Array.isArray(story.acceptanceCriteria) ? story.acceptanceCriteria.map((ac: string, j: number) => (
+                                                    <li key={j}>{ac}</li>
+                                                )) : <li>{story.acceptanceCriteria}</li>}
+                                            </ul>
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
                         </div>
                         <div className="border rounded-md p-4 bg-muted/20">
                             <h5 className="font-semibold mb-2 text-green-500">Version 2</h5>
-                            <pre className="text-xs whitespace-pre-wrap">{JSON.stringify(diff.userStories.new, null, 2)}</pre>
+                            <ul className="space-y-3">
+                                {Array.isArray(diff.userStories.new) && diff.userStories.new.map((story: any, i: number) => (
+                                    <li key={i} className="text-sm border p-2 rounded bg-background/50">
+                                        <div className="font-medium mb-1">{story.userStory || story.description || JSON.stringify(story)}</div>
+                                        {story.acceptanceCriteria && (
+                                            <ul className="list-disc pl-4 text-xs text-muted-foreground">
+                                                {Array.isArray(story.acceptanceCriteria) ? story.acceptanceCriteria.map((ac: string, j: number) => (
+                                                    <li key={j}>{ac}</li>
+                                                )) : <li>{story.acceptanceCriteria}</li>}
+                                            </ul>
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
                         </div>
                     </div>
                 </DiffSection>
@@ -85,6 +116,7 @@ function DiffText({ oldText, newText }: { oldText: string, newText: string }) {
     )
 }
 
+
 function DiffList({ oldList, newList }: { oldList: string[], newList: string[] }) {
     // Simple side-by-side list for now. Smart diff would highlight insertions/deletions.
     return (
@@ -108,3 +140,4 @@ function DiffList({ oldList, newList }: { oldList: string[], newList: string[] }
         </div>
     )
 }
+
