@@ -9,11 +9,13 @@ interface LayerState {
     currentLayer: Layer
     maxAllowedLayer: Layer
     validationStatus: ValidationStatus
+    isFinalized: boolean
     isLayerLocked: (layer: Layer) => boolean
     setLayer: (layer: Layer) => void
     unlockLayer: (layer: Layer) => void
     unlockAndNavigate: (layer: Layer) => void
     updateValidationStatus: (status: ValidationStatus) => void
+    setIsFinalized: (finalized: boolean) => void
 }
 
 const LayerContext = createContext<LayerState | undefined>(undefined)
@@ -22,6 +24,7 @@ export function LayerProvider({ children }: { children: React.ReactNode }) {
     const [currentLayer, setCurrentLayer] = useState<Layer>(1)
     const [maxAllowedLayer, setMaxAllowedLayer] = useState<Layer>(1)
     const [validationStatus, setValidationStatus] = useState<ValidationStatus>("pending")
+    const [isFinalized, setIsFinalized] = useState(false)
 
     // Helper to check if a layer is accessible
     const isLayerLocked = (layer: Layer) => layer > maxAllowedLayer
@@ -56,7 +59,9 @@ export function LayerProvider({ children }: { children: React.ReactNode }) {
             setLayer,
             unlockLayer,
             unlockAndNavigate,
-            updateValidationStatus
+            updateValidationStatus,
+            isFinalized,
+            setIsFinalized
         }}>
             {children}
         </LayerContext.Provider>

@@ -21,7 +21,7 @@ import { useAuth } from "@/lib/auth-context"
 type AppSidebarProps = React.HTMLAttributes<HTMLDivElement>
 
 export function AppSidebar({ className }: AppSidebarProps) {
-    const { currentLayer, setLayer, isLayerLocked, maxAllowedLayer } = useLayer()
+    const { currentLayer, setLayer, isLayerLocked, maxAllowedLayer, isFinalized } = useLayer()
     const router = useRouter()
     const pathname = usePathname()
     const params = useParams()
@@ -65,22 +65,6 @@ export function AppSidebar({ className }: AppSidebarProps) {
     return (
         <div className={cn("pb-12 w-64 border-r h-screen bg-muted/10 flex flex-col fixed left-0 top-0 z-30", className)}>
             <div className="space-y-4 py-4">
-                <div className="px-3 py-2">
-                    <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight flex items-center gap-2">
-                        <LayoutDashboard className="h-5 w-5" />
-                        SRA Workspace
-                    </h2>
-                    <div className="space-y-1">
-                        <Button
-                            variant={pathname === '/projects' ? 'secondary' : 'ghost'}
-                            className="w-full justify-start"
-                            onClick={() => router.push('/projects')}
-                        >
-                            <Folder className="mr-2 h-4 w-4" />
-                            All Projects
-                        </Button>
-                    </div>
-                </div>
 
                 {/* Layer Tracker - Only show if inside an analysis */}
                 {analysisId && (
@@ -113,7 +97,7 @@ export function AppSidebar({ className }: AppSidebarProps) {
                                         <div className={cn(
                                             "absolute left-[13px] h-2.5 w-2.5 rounded-full border border-background z-10",
                                             isActive ? "bg-primary" :
-                                                layer.id < maxAllowedLayer ? "bg-green-500" : "bg-muted-foreground/30"
+                                                (layer.id < maxAllowedLayer || (layer.id === 5 && isFinalized)) ? "bg-green-500" : "bg-muted-foreground/30"
                                         )} />
 
                                         <Icon className="mr-2 h-4 w-4" />
