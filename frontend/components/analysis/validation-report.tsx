@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { AlertTriangle, CheckCircle, XCircle, Info } from "lucide-react"
+import { AlertTriangle, CheckCircle, XCircle, Info, ShieldAlert, FileWarning } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 
@@ -10,6 +10,8 @@ interface Issue {
     severity: 'critical' | 'warning' | 'info';
     message: string;
     section?: string;
+    conflict_type?: 'HARD_CONFLICT' | 'SOFT_DRIFT' | 'NONE';
+    suggested_fix?: string;
 }
 
 interface ValidationReportProps {
@@ -88,19 +90,30 @@ export function ValidationReport({ issues, onProceed, onEdit }: ValidationReport
                         </div>
                     )}
                     {issues.map((issue) => (
-                        <div key={issue.id} className="flex items-start gap-4 p-4 border rounded-lg bg-card">
-                            {issue.severity === 'critical' && <XCircle className="h-5 w-5 text-destructive mt-0.5" />}
-                            {issue.severity === 'warning' && <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5" />}
-                            {issue.severity === 'info' && <Info className="h-5 w-5 text-blue-500 mt-0.5" />}
+                        <div key={issue.id} className="flex items-start gap-4 p-4 border rounded-lg bg-card group hover:border-primary/50 transition-colors">
+                            {issue.severity === 'critical' ? (
+                                issue.conflict_type === 'HARD_CONFLICT' ? <ShieldAlert className="h-5 w-5 text-red-600 mt-0.5" /> : <XCircle className="h-5 w-5 text-destructive mt-0.5" />
+                            ) : issue.severity === 'warning' ? (
+                                issue.conflict_type === 'SOFT_DRIFT' ? <FileWarning className="h-5 w-5 text-amber-600 mt-0.5" /> : <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5" />
+                            ) : (
+                                <Info className="h-5 w-5 text-blue-500 mt-0.5" />
+                            )}
 
                             <div className="flex-1">
                                 <h4 className="text-sm font-semibold flex items-center gap-2">
                                     {issue.message}
                                     {issue.section && <Badge variant="secondary" className="text-[10px]">{issue.section}</Badge>}
+                                    {issue.conflict_type === 'HARD_CONFLICT' && <Badge variant="destructive" className="text-[10px] bg-red-600">SEMANTIC CONFLICT</Badge>}
+                                    {issue.conflict_type === 'SOFT_DRIFT' && <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-600">SCOPE DRIFT</Badge>}
                                 </h4>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                    {issue.severity === 'critical' ? "Must be resolved to proceed." : "Recommended fix for better analysis."}
+                                    {issue.severity === 'critical' ? "Must be resolved." : "Recommended fix."}
                                 </p>
+                                {issue.suggested_fix && (
+                                    <div className="mt-2 text-xs bg-muted/50 p-2 rounded text-foreground/80">
+                                        <span className="font-semibold">Fix: </span>{issue.suggested_fix}
+                                    </div>
+                                )}
                             </div>
                             <Button variant="ghost" size="sm" onClick={onEdit}>Edit</Button>
                         </div>

@@ -70,14 +70,16 @@ export interface OtherSection {
     appendix: IntakeField;
 }
 
-export type ValidationIssueType = 'VAGUE' | 'INCOMPLETE' | 'INCONSISTENT' | 'UNVERIFIABLE' | 'OTHER';
+export type ValidationIssueType = 'VAGUE' | 'INCOMPLETE' | 'INCONSISTENT' | 'UNVERIFIABLE' | 'SEMANTIC_MISMATCH' | 'SCOPE_CREEP' | 'AMBIGUITY' | 'OTHER';
 export type ValidationSeverity = 'BLOCKER' | 'WARNING';
+export type ConflictType = 'HARD_CONFLICT' | 'SOFT_DRIFT' | 'NONE';
 
 export interface ValidationIssue {
     section_id: string;
     subsection_id: string;
     title: string;
     issue_type: ValidationIssueType;
+    conflict_type?: ConflictType;
     severity: ValidationSeverity;
     description: string;
     suggested_fix: string;
