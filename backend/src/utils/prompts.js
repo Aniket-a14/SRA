@@ -169,10 +169,10 @@ You MUST return output ONLY in the following exact JSON structure. Do not add ex
   ],
   "appendices": {
     "analysisModels": {
-      "flowchartDiagram": { "code": "Mermaid flowchart TD code ONLY", "caption": "Description of flowchart" },
-      "sequenceDiagram": { "code": "Mermaid sequenceDiagram code ONLY", "caption": "Description of sequence" },
-      "dataFlowDiagram": { "code": "Mermaid flowchart/graph TD code ONLY", "caption": "Description of data flow" },
-      "entityRelationshipDiagram": { "code": "Mermaid erDiagram code ONLY", "caption": "Description of ERD" }
+      "flowchartDiagram": { "code": "Mermaid flowchart TD code ONLY. IDs must be simple alphanumeric (e.g., A, B1). Labels MUST be quoted (e.g., A[\"Label Text\"]).", "caption": "Description of flowchart" },
+      "sequenceDiagram": { "code": "Mermaid sequenceDiagram code ONLY. Participants must be defined first.", "caption": "Description of sequence" },
+      "dataFlowDiagram": { "code": "Mermaid flowchart TD code ONLY. Use standard shapes.", "caption": "Description of data flow" },
+      "entityRelationshipDiagram": { "code": "Mermaid erDiagram code ONLY.", "caption": "Description of ERD" }
     },
     "tbdList": ["Numbered list of TBD items."]
   },
@@ -185,7 +185,7 @@ You MUST return output ONLY in the following exact JSON structure. Do not add ex
 
 STRICT RULES:
 1. "flowchartDiagram", "sequenceDiagram", etc. must be objects with "code" and "caption".
-2. Mermaid syntax must be RAW. No markdown code blocks.
+2. Mermaid syntax must be RAW string. No markdown code blocks. CRITICAL: Quote ALL node labels with spaces/symbols (e.g., id1["Text"]). Use simple alphanumeric IDs.
 3. System Features must follow specific structure defined above or output is INVALID.
 4. Output MUST be valid JSON only.
 

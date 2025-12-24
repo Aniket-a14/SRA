@@ -20,7 +20,9 @@ export const analyze = async (req, res, next) => {
             let projectName = "New Project";
 
             // Try to extract a meaningful name
-            if (srsData?.introduction?.purpose?.content) {
+            if (srsData?.introduction?.projectName?.content) {
+                projectName = srsData.introduction.projectName.content.trim();
+            } else if (srsData?.introduction?.purpose?.content) {
                 projectName = srsData.introduction.purpose.content.split('\n')[0].slice(0, 50).trim();
             } else if (text) {
                 projectName = text.split('\n')[0].slice(0, 50).trim();
@@ -30,15 +32,28 @@ export const analyze = async (req, res, next) => {
                 projectName = `Project ${new Date().toLocaleDateString()}`;
             }
 
-            const newProject = await prisma.project.create({
-                data: {
-                    name: projectName,
-                    description: "Auto-created from analysis",
-                    userId: req.user.userId
+            // Check for existing project with same name
+            const existingProject = await prisma.project.findFirst({
+                where: {
+                    userId: req.user.userId,
+                    name: projectName
                 }
             });
-            console.log("Auto-created project:", newProject.id);
-            req.body.projectId = newProject.id;
+
+            if (existingProject) {
+                req.body.projectId = existingProject.id;
+                console.log("Reusing existing project:", existingProject.id);
+            } else {
+                const newProject = await prisma.project.create({
+                    data: {
+                        name: projectName,
+                        description: "Auto-created from analysis",
+                        userId: req.user.userId
+                    }
+                });
+                console.log("Auto-created project:", newProject.id);
+                req.body.projectId = newProject.id;
+            }
         }
 
         // LAYER 3 INTEGRATION: Structured Input Handling
@@ -53,13 +68,44 @@ export const analyze = async (req, res, next) => {
                         userId: req.user.userId,
                         inputText: JSON.stringify(srsData), // Serialize as input
                         resultJson: { // Dummy result for schema compliance
-                            projectTitle: srsData.introduction?.purpose?.content?.slice(0, 50) || "Draft Project",
-                            introduction: srsData.introduction, // Store section data here too if needed for view
-                            // Partially filled result
+                            projectTitle: srsData.introduction?.projectName?.content || srsData.introduction?.purpose?.content?.slice(0, 50) || "Draft Project",
+                            introduction: {
+                                projectName: srsData.introduction?.projectName?.content || "",
+                                purpose: srsData.introduction?.purpose?.content || "",
+                                scope: srsData.introduction?.scope?.content || "",
+                                intendedAudience: "", // Not explicitly in draft form yet? Or maybe 'overview'?
+                                references: [], // srsData.references is object?
+                                documentConventions: ""
+                            },
+                            overallDescription: {
+                                productPerspective: srsData.overallDescription?.productPerspective?.content || "",
+                                productFunctions: [], // Needs array
+                                userClassesAndCharacteristics: [],
+                                operatingEnvironment: srsData.overallDescription?.operatingEnvironment?.content || "",
+                                designAndImplementationConstraints: [],
+                                userDocumentation: [],
+                                assumptionsAndDependencies: []
+                            },
+                            externalInterfaceRequirements: {
+                                userInterfaces: srsData.externalInterfaces?.userInterfaces?.content || "",
+                                hardwareInterfaces: srsData.externalInterfaces?.hardwareInterfaces?.content || "",
+                                softwareInterfaces: srsData.externalInterfaces?.softwareInterfaces?.content || "",
+                                communicationsInterfaces: srsData.externalInterfaces?.communicationInterfaces?.content || ""
+                            },
+                            // Map remaining sections if needed for rough view, or keep empty for draft
+                            systemFeatures: [],
+                            nonFunctionalRequirements: {
+                                performanceRequirements: [],
+                                safetyRequirements: [],
+                                securityRequirements: [],
+                                softwareQualityAttributes: [],
+                                businessRules: []
+                            },
+                            otherRequirements: srsData.other?.appendix?.content ? [srsData.other.appendix.content] : [],
                             status: "DRAFT"
                         },
                         version: 1,
-                        title: (srsData.introduction?.purpose?.content?.slice(0, 50) || "Draft Analysis") + " (Draft)",
+                        title: (srsData.introduction?.projectName?.content || srsData.introduction?.purpose?.content?.slice(0, 50) || "Draft Analysis") + " (Draft)",
                         projectId: req.body.projectId,
                         metadata: {
                             trigger: 'initial',
@@ -170,9 +216,24 @@ export const analyze = async (req, res, next) => {
             reuseMetadata // Pass tiered reuse info to worker
         });
 
+        // Auto-delete Draft if converting
+        if (req.body.parentId) {
+            try {
+                const parent = await prisma.analysis.findUnique({ where: { id: req.body.parentId } });
+                // Robust check: Status is DRAFT or it's implicitly a draft via title/metadata
+                if (parent && (parent.status === 'DRAFT' || parent.metadata?.status === 'DRAFT')) {
+                    console.log(`Deleting converted draft: ${parent.id}`);
+                    await prisma.analysis.delete({ where: { id: parent.id } });
+                }
+            } catch (cleanupErr) {
+                console.warn("Failed to cleanup draft:", cleanupErr.message);
+            }
+        }
+
         res.status(202).json({
             message: "Analysis queued",
             jobId: job.id,
+            id: job.id, // Fix: Frontend expects 'id'
             status: "queued",
             reuseFound: reuseMetadata.found,
             reuseType: reuseMetadata.type

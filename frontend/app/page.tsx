@@ -88,7 +88,7 @@ function HomeContent() {
     }
   }, [projectId, token])
 
-  const handleAnalyze = async (requirements: string, settings: PromptSettings) => {
+  const handleAnalyze = async (requirements: string, settings: PromptSettings, name: string) => {
     setIsLoading(true)
     try {
       // LAYER 1 TRANSITION: Create Draft instead of immediate analysis
@@ -99,9 +99,10 @@ function HomeContent() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          // Map single input to Draft Data
+          // Map inputs to Draft Data
           srsData: {
             introduction: {
+              projectName: { content: name },
               purpose: { content: requirements }
             }
           },

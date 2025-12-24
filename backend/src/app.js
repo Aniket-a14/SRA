@@ -50,6 +50,8 @@ app.get('/', (req, res) => {
     res.json({ message: 'Smart Requirements Analyzer Backend Running' });
 });
 
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+
 // Internal AI Endpoint
 // Mounted as /internal/analyze so it doesn't conflict with the main /analyze route
 // Update your ANALYZER_URL env var to point here (e.g. http://localhost:3000/internal/analyze)

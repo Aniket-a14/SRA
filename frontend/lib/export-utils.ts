@@ -243,7 +243,9 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
     const contentWidth = pageWidth - margins.left - margins.right;
     let yPos = margins.top;
 
-    const projectAcronym = getAcronym(title);
+    // Prefer Project Name from Introduction if available
+    const projectTitle = data.introduction?.projectName || title || "Project Name";
+    const projectAcronym = getAcronym(projectTitle);
 
     // --- State & Navigation ---
 
@@ -537,7 +539,7 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
     const line1 = "Software Requirements";
     const line2 = "Specification";
     const line3 = "for";
-    const line4 = title || "Project Name";
+    const line4 = projectTitle;
 
     // Calculate max width for the bar
     const w1 = doc.getTextWidth(line1);
