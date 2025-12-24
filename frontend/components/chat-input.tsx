@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { Sparkles, Settings2 } from "lucide-react"
 import {
@@ -17,7 +18,7 @@ import { updateProject } from "@/lib/projects-api"
 import { useSearchParams } from "next/navigation"
 
 interface ChatInputProps {
-  onAnalyze: (requirements: string, settings: PromptSettings) => void
+  onAnalyze: (requirements: string, settings: PromptSettings, projectName: string) => void
   isLoading: boolean
   initialSettings?: PromptSettings
 }
@@ -46,6 +47,7 @@ const MODELS = [
 export function ChatInput({ onAnalyze, isLoading, initialSettings }: ChatInputProps) {
   const sectionRef = useRef<HTMLElement>(null)
   const [input, setInput] = useState("")
+  const [projectName, setProjectName] = useState("")
   const [settings, setSettings] = useState<PromptSettings>(initialSettings || DEFAULT_SETTINGS);
   const { token } = useAuth();
   const searchParams = useSearchParams();
@@ -102,8 +104,8 @@ export function ChatInput({ onAnalyze, isLoading, initialSettings }: ChatInputPr
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
-      if (input.trim() && !isLoading) {
-        onAnalyze(input, settings)
+      if (input.trim() && projectName.trim() && !isLoading) {
+        onAnalyze(input, settings, projectName)
       }
     }
   }
@@ -238,6 +240,13 @@ export function ChatInput({ onAnalyze, isLoading, initialSettings }: ChatInputPr
               </div>
 
               <div className="relative group">
+                <Input
+                  placeholder="Project Name (e.g. HealthGuard AI)"
+                  className="bg-secondary border-0 text-sm placeholder:text-muted-foreground/60 focus:ring-2 focus:ring-primary/50 mb-3"
+                  value={projectName}
+                  onChange={(e) => setProjectName(e.target.value)}
+                  disabled={isLoading}
+                />
                 <Textarea
                   placeholder="Describe your project vision here... (e.g. 'A telemedicine app for elderly patients with AI diagnostics')"
                   className="min-h-[120px] sm:min-h-[140px] resize-none bg-secondary border-0 pr-12 text-sm placeholder:text-muted-foreground/60 transition-all duration-300 focus:ring-2 focus:ring-primary/50"
@@ -254,8 +263,8 @@ export function ChatInput({ onAnalyze, isLoading, initialSettings }: ChatInputPr
                 </p>
                 <Button
                   className="gap-2 bg-primary hover:bg-primary/90 w-full sm:w-auto order-1 sm:order-2 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-primary/25"
-                  onClick={() => onAnalyze(input, settings)}
-                  disabled={isLoading || !input.trim()}
+                  onClick={() => onAnalyze(input, settings, projectName)}
+                  disabled={isLoading || !input.trim() || !projectName.trim()}
                 >
                   <Sparkles className="h-4 w-4" />
                   {isLoading ? "Starting..." : "Start Project"}

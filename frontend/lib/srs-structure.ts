@@ -26,6 +26,16 @@ export const SRS_STRUCTURE: SectionConfig[] = [
         subsections: [
             {
                 id: '1.1',
+                key: 'projectName',
+                title: 'Project Name',
+                description: 'The official name of the project or product.',
+                placeholder: 'e.g., Smart Requirements Analyzer',
+                hints: ['Acronyms will be generated from this name'],
+                isRequired: true,
+                inputType: 'textarea'
+            },
+            {
+                id: '1.2',
                 key: 'purpose',
                 title: 'Purpose',
                 description: 'Identify the product/application whose software requirements are specified in this document.',
@@ -39,7 +49,7 @@ export const SRS_STRUCTURE: SectionConfig[] = [
                 inputType: 'textarea'
             },
             {
-                id: '1.2',
+                id: '1.3',
                 key: 'scope',
                 title: 'Product Scope', // "Document Conventions" usually 1.2 in some standards, Scope is critical though.
                 description: 'Provide a short description of the software being specified and its benefits, objectives, and goals.',
@@ -52,7 +62,7 @@ export const SRS_STRUCTURE: SectionConfig[] = [
                 inputType: 'textarea'
             },
             {
-                id: '1.3',
+                id: '1.4',
                 key: 'definitions',
                 title: 'Definitions, Acronyms, and Abbreviations',
                 description: 'Define all terms, acronyms, and abbreviations required to interpret the SRS properly.',
@@ -61,7 +71,7 @@ export const SRS_STRUCTURE: SectionConfig[] = [
                 inputType: 'textarea'
             },
             {
-                id: '1.4',
+                id: '1.5',
                 key: 'references',
                 title: 'References',
                 description: 'List any other documents or web addresses to which this SRS refers.',
@@ -70,7 +80,7 @@ export const SRS_STRUCTURE: SectionConfig[] = [
                 inputType: 'textarea'
             },
             {
-                id: '1.5',
+                id: '1.6',
                 key: 'overview',
                 title: 'Overview',
                 description: 'Describe what the rest of the SRS contains and how it is organized.',
@@ -295,11 +305,12 @@ export const createInitialIntakeState = (): SRSIntakeModel => {
 
     return {
         introduction: {
-            purpose: field('1', '1.1', true),
-            scope: field('1', '1.2', true),
-            definitions: field('1', '1.3', false),
-            references: field('1', '1.4', false),
-            overview: field('1', '1.5', false),
+            projectName: field('1', '1.1', true),
+            purpose: field('1', '1.2', true),
+            scope: field('1', '1.3', true),
+            definitions: field('1', '1.4', false),
+            references: field('1', '1.5', false),
+            overview: field('1', '1.6', false),
         },
         overallDescription: {
             productPerspective: field('2', '2.1', true),

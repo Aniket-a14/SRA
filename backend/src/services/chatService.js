@@ -56,7 +56,7 @@ User: ${userMessage}
             }
         });
     } else {
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
         const result = await model.generateContent(fullPrompt);
         outputText = result.response.text();
     }

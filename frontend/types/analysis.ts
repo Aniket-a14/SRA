@@ -7,6 +7,7 @@ export interface RevisionHistoryItem {
 }
 
 export interface Introduction {
+    projectName?: string;
     purpose: string;
     documentConventions: string;
     scope: string;

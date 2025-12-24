@@ -15,11 +15,12 @@ export interface IntakeField {
 
 // 1. Introduction
 export interface IntroductionSection {
-    purpose: IntakeField; // 1.1
-    scope: IntakeField; // 1.2
-    definitions: IntakeField; // 1.3 (Commonly included, though prompt listed specific ones, aiming for standard IEEE)
-    references: IntakeField; // 1.4
-    overview: IntakeField; // 1.5
+    projectName: IntakeField; // 1.1 (New)
+    purpose: IntakeField; // 1.2
+    scope: IntakeField; // 1.3
+    definitions: IntakeField; // 1.4
+    references: IntakeField; // 1.5
+    overview: IntakeField; // 1.6
 }
 
 // 2. Overall Description
