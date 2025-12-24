@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
-    LayoutDashboard,
     FileText,
     ShieldCheck,
     Bot,
@@ -14,7 +13,7 @@ import {
     Folder
 } from "lucide-react"
 import { useLayer } from "@/lib/layer-context"
-import { useRouter, usePathname, useParams } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 
@@ -23,7 +22,6 @@ type AppSidebarProps = React.HTMLAttributes<HTMLDivElement>
 export function AppSidebar({ className }: AppSidebarProps) {
     const { currentLayer, setLayer, isLayerLocked, maxAllowedLayer, isFinalized } = useLayer()
     const router = useRouter()
-    const pathname = usePathname()
     const params = useParams()
     const { token } = useAuth()
     const [projects, setProjects] = useState<{ id: string, name: string }[]>([])

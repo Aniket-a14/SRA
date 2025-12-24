@@ -40,9 +40,9 @@ export function AnalysisHistory({ items }: AnalysisHistoryProps) {
 
     return (
         <div className="relative border-l-2 border-muted ml-3 md:ml-6 space-y-8 pl-6 md:pl-10 py-4">
-            {items.map((item) => (
+            {items.map((item, idx) => (
                 <div
-                    key={item.id || Math.random()}
+                    key={item.id || idx}
                     className="relative group cursor-pointer"
                     onClick={() => {
                         if (item.id && item.id !== 'undefined') {

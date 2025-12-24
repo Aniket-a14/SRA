@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { CheckCircle, XCircle, AlertTriangle, ArrowRight, X } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { ValidationIssue } from '@/types/srs-intake';
-import { AlertCircle, FileWarning, ShieldAlert } from 'lucide-react';
+import { FileWarning, ShieldAlert } from 'lucide-react';
 
 export function ValidationReport() {
     const { validationResult, clearValidation, setActiveSection } = useIntake();
