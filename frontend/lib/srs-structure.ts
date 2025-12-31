@@ -19,6 +19,7 @@ export interface SectionConfig {
 }
 
 export const SRS_STRUCTURE: SectionConfig[] = [
+    // 1. Introduction
     {
         id: '1',
         key: 'introduction',
@@ -36,56 +37,12 @@ export const SRS_STRUCTURE: SectionConfig[] = [
             },
             {
                 id: '1.2',
-                key: 'purpose',
-                title: 'Purpose',
-                description: 'Identify the product/application whose software requirements are specified in this document.',
-                placeholder: 'The purpose of this document is to specify...',
-                hints: [
-                    'Intended audience',
-                    'Scope of the document',
-                    'Why this project is being undertaken'
-                ],
+                key: 'content',
+                title: 'Introduction Details',
+                description: 'Provide the Purpose, Scope, Definitions, References, and Overview of the project.',
+                placeholder: 'Describe the purpose, scope, and key terms...',
+                hints: ['Purpose & Scope', 'Definitions & Acronyms', 'References'],
                 isRequired: true,
-                inputType: 'textarea'
-            },
-            {
-                id: '1.3',
-                key: 'scope',
-                title: 'Product Scope', // "Document Conventions" usually 1.2 in some standards, Scope is critical though.
-                description: 'Provide a short description of the software being specified and its benefits, objectives, and goals.',
-                hints: [
-                    'What the software WILL do',
-                    'What the software WILL NOT do (out of scope)',
-                    'Business benefits'
-                ],
-                isRequired: true,
-                inputType: 'textarea'
-            },
-            {
-                id: '1.4',
-                key: 'definitions',
-                title: 'Definitions, Acronyms, and Abbreviations',
-                description: 'Define all terms, acronyms, and abbreviations required to interpret the SRS properly.',
-                hints: ['SRA: Smart Requirements Analyzer', 'SRS: Software Requirements Specification'],
-                isRequired: false,
-                inputType: 'textarea'
-            },
-            {
-                id: '1.5',
-                key: 'references',
-                title: 'References',
-                description: 'List any other documents or web addresses to which this SRS refers.',
-                hints: ['IEEE Std 830-1998', 'Internal Process Documents'],
-                isRequired: false,
-                inputType: 'textarea'
-            },
-            {
-                id: '1.6',
-                key: 'overview',
-                title: 'Overview',
-                description: 'Describe what the rest of the SRS contains and how it is organized.',
-                hints: ['Section 2 describes...', 'Section 3 specifies...'],
-                isRequired: false,
                 inputType: 'textarea'
             }
         ]
@@ -97,64 +54,10 @@ export const SRS_STRUCTURE: SectionConfig[] = [
         subsections: [
             {
                 id: '2.1',
-                key: 'productPerspective',
-                title: 'Product Perspective',
-                description: 'Describe the context and origin of the product. Is it a new product, a follow-on, or part of a larger system?',
-                hints: ['System interfaces', 'User interfaces', 'Hardware interfaces'],
-                isRequired: true,
-                inputType: 'textarea'
-            },
-            {
-                id: '2.2',
-                key: 'productFunctions',
-                title: 'Product Functions',
-                description: 'Summarize the major functions the product must perform.',
-                hints: ['High-level capabilities', 'Major feature groups'],
-                isRequired: true,
-                inputType: 'textarea'
-            },
-            {
-                id: '2.3',
-                key: 'userClasses',
-                title: 'User Classes and Characteristics',
-                description: 'Identify the various user classes that you anticipate will use this product.',
-                hints: ['Administrators', 'End Users', 'Guests'],
-                isRequired: true,
-                inputType: 'textarea'
-            },
-            {
-                id: '2.4',
-                key: 'operatingEnvironment',
-                title: 'Operating Environment',
-                description: 'Describe the environment in which the software will operate.',
-                hints: ['Hardware platform', 'Operating system', 'Network configurations'],
-                isRequired: false,
-                inputType: 'textarea'
-            },
-            {
-                id: '2.5',
-                key: 'constraints',
-                title: 'Design and Implementation Constraints',
-                description: 'Describe any items or issues that will limit the options available to the developers.',
-                hints: ['Regulatory policies', 'Hardware limitations', 'Connectivity requirements'],
-                isRequired: true,
-                inputType: 'textarea'
-            },
-            {
-                id: '2.6',
-                key: 'userDocumentation',
-                title: 'User Documentation',
-                description: 'List the user documentation components (such as user manuals, on-line help, and tutorials) that will be delivered along with the software.',
-                hints: ['Online Help', 'User Manuals', 'Tutorials'],
-                isRequired: true,
-                inputType: 'textarea'
-            },
-            {
-                id: '2.7',
-                key: 'assumptionsDependencies',
-                title: 'Assumptions and Dependencies',
-                description: 'List any assumed factors that would affect the requirements stated in the SRS.',
-                hints: ['Third-party components', 'Operating system availability'],
+                key: 'content',
+                title: 'Full Description',
+                description: 'Describe the product perspective, functions, user classes, operating environment, and constraints.',
+                hints: ['Product Perspective', 'User Classes', 'Constraints', 'Dependencies'],
                 isRequired: true,
                 inputType: 'textarea'
             }
@@ -167,37 +70,10 @@ export const SRS_STRUCTURE: SectionConfig[] = [
         subsections: [
             {
                 id: '3.1',
-                key: 'userInterfaces',
-                title: 'User Interfaces',
-                description: 'Describe the logical characteristics of each interface between the software product and the users.',
-                hints: ['GUI standards', 'Screen layout constraints', 'Error message standards'],
-                isRequired: true,
-                inputType: 'textarea'
-            },
-            {
-                id: '3.2',
-                key: 'hardwareInterfaces',
-                title: 'Hardware Interfaces',
-                description: 'Describe the logical and physical characteristics of each interface between the software product and the hardware components.',
-                hints: ['Supported devices', 'Communication protocols'],
-                isRequired: true,
-                inputType: 'textarea'
-            },
-            {
-                id: '3.3',
-                key: 'softwareInterfaces',
-                title: 'Software Interfaces',
-                description: 'Describe the connections between this product and other specific software components.',
-                hints: ['OS', 'Databases', 'Third-party libraries'],
-                isRequired: true,
-                inputType: 'textarea'
-            },
-            {
-                id: '3.4',
-                key: 'communicationInterfaces',
-                title: 'Communication Interfaces',
-                description: 'Describe the requirements associated with any communications functions required by this product.',
-                hints: ['Email', 'Web browser', 'Network server communications protocols'],
+                key: 'content',
+                title: 'Interface Requirements',
+                description: 'Describe user, hardware, software, and communication interfaces.',
+                hints: ['GUI Layouts', 'API Integrations', 'Hardware Connections'],
                 isRequired: true,
                 inputType: 'textarea'
             }
@@ -226,46 +102,10 @@ export const SRS_STRUCTURE: SectionConfig[] = [
         subsections: [
             {
                 id: '5.1',
-                key: 'performance',
-                title: 'Performance Requirements',
-                description: 'Specify both the static and the dynamic numerical requirements placed on the software or on human interaction with the software.',
-                hints: ['Response time', 'Throughput', 'Capacity'],
-                isRequired: true,
-                inputType: 'textarea'
-            },
-            {
-                id: '5.2',
-                key: 'safety',
-                title: 'Safety Requirements',
-                description: 'Specify those requirements that are concerned with possible loss, damage, or harm that could result from the use of the product.',
-                hints: ['Safeguards', 'Data integrity'],
-                isRequired: true,
-                inputType: 'textarea'
-            },
-            {
-                id: '5.3',
-                key: 'security',
-                title: 'Security Requirements',
-                description: 'Specify the factors that protect the software from accidental or malicious access, use, modification, destruction, or disclosure.',
-                hints: ['Authentication', 'Authorization', 'Encryption'],
-                isRequired: true,
-                inputType: 'textarea'
-            },
-            {
-                id: '5.4',
-                key: 'quality',
-                title: 'Software Quality Attributes',
-                description: 'Specify any additional quality characteristics for the product.',
-                hints: ['Availability', 'Maintainability', 'Portability'],
-                isRequired: true,
-                inputType: 'textarea'
-            },
-            {
-                id: '5.5',
-                key: 'businessRules',
-                title: 'Business Rules',
-                description: 'Define the business rules that the software must enforce.',
-                hints: ['Workflows', 'Calculations', 'Policies'],
+                key: 'content',
+                title: 'Nonfunctional Requirements',
+                description: 'Specify performance, safety, security, quality attributes, and business rules.',
+                hints: ['Performance', 'Security', 'Reliability', 'Business Rules'],
                 isRequired: true,
                 inputType: 'textarea'
             }
@@ -306,36 +146,19 @@ export const createInitialIntakeState = (): SRSIntakeModel => {
     return {
         introduction: {
             projectName: field('1', '1.1', true),
-            purpose: field('1', '1.2', true),
-            scope: field('1', '1.3', true),
-            definitions: field('1', '1.4', false),
-            references: field('1', '1.5', false),
-            overview: field('1', '1.6', false),
+            content: field('1', '1.2', true)
         },
         overallDescription: {
-            productPerspective: field('2', '2.1', true),
-            productFunctions: field('2', '2.2', true),
-            userClasses: field('2', '2.3', true),
-            operatingEnvironment: field('2', '2.4', false),
-            constraints: field('2', '2.5', true),
-            userDocumentation: field('2', '2.6', true),
-            assumptionsDependencies: field('2', '2.7', true),
+            content: field('2', '2.1', true)
         },
         externalInterfaces: {
-            userInterfaces: field('3', '3.1', true),
-            hardwareInterfaces: field('3', '3.2', true),
-            softwareInterfaces: field('3', '3.3', true),
-            communicationInterfaces: field('3', '3.4', true),
+            content: field('3', '3.1', true)
         },
         systemFeatures: {
             features: [] // Starts empty
         },
         nonFunctional: {
-            performance: field('5', '5.1', true),
-            safety: field('5', '5.2', true),
-            security: field('5', '5.3', true),
-            quality: field('5', '5.4', true),
-            businessRules: field('5', '5.5', true),
+            content: field('5', '5.1', true)
         },
         other: {
             appendix: field('6', '6.1', true)

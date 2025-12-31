@@ -68,34 +68,39 @@ export const analyze = async (req, res, next) => {
                         userId: req.user.userId,
                         inputText: JSON.stringify(srsData), // Serialize as input
                         resultJson: { // Dummy result for schema compliance
-                            projectTitle: srsData.introduction?.projectName?.content || srsData.introduction?.purpose?.content?.slice(0, 50) || "Draft Project",
+                            projectTitle: srsData.introduction?.projectName?.content || "Draft Project",
                             introduction: {
                                 projectName: srsData.introduction?.projectName?.content || "",
-                                purpose: srsData.introduction?.purpose?.content || "",
-                                scope: srsData.introduction?.scope?.content || "",
-                                intendedAudience: "", // Not explicitly in draft form yet? Or maybe 'overview'?
-                                references: [], // srsData.references is object?
+                                purpose: srsData.introduction?.content?.content || "",
+                                scope: "",
+                                intendedAudience: "",
+                                references: [],
                                 documentConventions: ""
                             },
                             overallDescription: {
-                                productPerspective: srsData.overallDescription?.productPerspective?.content || "",
-                                productFunctions: [], // Needs array
+                                productPerspective: srsData.overallDescription?.content?.content || "",
+                                productFunctions: [],
                                 userClassesAndCharacteristics: [],
-                                operatingEnvironment: srsData.overallDescription?.operatingEnvironment?.content || "",
+                                operatingEnvironment: "",
                                 designAndImplementationConstraints: [],
                                 userDocumentation: [],
                                 assumptionsAndDependencies: []
                             },
                             externalInterfaceRequirements: {
-                                userInterfaces: srsData.externalInterfaces?.userInterfaces?.content || "",
-                                hardwareInterfaces: srsData.externalInterfaces?.hardwareInterfaces?.content || "",
-                                softwareInterfaces: srsData.externalInterfaces?.softwareInterfaces?.content || "",
-                                communicationsInterfaces: srsData.externalInterfaces?.communicationInterfaces?.content || ""
+                                userInterfaces: srsData.externalInterfaces?.content?.content || "",
+                                hardwareInterfaces: "",
+                                softwareInterfaces: "",
+                                communicationsInterfaces: ""
                             },
                             // Map remaining sections if needed for rough view, or keep empty for draft
-                            systemFeatures: [],
+                            systemFeatures: (srsData.systemFeatures?.features || []).map(f => ({
+                                id: f.id,
+                                name: f.name,
+                                description: f.description?.content || "",
+                                functionalRequirements: f.functionalRequirements?.content ? [f.functionalRequirements.content] : []
+                            })),
                             nonFunctionalRequirements: {
-                                performanceRequirements: [],
+                                performanceRequirements: srsData.nonFunctional?.content?.content ? [srsData.nonFunctional.content.content] : [],
                                 safetyRequirements: [],
                                 securityRequirements: [],
                                 softwareQualityAttributes: [],
@@ -105,7 +110,7 @@ export const analyze = async (req, res, next) => {
                             status: "DRAFT"
                         },
                         version: 1,
-                        title: (srsData.introduction?.projectName?.content || srsData.introduction?.purpose?.content?.slice(0, 50) || "Draft Analysis") + " (Draft)",
+                        title: (srsData.introduction?.projectName?.content || "Draft Analysis") + " (Draft)",
                         projectId: req.body.projectId,
                         metadata: {
                             trigger: 'initial',
@@ -681,63 +686,33 @@ export const validateAnalysis = async (req, res, next) => {
 
         // VALIDATION LOGIC (Layer 2)
         // 1. Introduction
-        if (!draftData.introduction?.purpose?.content || draftData.introduction.purpose.content.length < 20) {
-            issues.push({ id: 'intro-1', severity: 'critical', message: 'Purpose is too short or missing', section: 'Introduction' });
+        if (!draftData.introduction?.content?.content || draftData.introduction.content.content.length < 20) {
+            issues.push({ id: 'intro-1', severity: 'critical', message: 'Introduction content is too short or missing', section: 'Introduction' });
         }
 
         // 2. Features
-        if (!draftData.systemFeatures || Object.keys(draftData.systemFeatures).length === 0) {
+        if (!draftData.systemFeatures?.features || draftData.systemFeatures.features.length === 0) {
             issues.push({ id: 'feat-1', severity: 'warning', message: 'No System Features defined', section: 'Features' });
         }
 
         // 3. Overall Description
-        if (!draftData.overallDescription?.userClasses?.content || draftData.overallDescription.userClasses.content.length < 10) {
-            issues.push({ id: 'user-1', severity: 'critical', message: 'User Classes and Characteristics are required', section: 'Overall Description' });
-        }
-        if (!draftData.overallDescription?.constraints?.content) {
-            issues.push({ id: 'cons-1', severity: 'critical', message: 'Design and Implementation Constraints are required', section: 'Overall Description' });
-        }
-        if (!draftData.overallDescription?.userDocumentation?.content) {
-            issues.push({ id: 'doc-1', severity: 'critical', message: 'User Documentation info is required', section: 'Overall Description' });
-        }
-        if (!draftData.overallDescription?.assumptionsDependencies?.content) {
-            issues.push({ id: 'assump-1', severity: 'critical', message: 'Assumptions and Dependencies are required', section: 'Overall Description' });
+        if (!draftData.overallDescription?.content?.content || draftData.overallDescription.content.content.length < 20) {
+            issues.push({ id: 'desc-1', severity: 'critical', message: 'Overall Description is required', section: 'Overall Description' });
         }
 
         // 4. External Interfaces
-        if (!draftData.externalInterfaces?.userInterfaces?.content) {
-            issues.push({ id: 'ext-1', severity: 'critical', message: 'User Interfaces info is required', section: 'External Interfaces' });
-        }
-        if (!draftData.externalInterfaces?.hardwareInterfaces?.content) {
-            issues.push({ id: 'ext-2', severity: 'critical', message: 'Hardware Interfaces info is required', section: 'External Interfaces' });
-        }
-        if (!draftData.externalInterfaces?.softwareInterfaces?.content) {
-            issues.push({ id: 'ext-3', severity: 'critical', message: 'Software Interfaces info is required', section: 'External Interfaces' });
-        }
-        if (!draftData.externalInterfaces?.communicationInterfaces?.content) {
-            issues.push({ id: 'ext-4', severity: 'critical', message: 'Communication Interfaces info is required', section: 'External Interfaces' });
+        if (!draftData.externalInterfaces?.content?.content) {
+            issues.push({ id: 'ext-1', severity: 'critical', message: 'External Interfaces info is required', section: 'External Interfaces' });
         }
 
         // 5. Nonfunctional Requirements
-        if (!draftData.nonFunctional?.performance?.content) {
-            issues.push({ id: 'nf-1', severity: 'critical', message: 'Performance requirements are required', section: 'Nonfunctional Requirements' });
-        }
-        if (!draftData.nonFunctional?.security?.content) {
-            issues.push({ id: 'nf-2', severity: 'critical', message: 'Security requirements are required', section: 'Nonfunctional Requirements' });
-        }
-        if (!draftData.nonFunctional?.safety?.content) {
-            issues.push({ id: 'nf-3', severity: 'critical', message: 'Safety requirements are required', section: 'Nonfunctional Requirements' });
-        }
-        if (!draftData.nonFunctional?.quality?.content) {
-            issues.push({ id: 'nf-4', severity: 'critical', message: 'Software Quality Attributes are required', section: 'Nonfunctional Requirements' });
-        }
-        if (!draftData.nonFunctional?.businessRules?.content) {
-            issues.push({ id: 'nf-5', severity: 'critical', message: 'Business Rules are required', section: 'Nonfunctional Requirements' });
+        if (!draftData.nonFunctional?.content?.content) {
+            issues.push({ id: 'nf-1', severity: 'critical', message: 'Nonfunctional requirements are required', section: 'Nonfunctional Requirements' });
         }
 
         // 6. Other Requirements
         if (!draftData.other?.appendix?.content) {
-            issues.push({ id: 'other-1', severity: 'critical', message: 'Other Requirements (Appendix) info is required', section: 'Other Requirements' });
+            issues.push({ id: 'other-1', severity: 'critical', message: 'Appendix info is required', section: 'Other Requirements' });
         }
 
         // Determine Status
