@@ -143,8 +143,28 @@ export const getUserAnalyses = async (userId) => {
         return analyses.map(a => {
             let preview = a.inputText;
 
-            // If it looks like JSON (starts with {), try to extract purpose or scope
-            if (preview && preview.trim().startsWith('{')) {
+            // Optimized Preview Extraction
+            if (preview && preview.trim().startsWith('[')) {
+                try {
+                    const words = JSON.parse(preview);
+                    if (Array.isArray(words)) {
+                        // Rejoin first 20 words for preview
+                        preview = words.slice(0, 20).join(' ') + "...";
+                    }
+                } catch (e) {
+                    // fall through
+                }
+            } else if (preview && preview.trim().startsWith('Project:')) {
+                // Format: "Project: X\n\nDescription:\nY"
+                const lines = preview.split('\n');
+                // Try to find the description part
+                const descIndex = lines.findIndex(l => l.startsWith('Description:'));
+                if (descIndex !== -1 && lines[descIndex + 1]) {
+                    preview = lines[descIndex + 1];
+                } else if (lines[0]) {
+                    preview = lines[0].replace('Project: ', '');
+                }
+            } else if (preview && preview.trim().startsWith('{')) {
                 try {
                     const parsed = JSON.parse(preview);
                     // Extract purpose or scope for a better preview, otherwise fallback to name

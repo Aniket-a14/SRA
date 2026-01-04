@@ -34,6 +34,62 @@ ${text}
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
+      if (process.env.MOCK_AI === 'true') {
+        console.log("[AI Service] MOCK MODE ACTIVE. Returning dummy response.");
+        await sleep(500); // Simulate latency
+        output = JSON.stringify({
+          projectTitle: "Unified Mock Project",
+          revisionHistory: [{ version: "1.0", date: "2024-01-01", description: "Mock", author: "AI" }],
+          introduction: {
+            purpose: "Mock Purpose derived from Unified Input.",
+            documentConventions: "IEEE",
+            intendedAudience: "Testers",
+            productScope: "Mock Scope",
+            references: []
+          },
+          overallDescription: {
+            productPerspective: "Mock Perspective",
+            productFunctions: ["Mock Function 1"],
+            userClassesAndCharacteristics: [{ userClass: "Mock User", characteristics: "Mock" }],
+            operatingEnvironment: "Mock Env",
+            designAndImplementationConstraints: [],
+            userDocumentation: [],
+            assumptionsAndDependencies: []
+          },
+          externalInterfaceRequirements: {
+            userInterfaces: "Mock UI",
+            hardwareInterfaces: "N/A",
+            softwareInterfaces: "N/A",
+            communicationsInterfaces: "Mock Comm"
+          },
+          systemFeatures: [
+            {
+              name: "Post Scheduling",
+              description: "Allows scheduling posts.",
+              stimulusResponseSequences: ["Stimulus: Schedule -> Response: Scheduled"],
+              functionalRequirements: ["The system shall schedule posts."]
+            },
+            {
+              name: "Analytics",
+              description: "View stats.",
+              stimulusResponseSequences: ["Stimulus: View -> Response: Stats shown"],
+              functionalRequirements: ["The system shall show stats."]
+            }
+          ],
+          nonFunctionalRequirements: {
+            performanceRequirements: [],
+            safetyRequirements: [],
+            securityRequirements: ["OAuth2"],
+            softwareQualityAttributes: [],
+            businessRules: []
+          },
+          otherRequirements: [],
+          glossary: [],
+          appendices: { analysisModels: { tbdList: [] } }
+        });
+        break;
+      }
+
       console.log(`[AI Service] Using Provider: ${modelProvider}, Model: ${modelName} (Attempt ${attempt}/${maxAttempts})`);
 
       if (modelProvider === "openai") {

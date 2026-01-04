@@ -20,10 +20,10 @@ export const analyze = async (req, res, next) => {
             let projectName = "New Project";
 
             // Try to extract a meaningful name
-            if (srsData?.introduction?.projectName?.content) {
-                projectName = srsData.introduction.projectName.content.trim();
-            } else if (srsData?.introduction?.purpose?.content) {
-                projectName = srsData.introduction.purpose.content.split('\n')[0].slice(0, 50).trim();
+            if (srsData?.details?.projectName?.content) {
+                projectName = srsData.details.projectName.content.trim();
+            } else if (srsData?.details?.fullDescription?.content) {
+                projectName = srsData.details.fullDescription.content.split('\n')[0].slice(0, 50).trim();
             } else if (text) {
                 projectName = text.split('\n')[0].slice(0, 50).trim();
             }
@@ -56,7 +56,7 @@ export const analyze = async (req, res, next) => {
             }
         }
 
-        // LAYER 3 INTEGRATION: Structured Input Handling
+        // LAYER 3 INTEGRATION: Unified Input Handling
         if (srsData) {
             // LAYER 1: Draft / Validation Mode
             if (req.body.draft) {
@@ -68,31 +68,31 @@ export const analyze = async (req, res, next) => {
                         userId: req.user.userId,
                         inputText: JSON.stringify(srsData), // Serialize as input
                         resultJson: { // Dummy result for schema compliance
-                            projectTitle: srsData.introduction?.projectName?.content || srsData.introduction?.purpose?.content?.slice(0, 50) || "Draft Project",
+                            projectTitle: srsData.details?.projectName?.content || "Draft Project",
                             introduction: {
-                                projectName: srsData.introduction?.projectName?.content || "",
-                                purpose: srsData.introduction?.purpose?.content || "",
-                                scope: srsData.introduction?.scope?.content || "",
-                                intendedAudience: "", // Not explicitly in draft form yet? Or maybe 'overview'?
-                                references: [], // srsData.references is object?
+                                projectName: srsData.details?.projectName?.content || "",
+                                purpose: srsData.details?.fullDescription?.content || "",
+                                scope: "",
+                                intendedAudience: "",
+                                references: [],
                                 documentConventions: ""
                             },
                             overallDescription: {
-                                productPerspective: srsData.overallDescription?.productPerspective?.content || "",
-                                productFunctions: [], // Needs array
+                                productPerspective: "See Introduction",
+                                productFunctions: [],
                                 userClassesAndCharacteristics: [],
-                                operatingEnvironment: srsData.overallDescription?.operatingEnvironment?.content || "",
+                                operatingEnvironment: "",
                                 designAndImplementationConstraints: [],
                                 userDocumentation: [],
                                 assumptionsAndDependencies: []
                             },
                             externalInterfaceRequirements: {
-                                userInterfaces: srsData.externalInterfaces?.userInterfaces?.content || "",
-                                hardwareInterfaces: srsData.externalInterfaces?.hardwareInterfaces?.content || "",
-                                softwareInterfaces: srsData.externalInterfaces?.softwareInterfaces?.content || "",
-                                communicationsInterfaces: srsData.externalInterfaces?.communicationInterfaces?.content || ""
+                                userInterfaces: "",
+                                hardwareInterfaces: "",
+                                softwareInterfaces: "",
+                                communicationsInterfaces: ""
                             },
-                            // Map remaining sections if needed for rough view, or keep empty for draft
+                            // Unified Input -> No systemFeatures yet (AI generates them)
                             systemFeatures: [],
                             nonFunctionalRequirements: {
                                 performanceRequirements: [],
@@ -101,11 +101,11 @@ export const analyze = async (req, res, next) => {
                                 softwareQualityAttributes: [],
                                 businessRules: []
                             },
-                            otherRequirements: srsData.other?.appendix?.content ? [srsData.other.appendix.content] : [],
+                            otherRequirements: [],
                             status: "DRAFT"
                         },
                         version: 1,
-                        title: (srsData.introduction?.projectName?.content || srsData.introduction?.purpose?.content?.slice(0, 50) || "Draft Analysis") + " (Draft)",
+                        title: (srsData.details?.projectName?.content || "Draft Analysis") + " (Draft)",
                         projectId: req.body.projectId,
                         metadata: {
                             trigger: 'initial',
@@ -131,9 +131,17 @@ export const analyze = async (req, res, next) => {
                 throw error;
             }
 
-            // 2. Convert Structured Data to "Text" for Pipeline Compatibility
-            // The Prompt (Layer 3) is now smart enough to detect JSON in this text.
-            text = JSON.stringify(srsData, null, 2);
+            // 2. Convert Unified Data to "Text" for Pipeline Compatibility
+            // LAYER 2: Tokenization - Encapsulate logic in an array of words
+            const projectName = srsData.details?.projectName?.content || "Project";
+            const fullDesc = srsData.details?.fullDescription?.content || "";
+
+            // Combine and Segregate into Word Array
+            const combinedText = `Project: ${projectName}\n\nDescription:\n${fullDesc}`;
+            // Regex to split by whitespace but keep the content clean
+            const wordArray = combinedText.split(/\s+/).filter(word => word.length > 0);
+
+            text = JSON.stringify(wordArray);
         }
 
         if (!text || typeof text !== 'string') {
@@ -679,65 +687,16 @@ export const validateAnalysis = async (req, res, next) => {
         const draftData = analysis.metadata?.draftData || {};
         const issues = [];
 
-        // VALIDATION LOGIC (Layer 2)
-        // 1. Introduction
-        if (!draftData.introduction?.purpose?.content || draftData.introduction.purpose.content.length < 20) {
-            issues.push({ id: 'intro-1', severity: 'critical', message: 'Purpose is too short or missing', section: 'Introduction' });
+        // VALIDATION LOGIC (Unified Simplified)
+
+        // 1. Project Name
+        if (!draftData.details?.projectName?.content || draftData.details.projectName.content.length < 3) {
+            issues.push({ id: 'proj-1', severity: 'critical', message: 'Project Name is required', section: 'Project Details' });
         }
 
-        // 2. Features
-        if (!draftData.systemFeatures || Object.keys(draftData.systemFeatures).length === 0) {
-            issues.push({ id: 'feat-1', severity: 'warning', message: 'No System Features defined', section: 'Features' });
-        }
-
-        // 3. Overall Description
-        if (!draftData.overallDescription?.userClasses?.content || draftData.overallDescription.userClasses.content.length < 10) {
-            issues.push({ id: 'user-1', severity: 'critical', message: 'User Classes and Characteristics are required', section: 'Overall Description' });
-        }
-        if (!draftData.overallDescription?.constraints?.content) {
-            issues.push({ id: 'cons-1', severity: 'critical', message: 'Design and Implementation Constraints are required', section: 'Overall Description' });
-        }
-        if (!draftData.overallDescription?.userDocumentation?.content) {
-            issues.push({ id: 'doc-1', severity: 'critical', message: 'User Documentation info is required', section: 'Overall Description' });
-        }
-        if (!draftData.overallDescription?.assumptionsDependencies?.content) {
-            issues.push({ id: 'assump-1', severity: 'critical', message: 'Assumptions and Dependencies are required', section: 'Overall Description' });
-        }
-
-        // 4. External Interfaces
-        if (!draftData.externalInterfaces?.userInterfaces?.content) {
-            issues.push({ id: 'ext-1', severity: 'critical', message: 'User Interfaces info is required', section: 'External Interfaces' });
-        }
-        if (!draftData.externalInterfaces?.hardwareInterfaces?.content) {
-            issues.push({ id: 'ext-2', severity: 'critical', message: 'Hardware Interfaces info is required', section: 'External Interfaces' });
-        }
-        if (!draftData.externalInterfaces?.softwareInterfaces?.content) {
-            issues.push({ id: 'ext-3', severity: 'critical', message: 'Software Interfaces info is required', section: 'External Interfaces' });
-        }
-        if (!draftData.externalInterfaces?.communicationInterfaces?.content) {
-            issues.push({ id: 'ext-4', severity: 'critical', message: 'Communication Interfaces info is required', section: 'External Interfaces' });
-        }
-
-        // 5. Nonfunctional Requirements
-        if (!draftData.nonFunctional?.performance?.content) {
-            issues.push({ id: 'nf-1', severity: 'critical', message: 'Performance requirements are required', section: 'Nonfunctional Requirements' });
-        }
-        if (!draftData.nonFunctional?.security?.content) {
-            issues.push({ id: 'nf-2', severity: 'critical', message: 'Security requirements are required', section: 'Nonfunctional Requirements' });
-        }
-        if (!draftData.nonFunctional?.safety?.content) {
-            issues.push({ id: 'nf-3', severity: 'critical', message: 'Safety requirements are required', section: 'Nonfunctional Requirements' });
-        }
-        if (!draftData.nonFunctional?.quality?.content) {
-            issues.push({ id: 'nf-4', severity: 'critical', message: 'Software Quality Attributes are required', section: 'Nonfunctional Requirements' });
-        }
-        if (!draftData.nonFunctional?.businessRules?.content) {
-            issues.push({ id: 'nf-5', severity: 'critical', message: 'Business Rules are required', section: 'Nonfunctional Requirements' });
-        }
-
-        // 6. Other Requirements
-        if (!draftData.other?.appendix?.content) {
-            issues.push({ id: 'other-1', severity: 'critical', message: 'Other Requirements (Appendix) info is required', section: 'Other Requirements' });
+        // 2. Full Description
+        if (!draftData.details?.fullDescription?.content || draftData.details.fullDescription.content.length < 50) {
+            issues.push({ id: 'desc-1', severity: 'critical', message: 'A detailed project description is required (min 50 chars).', section: 'Project Details' });
         }
 
         // Determine Status

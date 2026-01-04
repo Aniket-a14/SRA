@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-if (!process.env.GEMINI_API_KEY) {
+if (!process.env.GEMINI_API_KEY && process.env.MOCK_AI !== 'true') {
   throw new Error("GEMINI_API_KEY is missing in .env");
 }
 

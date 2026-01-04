@@ -19,6 +19,10 @@ interface SubsectionInputProps {
 
 export function SubsectionInput({ config, field, onChange, onDomainChange }: SubsectionInputProps) {
     const [showHints, setShowHints] = useState(false);
+
+    // Safety guard
+    if (!field) return null;
+
     const isEmpty = field.content.trim().length === 0;
     const isError = config.isRequired && isEmpty;
 

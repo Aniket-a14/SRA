@@ -246,14 +246,14 @@ export function ChatInput({ onAnalyze, isLoading, initialSettings }: ChatInputPr
                   value={projectName}
                   onChange={(e) => setProjectName(e.target.value)}
                   disabled={isLoading}
-                />
-                <Textarea
-                  placeholder="Describe your project vision here... (e.g. 'A telemedicine app for elderly patients with AI diagnostics')"
-                  className="min-h-[120px] sm:min-h-[140px] resize-none bg-secondary border-0 pr-12 text-sm placeholder:text-muted-foreground/60 transition-all duration-300 focus:ring-2 focus:ring-primary/50"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  disabled={isLoading}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault()
+                      if (projectName.trim() && !isLoading) {
+                        onAnalyze(projectName, settings, projectName)
+                      }
+                    }
+                  }}
                 />
               </div>
 
@@ -263,8 +263,8 @@ export function ChatInput({ onAnalyze, isLoading, initialSettings }: ChatInputPr
                 </p>
                 <Button
                   className="gap-2 bg-primary hover:bg-primary/90 w-full sm:w-auto order-1 sm:order-2 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-primary/25"
-                  onClick={() => onAnalyze(input, settings, projectName)}
-                  disabled={isLoading || !input.trim() || !projectName.trim()}
+                  onClick={() => onAnalyze(projectName, settings, projectName)}
+                  disabled={isLoading || !projectName.trim()}
                 >
                   <Sparkles className="h-4 w-4" />
                   {isLoading ? "Starting..." : "Start Project"}
