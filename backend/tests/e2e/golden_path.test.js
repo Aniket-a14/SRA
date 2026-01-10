@@ -152,7 +152,7 @@ describe('E2E Golden Path: Request -> Queue(Mock) -> Worker(Local) -> DB', () =>
         console.log("DEBUG: Actual resultJson projectTitle:", resultJson?.projectTitle);
         console.log("DEBUG: Full resultJson:", JSON.stringify(resultJson, null, 2));
 
-        // performAnalysis with MOCK_AI=true returns hardcoded "Mocked Project"
-        expect(resultJson.projectTitle).toBe('Mocked Project');
+        // Now comes from mocked aiService.js
+        expect(resultJson.projectTitle).toBe('Directly Mocked AI');
     });
 });
