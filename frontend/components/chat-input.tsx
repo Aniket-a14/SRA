@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
+
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { Sparkles, Settings2 } from "lucide-react"
@@ -46,7 +46,7 @@ const MODELS = [
 
 export function ChatInput({ onAnalyze, isLoading, initialSettings }: ChatInputProps) {
   const sectionRef = useRef<HTMLElement>(null)
-  const [input, setInput] = useState("")
+
   const [projectName, setProjectName] = useState("")
   const [settings, setSettings] = useState<PromptSettings>(initialSettings || DEFAULT_SETTINGS);
   const { token } = useAuth();
@@ -101,14 +101,7 @@ export function ChatInput({ onAnalyze, isLoading, initialSettings }: ChatInputPr
     return () => observer.disconnect()
   }, [])
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      if (input.trim() && projectName.trim() && !isLoading) {
-        onAnalyze(input, settings, projectName)
-      }
-    }
-  }
+
 
   const handleProfileChange = (val: string) => {
     setSettings(prev => ({ ...prev, profile: val }));

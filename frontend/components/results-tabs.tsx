@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { AlertTriangle, Bot, ShieldCheck, Code, Loader2, Bug, CheckCircle2 } from "lucide-react"
-import type { AnalysisResult } from "@/types/analysis"
+import type { AnalysisResult, Diagram } from "@/types/analysis"
 import { DiagramEditor } from "@/components/diagram-editor"
 import { useAuth } from "@/lib/auth-context"
 import { Progress } from "@/components/ui/progress"
@@ -452,20 +452,24 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                     title="DFD Level 0 (Context)"
                     initialCode={
                       // Robust check for new structure vs old
-                      (appendices?.analysisModels?.dataFlowDiagram as any)?.level0 ||
-                      (typeof appendices?.analysisModels?.dataFlowDiagram === 'string' ? appendices.analysisModels.dataFlowDiagram : (appendices?.analysisModels?.dataFlowDiagram as any)?.code) ||
-                      ""
+                      typeof appendices?.analysisModels?.dataFlowDiagram === 'object' && appendices.analysisModels.dataFlowDiagram !== null && 'level0' in appendices.analysisModels.dataFlowDiagram
+                        ? (appendices.analysisModels.dataFlowDiagram as { level0: string }).level0
+                        : (typeof appendices?.analysisModels?.dataFlowDiagram === 'string'
+                          ? appendices.analysisModels.dataFlowDiagram
+                          : (appendices?.analysisModels?.dataFlowDiagram as Diagram)?.code) || ""
                     }
-                    syntaxExplanation={(appendices?.analysisModels?.dataFlowDiagram as any)?.syntaxExplanation}
+                    syntaxExplanation={typeof appendices?.analysisModels?.dataFlowDiagram === 'object' && appendices.analysisModels.dataFlowDiagram !== null ? (appendices.analysisModels.dataFlowDiagram as Diagram).syntaxExplanation : undefined}
                     onSave={async (newCode) => {
                       try {
-                        const currentDFD = appendices?.analysisModels?.dataFlowDiagram as any || {};
+                        const currentDFD = appendices?.analysisModels?.dataFlowDiagram;
+                        const isDfdObj = typeof currentDFD === 'object' && currentDFD !== null;
+
                         const newDFD = {
-                          ...currentDFD,
+                          ...((isDfdObj ? currentDFD : {}) as Record<string, unknown>),
                           level0: newCode,
                           // Preserve level1 if it exists, or init empty
-                          level1: currentDFD.level1 || "",
-                          caption: currentDFD.caption || "Data Flow Diagram"
+                          level1: (isDfdObj && 'level1' in currentDFD ? (currentDFD as { level1: string }).level1 : ""),
+                          caption: (isDfdObj && 'caption' in currentDFD ? (currentDFD as { caption: string }).caption : "Data Flow Diagram")
                         };
 
                         const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
@@ -501,16 +505,22 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                   />
                   <DiagramEditor
                     title="DFD Level 1"
-                    initialCode={(appendices?.analysisModels?.dataFlowDiagram as any)?.level1 || ""}
-                    syntaxExplanation={(appendices?.analysisModels?.dataFlowDiagram as any)?.syntaxExplanation}
+                    initialCode={
+                      typeof appendices?.analysisModels?.dataFlowDiagram === 'object' && appendices.analysisModels.dataFlowDiagram !== null && 'level1' in appendices.analysisModels.dataFlowDiagram
+                        ? (appendices.analysisModels.dataFlowDiagram as { level1: string }).level1
+                        : ""
+                    }
+                    syntaxExplanation={typeof appendices?.analysisModels?.dataFlowDiagram === 'object' && appendices.analysisModels.dataFlowDiagram !== null ? (appendices.analysisModels.dataFlowDiagram as Diagram).syntaxExplanation : undefined}
                     onSave={async (newCode) => {
                       try {
-                        const currentDFD = appendices?.analysisModels?.dataFlowDiagram as any || {};
+                        const currentDFD = appendices?.analysisModels?.dataFlowDiagram;
+                        const isDfdObj = typeof currentDFD === 'object' && currentDFD !== null;
+
                         const newDFD = {
-                          ...currentDFD,
-                          level0: currentDFD.level0 || "",
+                          ...((isDfdObj ? currentDFD : {}) as Record<string, unknown>),
+                          level0: (isDfdObj && 'level0' in currentDFD ? (currentDFD as { level0: string }).level0 : ""),
                           level1: newCode,
-                          caption: currentDFD.caption || "Data Flow Diagram"
+                          caption: (isDfdObj && 'caption' in currentDFD ? (currentDFD as { caption: string }).caption : "Data Flow Diagram")
                         };
 
                         const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
@@ -549,7 +559,7 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                     initialCode={typeof appendices?.analysisModels?.entityRelationshipDiagram === 'string'
                       ? appendices.analysisModels.entityRelationshipDiagram
                       : appendices?.analysisModels?.entityRelationshipDiagram?.code || ""}
-                    syntaxExplanation={(appendices?.analysisModels?.entityRelationshipDiagram as any)?.syntaxExplanation}
+                    syntaxExplanation={typeof appendices?.analysisModels?.entityRelationshipDiagram === 'object' && appendices.analysisModels.entityRelationshipDiagram !== null ? (appendices.analysisModels.entityRelationshipDiagram as Diagram).syntaxExplanation : undefined}
                     onSave={async (newCode) => {
                       try {
                         const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
@@ -722,7 +732,7 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                         </ul>
                       ) : (
                         <div className="flex items-center gap-2 text-green-500 text-sm p-4 bg-green-500/10 rounded-md">
-                          <CheckCircle2 className="h-4 w-4" /> {/* Need to import CheckCircle2 */}
+                          <CheckCircle2 className="h-4 w-4" />
                           No issues found. Great job!
                         </div>
                       )}
