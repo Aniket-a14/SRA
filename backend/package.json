@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
+    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules MOCK_AI=true jest",
     "lint": "eslint .",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",

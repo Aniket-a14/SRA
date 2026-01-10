@@ -1345,13 +1345,21 @@ export const downloadBundle = async (data: AnalysisResult, title: string) => {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+interface FileNode {
+    path: string;
+    type: "file" | "directory";
+    children?: FileNode[];
+    code?: string;
+}
+
 interface CodebaseFile {
     path: string;
     code: string;
 }
 
 interface CodebaseData {
-    databaseSchema?: string;
+    fileStructure?: FileNode[];
+    schema?: string;
     backendRoutes?: CodebaseFile[];
     frontendComponents?: CodebaseFile[];
     testCases?: CodebaseFile[];
@@ -1362,7 +1370,7 @@ interface CodebaseData {
 export const downloadCodebase = async (codeData: CodebaseData, title: string) => {
     // Kept as is for now
     const zip = new JSZip();
-    if (codeData.databaseSchema) zip.file("prisma/schema.prisma", codeData.databaseSchema);
+    if (codeData.schema) zip.file("prisma/schema.prisma", codeData.schema);
 
     const addFiles = (files: { path: string, code: string }[]) => {
         files.forEach(f => {

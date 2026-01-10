@@ -46,6 +46,7 @@ jest.unstable_mockModule('../../src/services/embeddingService.js', () => ({
 }));
 
 
+process.env.MOCK_AI = 'true';
 // Dynamic import of app after mocks
 const { default: app } = await import('../../src/app.js');
 

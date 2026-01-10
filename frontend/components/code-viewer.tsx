@@ -144,12 +144,10 @@ export function CodeViewer({ fileStructure, schema, backendRoutes, frontendCompo
                     </div>
                 </ScrollArea>
                 <div className="p-3 border-t bg-muted/20">
-                    <div className="p-3 border-t bg-muted/20">
-                        <Button className="w-full" variant="secondary" onClick={() => downloadCodebase({ fileStructure, schema, backendRoutes, frontendComponents, testCases, backendReadme, frontendReadme }, "Generated_Project")}>
-                            <Download className="mr-2 h-4 w-4" />
-                            Download Full Code
-                        </Button>
-                    </div>
+                    <Button className="w-full" variant="secondary" onClick={() => downloadCodebase({ fileStructure, schema, backendRoutes, frontendComponents, testCases, backendReadme, frontendReadme }, "Generated_Project")}>
+                        <Download className="mr-2 h-4 w-4" />
+                        Download Full Code
+                    </Button>
                 </div>
             </Card>
 
