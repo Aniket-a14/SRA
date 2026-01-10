@@ -233,29 +233,39 @@ CORE BEHAVIOR RULES:
 DIAGRAM TYPE SPECIFICATIONS:
 
 ER DIAGRAM (erDiagram):
-- Entities in UPPERCASE.
-- Attributes: datatype attribute_name. PK first.
-- Cardinality: ||, o{, |{, }o, }|.
-- Relationships: verbs only.
-- Constraints: No circular relationships without explanation, no unnamed relationships.
+- Entities: Open with {, Close with }. Contain only valid attribute lines.
+- Attributes: MUST contain exactly two tokens: <type> <attribute_name>.
+- FORBIDDEN: PK, FK, UNIQUE, INDEX, SQL constraints, inline comments, multiple words after attribute names.
+- Allowed Attribute Types: string, int, float, date, text, boolean.
+- Relationships: MUST use valid Mermaid cardinality symbols only (||, |{, o{, }|, ||--o{, }|--||).
+- Constraint Logic: Primary keys, foreign keys, and uniqueness MUST be expressed only via relationships.
+- Validation: Mentally verify no attribute has more than 2 tokens and every { has a matching }.
 
 SEQUENCE DIAGRAM (sequenceDiagram):
-- Participants explicitly declared.
-- Messages top-to-bottom.
-- Arrows: ->> (call), -->> (return).
-- Constraints: No backward time flow, no ambiguous messages.
+- MUST start with: sequenceDiagram.
+- Participants: Use single-word identifiers ONLY (letters, numbers, underscores). Declare explicitly (e.g., participants User\nparticipants System).
+- Messages: A->>B: message (sync), A-->>B: response (async). NO parentheses in messages.
+- Control Blocks: alt/else/end, loop/end, opt/end. All blocks must be properly closed.
+- Forbidden: Spaces in participant names, special characters in identifiers, markdown inside diagrams.
+- Validation: Verify all participants declared and all blocks closed.
 
 FLOWCHART (flowchart):
-- Direction: TD, LR, RL, BT.
-- Nodes: [process], {decision}, (start/end).
-- Constraints: Labeled branches for decisions, no floating nodes.
+- MUST start with: flowchart TD or flowchart LR.
+- Nodes: Single-word alphanumeric IDs ONLY. No spaces or special characters. Labels go inside brackets.
+- Allowed Shapes: [ ] (process), ( ) (terminator), { } (decision).
+- Arrows: --> (normal), -- yes --> / -- no --> (decisions). All arrows must reference existing nodes.
+- Validation: Verify unique single-word IDs and correct allowed shapes.
 
 DFD (via flowchart):
-- External Entity: rectangle.
-- Process: rounded rectangle.
-- Data Store: cylinder or database node.
-- Flow: Labeled arrows.
-- Constraints: No direct entity-to-entity flow. Left-to-right flow default.
+- MUST start with: flowchart LR.
+- Mappings: External Entity -> [ ], Process -> ( ), Data Store -> [( )].
+- Node IDs: Single-word IDs only. No spaces or symbols. Labels inside shapes.
+- Data Flows: Use --> with clear labels (e.g., User -->|data| P1).
+- Forbidden: ER or Sequence syntax, unsupported symbols.
+- Validation: Verify all data stores use [( )] and processes use ( ).
+
+GLOBAL GUARDRAIL:
+Final Self-Check: If any identifier contains spaces or special characters, automatically rename it before output. Did you check that?
 
 GLOBAL OUTPUT STRUCTURE (For each diagram in JSON):
 - "syntaxExplanation": Combine Sections 1-6 (Grammar, Rules, Semantics) into a detailed text string.
