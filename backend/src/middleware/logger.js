@@ -1,6 +1,8 @@
 import pinoHttp from 'pino-http';
 import pino from 'pino';
 
+import { v4 as uuidv4 } from 'uuid';
+
 const pinoLogger = pino({
     level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
     transport: process.env.NODE_ENV !== 'production' ? {
@@ -13,11 +15,13 @@ const pinoLogger = pino({
 
 export const logger = pinoHttp({
     logger: pinoLogger,
-    autoLogging: true, // Enable logging for debugging
+    autoLogging: true,
+    genReqId: (req) => req.headers['x-correlation-id'] || uuidv4(),
     customProps: (req, res) => ({
         method: req.method,
         url: req.url,
-        userId: req.user?.userId
+        userId: req.user?.userId,
+        correlationId: req.id
     })
 });
 

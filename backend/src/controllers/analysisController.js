@@ -7,6 +7,8 @@ import { lintRequirements, checkAlignment } from '../services/qualityService.js'
 import { validateRequirements } from '../services/validationService.js';
 import { analyzeText } from '../services/aiService.js';
 import { embedText } from '../services/embeddingService.js';
+import { ensureProjectExists } from '../services/projectService.js';
+import { findReuseCandidate } from '../services/reuseService.js';
 import { FEATURE_EXPANSION_PROMPT } from '../utils/prompts.js';
 import prisma from '../config/prisma.js';
 import crypto from 'crypto';
@@ -15,47 +17,11 @@ export const analyze = async (req, res, next) => {
     try {
         let { text, srsData, validationResult } = req.body;
 
+
+
         // Auto-Create Project if missing
-        if (!req.body.projectId) {
-            console.log("Analysis started without Project ID. Auto-creating...");
-            let projectName = "New Project";
-
-            // Try to extract a meaningful name
-            if (srsData?.details?.projectName?.content) {
-                projectName = srsData.details.projectName.content.trim();
-            } else if (srsData?.details?.fullDescription?.content) {
-                projectName = srsData.details.fullDescription.content.split('\n')[0].slice(0, 50).trim();
-            } else if (text) {
-                projectName = text.split('\n')[0].slice(0, 50).trim();
-            }
-
-            if (!projectName || projectName.length < 3) {
-                projectName = `Project ${new Date().toLocaleDateString()}`;
-            }
-
-            // Check for existing project with same name
-            const existingProject = await prisma.project.findFirst({
-                where: {
-                    userId: req.user.userId,
-                    name: projectName
-                }
-            });
-
-            if (existingProject) {
-                req.body.projectId = existingProject.id;
-                console.log("Reusing existing project:", existingProject.id);
-            } else {
-                const newProject = await prisma.project.create({
-                    data: {
-                        name: projectName,
-                        description: "Auto-created from analysis",
-                        userId: req.user.userId
-                    }
-                });
-                console.log("Auto-created project:", newProject.id);
-                req.body.projectId = newProject.id;
-            }
-        }
+        // Auto-Create Project if missing
+        req.body.projectId = await ensureProjectExists(req.user.userId, req.body.projectId, srsData, text);
 
         // LAYER 3 INTEGRATION: Unified Input Handling
         if (srsData) {
@@ -182,54 +148,7 @@ export const analyze = async (req, res, next) => {
         // But if optimization found, we skip queue.
 
         // LAYER 5: Reuse Strategy (Vector Search)
-        // Generate Embedding for the input
-
-        // LAYER 5: Reuse Strategy (Vector Search)
-        // Generate Embedding for the input
-        let reuseMetadata = { found: false };
-        try {
-            if (process.env.MOCK_AI !== 'true') {
-                // Generate embedding
-                const embeddingVector = await embedText(sanitizedText);
-
-                // Search for similar analyses (cosine distance)
-                // We look for finalized analyses that are NOT the current new one
-                if (embeddingVector && embeddingVector.length > 0) {
-                    const vectorString = `[${embeddingVector.join(',')}]`;
-                    const matches = await prisma.$queryRaw`
-                        SELECT id, 1 - ("vectorSignature" <=> ${vectorString}::vector) as similarity
-                        FROM "Analysis"
-                        WHERE "isFinalized" = true
-                        AND "vectorSignature" IS NOT NULL
-                        ORDER BY "vectorSignature" <=> ${vectorString}::vector ASC
-                        LIMIT 1;
-                     `;
-
-                    if (matches && matches.length > 0) {
-                        const match = matches[0];
-                        const similarity = match.similarity;
-
-                        if (similarity > 0.90) {
-                            reuseMetadata = { found: true, id: match.id, similarity, type: 'EXACT', behavior: 'REUSE_CANDIDATE' };
-                        } else if (similarity >= 0.60) {
-                            reuseMetadata = { found: true, id: match.id, similarity, type: 'HIGH', behavior: 'REFERENCE' };
-                        } else if (similarity >= 0.30) {
-                            reuseMetadata = { found: true, id: match.id, similarity, type: 'PARTIAL', behavior: 'CONTEXT' };
-                        } else if (similarity >= 0.15) {
-                            reuseMetadata = { found: true, id: match.id, similarity, type: 'LOW', behavior: 'IGNORE' };
-                        } else {
-                            // < 15% - No effective match
-                        }
-
-                        if (reuseMetadata.found) {
-                            console.log(`[Reuse] Found ${reuseMetadata.type} match: ${match.id} (Similarity: ${similarity.toFixed(4)})`);
-                        }
-                    }
-                }
-            }
-        } catch (e) {
-            console.warn("Reuse search failed:", e.message);
-        }
+        const reuseMetadata = await findReuseCandidate(sanitizedText);
 
         const job = await addAnalysisJob(req.user.userId, sanitizedText, req.body.projectId, {
             ...req.body.settings,

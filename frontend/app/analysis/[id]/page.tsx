@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
-// import { Navbar } from "@/components/navbar"
+
 import { ResultsTabs } from "@/components/results-tabs"
 import { Button } from "@/components/ui/button"
 import { Loader2, ArrowLeft, Calendar, Download, Sparkles, Database, Save } from "lucide-react"
@@ -28,6 +28,7 @@ import type { Analysis, ValidationIssue } from "@/types/analysis"
 import { SRSIntakeModel } from "@/types/srs-intake"
 import { cn } from "@/lib/utils"
 import { VersionTimeline } from "@/components/version-timeline"
+ 
 import { toast } from "sonner"
 import { ImprovementDialog } from "@/components/improvement-dialog"
 import { AccordionInput } from "@/components/analysis/accordion-input"
@@ -58,9 +59,13 @@ function AnalysisDetailContent() {
     // Draft State
     const [draftData, setDraftData] = useState<SRSIntakeModel | null>(null)
 
-    const fetchAnalysis = async (analysisId: string) => {
+    const fetchAnalysis = useCallback(async (analysisId: string) => {
         try {
-            if (!analysis) setLoadingMessage("Loading project...")
+            // Only set loading message if we don't have analysis yet, avoids flicker
+            setAnalysis(prev => {
+                if (!prev) setLoadingMessage("Loading project...");
+                return prev;
+            });
 
             const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
                 cache: 'no-store',
@@ -76,16 +81,19 @@ function AnalysisDetailContent() {
             setAnalysis(data)
 
             // STATUS HANDLING
-            // If PENDING, poll again in 2s
-            if (data.status === 'PENDING') {
-                setLoadingMessage("Processing your analysis... This may take a moment.")
+            // Poll if PENDING or IN_PROGRESS
+            if (data.status === 'PENDING' || data.status === 'IN_PROGRESS') {
+                const msg = data.status === 'IN_PROGRESS'
+                    ? "AI is analyzing requirements (Layer 3)..."
+                    : "Queueing analysis job...";
+                setLoadingMessage(msg)
                 setTimeout(() => fetchAnalysis(analysisId), 2000)
                 return
             }
 
             // If FAILED, show error
             if (data.status === 'FAILED') {
-                setError("Analysis generation failed. Please try again.")
+                setError("Analysis generation failed. The worker encountered an error.");
                 setIsLoading(false)
                 return
             }
@@ -123,7 +131,7 @@ function AnalysisDetailContent() {
         } finally {
             // No-op
         }
-    }
+    }, [token, unlockAndNavigate, unlockLayer, setLayer, setIsFinalized]);
 
     useEffect(() => {
         // Wait for auth initialization
@@ -142,8 +150,7 @@ function AnalysisDetailContent() {
             setError("Invalid Analysis ID");
             setIsLoading(false);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user, token, id, authLoading, router])
+    }, [user, token, id, authLoading, router, fetchAnalysis])
 
     const handleRefresh = () => {
         if (id) fetchAnalysis(id)

@@ -29,3 +29,11 @@ jobs:
 
     - name: Install dependencies
       run: npm ci
+
+    - name: Run Lint
+      run: npm run lint
+
+    - name: Run Tests
+      run: npm test
+      env:
+        CI: true

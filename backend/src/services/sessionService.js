@@ -114,7 +114,7 @@ export const getUserSessions = async (userId) => {
             userAgent: true,
             ipAddress: true,
             lastUsedAt: true,
-            lastUsedAt: true,
+
             createdAt: true,
             expiresAt: true,
             location: true

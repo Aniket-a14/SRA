@@ -92,6 +92,7 @@ function HomeContent() {
     setIsLoading(true)
     try {
       // LAYER 1 TRANSITION: Create Draft instead of immediate analysis
+      console.log("Sending Analysis Request:", { requirements, settings, name, projectId });
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, {
         method: "POST",
         headers: {
@@ -100,6 +101,7 @@ function HomeContent() {
         },
         body: JSON.stringify({
           // Map inputs to Draft Data
+          text: requirements, // Required by Zod Schema
           srsData: {
             introduction: {
               projectName: { content: name },
@@ -113,7 +115,9 @@ function HomeContent() {
       })
 
       if (!response.ok) {
-        throw new Error("Failed to start project")
+        const errorData = await response.json().catch(() => ({}));
+        console.error("API Error Details:", JSON.stringify(errorData, null, 2));
+        throw new Error(errorData.error || "Failed to start project")
       }
 
       const data = await response.json()
