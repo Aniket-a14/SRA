@@ -13,9 +13,9 @@ router.post("/", async (req, res, next) => {
       throw error;
     }
 
-    const response = await analyzeText(text, settings);
+    const { srs, meta } = await analyzeText(text, settings);
 
-    res.json(response);
+    res.json({ srs, meta });
   } catch (error) {
     next(error);
   }

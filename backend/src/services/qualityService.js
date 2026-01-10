@@ -107,7 +107,7 @@ export const lintRequirements = (analysis) => {
     score = Math.max(0, Math.min(100, score));
 
     return { score, issues };
-    return { score, issues };
+
 };
 
 import { ALIGNMENT_CHECK_PROMPT } from '../utils/prompts.js';

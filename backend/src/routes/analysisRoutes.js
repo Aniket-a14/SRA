@@ -2,12 +2,15 @@ import express from 'express';
 import { analyze, getHistory, getAnalysis, chat, getChatHistory, updateAnalysis, generateCode, checkJobStatus, getHistoryForRoot, performComparison, regenerate, finalizeAnalysis, validateAnalysis, expandFeature } from '../controllers/analysisController.js';
 import { authenticate } from '../middleware/authMiddleware.js';
 
+import { validate } from '../middleware/validationMiddleware.js';
+import { analyzeSchema } from '../utils/validationSchemas.js';
+
 const router = express.Router();
 
 router.use(authenticate);
 
 // Analysis Routes
-router.post('/', analyze);
+router.post('/', validate(analyzeSchema), analyze);
 router.get('/job/:id', checkJobStatus);
 router.get('/', getHistory);
 router.get('/history/:rootId', getHistoryForRoot);
