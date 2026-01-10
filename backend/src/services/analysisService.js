@@ -1,62 +1,34 @@
-import axios from 'axios';
 import prisma from '../config/prisma.js';
 import { lintRequirements, checkAlignment } from './qualityService.js';
+import { analyzeText } from './aiService.js';
 import crypto from 'crypto';
 
 export const performAnalysis = async (userId, text, projectId = null, parentId = null, rootId = null, settings = {}, analysisId = null) => {
-    // Call AI Service
-    // Default to local internal endpoint if env var is missing or incorrect
-    const port = process.env.PORT || 3000;
-    const ANALYZER_URL = process.env.ANALYZER_URL || `http://localhost:${port}/internal/analyze`;
-
-    // Fallback: If ANALYZER_URL is set to port 3001 but we are on 3000, force correction for localhost
-    const targetUrl = ANALYZER_URL.includes('localhost:3001') && port === '3000'
-        ? ANALYZER_URL.replace('3001', '3000')
-        : ANALYZER_URL;
-
     let resultJson;
     let analysisMeta = {};
 
-    // MOCK FOR TESTING
-    if (process.env.MOCK_AI === 'true') {
-        resultJson = {
-            projectTitle: "Mocked Project",
-            introduction: { purpose: "Mock Purpose" },
-            // ... (Full mock object omitted for brevity, logic assumes valid structure)
-            overallDescription: { productPerspective: "Mock" },
-            externalInterfaceRequirements: { userInterfaces: "Mock UI" },
-            systemFeatures: [],
-            nonFunctionalRequirements: {},
-            otherRequirements: [],
-            glossary: [],
-            appendices: { analysisModels: {} }
-        };
-        analysisMeta = {
-            promptVersion: "mock-1.0",
-            modelProvider: "mock",
-            modelName: "mock-model"
-        };
-    } else {
-        try {
-            const response = await axios.post(targetUrl, { text, settings }, { timeout: 120000 }); // 2 min timeout
-            // Support both legacy (direct SRS) and new ({srs, meta}) formats for backward compatibility
-            if (response.data.srs && response.data.meta) {
-                resultJson = response.data.srs;
-                analysisMeta = response.data.meta;
-            } else {
-                resultJson = response.data;
-            }
-        } catch (error) {
-            console.error("AI Analysis connection failed:", error.message);
-            // If we have an ID, we should fail it
-            if (analysisId) {
-                await prisma.analysis.update({
-                    where: { id: analysisId },
-                    data: { status: 'FAILED' }
-                });
-            }
-            throw new Error('Failed to communicate with analysis service');
+    try {
+        // Direct function call instead of self-referential HTTP
+        const response = await analyzeText(text, settings);
+
+        // aiService.analyzeText already returns { srs, meta }
+        if (response.srs && response.meta) {
+            resultJson = response.srs;
+            analysisMeta = response.meta;
+        } else {
+            // Fallback for any direct results (though analyzeText is standardized)
+            resultJson = response;
         }
+    } catch (error) {
+        console.error("AI Analysis execution failed:", error.message);
+        // If we have an ID, we should fail it
+        if (analysisId) {
+            await prisma.analysis.update({
+                where: { id: analysisId },
+                data: { status: 'FAILED' }
+            });
+        }
+        throw new Error('Failed to communicate with analysis service');
     }
 
     // Run Quality Check (Linting)
