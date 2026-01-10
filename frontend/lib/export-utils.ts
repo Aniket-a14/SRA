@@ -4,7 +4,7 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { getAcronym } from '@/lib/utils';
 
-import type { AnalysisResult } from '@/types/analysis';
+import type { AnalysisResult, Diagram } from '@/types/analysis';
 
 // Helper: Convert SVG string to PNG Blob (kept from original)
 const svgToPng = (svgStr: string): Promise<Blob | null> => {
@@ -76,11 +76,11 @@ const clean = (text: string) => text?.replace(/\s+/g, ' ').trim() || "";
 
 // Helper to extract code from string or Diagram object
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const getDiagramCode = (diagram: any): string => typeof diagram === 'string' ? diagram : (diagram?.code || "");
+const getDiagramCode = (diagram: Diagram | string | null | undefined): string => typeof diagram === 'string' ? diagram : (diagram?.code || "");
 
 // Helper to extract caption
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const getDiagramCaption = (diagram: any, defaultCaption: string): string => {
+const getDiagramCaption = (diagram: Diagram | string | null | undefined, defaultCaption: string): string => {
     return (typeof diagram !== 'string' && diagram?.caption) ? diagram.caption : defaultCaption;
 };
 
@@ -106,6 +106,7 @@ export const renderMermaidDiagrams = async (data: AnalysisResult): Promise<Recor
     const images: Record<string, string> = {};
     if (!data.appendices?.analysisModels) return images;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mermaid: any = null;
     try {
@@ -146,39 +147,44 @@ export const renderMermaidDiagrams = async (data: AnalysisResult): Promise<Recor
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const getCode = (diagram: any) => typeof diagram === 'string' ? diagram : diagram?.code;
+    const getCode = (diagram: Diagram | string | null | undefined) => typeof diagram === 'string' ? diagram : diagram?.code;
 
     if (data.appendices.analysisModels.flowchartDiagram) {
-        const img = await render(getCode(data.appendices.analysisModels.flowchartDiagram), 'flowchart');
+        const img = await render(getCode(data.appendices.analysisModels.flowchartDiagram) || "", 'flowchart');
         if (img) images['flowchart'] = img;
     }
 
     if (data.appendices.analysisModels.sequenceDiagram) {
-        const img = await render(getCode(data.appendices.analysisModels.sequenceDiagram), 'sequence');
+        const img = await render(getCode(data.appendices.analysisModels.sequenceDiagram) || "", 'sequence');
         if (img) images['sequence'] = img;
     }
 
     if (data.appendices.analysisModels.dataFlowDiagram) {
         // Handle new structure { level0, level1 } vs old structure (Diagram | string)
-        const dfd = data.appendices.analysisModels.dataFlowDiagram as any;
+        const dfd = data.appendices.analysisModels.dataFlowDiagram;
+        const isDfdObj = typeof dfd === 'object' && dfd !== null;
 
-        if (dfd.level0) {
-            const img = await render(dfd.level0, 'dataFlowLevel0');
-            if (img) images['dataFlowLevel0'] = img;
-        } else if (dfd.code || typeof dfd === 'string') {
-            // Fallback for old single DFD
-            const img = await render(getCode(dfd), 'dataFlowLevel0');
+        const level0Code = (isDfdObj && 'level0' in dfd)
+            ? (dfd as { level0: string }).level0
+            : (typeof dfd === 'string' ? dfd : (dfd as Diagram)?.code);
+
+        if (level0Code) {
+            const img = await render(level0Code, 'dataFlowLevel0');
             if (img) images['dataFlowLevel0'] = img;
         }
 
-        if (dfd.level1) {
-            const img = await render(dfd.level1, 'dataFlowLevel1');
+        const level1Code = (isDfdObj && 'level1' in dfd)
+            ? (dfd as { level1: string }).level1
+            : "";
+
+        if (level1Code) {
+            const img = await render(level1Code, 'dataFlowLevel1');
             if (img) images['dataFlowLevel1'] = img;
         }
     }
 
     if (data.appendices.analysisModels.entityRelationshipDiagram) {
-        const img = await render(getCode(data.appendices.analysisModels.entityRelationshipDiagram), 'entityRelationship');
+        const img = await render(getCode(data.appendices.analysisModels.entityRelationshipDiagram) || "", 'entityRelationship');
         if (img) images['entityRelationship'] = img;
     }
 
@@ -849,9 +855,10 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
                 1: { cellWidth: 'auto' } // Definition
             },
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             didDrawPage: (data: any) => {
                 // Update final Y position after table
-                yPos = data.cursor.y + 10;
+                yPos = (data.cursor?.y || yPos) + 10;
             }
         });
 
@@ -976,7 +983,8 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
             }
 
             // Fallback / Description
-            const caption = (data.appendices.analysisModels.dataFlowDiagram as any).caption || "Data Flow Diagrams";
+            const dfd = data.appendices.analysisModels.dataFlowDiagram;
+            const caption = (typeof dfd === 'object' && dfd !== null && 'caption' in dfd ? (dfd as { caption: string }).caption : "Data Flow Diagrams");
             const figId = "Figure B.3";
 
             // Only show caption if we printed something? Or generally.
@@ -1271,6 +1279,7 @@ export const downloadBundle = async (data: AnalysisResult, title: string) => {
     const zip = new JSZip();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mermaid: any = null;
     try {
         const mermaidModule = await import('mermaid');
@@ -1336,7 +1345,21 @@ export const downloadBundle = async (data: AnalysisResult, title: string) => {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const downloadCodebase = async (codeData: any, title: string) => {
+interface CodebaseFile {
+    path: string;
+    code: string;
+}
+
+interface CodebaseData {
+    databaseSchema?: string;
+    backendRoutes?: CodebaseFile[];
+    frontendComponents?: CodebaseFile[];
+    testCases?: CodebaseFile[];
+    backendReadme?: string;
+    frontendReadme?: string;
+}
+
+export const downloadCodebase = async (codeData: CodebaseData, title: string) => {
     // Kept as is for now
     const zip = new JSZip();
     if (codeData.databaseSchema) zip.file("prisma/schema.prisma", codeData.databaseSchema);

@@ -135,7 +135,7 @@ User: ${userMessage}
                     resultJson: parsedResponse.updatedAnalysis,
                     version,
                     title,
-                    title,
+
                     rootId,
                     parentId: currentAnalysis.id,
                     metadata: {
