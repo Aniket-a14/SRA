@@ -1,5 +1,6 @@
 // DYNAMIC PROMPT GENERATOR
 // DYNAMIC PROMPT GENERATOR
+// DYNAMIC PROMPT GENERATOR
 export const constructMasterPrompt = (settings = {}) => {
   const {
     profile = "default",
@@ -47,24 +48,27 @@ ${personaInstruction}
 DETAIL LEVEL: ${detailLevel}
 ${creativityInstruction}
 
-*** LAYER 3 INTEGRATION INSTRUCTION ***
-The "User Input" below may be a structured JSON object (from Layer 1 Intake).
-IF the input is JSON:
-1.  **TRUST THE CONTENT**: The input is already validated. Do not filter it. Use it as the ground truth for the respective sections.
-2.  **MAP EXACTLY**: 
-    - Input 'purpose' -> Output 'introduction.purpose'
-    - Input 'scope' -> Output 'introduction.productScope'
-    - Input 'features' -> Output 'systemFeatures'
-    - etc.
-3.  **GENERATE MISSING ARTIFACTS**: You MUST generate the following based on the context of the input:
-    - 1.2 Document Conventions (Standard IEEE conventions)
-    - 1.3 Intended Audience (Infer from User Classes)
-    - 1.5 References (Standard placeholders if none provided)
-    - 2.4 Operating Environment (Infer from context, e.g. "Web" -> Browsers)
-    - Appendix A: Glossary (Extract terms)
-    - Appendix B: Analysis Models (Generate Mermaid diagrams based on the logic)
-    - Appendix C: TBD List (If any)
-4.  **FORMATTING**: Apply the strict IEEE formatting rules below to the raw input content (e.g. converting raw lists to narrative prose where required).
+*** SYSTEM INSTRUCTION: UNSTRUCTURED RAW INPUT PARSING ***
+You will receive a raw input which serves as the "Layer 2" transmission.
+The input is a **JSON Array of Strings** (e.g., ["Project:", "Name", "...", "Description:", "The", "app", ...]).
+Your primary task is to **Reconstruct, Analyze, and Structure** this sequence of words into a professional IEEE 830-1998 SRS.
+
+**PROCESS:**
+1.  **Reconstruct**: Read the array accurately. It represents the linear text of the project description.
+2.  **Analyze**: Identify core modules, user roles, constraints, and business goals from the reconstructed text.
+3.  **Extract & Categorize**:
+    - **Introduction**: Extract the purpose, scope, and high-level goals.
+    - **Overall Description**: Identify User Classes (Actors), Operating Environment, and Constraints.
+    - **System Features**: Break down the description into distinct logical features (e.g., "User Authentication", "Payment Processing").
+    - **Non-Functional Requirements**: Identify or infer performance, security, and quality attributes.
+    - **External Interfaces**: Identify UIs, APIs, or hardware interactions.
+3.  **Generate Missing Artifacts**: Based on the context, you MUST generate:
+    - 1.2 Document Conventions
+    - 1.3 Intended Audience
+    - 1.5 References (Standard placeholders if none)
+    - Appendix A: Glossary
+    - Appendix B: Analysis Models (Generate Mermaid diagrams appropriate for the architecture)
+4.  **Format**: Apply the strict IEEE formatting rules below to the generated content.
 
 *** CRITICAL INSTRUCTION: IEEE SRS FORMATTING & DISCIPLINE ***
 You must adhere to the following strict formatting rules. ANY violation will render the output invalid.
@@ -78,7 +82,7 @@ You must adhere to the following strict formatting rules. ANY violation will ren
 
 2. MANDATORY PARAGRAPH SEGMENTATION
    - For all narrative sections (Introduction, Overall Description, External Interfaces, Operating Environment), you MUST split long explanations into 2–4 focused paragraphs.
-   - NOT ALLOWED: Single-block paragraphs covering multiple concerns (e.g., mixing detailed Client and Backend specs in one block).
+   - NOT ALLOWED: Single-block paragraphs covering multiple concerns.
    - Segregate concerns: Client Platforms | Backend | Databases | Integrations | Security.
 
 3. SELECTIVE KEYWORD BOLDING ONLY
@@ -189,7 +193,7 @@ STRICT RULES:
 3. System Features must follow specific structure defined above or output is INVALID.
 4. Output MUST be valid JSON only.
 
-User Input:
+User Input (Raw Description):
 `;
 };
 
@@ -300,4 +304,45 @@ RULES:
 6. Return VALID JSON only.No markdown formatting.
 
 INPUT ANALYSIS:
+`;
+
+export const ALIGNMENT_CHECK_PROMPT = `
+You are operating as Layer 3 of the SRA system: Alignment & Mismatch Detection.
+
+Your goal is to ensure that the generated SRS content corresponds exactly to the approved scope from Layer 1 (User Intent) and Layer 2 (Validation).
+
+You must start by verifying the following alignment criteria:
+1. **Name Alignment**: Does the content belong to the project defined by the Project Name?
+2. **Scope Alignment**: Does the content stay within the product scope validated by Layer 2?
+3. **Semantic Alignment**: Is the content derived from explicit or implicit signals in the input? (No hallucinations).
+4. **Section Intent**: Is the information placed in the correct IEEE section?
+
+**INPUTS:**
+- **Layer 1 Intent**: Project Name: "{{projectName}}", Raw Input: "{{rawInput}}"
+- **Layer 2 Context**: Validated Domain: "{{domain}}", Core Purpose: "{{purpose}}"
+- **Generated Content**: A section or full SRS JSON to check.
+
+**MISMATCH DEFINITION:**
+Flag a mismatch if:
+- Content has no clear origin in Layer 1.
+- Content contradicts Layer 2 constraints.
+- Content expands vague input into specific unrequested features (e.g. "Banking App" -> "Crypto Trading" without prompt).
+- Content is semantically good but structurally misplaced.
+
+**OUTPUT FORMAT:**
+Return ONLY valid JSON:
+{
+  "status": "ALIGNED" | "MISMATCH_DETECTED",
+  "mismatches": [
+    {
+      "severity": "BLOCKER" | "WARNING",
+      "type": "SCOPE_CREEP" | "HALLUCINATION" | "IDENTITY_MISMATCH" | "STRUCTURAL_ERROR",
+      "description": "Clear explanation of why this content deviates from Layer 1/2.",
+      "location": "Section Name or Feature Name"
+    }
+  ]
+}
+
+**GENERATED CONTENT TO CHECK:**
+{{srsContent}}
 `;
