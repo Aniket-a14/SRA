@@ -1,6 +1,6 @@
 import axios from 'axios';
 import prisma from '../config/prisma.js';
-import { lintRequirements } from './qualityService.js';
+import { lintRequirements, checkAlignment } from './qualityService.js';
 import crypto from 'crypto';
 
 export const performAnalysis = async (userId, text, projectId = null, parentId = null, rootId = null, settings = {}, analysisId = null) => {
@@ -89,6 +89,36 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         promptSettings: settings // Store settings (including model info) used for versioning
     };
 
+    // LAYER 3: Alignment Check (Sync with Layer 1 & 2)
+    if (analysisId) {
+        try {
+            const existingAnalysis = await prisma.analysis.findUnique({ where: { id: analysisId } });
+            if (existingAnalysis && existingAnalysis.metadata && existingAnalysis.metadata.draftData) {
+                const draftData = existingAnalysis.metadata.draftData;
+
+                const layer1Intent = {
+                    projectName: draftData.details?.projectName?.content || "Project",
+                    rawText: text // We use the input text passed to this function
+                };
+                const layer2Context = {
+                    domain: "inferred", // We could infer from draftData if needed
+                    purpose: draftData.details?.fullDescription?.content || "Purpose"
+                };
+
+                const alignmentResult = await checkAlignment(layer1Intent, layer2Context, resultJson);
+                resultJson.alignmentResult = alignmentResult;
+
+                if (alignmentResult.status === 'MISMATCH_DETECTED') {
+                    resultJson.layer3Status = 'MISMATCH';
+                } else {
+                    resultJson.layer3Status = 'ALIGNED';
+                }
+            }
+        } catch (l3Error) {
+            console.warn("Layer 3 Check (Initial) Failed:", l3Error);
+        }
+    }
+
     // Atomic Creation with Transaction
     return await prisma.$transaction(async (tx) => {
         // If analysisId is provided, we update the existing record
@@ -143,8 +173,28 @@ export const getUserAnalyses = async (userId) => {
         return analyses.map(a => {
             let preview = a.inputText;
 
-            // If it looks like JSON (starts with {), try to extract purpose or scope
-            if (preview && preview.trim().startsWith('{')) {
+            // Optimized Preview Extraction
+            if (preview && preview.trim().startsWith('[')) {
+                try {
+                    const words = JSON.parse(preview);
+                    if (Array.isArray(words)) {
+                        // Rejoin first 20 words for preview
+                        preview = words.slice(0, 20).join(' ') + "...";
+                    }
+                } catch (e) {
+                    // fall through
+                }
+            } else if (preview && preview.trim().startsWith('Project:')) {
+                // Format: "Project: X\n\nDescription:\nY"
+                const lines = preview.split('\n');
+                // Try to find the description part
+                const descIndex = lines.findIndex(l => l.startsWith('Description:'));
+                if (descIndex !== -1 && lines[descIndex + 1]) {
+                    preview = lines[descIndex + 1];
+                } else if (lines[0]) {
+                    preview = lines[0].replace('Project: ', '');
+                }
+            } else if (preview && preview.trim().startsWith('{')) {
                 try {
                     const parsed = JSON.parse(preview);
                     // Extract purpose or scope for a better preview, otherwise fallback to name

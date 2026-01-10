@@ -25,7 +25,7 @@ import {
 import { generateSRS, generateAPI, downloadBundle } from "@/lib/export-utils"
 import { saveAs } from "file-saver"
 import type { Analysis, ValidationIssue } from "@/types/analysis"
-import { SRSIntakeModel, SystemFeatureItem } from "@/types/srs-intake"
+import { SRSIntakeModel } from "@/types/srs-intake"
 import { cn } from "@/lib/utils"
 import { VersionTimeline } from "@/components/version-timeline"
 import { toast } from "sonner"
@@ -175,105 +175,7 @@ function AnalysisDetailContent() {
         });
     }, []);
 
-    const handleFeatureUpdate = useCallback((featureId: string, field: string, value: string) => {
-        setDraftData((prev: SRSIntakeModel | null) => {
-            if (!prev) return prev;
-            const newData = { ...prev };
-            const sectionData = { ...(newData.systemFeatures || { features: [] }) };
-            sectionData.features = (sectionData.features || []).map((f: SystemFeatureItem) => {
-                if (f.id !== featureId) return f;
-                if (field === 'name') return { ...f, name: value };
-                if (field === 'rawInput') return { ...f, rawInput: value };
 
-                // For IntakeField updates (description, functional Requirements)
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const intakeField = (f as any)[field] || { content: '', metadata: {} };
-                return {
-                    ...f,
-                    [field]: { ...intakeField, content: value, metadata: { ...intakeField.metadata, completion_status: value.trim() ? 'complete' : 'empty' } }
-                };
-            });
-            newData.systemFeatures = sectionData;
-            return newData;
-        });
-    }, []);
-
-    const handleFeatureExpand = useCallback(async (featureId: string) => {
-        const features = (draftData as unknown as SRSIntakeModel)?.systemFeatures?.features || [];
-        const feature = features.find((f: SystemFeatureItem) => f.id === featureId);
-        if (!feature || !feature.name || !feature.rawInput) {
-            toast.error("Please provide both a feature name and a description first.");
-            return;
-        }
-
-        const loadingToast = toast.loading(`Expanding "${feature.name}"...`);
-        try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/expand-feature`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    name: feature.name,
-                    prompt: feature.rawInput
-                })
-            });
-
-            if (!res.ok) throw new Error("Expansion failed");
-            const expanded = await res.json();
-
-            setDraftData((prev: SRSIntakeModel | null) => {
-                if (!prev) return prev;
-                const newData = { ...prev };
-                newData.systemFeatures.features = newData.systemFeatures.features.map((f: SystemFeatureItem) => {
-                    if (f.id !== featureId) return f;
-                    return {
-                        ...f,
-                        description: { ...f.description, content: expanded.description },
-                        stimulusResponse: { ...f.stimulusResponse, content: (expanded.stimulusResponseSequences || []).join('\n') },
-                        functionalRequirements: { ...f.functionalRequirements, content: (expanded.functionalRequirements || []).join('\n') }
-                    };
-                });
-                return newData;
-            });
-
-            toast.success("Feature expanded!", { id: loadingToast });
-        } catch (e) {
-            console.error(e);
-            toast.error("Expansion failed", { id: loadingToast });
-        }
-    }, [draftData, token]);
-
-    const handleAddFeature = useCallback(() => {
-        setDraftData((prev: SRSIntakeModel | null) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const newData = (prev ? { ...prev } : {}) as any;
-            const sectionData = newData.systemFeatures || { features: [] };
-            const newFeature = {
-                id: crypto.randomUUID(),
-                name: 'New Feature',
-                rawInput: '',
-                description: { content: '', metadata: { section_id: '4', subsection_id: '4.1.1', domain_type: 'web', is_required: true, completion_status: 'empty' } },
-                stimulusResponse: { content: '', metadata: { section_id: '4', subsection_id: '4.1.2', domain_type: 'web', is_required: true, completion_status: 'empty' } },
-                functionalRequirements: { content: '', metadata: { section_id: '4', subsection_id: '4.1.3', domain_type: 'web', is_required: true, completion_status: 'empty' } }
-            };
-            sectionData.features = [...sectionData.features, newFeature];
-            newData.systemFeatures = sectionData;
-            return newData as unknown as SRSIntakeModel;
-        });
-    }, []);
-
-    const handleRemoveFeature = useCallback((featureId: string) => {
-        setDraftData((prev: SRSIntakeModel | null) => {
-            if (!prev) return prev;
-            const newData = { ...prev };
-            const sectionData = newData.systemFeatures || { features: [] };
-            sectionData.features = sectionData.features.filter((f: SystemFeatureItem) => f.id !== featureId);
-            newData.systemFeatures = sectionData;
-            return newData;
-        });
-    }, []);
 
     const handleSaveDraft = async () => {
         if (!id || !draftData) return;
@@ -448,10 +350,6 @@ function AnalysisDetailContent() {
                     <AccordionInput
                         data={(draftData as unknown as SRSIntakeModel) || {}}
                         onUpdate={handleDraftUpdate}
-                        onFeatureUpdate={handleFeatureUpdate}
-                        onAddFeature={handleAddFeature}
-                        onRemoveFeature={handleRemoveFeature}
-                        onFeatureExpand={handleFeatureExpand}
                         onValidate={handleRunValidation}
                         isValidating={isValidating}
                     />

@@ -1,14 +1,18 @@
 "use client"
-
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { AlertTriangle, CheckCircle, XCircle, Info, ShieldAlert, FileWarning } from "lucide-react"
+import { AlertTriangle, CheckCircle, XCircle, Info, ShieldAlert, FileWarning, HelpCircle } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Textarea } from "@/components/ui/textarea"
+import { ArrowLeft } from "lucide-react"
 
 interface Issue {
     id: string;
     severity: 'critical' | 'warning' | 'info';
-    message: string;
+    message?: string;
+    title?: string;
+    description?: string;
     section?: string;
     conflict_type?: 'HARD_CONFLICT' | 'SOFT_DRIFT' | 'NONE';
     suggested_fix?: string;
@@ -16,15 +20,76 @@ interface Issue {
 
 interface ValidationReportProps {
     issues: Issue[];
+    clarificationQuestions?: string[];
     onProceed: () => void;
     onEdit: () => void;
+    onSubmitClarifications?: (answers: Record<string, string>) => void;
 }
 
-export function ValidationReport({ issues, onProceed, onEdit }: ValidationReportProps) {
+export function ValidationReport({ issues, clarificationQuestions = [], onProceed, onEdit, onSubmitClarifications }: ValidationReportProps) {
     const criticalCount = issues.filter(i => i.severity === 'critical').length;
     const warningCount = issues.filter(i => i.severity === 'warning').length;
+    const [answers, setAnswers] = useState<Record<string, string>>({});
 
     const isBlocked = criticalCount > 0;
+    const isClarificationNeeded = clarificationQuestions.length > 0;
+
+    const handleAnswerChange = (idx: number, value: string) => {
+        setAnswers(prev => ({ ...prev, [idx]: value }));
+    }
+
+    const handleSubmitClarifications = () => {
+        if (onSubmitClarifications) {
+            onSubmitClarifications(answers);
+        }
+    }
+
+    if (isClarificationNeeded) {
+        return (
+            <div className="max-w-4xl mx-auto space-y-6 pb-20 p-6">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h2 className="text-2xl font-bold tracking-tight">Clarification Required</h2>
+                        <p className="text-muted-foreground">Layer 2 needs your input to resolve ambiguities.</p>
+                    </div>
+                </div>
+
+                <Card className="border-amber-200 bg-amber-50/50">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <HelpCircle className="h-5 w-5 text-amber-600" />
+                            Questions from the System
+                        </CardTitle>
+                        <CardDescription>
+                            Please answer the following questions to help us understand your requirements better.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        {clarificationQuestions.map((question, idx) => (
+                            <div key={idx} className="space-y-2">
+                                <p className="font-medium text-sm">{idx + 1}. {question}</p>
+                                <Textarea
+                                    placeholder="Type your answer here..."
+                                    value={answers[idx] || ""}
+                                    onChange={(e) => handleAnswerChange(idx, e.target.value)}
+                                    className="bg-white"
+                                />
+                            </div>
+                        ))}
+                    </CardContent>
+                </Card>
+
+                <div className="flex justify-end items-center gap-4 fixed bottom-0 left-0 right-0 p-4 bg-background border-t z-10 md:pl-64">
+                    <Button variant="outline" onClick={onEdit}>
+                        <ArrowLeft className="h-4 w-4 mr-2" /> Back to Inputs
+                    </Button>
+                    <Button onClick={handleSubmitClarifications} disabled={Object.keys(answers).length < clarificationQuestions.length} size="lg">
+                        Submit Clarifications
+                    </Button>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="max-w-4xl mx-auto space-y-6 pb-20 p-6">
@@ -101,17 +166,20 @@ export function ValidationReport({ issues, onProceed, onEdit }: ValidationReport
 
                             <div className="flex-1">
                                 <h4 className="text-sm font-semibold flex items-center gap-2">
-                                    {issue.message}
+                                    {issue.title || issue.message}
                                     {issue.section && <Badge variant="secondary" className="text-[10px]">{issue.section}</Badge>}
                                     {issue.conflict_type === 'HARD_CONFLICT' && <Badge variant="destructive" className="text-[10px] bg-red-600">SEMANTIC CONFLICT</Badge>}
                                     {issue.conflict_type === 'SOFT_DRIFT' && <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-600">SCOPE DRIFT</Badge>}
                                 </h4>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    {issue.severity === 'critical' ? "Must be resolved." : "Recommended fix."}
+                                <p className="text-sm text-muted-foreground mt-1">
+                                    {issue.description || "No detailed description provided."}
+                                </p>
+                                <p className="text-xs font-medium text-foreground/70 mt-2">
+                                    {issue.severity === 'critical' ? "Status: Must be resolved." : "Status: Recommended fix."}
                                 </p>
                                 {issue.suggested_fix && (
-                                    <div className="mt-2 text-xs bg-muted/50 p-2 rounded text-foreground/80">
-                                        <span className="font-semibold">Fix: </span>{issue.suggested_fix}
+                                    <div className="mt-2 text-xs bg-muted/50 p-2 rounded text-foreground/80 border border-border/50">
+                                        <span className="font-semibold text-primary/80">Suggestion: </span>{issue.suggested_fix}
                                     </div>
                                 )}
                             </div>
@@ -132,5 +200,3 @@ export function ValidationReport({ issues, onProceed, onEdit }: ValidationReport
         </div>
     )
 }
-
-import { ArrowLeft } from "lucide-react"

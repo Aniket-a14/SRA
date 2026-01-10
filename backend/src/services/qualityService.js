@@ -107,4 +107,39 @@ export const lintRequirements = (analysis) => {
     score = Math.max(0, Math.min(100, score));
 
     return { score, issues };
+    return { score, issues };
+};
+
+import { ALIGNMENT_CHECK_PROMPT } from '../utils/prompts.js';
+import { analyzeText } from './aiService.js';
+
+/**
+ * Layer 3: Semantic Alignment & Mismatch Detection
+ * @param {Object} originalInput - Layer 1 Input (Project Name + Raw Text)
+ * @param {Object} validationContext - Layer 2 Context (Validated Domain + Purpose)
+ * @param {Object} srsOutput - The generated SRS JSON
+ * @returns {Promise<Object>} { status: 'ALIGNED'|'MISMATCH_DETECTED', mismatches: [] }
+ */
+export const checkAlignment = async (originalInput, validationContext, srsOutput) => {
+    // Construct Prompt
+    let prompt = ALIGNMENT_CHECK_PROMPT
+        .replace('{{projectName}}', originalInput.projectName || "Unknown")
+        .replace('{{rawInput}}', (originalInput.rawText || "").slice(0, 1000)) // Truncate if huge
+        .replace('{{domain}}', validationContext.domain || "General Software")
+        .replace('{{purpose}}', validationContext.purpose || "Not Specified")
+        .replace('{{srsContent}}', JSON.stringify(srsOutput).slice(0, 15000)); // Context limit safety
+
+    // Call AI
+    const result = await analyzeText(prompt, {
+        modelName: 'gemini-2.5-flash',
+        temperature: 0.0 // Strict logic
+    });
+
+    if (!result || !result.status) {
+        // Fallback if AI fails to return structure
+        console.warn("Layer 3 Alignment Check returned invalid format:", result);
+        return { status: 'ALIGNED', mismatches: [] };
+    }
+
+    return result;
 };

@@ -79,8 +79,12 @@ export interface AnalysisModels {
 export interface ValidationIssue {
     id: string;
     severity: 'critical' | 'warning' | 'info';
-    message: string;
+    message?: string; // Legacy support
+    title?: string;
+    description?: string;
     section?: string;
+    conflict_type?: 'HARD_CONFLICT' | 'SOFT_DRIFT' | 'NONE'; // From prompt
+    suggested_fix?: string;
 }
 
 export interface Appendices {
