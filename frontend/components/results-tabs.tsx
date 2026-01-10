@@ -449,12 +449,25 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                 </div>
                 <div className="grid lg:grid-cols-2 gap-6 mt-6">
                   <DiagramEditor
-                    title="Data Flow Diagram"
-                    initialCode={typeof appendices?.analysisModels?.dataFlowDiagram === 'string'
-                      ? appendices.analysisModels.dataFlowDiagram
-                      : appendices?.analysisModels?.dataFlowDiagram?.code || ""}
+                    title="DFD Level 0 (Context)"
+                    initialCode={
+                      // Robust check for new structure vs old
+                      (appendices?.analysisModels?.dataFlowDiagram as any)?.level0 ||
+                      (typeof appendices?.analysisModels?.dataFlowDiagram === 'string' ? appendices.analysisModels.dataFlowDiagram : (appendices?.analysisModels?.dataFlowDiagram as any)?.code) ||
+                      ""
+                    }
+                    syntaxExplanation={(appendices?.analysisModels?.dataFlowDiagram as any)?.syntaxExplanation}
                     onSave={async (newCode) => {
                       try {
+                        const currentDFD = appendices?.analysisModels?.dataFlowDiagram as any || {};
+                        const newDFD = {
+                          ...currentDFD,
+                          level0: newCode,
+                          // Preserve level1 if it exists, or init empty
+                          level1: currentDFD.level1 || "",
+                          caption: currentDFD.caption || "Data Flow Diagram"
+                        };
+
                         const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
                           method: "PUT",
                           headers: {
@@ -466,7 +479,7 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                               ...appendices,
                               analysisModels: {
                                 ...appendices?.analysisModels,
-                                dataFlowDiagram: newCode
+                                dataFlowDiagram: newDFD
                               }
                             }
                           })
@@ -477,7 +490,52 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                           toast.success("New version created")
                           router.push(`/analysis/${updated.id}`)
                         } else {
-                          toast.success("Saved")
+                          toast.success("Saved Level 0")
+                          onRefresh?.()
+                        }
+                      } catch {
+                        toast.error("Failed to save diagram")
+                      }
+                    }}
+                    onOpenChange={onDiagramEditChange}
+                  />
+                  <DiagramEditor
+                    title="DFD Level 1"
+                    initialCode={(appendices?.analysisModels?.dataFlowDiagram as any)?.level1 || ""}
+                    syntaxExplanation={(appendices?.analysisModels?.dataFlowDiagram as any)?.syntaxExplanation}
+                    onSave={async (newCode) => {
+                      try {
+                        const currentDFD = appendices?.analysisModels?.dataFlowDiagram as any || {};
+                        const newDFD = {
+                          ...currentDFD,
+                          level0: currentDFD.level0 || "",
+                          level1: newCode,
+                          caption: currentDFD.caption || "Data Flow Diagram"
+                        };
+
+                        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
+                          method: "PUT",
+                          headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`
+                          },
+                          body: JSON.stringify({
+                            appendices: {
+                              ...appendices,
+                              analysisModels: {
+                                ...appendices?.analysisModels,
+                                dataFlowDiagram: newDFD
+                              }
+                            }
+                          })
+                        })
+                        if (!res.ok) throw new Error("Failed to save")
+                        const updated = await res.json()
+                        if (updated.id && updated.id !== analysisId) {
+                          toast.success("New version created")
+                          router.push(`/analysis/${updated.id}`)
+                        } else {
+                          toast.success("Saved Level 1")
                           onRefresh?.()
                         }
                       } catch {
@@ -491,6 +549,7 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                     initialCode={typeof appendices?.analysisModels?.entityRelationshipDiagram === 'string'
                       ? appendices.analysisModels.entityRelationshipDiagram
                       : appendices?.analysisModels?.entityRelationshipDiagram?.code || ""}
+                    syntaxExplanation={(appendices?.analysisModels?.entityRelationshipDiagram as any)?.syntaxExplanation}
                     onSave={async (newCode) => {
                       try {
                         const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {

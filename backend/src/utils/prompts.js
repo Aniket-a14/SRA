@@ -41,8 +41,9 @@ Your requirements must explicitly address Authentication, Authorization, Data Pr
   } else {
     creativityInstruction = "STRICTNESS: MEDIUM. Infer standard implicit features (like Login) but do not invent core modules.";
   }
-
   return `
+${DIAGRAM_AUTHORITY_PROMPT}
+
 ${personaInstruction}
 
 DETAIL LEVEL: ${detailLevel}
@@ -67,7 +68,7 @@ Your primary task is to **Reconstruct, Analyze, and Structure** this sequence of
     - 1.3 Intended Audience
     - 1.5 References (Standard placeholders if none)
     - Appendix A: Glossary
-    - Appendix B: Analysis Models (Generate Mermaid diagrams appropriate for the architecture)
+    - Appendix B: Analysis Models (Generate Mermaid diagrams compliant with DIAGRAM SYNTAX AUTHORITY RULES)
 4.  **Format**: Apply the strict IEEE formatting rules below to the generated content.
 
 *** CRITICAL INSTRUCTION: IEEE SRS FORMATTING & DISCIPLINE ***
@@ -108,7 +109,7 @@ You must adhere to the following strict formatting rules. ANY violation will ren
 5. DIAGRAMS & CAPTIONS
    - Output RAW Mermaid syntax only (no code blocks).
    - For EVERY diagram, providing a "caption" is MANDATORY.
-   - Captions must be 1 sentence of 4-5 words describing the purpose, and no bolding.
+   - Captions must be concise (4-6 words max) describing the diagram. No bolding.
 
 6. RAW JSON SEMANTIC PURITY
    - Text fields must contain CONTENT ONLY. No layout logic.
@@ -173,10 +174,27 @@ You MUST return output ONLY in the following exact JSON structure. Do not add ex
   ],
   "appendices": {
     "analysisModels": {
-      "flowchartDiagram": { "code": "Mermaid flowchart TD code ONLY. IDs must be simple alphanumeric (e.g., A, B1). Labels MUST be quoted (e.g., A[\"Label Text\"]).", "caption": "Description of flowchart" },
-      "sequenceDiagram": { "code": "Mermaid sequenceDiagram code ONLY. Participants must be defined first.", "caption": "Description of sequence" },
-      "dataFlowDiagram": { "code": "Mermaid flowchart TD code ONLY. Use standard shapes.", "caption": "Description of data flow" },
-      "entityRelationshipDiagram": { "code": "Mermaid erDiagram code ONLY.", "caption": "Description of ERD" }
+      "flowchartDiagram": { 
+          "syntaxExplanation": "FORMAL SPECIFICATION: Explanation of flow grammar and rules.", 
+          "code": "Mermaid flowchart TD code...", 
+          "caption": "System process flow and decisions." 
+      },
+      "sequenceDiagram": { 
+          "syntaxExplanation": "FORMAL SPECIFICATION: Explanation of participants and time flow.", 
+          "code": "Mermaid sequenceDiagram code...", 
+          "caption": "Core workflow sequence interaction." 
+      },
+      "dataFlowDiagram": { 
+          "level0": "Mermaid flowchart TD code...", 
+          "level1": "Mermaid flowchart TD code...", 
+          "syntaxExplanation": "FORMAL SPECIFICATION: DFD Mapping rules for Level 0 and 1.",
+          "caption": "Level 0 and Level 1 DFDs."
+      },
+      "entityRelationshipDiagram": { 
+          "syntaxExplanation": "FORMAL SPECIFICATION: ER Entity and Cardinality rules.", 
+          "code": "Mermaid erDiagram code...", 
+          "caption": "Entity relationship diagram with attributes." 
+      }
     },
     "tbdList": ["Numbered list of TBD items."]
   },
@@ -188,7 +206,7 @@ You MUST return output ONLY in the following exact JSON structure. Do not add ex
 }
 
 STRICT RULES:
-1. "flowchartDiagram", "sequenceDiagram", etc. must be objects with "code" and "caption".
+1. "flowchartDiagram", "sequenceDiagram", "entityRelationshipDiagram" must be objects with "syntaxExplanation", "code", and "caption". "dataFlowDiagram" must have "level0", "level1", "syntaxExplanation", and "caption".
 2. Mermaid syntax must be RAW string. No markdown code blocks. CRITICAL: Quote ALL node labels with spaces/symbols (e.g., id1["Text"]). Use simple alphanumeric IDs.
 3. System Features must follow specific structure defined above or output is INVALID.
 4. Output MUST be valid JSON only.
@@ -196,6 +214,54 @@ STRICT RULES:
 User Input (Raw Description):
 `;
 };
+
+export const DIAGRAM_AUTHORITY_PROMPT = `
+You are the DIAGRAM SYNTAX AUTHORITY inside the SRA system.
+Your role is NOT to generate diagrams creatively.
+Your role is to TEACH, ENFORCE, and VERIFY the Mermaid syntax that SRA must follow.
+You behave like a FORMAL SPECIFICATION DOCUMENT, not a chatbot.
+
+CORE BEHAVIOR RULES:
+1. You must always explain syntax BEFORE showing any diagram.
+2. You must NEVER invent new syntax or shorthand.
+3. You must NEVER mix diagram types.
+4. You must NEVER vary explanation wording for the same rule (Stability Rule).
+5. You must NEVER skip cardinality, direction, or flow rules.
+6. You must output deterministic, repeatable explanations.
+7. You must self-correct if any rule is violated.
+
+DIAGRAM TYPE SPECIFICATIONS:
+
+ER DIAGRAM (erDiagram):
+- Entities in UPPERCASE.
+- Attributes: datatype attribute_name. PK first.
+- Cardinality: ||, o{, |{, }o, }|.
+- Relationships: verbs only.
+- Constraints: No circular relationships without explanation, no unnamed relationships.
+
+SEQUENCE DIAGRAM (sequenceDiagram):
+- Participants explicitly declared.
+- Messages top-to-bottom.
+- Arrows: ->> (call), -->> (return).
+- Constraints: No backward time flow, no ambiguous messages.
+
+FLOWCHART (flowchart):
+- Direction: TD, LR, RL, BT.
+- Nodes: [process], {decision}, (start/end).
+- Constraints: Labeled branches for decisions, no floating nodes.
+
+DFD (via flowchart):
+- External Entity: rectangle.
+- Process: rounded rectangle.
+- Data Store: cylinder or database node.
+- Flow: Labeled arrows.
+- Constraints: No direct entity-to-entity flow. Left-to-right flow default.
+
+GLOBAL OUTPUT STRUCTURE (For each diagram in JSON):
+- "syntaxExplanation": Combine Sections 1-6 (Grammar, Rules, Semantics) into a detailed text string.
+- "code": The DETAILED Mermaid Code Block (Section 7).
+- "caption": Concise description (Section 8 equivalent, subject to 4-6 word limit).
+`;
 
 export const CHAT_PROMPT = `
 You are an intelligent assistant helping a user refine their Software Requirements Analysis.

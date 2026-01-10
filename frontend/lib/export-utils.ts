@@ -159,8 +159,22 @@ export const renderMermaidDiagrams = async (data: AnalysisResult): Promise<Recor
     }
 
     if (data.appendices.analysisModels.dataFlowDiagram) {
-        const img = await render(getCode(data.appendices.analysisModels.dataFlowDiagram), 'dataFlow');
-        if (img) images['dataFlow'] = img;
+        // Handle new structure { level0, level1 } vs old structure (Diagram | string)
+        const dfd = data.appendices.analysisModels.dataFlowDiagram as any;
+
+        if (dfd.level0) {
+            const img = await render(dfd.level0, 'dataFlowLevel0');
+            if (img) images['dataFlowLevel0'] = img;
+        } else if (dfd.code || typeof dfd === 'string') {
+            // Fallback for old single DFD
+            const img = await render(getCode(dfd), 'dataFlowLevel0');
+            if (img) images['dataFlowLevel0'] = img;
+        }
+
+        if (dfd.level1) {
+            const img = await render(dfd.level1, 'dataFlowLevel1');
+            if (img) images['dataFlowLevel1'] = img;
+        }
     }
 
     if (data.appendices.analysisModels.entityRelationshipDiagram) {
@@ -217,7 +231,7 @@ const calculateTocItems = (data: AnalysisResult) => {
         items += 1;
         if (data.appendices.analysisModels.flowchartDiagram) items += 1;
         if (data.appendices.analysisModels.sequenceDiagram) items += 1;
-        if (data.appendices.analysisModels.dataFlowDiagram) items += 1;
+        if (data.appendices.analysisModels.dataFlowDiagram) items += 2; // Level 0 and Level 1 (or 1 if old, but estimating high is safer)
         if (data.appendices.analysisModels.entityRelationshipDiagram) items += 1;
     }
     if (data.appendices?.tbdList) items += 1;
@@ -931,10 +945,11 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
         }
 
         if (data.appendices.analysisModels.dataFlowDiagram) {
-            addSectionHeader("B.3", "Data Flow Diagram");
+            // Level 0 (Context)
+            if (diagramImages['dataFlowLevel0']) {
+                addSectionHeader("B.3.1", "Data Flow Diagram - Level 0 (Context)");
 
-            if (diagramImages['dataFlow']) {
-                const imgData = diagramImages['dataFlow'];
+                const imgData = diagramImages['dataFlowLevel0'];
                 const imgProps = doc.getImageProperties(imgData);
                 const imgRatio = imgProps.height / imgProps.width;
                 const imgWidth = contentWidth;
@@ -943,21 +958,30 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
                 checkPageBreak(imgHeight + 20);
                 doc.addImage(imgData, 'PNG', margins.left, yPos, imgWidth, imgHeight);
                 yPos += imgHeight + 5;
-            } else {
-                doc.setFont("courier", "normal");
-                doc.setFontSize(8);
-
-                const codeLines = doc.splitTextToSize(getDiagramCode(data.appendices.analysisModels.dataFlowDiagram), contentWidth - 4);
-                const boxHeight = (codeLines.length * 4) + 6;
-                checkPageBreak(boxHeight + 20);
-
-                doc.rect(margins.left, yPos, contentWidth, boxHeight);
-                doc.text(codeLines, margins.left + 2, yPos + 4);
-                yPos += boxHeight + 5;
             }
 
-            const caption = getDiagramCaption(data.appendices.analysisModels.dataFlowDiagram, "Data Flow Diagram");
+            // Level 1
+            if (diagramImages['dataFlowLevel1']) {
+                addSectionHeader("B.3.2", "Data Flow Diagram - Level 1");
+
+                const imgData = diagramImages['dataFlowLevel1'];
+                const imgProps = doc.getImageProperties(imgData);
+                const imgRatio = imgProps.height / imgProps.width;
+                const imgWidth = contentWidth;
+                const imgHeight = imgWidth * imgRatio;
+
+                checkPageBreak(imgHeight + 20);
+                doc.addImage(imgData, 'PNG', margins.left, yPos, imgWidth, imgHeight);
+                yPos += imgHeight + 5;
+            }
+
+            // Fallback / Description
+            const caption = (data.appendices.analysisModels.dataFlowDiagram as any).caption || "Data Flow Diagrams";
             const figId = "Figure B.3";
+
+            // Only show caption if we printed something? Or generally.
+            // Let's print it once at the end.
+            checkPageBreak(15);
             doc.setFont("times", "normal");
             doc.setFontSize(12);
             doc.text(`${figId}: ${caption}`, pageWidth / 2, yPos, { align: 'center' });

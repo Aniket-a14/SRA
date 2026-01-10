@@ -67,13 +67,14 @@ export interface GlossaryItem {
 export interface Diagram {
     code: string;
     caption: string;
+    syntaxExplanation?: string;
 }
 
 export interface AnalysisModels {
     flowchartDiagram?: Diagram | string;
     sequenceDiagram?: Diagram | string;
     entityRelationshipDiagram?: Diagram | string;
-    dataFlowDiagram?: Diagram | string;
+    dataFlowDiagram?: { level0: string; level1: string; caption: string; syntaxExplanation?: string } | Diagram | string;
 }
 
 export interface ValidationIssue {
