@@ -42,12 +42,13 @@ async function testLayer1() {
             "Purpose Extracted": result.introduction?.purpose?.toLowerCase().includes("social media") || false,
             "Features Extracted": (result.systemFeatures?.length || 0) >= 2,
             "Specific Feature Found": result.systemFeatures?.some(f => f.name.includes("Scheduling")) || false,
-            "NFR Extracted": result.securityRequirements?.length > 0 || result.nonFunctionalRequirements?.securityRequirements?.length > 0
+            "NFR Extracted": result.securityRequirements?.length > 0 || result.nonFunctionalRequirements?.securityRequirements?.length > 0,
+            "Exact Title Maintained": result.projectTitle === "Test Project Unified"
         };
 
         console.table(checks);
 
-        if (checks["Purpose Extracted"] && checks["Specific Feature Found"]) {
+        if (checks["Purpose Extracted"] && checks["Specific Feature Found"] && checks["Exact Title Maintained"]) {
             console.log("Layer 1 Verification: PASSED - Monolithic input successfully unbundled.");
             process.exit(0);
         } else {

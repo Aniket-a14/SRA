@@ -1,6 +1,7 @@
 // DYNAMIC PROMPT GENERATOR
 import { registerPromptVersion, getPromptByVersion, getLatestVersion } from './promptRegistry.js';
 import * as v1 from './versions/v1_0_0.js';
+import * as v1_1 from './versions/v1_1_0.js';
 
 import { DIAGRAM_AUTHORITY_PROMPT } from './prompt_templates/diagram_authority.js';
 import { CHAT_PROMPT } from './prompt_templates/chat.js';
@@ -10,6 +11,7 @@ import { ALIGNMENT_CHECK_PROMPT } from './prompt_templates/alignment_check.js';
 
 // 1. REGISTER VERSIONS
 registerPromptVersion('1.0.0', v1.generate);
+registerPromptVersion('1.1.0', v1_1.generate);
 
 // 2. CENTRAL FACTORY
 export const constructMasterPrompt = (settings = {}, version = 'latest') => {

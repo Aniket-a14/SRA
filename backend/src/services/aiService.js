@@ -2,7 +2,6 @@ import { getLatestVersion } from "../utils/promptRegistry.js";
 import { constructMasterPrompt } from "../utils/prompts.js";
 import { genAI } from "../config/gemini.js";
 
-// ... imports remain the same
 
 export async function analyzeText(text, settings = {}) {
   const {
@@ -12,8 +11,26 @@ export async function analyzeText(text, settings = {}) {
     ...promptSettings
   } = settings;
 
+  // Extract Project Name for Governance if using Word Array format
+  let projectName = "Project";
+  try {
+    const words = JSON.parse(text);
+    if (Array.isArray(words)) {
+      const pIdx = words.findIndex(w => w === "Project:");
+      if (pIdx !== -1 && words[pIdx + 1]) {
+        projectName = words[pIdx + 1];
+      }
+    }
+  } catch (e) {
+    // Fallback to extraction from string if not JSON
+    if (text && typeof text === 'string') {
+      const match = text.match(/Project:\s*([^\n\r]+)/);
+      if (match) projectName = match[1].trim();
+    }
+  }
+
   // Use versioned prompt
-  const masterPrompt = constructMasterPrompt(promptSettings, promptVersion);
+  const masterPrompt = constructMasterPrompt({ ...promptSettings, projectName }, promptVersion);
 
   const finalPrompt = `
 ${masterPrompt}
