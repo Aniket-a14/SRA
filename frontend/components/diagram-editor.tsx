@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { MermaidRenderer } from "@/components/mermaid-renderer"
-import { Edit2, Save, ExternalLink, Wand2, Loader2 } from "lucide-react"
+import { Edit2, Save, ExternalLink, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { useAuth } from "@/lib/auth-context"
 import {
@@ -73,7 +73,7 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
         window.open(`https://mermaid.live/edit#base64:${data}`, '_blank')
     }
 
-    const repairWithAI = async () => {
+    const repairWithAI = useCallback(async () => {
         if (!lastError) return
 
         setIsRepairing(true)
@@ -109,7 +109,7 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
         } finally {
             setIsRepairing(false)
         }
-    }
+    }, [code, lastError, token])
 
     // Automatic Repair Trigger
     useEffect(() => {
@@ -118,7 +118,7 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
         } else if (lastError && failedCodes.has(code)) {
             console.warn("Already attempted repair for this code, skipping to avoid loop.")
         }
-    }, [lastError, code, isRepairing, failedCodes])
+    }, [lastError, code, isRepairing, failedCodes, repairWithAI])
 
     return (
         <div className="space-y-4 h-full flex flex-col">
