@@ -443,11 +443,11 @@ function AnalysisDetailContent() {
                                                             </div>
                                                         </button>
                                                     </SheetTrigger>
-                                                    <SheetContent className="w-[400px] sm:w-[540px] p-0">
-                                                        <SheetHeader className="px-6 py-4 border-b">
+                                                    <SheetContent className="w-[400px] sm:w-[540px] p-0 flex flex-col h-full">
+                                                        <SheetHeader className="px-6 py-4 border-b shrink-0">
                                                             <SheetTitle>Project History</SheetTitle>
                                                         </SheetHeader>
-                                                        <div className="flex-1 overflow-hidden">
+                                                        <div className="flex-1 min-h-0 overflow-hidden">
                                                             <VersionTimeline
                                                                 rootId={analysis.rootId}
                                                                 currentId={id}

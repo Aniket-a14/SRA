@@ -67,12 +67,11 @@ export function MermaidRenderer({ chart, title, className, onError }: MermaidRen
                 if (ref.current) {
                     ref.current.innerHTML = svg
                 }
-            } catch (err: any) {
-                console.error("Mermaid render error:", err)
+            } catch (err) {
+                console.error("Mermaid Render Error:", err)
+                const errorMessage = err instanceof Error ? err.message : String(err)
                 setHasError(true)
-                if (onError) {
-                    onError(err.message || String(err))
-                }
+                onError?.(errorMessage)
             }
         }
 
