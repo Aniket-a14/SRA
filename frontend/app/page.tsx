@@ -17,7 +17,7 @@ const defaultAnalysis: AnalysisResult = {
   projectTitle: "Untitled Project",
   introduction: {
     purpose: "",
-    scope: "",
+    productScope: "",
     intendedAudience: "",
     documentConventions: "",
     references: []
