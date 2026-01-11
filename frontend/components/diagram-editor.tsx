@@ -4,8 +4,9 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { MermaidRenderer } from "@/components/mermaid-renderer"
-import { Edit2, Save, ExternalLink } from "lucide-react"
+import { Edit2, Save, ExternalLink, Wand2, Loader2 } from "lucide-react"
 import { toast } from "sonner"
+import { useAuth } from "@/lib/auth-context"
 import {
     Sheet,
     SheetContent,
@@ -27,6 +28,10 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
     const [open, setOpen] = useState(false)
     const [code, setCode] = useState(initialCode)
     const [isSaving, setIsSaving] = useState(false)
+    const [lastError, setLastError] = useState<string | null>(null)
+    const [isRepairing, setIsRepairing] = useState(false)
+    const [failedCodes, setFailedCodes] = useState<Set<string>>(new Set())
+    const { token } = useAuth()
 
     // Sync if prop changes externally
     useEffect(() => {
@@ -67,6 +72,53 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
             }))
         window.open(`https://mermaid.live/edit#base64:${data}`, '_blank')
     }
+
+    const repairWithAI = async () => {
+        if (!lastError) return
+
+        setIsRepairing(true)
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/repair-diagram`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    code: code,
+                    error: lastError
+                })
+            })
+
+            if (!res.ok) throw new Error("Repair failed")
+
+            const data = await res.json()
+            if (data.code && data.code !== code) {
+                setCode(data.code)
+                setLastError(null)
+                toast.success("Diagram repaired successfully")
+            } else {
+                // If the AI returned the same code, it means it couldn't fix it.
+                setFailedCodes(prev => new Set(prev).add(code))
+                toast.error("AI couldn't repair this diagram automatically")
+            }
+        } catch (error) {
+            console.error(error)
+            setFailedCodes(prev => new Set(prev).add(code))
+            toast.error("Failed to repair diagram")
+        } finally {
+            setIsRepairing(false)
+        }
+    }
+
+    // Automatic Repair Trigger
+    useEffect(() => {
+        if (lastError && !isRepairing && !failedCodes.has(code)) {
+            repairWithAI()
+        } else if (lastError && failedCodes.has(code)) {
+            console.warn("Already attempted repair for this code, skipping to avoid loop.")
+        }
+    }, [lastError, code, isRepairing, failedCodes])
 
     return (
         <div className="space-y-4 h-full flex flex-col">
@@ -116,8 +168,19 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
                                             <h4 className="font-medium text-sm">Live Preview</h4>
                                             <div className="h-full border rounded-md overflow-hidden bg-white/50 dark:bg-black/20 p-4 relative flex-1">
                                                 <div className="absolute inset-0 overflow-auto flex items-center justify-center p-4">
-                                                    <MermaidRenderer chart={code} title={`${title} (Preview)`} className="h-full" />
+                                                    <MermaidRenderer
+                                                        chart={code}
+                                                        title={`${title} (Preview)`}
+                                                        className="h-full"
+                                                        onError={(err) => setLastError(err)}
+                                                    />
                                                 </div>
+                                                {isRepairing && (
+                                                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-card/80 z-20 backdrop-blur-sm transition-all duration-300">
+                                                        <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                                                        <p className="text-sm font-medium animate-pulse">rendering diagram</p>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -139,8 +202,19 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
             </div>
 
             {/* Read-only view in the main flow */}
-            <div className="flex-1 min-h-[300px] overflow-auto">
-                <MermaidRenderer key={initialCode.length} chart={initialCode} title={title} />
+            <div className="flex-1 min-h-[300px] overflow-auto relative">
+                <MermaidRenderer
+                    key={initialCode.length}
+                    chart={initialCode}
+                    title={title}
+                    onError={(err) => setLastError(err)}
+                />
+                {isRepairing && !open && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-card/80 z-20 backdrop-blur-sm transition-all duration-300">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                        <p className="text-sm font-medium animate-pulse">rendering diagram</p>
+                    </div>
+                )}
             </div>
         </div>
     )

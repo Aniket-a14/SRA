@@ -14,13 +14,14 @@ interface MermaidRendererProps {
     chart: string | Diagram
     title: string
     className?: string
+    onError?: (error: string) => void
 }
 
 interface MermaidInstance {
     render: (id: string, text: string) => Promise<{ svg: string }>
 }
 
-export function MermaidRenderer({ chart, title, className }: MermaidRendererProps) {
+export function MermaidRenderer({ chart, title, className, onError }: MermaidRendererProps) {
     const ref = useRef<HTMLDivElement>(null)
     const [mermaidInstance, setMermaidInstance] = useState<MermaidInstance | null>(null)
     const [hasError, setHasError] = useState(false)
@@ -66,9 +67,12 @@ export function MermaidRenderer({ chart, title, className }: MermaidRendererProp
                 if (ref.current) {
                     ref.current.innerHTML = svg
                 }
-            } catch (err) {
+            } catch (err: any) {
                 console.error("Mermaid render error:", err)
                 setHasError(true)
+                if (onError) {
+                    onError(err.message || String(err))
+                }
             }
         }
 

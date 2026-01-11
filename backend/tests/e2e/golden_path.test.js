@@ -49,7 +49,8 @@ jest.unstable_mockModule('../../src/services/aiService.js', () => ({
     analyzeText: jest.fn().mockResolvedValue({
         srs: { projectTitle: 'Directly Mocked AI' },
         meta: { promptVersion: 'mock-v1' }
-    })
+    }),
+    repairDiagram: jest.fn().mockResolvedValue("graph TD\n  A --> B")
 }));
 
 // Setup Queue Mock to bypass network and call worker directly

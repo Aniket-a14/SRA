@@ -27,42 +27,54 @@ export function LayerProvider({ children }: { children: React.ReactNode }) {
     const [isFinalized, setIsFinalized] = useState(false)
 
     // Helper to check if a layer is accessible
-    const isLayerLocked = (layer: Layer) => layer > maxAllowedLayer
+    const isLayerLocked = React.useCallback((layer: Layer) => layer > maxAllowedLayer, [maxAllowedLayer]);
 
-    const setLayer = (layer: Layer) => {
+    const setLayer = React.useCallback((layer: Layer) => {
         if (isLayerLocked(layer)) return
         setCurrentLayer(layer)
-    }
+    }, [isLayerLocked]);
 
-    const unlockLayer = (layer: Layer) => {
+    const unlockLayer = React.useCallback((layer: Layer) => {
         setMaxAllowedLayer(prev => Math.max(prev, layer) as Layer)
-    }
+    }, []);
 
-    const unlockAndNavigate = (layer: Layer) => {
+    const unlockAndNavigate = React.useCallback((layer: Layer) => {
         setMaxAllowedLayer(prev => Math.max(prev, layer) as Layer)
         setCurrentLayer(layer)
-    }
+    }, []);
 
-    const updateValidationStatus = (status: ValidationStatus) => {
+    const updateValidationStatus = React.useCallback((status: ValidationStatus) => {
         setValidationStatus(status)
         if (status === "pass") {
             unlockLayer(3) // Unlock Analysis
         }
-    }
+    }, [unlockLayer]);
+
+    const value = React.useMemo(() => ({
+        currentLayer,
+        maxAllowedLayer,
+        validationStatus,
+        isLayerLocked,
+        setLayer,
+        unlockLayer,
+        unlockAndNavigate,
+        updateValidationStatus,
+        isFinalized,
+        setIsFinalized
+    }), [
+        currentLayer,
+        maxAllowedLayer,
+        validationStatus,
+        isLayerLocked,
+        setLayer,
+        unlockLayer,
+        unlockAndNavigate,
+        updateValidationStatus,
+        isFinalized
+    ]);
 
     return (
-        <LayerContext.Provider value={{
-            currentLayer,
-            maxAllowedLayer,
-            validationStatus,
-            isLayerLocked,
-            setLayer,
-            unlockLayer,
-            unlockAndNavigate,
-            updateValidationStatus,
-            isFinalized,
-            setIsFinalized
-        }}>
+        <LayerContext.Provider value={value}>
             {children}
         </LayerContext.Provider>
     )

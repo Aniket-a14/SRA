@@ -91,11 +91,26 @@ export function FeatureDisplay({ features, projectTitle = "SRA", isEditing, onUp
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
                                 </div>
-                            ) : (
-                                <CardTitle className="text-lg font-semibold text-primary">
-                                    {feature.name}
-                                </CardTitle>
-                            )}
+                            ) : (() => {
+                                const idMatch = feature.name.match(/^([A-Z0-9]+-(?:SF|REQ|UC)-\d+)\s+/i);
+                                const extractedId = idMatch ? idMatch[1] : null;
+                                const cleanName = feature.name.replace(/^([A-Z0-9]+-(?:SF|REQ|UC)-\d+)\s+/i, '').trim();
+
+                                return (
+                                    <div className="flex flex-col gap-1">
+                                        {extractedId && (
+                                            <div className="flex">
+                                                <Badge variant="outline" className="text-[10px] h-5 px-1.5 py-0 border-primary/30 text-primary bg-primary/5 uppercase font-bold tracking-tight">
+                                                    {extractedId}
+                                                </Badge>
+                                            </div>
+                                        )}
+                                        <CardTitle className="text-lg font-semibold text-primary">
+                                            {cleanName}
+                                        </CardTitle>
+                                    </div>
+                                );
+                            })()}
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-6">
@@ -194,13 +209,16 @@ export function FeatureDisplay({ features, projectTitle = "SRA", isEditing, onUp
                         </div>
                     </CardContent>
                 </Card>
-            ))}
-            {isEditing && (
-                <Button variant="outline" className="w-full border-dashed py-8" onClick={addFeature}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add System Feature
-                </Button>
-            )}
-        </div>
+            ))
+            }
+            {
+                isEditing && (
+                    <Button variant="outline" className="w-full border-dashed py-8" onClick={addFeature}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add System Feature
+                    </Button>
+                )
+            }
+        </div >
     )
 }
