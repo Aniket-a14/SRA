@@ -41,11 +41,17 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
   const [editedData, setEditedData] = useState<AnalysisResult | null>(null)
 
   // Initialize editedData when data changes or edit mode starts
+  const lastDataIdRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (data) {
+    // Only reset editedData if:
+    // 1. We're NOT currently editing
+    // 2. OR the analysis ID has changed (actual navigation)
+    if (data && (!isEditing || analysisId !== lastDataIdRef.current)) {
       setEditedData(JSON.parse(JSON.stringify(data)))
+      lastDataIdRef.current = analysisId;
     }
-  }, [data])
+  }, [data, isEditing, analysisId])
 
   const handleSave = async () => {
     if (!editedData) return
@@ -53,7 +59,7 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
     // Validation
     const errors: string[] = []
     if (!editedData.introduction?.purpose) errors.push("1.1 Purpose is required")
-    if (!editedData.introduction?.scope) errors.push("1.2 Product Scope is required")
+    if (!editedData.introduction?.productScope) errors.push("1.2 Product Scope is required")
     if (!editedData.overallDescription?.productPerspective) errors.push("2.1 Product Perspective is required")
     if (!editedData.overallDescription?.productFunctions || editedData.overallDescription.productFunctions.length === 0) errors.push("2.2 Product Functions are required")
     if (!editedData.overallDescription?.userClassesAndCharacteristics || editedData.overallDescription.userClassesAndCharacteristics.length === 0) errors.push("2.3 User Classes and Characteristics are required")
@@ -80,7 +86,10 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(editedData)
+        body: JSON.stringify({
+          ...editedData,
+          skipAlignment: true
+        })
       })
 
       if (!res.ok) throw new Error("Failed to save changes")
@@ -390,7 +399,8 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                                 ...appendices?.analysisModels,
                                 flowchartDiagram: newCode
                               }
-                            }
+                            },
+                            skipAlignment: true
                           })
                         })
                         if (!res.ok) throw new Error("Failed to save")
@@ -428,7 +438,8 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                                 ...appendices?.analysisModels,
                                 sequenceDiagram: newCode
                               }
-                            }
+                            },
+                            skipAlignment: true
                           })
                         })
                         if (!res.ok) throw new Error("Failed to save")
@@ -485,7 +496,8 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                                 ...appendices?.analysisModels,
                                 dataFlowDiagram: newDFD
                               }
-                            }
+                            },
+                            skipAlignment: true
                           })
                         })
                         if (!res.ok) throw new Error("Failed to save")
@@ -536,7 +548,8 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                                 ...appendices?.analysisModels,
                                 dataFlowDiagram: newDFD
                               }
-                            }
+                            },
+                            skipAlignment: true
                           })
                         })
                         if (!res.ok) throw new Error("Failed to save")
@@ -575,7 +588,8 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                                 ...appendices?.analysisModels,
                                 entityRelationshipDiagram: newCode
                               }
-                            }
+                            },
+                            skipAlignment: true
                           })
                         })
                         if (!res.ok) throw new Error("Failed to save")

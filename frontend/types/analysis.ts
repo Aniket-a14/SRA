@@ -10,7 +10,7 @@ export interface Introduction {
     projectName?: string;
     purpose: string;
     documentConventions: string;
-    scope: string;
+    productScope: string;
     intendedAudience: string;
     references: string[];
 }

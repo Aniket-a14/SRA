@@ -355,6 +355,11 @@ IDENTIFIER GOVERNANCE (STRICT)
    - Use Case format: **P-UC-[NUMBER]**
    - Diagram ID format: **P_[TYPE]**
 
+4. Feature Names (systemFeatures):
+   - You MUST use purely descriptive titles for feature names (e.g., "User Authentication").
+   - You MUST NEVER include identifiers (like P-SF-1) in the "name" field.
+   - Identifiers are for internal tracking and requirements, not for navigation titles.
+
 3. Once an identifier prefix is established for this session, it MUST NOT be changed.
 
 ================================================================
@@ -886,6 +891,11 @@ IDENTIFIER GOVERNANCE (STRICT)
    - Requirement format: **P-REQ-[NUMBER]** (e.g., P-REQ-001)
    - Use Case format: **P-UC-[NUMBER]**
    - Diagram ID format: **P_[TYPE]**
+
+4. Feature Names (systemFeatures):
+   - You MUST use purely descriptive titles for feature names (e.g., "User Authentication").
+   - You MUST NEVER include identifiers (like P-SF-1) in the "name" field.
+   - Identifiers are for internal tracking and requirements, not for navigation titles.
 
 3. Once an identifier prefix is established for this session, it MUST NOT be changed.
 
@@ -1421,6 +1431,11 @@ IDENTIFIER GOVERNANCE (STRICT)
    - Requirement format: **P-REQ-[NUMBER]** (e.g., P-REQ-001)
    - Use Case format: **P-UC-[NUMBER]**
    - Diagram ID format: **P_[TYPE]**
+
+4. Feature Names (systemFeatures):
+   - You MUST use purely descriptive titles for feature names (e.g., "User Authentication").
+   - You MUST NEVER include identifiers (like P-SF-1) in the "name" field.
+   - Identifiers are for internal tracking and requirements, not for navigation titles.
 
 3. Once an identifier prefix is established for this session, it MUST NOT be changed.
 

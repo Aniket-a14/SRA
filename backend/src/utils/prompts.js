@@ -8,6 +8,7 @@ import { CHAT_PROMPT } from './prompt_templates/chat.js';
 import { FEATURE_EXPANSION_PROMPT } from './prompt_templates/feature_expansion.js';
 import { CODE_GEN_PROMPT } from './prompt_templates/code_gen.js';
 import { ALIGNMENT_CHECK_PROMPT } from './prompt_templates/alignment_check.js';
+import { DIAGRAM_REPAIR_PROMPT } from './prompt_templates/diagram_repair.js';
 
 // 1. REGISTER VERSIONS
 registerPromptVersion('1.0.0', v1.generate);
@@ -29,7 +30,8 @@ export {
   CHAT_PROMPT,
   FEATURE_EXPANSION_PROMPT,
   CODE_GEN_PROMPT,
-  ALIGNMENT_CHECK_PROMPT
+  ALIGNMENT_CHECK_PROMPT,
+  DIAGRAM_REPAIR_PROMPT
 };
 
 

@@ -1,5 +1,5 @@
 import { getLatestVersion } from "../utils/promptRegistry.js";
-import { constructMasterPrompt } from "../utils/prompts.js";
+import { constructMasterPrompt, DIAGRAM_REPAIR_PROMPT } from "../utils/prompts.js";
 import { genAI } from "../config/gemini.js";
 
 
@@ -134,4 +134,39 @@ ${text}
       modelName
     }
   };
+}
+
+export async function repairDiagram(code, error, settings = {}) {
+  const {
+    modelName = "gemini-2.5-flash",
+  } = settings;
+
+  const finalPrompt = `
+${DIAGRAM_REPAIR_PROMPT}
+
+Original Mermaid Code:
+\`\`\`mermaid
+${code}
+\`\`\`
+
+Error Message:
+${error}
+
+Return ONLY the corrected code.
+`;
+
+  const model = genAI.getGenerativeModel({ model: modelName });
+  const result = await model.generateContent(finalPrompt);
+
+  let output = "";
+  if (result && result.response && typeof result.response.text === "function") {
+    output = result.response.text();
+  } else if (result && result.candidates && result.candidates[0]) {
+    output = result.candidates[0].content || result.candidates[0].output || JSON.stringify(result.candidates[0]);
+  }
+
+  // Sanitization: Remove any markdown backticks if the model ignores instructions
+  output = output.replace(/```mermaid/g, "").replace(/```/g, "").trim();
+
+  return output;
 }

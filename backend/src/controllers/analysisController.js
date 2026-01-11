@@ -5,7 +5,7 @@ import { addAnalysisJob, getJobStatus } from '../services/queueService.js';
 import { compareAnalyses } from '../services/diffService.js';
 import { lintRequirements, checkAlignment } from '../services/qualityService.js';
 import { validateRequirements } from '../services/validationService.js';
-import { analyzeText } from '../services/aiService.js';
+import { analyzeText, repairDiagram as aiRepairDiagram } from '../services/aiService.js';
 import { embedText } from '../services/embeddingService.js';
 import { ensureProjectExists } from '../services/projectService.js';
 import { findReuseCandidate } from '../services/reuseService.js';
@@ -326,24 +326,28 @@ export const updateAnalysis = async (req, res, next) => {
             purpose: currentAnalysis.resultJson?.introduction?.purpose || "Unknown"
         };
 
-        try {
-            // Only run expensive AI check if standard quality passes or logic dictates
-            // Running parallel to Diff Service
-            const alignmentResult = await checkAlignment(layer1Intent, layer2Context, newResultJson);
+        if (req.body.skipAlignment) {
+            newResultJson.layer3Status = currentAnalysis.resultJson?.layer3Status || 'ALIGNED';
+        } else {
+            try {
+                // Only run expensive AI check if standard quality passes or logic dictates
+                // Running parallel to Diff Service
+                const alignmentResult = await checkAlignment(layer1Intent, layer2Context, newResultJson);
 
-            if (alignmentResult.status === 'MISMATCH_DETECTED') {
-                // Attach mismatches to the result so backend/frontend knows
-                newResultJson.alignmentResult = alignmentResult;
+                if (alignmentResult.status === 'MISMATCH_DETECTED') {
+                    // Attach mismatches to the result so backend/frontend knows
+                    newResultJson.alignmentResult = alignmentResult;
 
-                // If BLOCKER exists, we might reject the update entirely, 
-                // BUT for "Regeneration" flow, passing it back with error flags is often better UI.
-                // We will attach it to metadata for frontend to display "Layer 3 Rejection"
-                newResultJson.layer3Status = 'MISMATCH';
-            } else {
-                newResultJson.layer3Status = 'ALIGNED';
+                    // If BLOCKER exists, we might reject the update entirely, 
+                    // BUT for "Regeneration" flow, passing it back with error flags is often better UI.
+                    // We will attach it to metadata for frontend to display "Layer 3 Rejection"
+                    newResultJson.layer3Status = 'MISMATCH';
+                } else {
+                    newResultJson.layer3Status = 'ALIGNED';
+                }
+            } catch (l3Err) {
+                console.warn("Layer 3 Check Failed (Skipping Block):", l3Err);
             }
-        } catch (l3Err) {
-            console.warn("Layer 3 Check Failed (Skipping Block):", l3Err);
         }
 
         // Run Diff
@@ -725,6 +729,23 @@ export const expandFeature = async (req, res, next) => {
         }
 
         res.json(result);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const repairDiagram = async (req, res, next) => {
+    try {
+        const { code, error, settings } = req.body;
+
+        if (!code || !error) {
+            const err = new Error('Code and error message are required');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        const repairedCode = await aiRepairDiagram(code, error, settings || {});
+        res.json({ code: repairedCode });
     } catch (error) {
         next(error);
     }

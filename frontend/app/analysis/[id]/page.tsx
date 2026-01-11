@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 
@@ -28,7 +28,7 @@ import type { Analysis, ValidationIssue } from "@/types/analysis"
 import { SRSIntakeModel } from "@/types/srs-intake"
 import { cn } from "@/lib/utils"
 import { VersionTimeline } from "@/components/version-timeline"
- 
+
 import { toast } from "sonner"
 import { ImprovementDialog } from "@/components/improvement-dialog"
 import { AccordionInput } from "@/components/analysis/accordion-input"
@@ -55,6 +55,7 @@ function AnalysisDetailContent() {
     const [isFinalizing, setIsFinalizing] = useState(false)
     const [isValidating, setIsValidating] = useState(false)
     const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([]);
+    const lastIdRef = useRef<string | null>(null);
 
     // Draft State
     const [draftData, setDraftData] = useState<SRSIntakeModel | null>(null)
@@ -145,6 +146,15 @@ function AnalysisDetailContent() {
         }
 
         if (id && id !== 'undefined') {
+            // CRITICAL: ONLY reset state if the ID has actually changed
+            // This prevents the infinite reset loop when fetchAnalysis dependencies change
+            if (id !== lastIdRef.current) {
+                lastIdRef.current = id;
+                setIsLoading(true);
+                setAnalysis(null);
+                setError("");
+                setLoadingMessage("Loading analysis details...");
+            }
             fetchAnalysis(id)
         } else if (id === 'undefined') {
             setError("Invalid Analysis ID");
@@ -159,8 +169,8 @@ function AnalysisDetailContent() {
     useEffect(() => {
         if (analysis) {
             const s = analysis.status;
-            // PENDING keeps loading. All others (DRAFT, COMPLETED, FAILED, VALIDATING, etc) stop loading.
-            if (s !== 'PENDING') {
+            // LOADING remains true for PENDING or IN_PROGRESS to allow polling to work smoothly
+            if (s !== 'PENDING' && s !== 'IN_PROGRESS') {
                 setIsLoading(false)
             }
         }
