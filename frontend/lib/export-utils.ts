@@ -680,7 +680,7 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
         addParagraph(data.introduction.intendedAudience);
 
         addSectionHeader("1.4", "Product Scope");
-        addParagraph(data.introduction.scope);
+        addParagraph(data.introduction.productScope);
 
         addSectionHeader("1.5", "References");
         addRequirementList(data.introduction.references, 'bullet');
