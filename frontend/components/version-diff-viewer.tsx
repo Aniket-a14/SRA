@@ -126,8 +126,8 @@ function DiffObject<T extends object>({ oldObj, newObj }: { oldObj: T | undefine
     return (
         <div className="space-y-4">
             {keys.map(key => {
-                const o = (oldObj as any)?.[key];
-                const n = (newObj as any)?.[key];
+                const o = (oldObj as Record<string, unknown>)?.[key];
+                const n = (newObj as Record<string, unknown>)?.[key];
                 if (JSON.stringify(o) === JSON.stringify(n)) return null;
 
                 const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
