@@ -94,9 +94,21 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
 
             const data = await res.json()
             if (data.code && data.code !== code) {
-                setCode(data.code)
+                const repairedCode = data.code
+                // Mark the old code as failed so we don't try it again
+                setFailedCodes(prev => new Set(prev).add(code))
+                
+                setCode(repairedCode)
                 setLastError(null)
-                toast.success("Diagram repaired successfully")
+                
+                toast.success("Repaired automatically. Persisting...", { id: "repair-status" })
+                try {
+                    await onSave(repairedCode)
+                    toast.success("Diagram fixed and saved", { id: "repair-status" })
+                } catch (saveErr) {
+                    console.error("Auto-save failed:", saveErr)
+                    toast.error("Fixed locally, but failed to save.", { id: "repair-status" })
+                }
             } else {
                 // If the AI returned the same code, it means it couldn't fix it.
                 setFailedCodes(prev => new Set(prev).add(code))
@@ -109,7 +121,7 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
         } finally {
             setIsRepairing(false)
         }
-    }, [code, lastError, token])
+    }, [code, lastError, token, onSave])
 
     // Automatic Repair Trigger
     useEffect(() => {
