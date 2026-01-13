@@ -160,7 +160,7 @@ ${text}
       // Valid JSON escapes: \", \\, \/, \b, \f, \n, \r, \t, \uXXXX
       // We look for a backslash that is NOT followed by any of those and escape it.
       // This is a common AI error especially in Mermaid/diagram strings.
-      let fixedOutput = cleanOutput.replace(/\\(?!(["\\\/bfnrt]|u[0-9a-fA-F]{4}))/g, "\\\\");
+      let fixedOutput = cleanOutput.replace(/\\(?!(["\\/bfnrt]|u[0-9a-fA-F]{4}))/g, "\\\\");
 
       // Also handle cases where AI might have literal newlines inside strings 
       // This is harder to fix with regex without breaking structure, but we can try to fix the most common.
