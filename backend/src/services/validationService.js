@@ -168,25 +168,23 @@ __SRS_DATA__
 `;
 
 export async function validateRequirements(srsData) {
-  // 1. Pre-processing: Minimize JSON size if needed usually not needed for modern LLMs context window
+  // 1. Pre-processing: Minimize JSON size if needed
   const jsonString = JSON.stringify(srsData, null, 2);
 
-  // 2. Construct Prompt
-  const prompt = VALIDATION_PROMPT_TEMPLATE.replace('__SRS_DATA__', jsonString);
-
-  // 3. Call AI Service
-  // Using a model capable of reasoning and valid JSON output (e.g. Gemini 2.5 Pro or generic large model)
-  const result = await analyzeText(prompt, {
-    modelName: process.env.VALIDATION_MODEL || 'gemini-2.5-flash', // Configurable model
-    temperature: 0.0 // Deterministic - Updated to 0.0 per User Request for Stability
+  // 2. Call AI Service with specific system prompt
+  const response = await analyzeText(jsonString, {
+    modelName: process.env.VALIDATION_MODEL || 'gemini-2.5-flash',
+    systemPrompt: VALIDATION_PROMPT_TEMPLATE,
+    temperature: 0.0 // Deterministic
   });
 
-  // 4. Fallback Validation
-  if (!result || result.success === false) {
-    throw new Error(result.error || "AI Validation Failed");
+  // 3. Fallback Validation
+  if (!response || response.success === false) {
+    throw new Error(response.error || "AI Validation Failed");
   }
 
-  // Ensure every issue has a unique ID for React Keys and normalized severity
+  // Extract the actual result from standardized response
+  const result = response.srs;
 
   // Robustness: Handle AI non-compliance with exact keys
   if (!result.validation_status) {
@@ -198,7 +196,7 @@ export async function validateRequirements(srsData) {
       if (result.clarification_questions && result.clarification_questions.length > 0) {
         result.validation_status = 'CLARIFICATION_REQUIRED';
       } else if (result.issues && result.issues.some(i => i.severity === 'critical' || i.severity === 'BLOCKER')) {
-        result.validation_status = 'CLARIFICATION_REQUIRED'; // Treat blockers as clarification needed for now
+        result.validation_status = 'CLARIFICATION_REQUIRED';
       } else {
         result.validation_status = 'PASS';
       }

@@ -20,7 +20,7 @@ interface DiagramEditorProps {
     title: string
     initialCode: string
     syntaxExplanation?: string
-    onSave: (newCode: string) => Promise<void>
+    onSave: (newCode: string, options?: { inPlace?: boolean }) => Promise<void>
     onOpenChange?: (isOpen: boolean) => void
 }
 
@@ -97,13 +97,13 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
                 const repairedCode = data.code
                 // Mark the old code as failed so we don't try it again
                 setFailedCodes(prev => new Set(prev).add(code))
-                
+
                 setCode(repairedCode)
                 setLastError(null)
-                
+
                 toast.success("Repaired automatically. Persisting...", { id: "repair-status" })
                 try {
-                    await onSave(repairedCode)
+                    await onSave(repairedCode, { inPlace: true })
                     toast.success("Diagram fixed and saved", { id: "repair-status" })
                 } catch (saveErr) {
                     console.error("Auto-save failed:", saveErr)

@@ -34,6 +34,7 @@ import { ImprovementDialog } from "@/components/improvement-dialog"
 import { AccordionInput } from "@/components/analysis/accordion-input"
 import { ValidationReport } from "@/components/analysis/validation-report"
 import { useLayer } from "@/lib/layer-context"
+import { AnalysisLoading } from "@/components/analysis/analysis-loading"
 
 export default function AnalysisDetailPage() {
     return <AnalysisDetailContent />
@@ -79,23 +80,38 @@ function AnalysisDetailContent() {
             if (!response.ok) throw new Error("Failed to load analysis");
 
             const data: Analysis = await response.json()
+            console.log("[Analysis] Fetched:", data.status, "Title:", data.title);
             setAnalysis(data)
 
             // STATUS HANDLING
             // Poll if PENDING or IN_PROGRESS
-            if (data.status === 'PENDING' || data.status === 'IN_PROGRESS') {
-                const msg = data.status === 'IN_PROGRESS'
+            const currentStatus = (data.status || '').toUpperCase();
+            if (currentStatus === 'PENDING' || currentStatus === 'IN_PROGRESS' || currentStatus === 'QUEUED') {
+                const msg = currentStatus === 'IN_PROGRESS'
                     ? "AI is analyzing requirements (Layer 3)..."
                     : "Queueing analysis job...";
                 setLoadingMessage(msg)
-                setTimeout(() => fetchAnalysis(analysisId), 2000)
+                setAnalysis(data) // Ensure analysis is set so AnalysisLoading can render
+                setTimeout(() => fetchAnalysis(analysisId), 3000)
                 return
             }
 
             // If FAILED, show error
             if (data.status === 'FAILED') {
-                setError("Analysis generation failed. The worker encountered an error.");
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const errorMsg = (data.resultJson as any)?.error || "Analysis generation failed. The AI worker encountered an error.";
+                setError(errorMsg);
                 setIsLoading(false)
+                return
+            }
+
+            // EXTRA GUARD: If status is COMPLETED but we have no results yet, keep polling
+            // This handles potential DB consistency delay or early status flips
+            const hasResults = data.resultJson && Object.keys(data.resultJson).length > 2; // projectTitle + introduction is at least something
+            if (currentStatus === 'COMPLETED' && !hasResults) {
+                console.log("[Analysis] Status COMPLETED but results missing, continuing polling...");
+                setLoadingMessage("Finalizing results...")
+                setTimeout(() => fetchAnalysis(analysisId), 2000)
                 return
             }
 
@@ -123,6 +139,10 @@ function AnalysisDetailContent() {
                     unlockLayer(5);
                     setLayer(3);
                 }
+
+                // FORCE CLEAR LOADING STATE
+                console.log("[Analysis] Completion detected, forcing loader off.");
+                setIsLoading(false);
             }
 
         } catch (err) {
@@ -168,9 +188,9 @@ function AnalysisDetailContent() {
 
     useEffect(() => {
         if (analysis) {
-            const s = analysis.status;
-            // LOADING remains true for PENDING or IN_PROGRESS to allow polling to work smoothly
-            if (s !== 'PENDING' && s !== 'IN_PROGRESS') {
+            const s = (analysis.status || '').toUpperCase();
+            // Poll for any in-progress equivalent
+            if (s !== 'PENDING' && s !== 'IN_PROGRESS' && s !== 'QUEUED') {
                 setIsLoading(false)
             }
         }
@@ -318,11 +338,32 @@ function AnalysisDetailContent() {
         }
     };
 
-    if (authLoading || isLoading) {
+    // Loading State Handling (Priority)
+    const currentStatus = (analysis?.status || '').toUpperCase();
+
+    const hasRealResults = analysis?.resultJson && Object.keys(analysis.resultJson).length > 5; // Enough keys to represent a real SRS
+
+    const isActuallyInProgress =
+        !hasRealResults && (
+            currentStatus === 'PENDING' ||
+            currentStatus === 'IN_PROGRESS' ||
+            currentStatus === 'QUEUED' ||
+            (analysis?.title?.includes('Analysis in Progress') && currentStatus !== 'FAILED' && currentStatus !== 'COMPLETED')
+        );
+
+    // 1. Premium Loader for Active Analysis
+    if (isActuallyInProgress) {
+        return <AnalysisLoading />
+    }
+
+    // 2. Fallback Basic Loader
+    if (authLoading || (isLoading && !analysis)) {
         return (
             <div className="flex h-[calc(100vh-64px)] items-center justify-center p-8 bg-background">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="ml-2 text-muted-foreground">{loadingMessage}</p>
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="text-sm text-muted-foreground animate-pulse">{loadingMessage}</p>
+                </div>
             </div>
         )
     }
@@ -330,11 +371,27 @@ function AnalysisDetailContent() {
     if (error) {
         return (
             <div className="h-[calc(100vh-64px)] flex flex-col">
-                <div className="flex-1 flex items-center justify-center p-8 text-center text-destructive">
-                    <div>
-                        <h2 className="text-xl font-bold mb-2">Error Loading Project</h2>
-                        <p>{error}</p>
-                        <Button className="mt-4" onClick={() => router.push('/analysis')}>Back to Projects</Button>
+                <div className="flex-1 flex items-center justify-center p-8 text-center bg-muted/10">
+                    <div className="max-w-md w-full border border-destructive/20 bg-destructive/5 rounded-xl p-6 shadow-sm">
+                        <div className="bg-destructive/10 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Sparkles className="h-6 w-6 text-destructive" />
+                        </div>
+                        <h2 className="text-xl font-bold text-destructive mb-2">Analysis Generation Failed</h2>
+                        <p className="text-sm text-muted-foreground mb-6">
+                            {error}
+                        </p>
+
+                        <div className="flex flex-col gap-2">
+                            <Button
+                                onClick={() => router.push('/analysis')}
+                                variant="outline"
+                                className="w-full"
+                            >
+                                <ArrowLeft className="h-4 w-4 mr-2" /> Back to Projects
+                            </Button>
+
+                            {/* Optional: Retry mechanism could be added here if backend supports it */}
+                        </div>
                     </div>
                 </div>
             </div>
