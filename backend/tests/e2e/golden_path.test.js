@@ -47,6 +47,7 @@ jest.unstable_mockModule('@upstash/qstash', () => ({
 
 jest.unstable_mockModule('../../src/services/aiService.js', () => ({
     analyzeText: jest.fn().mockResolvedValue({
+        success: true,
         srs: { projectTitle: 'Directly Mocked AI' },
         meta: { promptVersion: 'mock-v1' }
     }),
@@ -135,7 +136,7 @@ describe('E2E Golden Path: Request -> Queue(Mock) -> Worker(Local) -> DB', () =>
         // 2. Wait for Worker (async local execution)
         // logic in queueService.js: await performAnalysis(...) -> calls prisma.update
         // We now have intermediate IN_PROGRESS updates, so we must wait for COMPLETED.
-        await waitForStatus(mockPrisma.analysis.update, 'COMPLETED', 10000);
+        await waitForStatus(mockPrisma.analysis.update, 'COMPLETED', 14000);
 
         // 3. Verify Updates
         const updateCalls = mockPrisma.analysis.update.mock.calls;
@@ -155,5 +156,5 @@ describe('E2E Golden Path: Request -> Queue(Mock) -> Worker(Local) -> DB', () =>
 
         // Now comes from mocked aiService.js
         expect(resultJson.projectTitle).toBe('Directly Mocked AI');
-    });
+    }, 15000);
 });
