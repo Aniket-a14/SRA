@@ -8,40 +8,56 @@ export async function analyzeText(text, settings = {}) {
     modelProvider = "google",
     modelName = "gemini-2.5-flash",
     promptVersion = getLatestVersion(),
+    systemPrompt = null,
     ...promptSettings
   } = settings;
 
-  // Extract Project Name for Governance if using Word Array format
-  let projectName = "Project";
-  try {
-    const words = JSON.parse(text);
-    if (Array.isArray(words)) {
-      const pIdx = words.findIndex(w => w === "Project:");
-      if (pIdx !== -1 && words[pIdx + 1]) {
-        projectName = words[pIdx + 1];
+  let masterPrompt;
+  let finalPrompt;
+
+  if (systemPrompt) {
+    // If a specific task-based system prompt is provided, use it directly
+    masterPrompt = systemPrompt;
+    finalPrompt = `
+System Context:
+${masterPrompt}
+
+User Input Data:
+${text}
+
+REMINDER: Return ONLY a valid JSON object.
+`;
+  } else {
+    // Standard SRA generation flow
+    // Extract Project Name for Governance if using Word Array format
+    let projectName = "Project";
+    try {
+      const words = JSON.parse(text);
+      if (Array.isArray(words)) {
+        const pIdx = words.findIndex(w => w === "Project:");
+        if (pIdx !== -1 && words[pIdx + 1]) {
+          projectName = words[pIdx + 1];
+        }
+      }
+    } catch (e) {
+      if (text && typeof text === 'string') {
+        const match = text.match(/Project:\s*([^\n\r]+)/);
+        if (match) projectName = match[1].trim();
       }
     }
-  } catch (e) {
-    // Fallback to extraction from string if not JSON
-    if (text && typeof text === 'string') {
-      const match = text.match(/Project:\s*([^\n\r]+)/);
-      if (match) projectName = match[1].trim();
-    }
-  }
 
-  // Use versioned prompt
-  const masterPrompt = constructMasterPrompt({ ...promptSettings, projectName }, promptVersion);
-
-  const finalPrompt = `
+    masterPrompt = constructMasterPrompt({ ...promptSettings, projectName }, promptVersion);
+    finalPrompt = `
 ${masterPrompt}
 
 User Input:
 ${text}
 `;
+  }
 
   let output;
   const maxAttempts = 3;
-  const timeoutMs = 60000;
+  const timeoutMs = 360000; // Increased to 6 mins for large enterprise SRS generation
 
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -111,25 +127,62 @@ ${text}
     }
   }
 
+  // Handle explicit abort messages from Diagram Authority (it might ignore JSON wraps)
+  if (output.includes("DIAGRAM GENERATION ABORTED")) {
+    console.warn("[AI Service] Model issued a safety/syntax abort:", output);
+    return {
+      success: false,
+      error: "The AI was unable to generate safe system diagrams for this input. Please refine your description.",
+      raw: output
+    };
+  }
+
   // Parse JSON
   let parsedSRS;
   try {
-    output = output.replace(/```json/g, "").replace(/```/g, "").trim();
-    const jsonMatch = output.match(/\{[\s\S]*\}/);
-    if (jsonMatch) output = jsonMatch[0];
-    parsedSRS = JSON.parse(output);
+    // 1. Remove markdown code blocks
+    let cleanOutput = output.replace(/```json/g, "").replace(/```/g, "").trim();
+
+    // 2. Try to find the first '{' and last '}' to isolate the JSON object
+    const firstBrace = cleanOutput.indexOf('{');
+    const lastBrace = cleanOutput.lastIndexOf('}');
+
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      cleanOutput = cleanOutput.substring(firstBrace, lastBrace + 1);
+    }
+
+    try {
+      parsedSRS = JSON.parse(cleanOutput);
+    } catch (primaryError) {
+      console.warn("[AI Service] Initial JSON parse failed, attempting secondary fix for bad escapes...");
+
+      // Secondary Fix: Handle unescaped backslashes that aren't valid JSON escapes
+      // Valid JSON escapes: \", \\, \/, \b, \f, \n, \r, \t, \uXXXX
+      // We look for a backslash that is NOT followed by any of those and escape it.
+      // This is a common AI error especially in Mermaid/diagram strings.
+      let fixedOutput = cleanOutput.replace(/\\(?!(["\\\/bfnrt]|u[0-9a-fA-F]{4}))/g, "\\\\");
+
+      // Also handle cases where AI might have literal newlines inside strings 
+      // This is harder to fix with regex without breaking structure, but we can try to fix the most common.
+
+      parsedSRS = JSON.parse(fixedOutput);
+      console.log("[AI Service] Secondary parse SUCCESS after manual escaping.");
+    }
   } catch (parseError) {
+    console.error("[AI Service] JSON Final Parse Error:", parseError.message);
+    console.error("[AI Service] Raw Output Snippet:", output.substring(0, 500));
     return {
       success: false,
-      error: "Invalid JSON from model",
+      error: `Invalid JSON from model (Error: ${parseError.message}). The AI might have struggled with the complexity of the request or generated invalid escape sequences.`,
       raw: output
     };
   }
 
   return {
+    success: true, // Standardize success flag
     srs: parsedSRS,
     meta: {
-      promptVersion,
+      promptVersion: systemPrompt ? "task-specific" : promptVersion,
       modelProvider,
       modelName
     }

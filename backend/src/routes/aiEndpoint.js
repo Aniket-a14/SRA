@@ -13,9 +13,15 @@ router.post("/", async (req, res, next) => {
       throw error;
     }
 
-    const { srs, meta } = await analyzeText(text, settings);
+    const response = await analyzeText(text, settings);
 
-    res.json({ srs, meta });
+    if (!response.success) {
+      const error = new Error(response.error || "AI Analysis Failed");
+      error.statusCode = 500;
+      throw error;
+    }
+
+    res.json({ srs: response.srs, meta: response.meta });
   } catch (error) {
     next(error);
   }

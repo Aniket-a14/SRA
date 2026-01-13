@@ -121,25 +121,29 @@ import { analyzeText } from './aiService.js';
  * @returns {Promise<Object>} { status: 'ALIGNED'|'MISMATCH_DETECTED', mismatches: [] }
  */
 export const checkAlignment = async (originalInput, validationContext, srsOutput) => {
-    // Construct Prompt
-    let prompt = ALIGNMENT_CHECK_PROMPT
+    // Construct task-specific prompt (system prompt)
+    let systemPrompt = ALIGNMENT_CHECK_PROMPT
         .replace('{{projectName}}', originalInput.projectName || "Unknown")
-        .replace('{{rawInput}}', (originalInput.rawText || "").slice(0, 1000)) // Truncate if huge
         .replace('{{domain}}', validationContext.domain || "General Software")
-        .replace('{{purpose}}', validationContext.purpose || "Not Specified")
-        .replace('{{srsContent}}', JSON.stringify(srsOutput).slice(0, 15000)); // Context limit safety
+        .replace('{{purpose}}', validationContext.purpose || "Not Specified");
+
+    // Pass the raw input as the message text
+    const text = (originalInput.rawText || "").slice(0, 5000) +
+        "\n\nSRS CONTENT FOR VERIFICATION:\n" +
+        JSON.stringify(srsOutput).slice(0, 15000);
 
     // Call AI
-    const result = await analyzeText(prompt, {
+    const response = await analyzeText(text, {
         modelName: 'gemini-2.5-flash',
+        systemPrompt: systemPrompt,
         temperature: 0.0 // Strict logic
     });
 
-    if (!result || !result.status) {
+    if (!response || response.success === false || !response.srs) {
         // Fallback if AI fails to return structure
-        console.warn("Layer 3 Alignment Check returned invalid format:", result);
+        console.warn("Layer 3 Alignment Check failed:", response?.error);
         return { status: 'ALIGNED', mismatches: [] };
     }
 
-    return result;
+    return response.srs;
 };

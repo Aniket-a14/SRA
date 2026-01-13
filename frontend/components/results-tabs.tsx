@@ -384,8 +384,9 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                     initialCode={typeof appendices?.analysisModels?.flowchartDiagram === 'string'
                       ? appendices.analysisModels.flowchartDiagram
                       : appendices?.analysisModels?.flowchartDiagram?.code || ""}
-                    onSave={async (newCode) => {
+                    onSave={async (newCode, options) => {
                       try {
+                        const isInPlace = !!options?.inPlace;
                         const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
                           method: "PUT",
                           headers: {
@@ -400,16 +401,17 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                                 flowchartDiagram: newCode
                               }
                             },
-                            skipAlignment: true
+                            skipAlignment: true,
+                            inPlace: isInPlace
                           })
                         })
                         if (!res.ok) throw new Error("Failed to save")
                         const updated = await res.json()
-                        if (updated.id && updated.id !== analysisId) {
+                        if (!isInPlace && updated.id && updated.id !== analysisId) {
                           toast.success("New version created")
                           router.push(`/analysis/${updated.id}`)
                         } else {
-                          toast.success("Saved")
+                          toast.success(isInPlace ? "Diagram fixed" : "Saved")
                           onRefresh?.()
                         }
                       } catch {
@@ -423,8 +425,9 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                     initialCode={typeof appendices?.analysisModels?.sequenceDiagram === 'string'
                       ? appendices.analysisModels.sequenceDiagram
                       : appendices?.analysisModels?.sequenceDiagram?.code || ""}
-                    onSave={async (newCode) => {
+                    onSave={async (newCode, options) => {
                       try {
+                        const isInPlace = !!options?.inPlace;
                         const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
                           method: "PUT",
                           headers: {
@@ -439,16 +442,17 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                                 sequenceDiagram: newCode
                               }
                             },
-                            skipAlignment: true
+                            skipAlignment: true,
+                            inPlace: isInPlace
                           })
                         })
                         if (!res.ok) throw new Error("Failed to save")
                         const updated = await res.json()
-                        if (updated.id && updated.id !== analysisId) {
+                        if (!isInPlace && updated.id && updated.id !== analysisId) {
                           toast.success("New version created")
                           router.push(`/analysis/${updated.id}`)
                         } else {
-                          toast.success("Saved")
+                          toast.success(isInPlace ? "Diagram fixed" : "Saved")
                           onRefresh?.()
                         }
                       } catch {
@@ -470,8 +474,9 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                           : (appendices?.analysisModels?.dataFlowDiagram as Diagram)?.code) || ""
                     }
                     syntaxExplanation={typeof appendices?.analysisModels?.dataFlowDiagram === 'object' && appendices.analysisModels.dataFlowDiagram !== null ? (appendices.analysisModels.dataFlowDiagram as Diagram).syntaxExplanation : undefined}
-                    onSave={async (newCode) => {
+                    onSave={async (newCode, options) => {
                       try {
+                        const isInPlace = !!options?.inPlace;
                         const currentDFD = appendices?.analysisModels?.dataFlowDiagram;
                         const isDfdObj = typeof currentDFD === 'object' && currentDFD !== null;
 
@@ -497,16 +502,17 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                                 dataFlowDiagram: newDFD
                               }
                             },
-                            skipAlignment: true
+                            skipAlignment: true,
+                            inPlace: isInPlace
                           })
                         })
                         if (!res.ok) throw new Error("Failed to save")
                         const updated = await res.json()
-                        if (updated.id && updated.id !== analysisId) {
+                        if (!isInPlace && updated.id && updated.id !== analysisId) {
                           toast.success("New version created")
                           router.push(`/analysis/${updated.id}`)
                         } else {
-                          toast.success("Saved Level 0")
+                          toast.success(isInPlace ? "Level 0 fixed" : "Saved Level 0")
                           onRefresh?.()
                         }
                       } catch {
@@ -523,8 +529,9 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                         : ""
                     }
                     syntaxExplanation={typeof appendices?.analysisModels?.dataFlowDiagram === 'object' && appendices.analysisModels.dataFlowDiagram !== null ? (appendices.analysisModels.dataFlowDiagram as Diagram).syntaxExplanation : undefined}
-                    onSave={async (newCode) => {
+                    onSave={async (newCode, options) => {
                       try {
+                        const isInPlace = !!options?.inPlace;
                         const currentDFD = appendices?.analysisModels?.dataFlowDiagram;
                         const isDfdObj = typeof currentDFD === 'object' && currentDFD !== null;
 
@@ -549,16 +556,17 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                                 dataFlowDiagram: newDFD
                               }
                             },
-                            skipAlignment: true
+                            skipAlignment: true,
+                            inPlace: isInPlace
                           })
                         })
                         if (!res.ok) throw new Error("Failed to save")
                         const updated = await res.json()
-                        if (updated.id && updated.id !== analysisId) {
+                        if (!isInPlace && updated.id && updated.id !== analysisId) {
                           toast.success("New version created")
                           router.push(`/analysis/${updated.id}`)
                         } else {
-                          toast.success("Saved Level 1")
+                          toast.success(isInPlace ? "Level 1 fixed" : "Saved Level 1")
                           onRefresh?.()
                         }
                       } catch {
@@ -573,8 +581,9 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                       ? appendices.analysisModels.entityRelationshipDiagram
                       : appendices?.analysisModels?.entityRelationshipDiagram?.code || ""}
                     syntaxExplanation={typeof appendices?.analysisModels?.entityRelationshipDiagram === 'object' && appendices.analysisModels.entityRelationshipDiagram !== null ? (appendices.analysisModels.entityRelationshipDiagram as Diagram).syntaxExplanation : undefined}
-                    onSave={async (newCode) => {
+                    onSave={async (newCode, options) => {
                       try {
+                        const isInPlace = !!options?.inPlace;
                         const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
                           method: "PUT",
                           headers: {
@@ -589,16 +598,17 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                                 entityRelationshipDiagram: newCode
                               }
                             },
-                            skipAlignment: true
+                            skipAlignment: true,
+                            inPlace: isInPlace
                           })
                         })
                         if (!res.ok) throw new Error("Failed to save")
                         const updated = await res.json()
-                        if (updated.id && updated.id !== analysisId) {
+                        if (!isInPlace && updated.id && updated.id !== analysisId) {
                           toast.success("New version created")
                           router.push(`/analysis/${updated.id}`)
                         } else {
-                          toast.success("Saved")
+                          toast.success(isInPlace ? "ERD fixed" : "Saved")
                           onRefresh?.()
                         }
                       } catch {

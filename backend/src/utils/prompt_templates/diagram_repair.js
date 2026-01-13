@@ -10,6 +10,16 @@ CONSTRAINTS:
 4. Do NOT apply creative changes.
 5. Do NOT add node labels or concepts that were not in the original code.
 6. Ensure all node labels with spaces or special characters are properly quoted (e.g., ID["Label Text"]).
+7. ER DIAGRAM SPECIFIC:
+   - Do NOT use aliases like 'entity "Name" as Alias'. Use the full name or simple ID consistently.
+   - Ensure relationships are on their own lines.
+   - Do NOT use "Attribute Key" definition style if it causes errors; prefer standard 'Type name'.
+8. FLOWCHART/DFD SPECIFIC:
+   - Ensure shapes like database [("Label")] do NOT have spaces between brackets/parentheses and quotes. Use [("Label")] NOT [( "Label" )].
+9. HOLISTIC FIX (CRITICAL):
+   - Do NOT just fix the specific line reported in the error.
+   - Scan the ENTIRE diagram code for similar syntax violations (e.g., if one node has bad quoting, fix ALL nodes).
+   - Resolve all potential syntax issues in a SINGLE pass to prevent recurring errors.
 
 INPUT:
 1. The original (failing) Mermaid code.

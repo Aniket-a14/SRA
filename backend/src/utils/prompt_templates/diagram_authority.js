@@ -284,9 +284,13 @@ NO commentary
 FAILURE MODE
 ================================================================
 
-If safe Mermaid output is not possible, output EXACTLY:
+If safe Mermaid output is not possible, you MUST still return a valid JSON object, but set the "code" field to EXACTLY:
+"DIAGRAM GENERATION ABORTED: <short reason>"
 
-"DIAGRAM GENERATION ABORTED: LOGIC NOT REPRESENTABLE SAFELY"
+Example:
+{
+  "code": "DIAGRAM GENERATION ABORTED: LOGIC NOT REPRESENTABLE SAFELY"
+}
 
 ================================================================
 FINAL IDENTITY LOCK

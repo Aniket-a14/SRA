@@ -8,16 +8,14 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
     let analysisMeta = {};
 
     try {
-        // Direct function call instead of self-referential HTTP
+        // Direct function call
         const response = await analyzeText(text, settings);
 
-        // aiService.analyzeText already returns { srs, meta }
-        if (response.srs && response.meta) {
+        if (response.success && response.srs) {
             resultJson = response.srs;
-            analysisMeta = response.meta;
+            analysisMeta = response.meta || {};
         } else {
-            // Fallback for any direct results (though analyzeText is standardized)
-            resultJson = response;
+            throw new Error(response.error || "AI Analysis execution failed to return valid SRS");
         }
     } catch (error) {
         console.error("AI Analysis execution failed:", error.message);
