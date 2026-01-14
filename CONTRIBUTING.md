@@ -9,18 +9,18 @@ The following is a set of guidelines for contributing to SRA. These are mostly g
 
 ## 📂 Project Structure & Navigation
 
-Understanding the project structure is key to making effective contributions.
+Understanding the project structure is key to making effective contributions. **SRA follows a rigid 5-Layer Analysis Pipeline.**
 
 ### Backend (`/backend`)
-The backend is built with **Node.js** and designed for **Vercel Serverless**.
+The backend is built with **Node.js** and designed for **Vercel Serverless**, orchestrating the AI analysis layers.
 -   **`src/server.js`**: The local entry point to start the server.
 -   **`src/app.js`**: Express app configuration (also used by Vercel).
 -   **`api/`**: Vercel Serverless Function entry points.
--   **`src/config/`**: App configuration and OAuth setup.
 -   **`src/routes/`**: API route definitions.
 -   **`src/controllers/`**: Logic for handling API requests.
--   **`src/services/`**: Business logic and AI integration.
--   **`src/workers/`**: Background workers for handling async tasks triggered by QStash.
+-   **`src/services/`**: Business logic and AI integration (Layer 1-3).
+-   **`src/utils/prompt_templates/`**: **CRITICAL**. Contains the system prompts for standard and strict persona validation, including the **Diagram Syntax Authority**.
+-   **`src/workers/`**: Background workers for handling async tasks triggered by QStash (Layer 5 knowledge shredding).
 -   **`src/middleware/`**: Middleware for auth, validation, and error handling.
 -   **`.env`**: Stores environment variables like your API key and database URL. **Do not commit this file.**
 
@@ -31,9 +31,11 @@ The frontend is built with **Next.js 15 (App Router)** and **TypeScript**, style
     -   `layout.tsx`: The root layout wrapper.
 -   **`components/`**: Reusable UI components.
     -   `ui/`: Base components from shadcn/ui (buttons, inputs, cards).
-    -   `ResultsTabs.tsx`: Displays the analysis results.
-    -   `MermaidRenderer.tsx`: Renders the diagrams.
+    -   `ResultsTabs.tsx`: Displays the standard IEEE-830 analysis results.
+    -   `MermaidRenderer.tsx`: **Strict** renderer for diagrams (governed by Diagram Syntax Authority).
 -   **`lib/`**: Utility functions and helpers.
+    -   `data.ts`: Centralized static data repository.
+    -   `export-utils.ts`: **Layer 5 Document Compiler** (Frontend-only PDF generation).
 -   **`public/`**: Static assets like images and icons.
 
 ## 🚀 Getting Started
@@ -55,40 +57,7 @@ Ensure you have the following installed or set up:
     ```bash
     npm install
     ```
-3.  Create a `.env` file and add the following variables:
-    ```env
-    # Server
-    NODE_ENV=development
-    PORT=3000
-    FRONTEND_URL=http://localhost:3001
-    ANALYZER_URL=http://localhost:3000/internal/analyze
-
-    # Database (Supabase)
-    DATABASE_URL="postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true"
-    DIRECT_URL="postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:5432/postgres"
-
-    # Auth
-    JWT_SECRET=your_super_secret_jwt_key
-
-    # Google OAuth
-    GOOGLE_CLIENT_ID=your_google_client_id
-    GOOGLE_CLIENT_SECRET=your_google_client_secret
-    GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
-
-    # GitHub OAuth
-    GITHUB_CLIENT_ID=your_github_client_id
-    GITHUB_CLIENT_SECRET=your_github_client_secret
-    GITHUB_CALLBACK_URL=http://localhost:3000/api/auth/github/callback
-
-    # AI
-    GEMINI_API_KEY=your_gemini_api_key_here
-
-    # Upstash QStash (Async Job Queue)
-    QSTASH_URL=https://qstash.upstash.io/v2/publish/
-    QSTASH_TOKEN=your_qstash_token
-    QSTASH_CURRENT_SIGNING_KEY=your_current_signing_key
-    QSTASH_NEXT_SIGNING_KEY=your_next_signing_key
-    ```
+3.  Create a `.env` file and add the required variables (see `README.md` for the template).
 4.  Initialize the database:
     ```bash
     npx prisma migrate dev --name init
@@ -115,17 +84,30 @@ Ensure you have the following installed or set up:
 
 ## 🛠️ Where to Make Changes
 
+### Governance & Development Standards
+**SRA enforces strict enterprise standards.**
+
+#### Diagram Syntax Authority
+-   **Strictness**: All diagram generation prompts in `src/utils/prompt_templates/` must adhere to strict Mermaid syntax limits.
+-   **Verification**: Always verify changes using the "View Syntax Explanation" feature in the frontend.
+
+#### Name Governance
+-   **Consistency**: Ensure consistent naming across the "Introduction" section of the SRS.
+-   **Semantic Anchor**: Respect the "Introduction as Semantic Anchor" rule when modifying validation logic.
+
 ### Adding New Features
 -   **Backend Logic**:
     -   Add new routes in `src/routes/`.
     -   Implement logic in `src/controllers/` and `src/services/`.
+    -   **Layer 4 (Refinement)** is implemented via `refinementService` in the backend.
+    -   **Layer 5 (Document Compiler)** is pure client-side logic in `frontend/lib/export-utils.ts`. **Do not shift this to the backend.**
 -   **Frontend UI**:
     -   To add a new section to the results, update `frontend/components/ResultsTabs.tsx`.
     -   To change the input form, check `frontend/app/page.tsx`.
 
 ### Styling
 -   We use **Tailwind CSS v4**. You can apply utility classes directly to your JSX elements.
--   For complex components, check `frontend/components/ui` to see if a pre-built component (like a Button or Card) already exists.
+-   For complex components, check `frontend/components/ui` to see if a pre-built component (like a Button or Card) already exists (shadcn/ui).
 
 ## 🔄 Contribution Workflow
 
@@ -139,10 +121,14 @@ Ensure you have the following installed or set up:
     ```bash
     git checkout -b feature/amazing-new-feature
     ```
-4.  **Make your changes**.
-5.  **Commit your changes** with a descriptive message:
+4.  **Make your changes**. Follow the **Governance & Development Standards**.
+5.  **Commit your changes** using **Conventional Commits**:
+    -   `feat: add new analysis layer`
+    -   `fix: resolve mermaid rendering error`
+    -   `docs: update contributing guidelines`
+    -   `chore: update dependencies`
     ```bash
-    git commit -m "Add amazing new feature to results display"
+    git commit -m "feat: add amazing new feature to results display"
     ```
 6.  **Push to your fork**:
     ```bash
