@@ -129,6 +129,12 @@ function AnalysisDetailContent() {
                 // Default: COMPLETED (Layer 3 done)
                 // This handles 'COMPLETED', undefined (legacy), and any other post-analysis state.
 
+                // CRITICAL FIX: If we have resultJson, we are done.
+                if (data.status === 'COMPLETED' || (data.resultJson && Object.keys(data.resultJson).length > 2)) {
+                    console.log("[Analysis] Completion detected (Status: " + data.status + "), forcing loader off.");
+                    setIsLoading(false);
+                }
+
                 if (data.isFinalized) {
                     setIsFinalized(true);
                     unlockAndNavigate(5);
@@ -139,10 +145,6 @@ function AnalysisDetailContent() {
                     unlockLayer(5);
                     setLayer(3);
                 }
-
-                // FORCE CLEAR LOADING STATE
-                console.log("[Analysis] Completion detected, forcing loader off.");
-                setIsLoading(false);
             }
 
         } catch (err) {

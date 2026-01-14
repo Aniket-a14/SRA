@@ -252,8 +252,10 @@ export const getAnalysis = async (req, res, next) => {
         }
         res.json({
             ...analysis.resultJson,
+            resultJson: analysis.resultJson,
             id: analysis.id,
             title: analysis.title,
+            status: analysis.status,
             version: analysis.version,
             createdAt: analysis.createdAt,
             generatedCode: analysis.generatedCode,
