@@ -1,6 +1,6 @@
-# SRA Demo & Walkthrough
+# SRA Enterprise Demo & Walkthrough
 
-This guide provides instructions on how to demonstrate the core capabilities of the SRA (Smart Requirements Analyst) application.
+This guide provides instructions on how to demonstrate the core capabilities of the SRA (Smart Requirements Analyst) 5-Layer Pipeline.
 
 ## 1. Setup & Launch
 Ensure you have the application running locally via the "Getting Started" instructions in the [README](Readme.md).
@@ -12,46 +12,46 @@ Ensure you have the application running locally via the "Getting Started" instru
 -   **Action**: Click "Get Started" or "Login".
 -   **Demo**:
     -   Show **Social Login** (Google/GitHub) for friction-less entry.
-    -   Alternatively, create a demo account (e.g., `demo@example.com`).
+    -   Alternatively, create a demo account.
 
-## 3. Creating a New Analysis
+## 3. Creating a New Analysis (Layers 1 & 2)
 -   **Scenario**: The user has a rough idea for an app.
--   **Input**: Enter a high-level prompt in the main text area.
+-   **Action**:
+    -   **Landing Page**: Enter a **Project Name** (e.g., "ZombieFitness") and a high-level description.
     -   *Example Prompt*: "I want a fitness tracking app that gamifies running with zombie audio stories. Users should be able to track runs, earn achievements, and share stats on social media."
--   **Action**: Click **"Analyze"**.
+    -   Click **"Analyze"**.
 -   **Observation**:
-    -   Show the **Loading State**: The UI provides feedback while the background worker processes the request.
-    -   Once complete, the page redirects to the **Analysis Result Dashboard**.
+    -   **Layer 1 (Intake)**: Structured data capture.
+    -   **Layer 2 (Validation)**: The AI Gatekeeper validates the prompt for clarity.
+    -   **Loading State**: Show the sleek loading UI while the background worker processes the request.
 
-## 4. Exploring Results
-Walk through the generated tabs:
--   **Deep Dive**: Requirements are broken down into Functional & Non-Functional.
--   **User Stories**: Check the "As a... I want... So that..." format and Acceptance Criteria.
--   **Diagrams**: Switch to the **Diagrams** tab to see the auto-generated Mermaid Flowchart and Sequence Diagram.
-    -   *Demo*: Click nodes in the diagram to show interactivity.
--   **Schema & API**: Show the proposed Database Schema and API Routes.
+## 4. Exploring Results (Layer 3)
+Once complete, the page redirects to the **Analysis Result Dashboard**.
+-   **Project Header**: Verify the captured Project Name is displayed.
+-   **Deep Dive Tabs**:
+    -   **User Stories**: Standardized "As a... I want... So that..." format.
+    -   **Diagrams (Strict Syntax)**:
+        -   Switch to the **Diagrams** tab.
+        -   **Action**: Click "View Syntax Explanation".
+        -   **Observation**: Show the AI's explanation of why this diagram is valid (Proof of Diagram Syntax Authority).
+        -   Interact with the Mermaid nodes.
 
-## 5. Iterative Refinement (Versioning)
+## 5. Iterative Refinement (Layer 4)
 -   **Scenario**: The user wants to add a missing feature.
--   **Action**: Open the **Chat** panel (usually on the right or bottom).
+-   **Action**: Open the **Refinement Chat** panel.
     -   *Input*: "Add a feature for premium users to download offline maps."
 -   **Observation**:
-    -   The AI acknowledges the request.
-    -   A **New Version** is created (e.g., Version 2).
-    -   The UI highlights the **Diff** (changes made).
--   **Validation**: Use the **Timeline** sidebar to switch back to Version 1, then forward to Version 2 to demonstrate "Time Travel".
+    -   The **Refinement Service** processes the request.
+    -   **Time Travel**: Use the **Version Timeline** sidebar to switch between Version 1 and Version 2, showing the added feature.
 
-## 6. Finalizing
+## 6. Finalizing & Exporting (Layer 5)
 -   **Scenario**: The user is happy with the requirements.
--   **Action**: Click the **"Finalize SRS"** button in the header.
+-   **Action**: Click **"Finalize SRS"**.
 -   **Outcome**:
-    -   The SRS is locked and marked as final.
-    -   Refinement/editing is disabled.
-    -   The "Finalize" button changes to "Finalized".
+    -   **Knowledge Base**: The content is "shredded" and stored for future recurrence patterns.
+    -   **Export**: Click **Export PDF**.
+    -   **Verification**: Explain that this PDF generation happens **client-side only** (Frontend-only Layer 5), ensuring no backend bottleneck.
 
-## 7. Exporting
--   **Scenario**: The user needs to share this with their team.
--   **Action**: Click the **Export** button.
--   **Outcome**:
-    -   Generate a **PDF** report.
-    -   Download the **Code Bundle** (Zip) to start coding immediately.
+## 7. Code Bundle
+-   **Action**: Download the **Code Bundle** (Zip).
+-   **Outcome**: Show that it contains the raw JSON data, diagrams, and API contracts.
