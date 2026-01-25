@@ -4,11 +4,9 @@ import { useEffect, useState, useCallback, useRef } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 
-import { ResultsTabs } from "@/components/results-tabs"
 import { Button } from "@/components/ui/button"
 import { Loader2, ArrowLeft, Calendar, Download, Sparkles, Database, Save } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
-import { ProjectChatPanel } from "@/components/project-chat-panel"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import {
@@ -23,18 +21,37 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { generateSRS, generateAPI, downloadBundle } from "@/lib/export-utils"
-import { saveAs } from "file-saver"
 import type { Analysis, ValidationIssue } from "@/types/analysis"
 import { SRSIntakeModel } from "@/types/srs-intake"
 import { cn } from "@/lib/utils"
-import { VersionTimeline } from "@/components/version-timeline"
 
 import { toast } from "sonner"
-import { ImprovementDialog } from "@/components/improvement-dialog"
-import { AccordionInput } from "@/components/analysis/accordion-input"
-import { ValidationReport } from "@/components/analysis/validation-report"
 import { useLayer } from "@/lib/layer-context"
 import { AnalysisLoading } from "@/components/analysis/analysis-loading"
+import dynamic from "next/dynamic"
+import saveAs from "file-saver"
+import { Skeleton } from "@/components/ui/skeleton"
+import { ErrorBoundary } from "@/components/error-boundary"
+import { useTransition } from "react"
+
+const ResultsTabs = dynamic(() => import("@/components/results-tabs").then(mod => mod.ResultsTabs), {
+    loading: () => <div className="h-[600px] w-full bg-muted/5 animate-pulse rounded-xl" />
+})
+
+const ProjectChatPanel = dynamic(() => import("@/components/project-chat-panel").then(mod => mod.ProjectChatPanel), {
+    ssr: false // Client side floating widget
+})
+
+const VersionTimeline = dynamic(() => import("@/components/version-timeline").then(mod => mod.VersionTimeline), {
+    loading: () => <div className="h-20 w-full bg-muted/5 animate-pulse rounded-lg" />
+})
+
+const ImprovementDialog = dynamic(() => import("@/components/improvement-dialog").then(mod => mod.ImprovementDialog))
+const AccordionInput = dynamic(() => import("@/components/analysis/accordion-input").then(mod => mod.AccordionInput))
+const ValidationReport = dynamic(() => import("@/components/analysis/validation-report").then(mod => mod.ValidationReport))
+
+
+
 
 export default function AnalysisDetailPage() {
     return <AnalysisDetailContent />
@@ -55,8 +72,11 @@ function AnalysisDetailContent() {
     const [isImproveDialogOpen, setIsImproveDialogOpen] = useState(false)
     const [isFinalizing, setIsFinalizing] = useState(false)
     const [isValidating, setIsValidating] = useState(false)
+    const [isProceeding, setIsProceeding] = useState(false)
+    const [isPending, startTransition] = useTransition()
     const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([]);
     const lastIdRef = useRef<string | null>(null);
+    const pollingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Draft State
     const [draftData, setDraftData] = useState<SRSIntakeModel | null>(null)
@@ -80,7 +100,6 @@ function AnalysisDetailContent() {
             if (!response.ok) throw new Error("Failed to load analysis");
 
             const data: Analysis = await response.json()
-            console.log("[Analysis] Fetched:", data.status, "Title:", data.title);
             setAnalysis(data)
 
             // STATUS HANDLING
@@ -92,7 +111,9 @@ function AnalysisDetailContent() {
                     : "Queueing analysis job...";
                 setLoadingMessage(msg)
                 setAnalysis(data) // Ensure analysis is set so AnalysisLoading can render
-                setTimeout(() => fetchAnalysis(analysisId), 3000)
+                // Clear existing timeout before setting new one to avoid multiple chains
+                if (pollingTimeoutRef.current) clearTimeout(pollingTimeoutRef.current);
+                pollingTimeoutRef.current = setTimeout(() => fetchAnalysis(analysisId), 3000)
                 return
             }
 
@@ -109,9 +130,9 @@ function AnalysisDetailContent() {
             // This handles potential DB consistency delay or early status flips
             const hasResults = data.resultJson && Object.keys(data.resultJson).length > 2; // projectTitle + introduction is at least something
             if (currentStatus === 'COMPLETED' && !hasResults) {
-                console.log("[Analysis] Status COMPLETED but results missing, continuing polling...");
                 setLoadingMessage("Finalizing results...")
-                setTimeout(() => fetchAnalysis(analysisId), 2000)
+                if (pollingTimeoutRef.current) clearTimeout(pollingTimeoutRef.current);
+                pollingTimeoutRef.current = setTimeout(() => fetchAnalysis(analysisId), 2000)
                 return
             }
 
@@ -131,7 +152,6 @@ function AnalysisDetailContent() {
 
                 // CRITICAL FIX: If we have resultJson, we are done.
                 if (data.status === 'COMPLETED' || (data.resultJson && Object.keys(data.resultJson).length > 2)) {
-                    console.log("[Analysis] Completion detected (Status: " + data.status + "), forcing loader off.");
                     setIsLoading(false);
                 }
 
@@ -155,6 +175,14 @@ function AnalysisDetailContent() {
             // No-op
         }
     }, [token, unlockAndNavigate, unlockLayer, setLayer, setIsFinalized]);
+
+    const memoizedOnDiagramEditChange = useCallback((isEditing: boolean) => {
+        setIsDiagramEditing(isEditing)
+    }, [])
+
+    const memoizedOnRefresh = useCallback(() => {
+        if (id) fetchAnalysis(id)
+    }, [id, fetchAnalysis])
 
     useEffect(() => {
         // Wait for auth initialization
@@ -182,6 +210,11 @@ function AnalysisDetailContent() {
             setError("Invalid Analysis ID");
             setIsLoading(false);
         }
+
+        // Cleanup timeout on unmount or id change
+        return () => {
+            if (pollingTimeoutRef.current) clearTimeout(pollingTimeoutRef.current);
+        };
     }, [user, token, id, authLoading, router, fetchAnalysis])
 
     const handleRefresh = () => {
@@ -271,6 +304,7 @@ function AnalysisDetailContent() {
     }
 
     const handleProceedToAnalysis = async () => {
+        setIsProceeding(true);
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, {
                 method: "POST",
@@ -296,6 +330,7 @@ function AnalysisDetailContent() {
         } catch (e) {
             console.error("Failed to proceed to analysis", e);
             toast.error("Failed to proceed to analysis");
+            setIsProceeding(false);
         }
     }
 
@@ -358,13 +393,37 @@ function AnalysisDetailContent() {
         return <AnalysisLoading />
     }
 
-    // 2. Fallback Basic Loader
+    // 2. Sophisticated Skeleton Loader
     if (authLoading || (isLoading && !analysis)) {
         return (
-            <div className="flex h-[calc(100vh-64px)] items-center justify-center p-8 bg-background">
-                <div className="flex flex-col items-center gap-4">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="text-sm text-muted-foreground animate-pulse">{loadingMessage}</p>
+            <div className="flex flex-col h-[calc(100vh-64px)] bg-background">
+                {/* Header Skeleton */}
+                <div className="border-b px-6 py-4 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <Skeleton className="h-10 w-10 rounded-full" />
+                        <div className="space-y-2">
+                            <Skeleton className="h-6 w-48" />
+                            <Skeleton className="h-4 w-32" />
+                        </div>
+                    </div>
+                    <div className="flex gap-2">
+                        <Skeleton className="h-10 w-24" />
+                        <Skeleton className="h-10 w-24" />
+                    </div>
+                </div>
+
+                {/* Main Content Skeleton */}
+                <div className="flex-1 p-6 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="md:col-span-2 space-y-4">
+                            <Skeleton className="h-64 w-full rounded-xl" />
+                            <Skeleton className="h-32 w-full rounded-xl" />
+                        </div>
+                        <div className="space-y-4">
+                            <Skeleton className="h-48 w-full rounded-xl" />
+                            <Skeleton className="h-48 w-full rounded-xl" />
+                        </div>
+                    </div>
                 </div>
             </div>
         )
@@ -442,6 +501,7 @@ function AnalysisDetailContent() {
                         issues={analysis?.metadata?.validationResult?.issues || []}
                         onProceed={handleProceedToAnalysis}
                         onEdit={handleBackToEdit}
+                        isProceeding={isProceeding}
                     />
                 </div>
             </div>
@@ -576,7 +636,7 @@ function AnalysisDetailContent() {
                                         )}
                                     </AlertDialog>
 
-                                    <div className="h-6 w-px bg-border mx-1" />
+
 
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
@@ -594,7 +654,8 @@ function AnalysisDetailContent() {
                                                         const images = await renderMermaidDiagrams(analysis);
 
                                                         const projectTitle = analysis.projectTitle || analysis.title || "Project_Context";
-                                                        const doc = generateSRS(analysis, projectTitle, images);
+                                                        // generateSRS is now async
+                                                        const doc = await generateSRS(analysis, projectTitle, images);
                                                         doc.save(`${projectTitle.replace(/\s+/g, '_')}_SRS.pdf`);
                                                         toast.success("SRS Report downloaded");
                                                     }
@@ -642,11 +703,13 @@ function AnalysisDetailContent() {
 
                         {analysis && (
                             <div className="border p-2 mb-4 bg-muted">
-                                <ResultsTabs
-                                    data={analysis}
-                                    onDiagramEditChange={setIsDiagramEditing}
-                                    onRefresh={handleRefresh}
-                                />
+                                <ErrorBoundary name="Results View">
+                                    <ResultsTabs
+                                        data={analysis}
+                                        onDiagramEditChange={memoizedOnDiagramEditChange}
+                                        onRefresh={memoizedOnRefresh}
+                                    />
+                                </ErrorBoundary>
                             </div>
                         )}
                     </div>

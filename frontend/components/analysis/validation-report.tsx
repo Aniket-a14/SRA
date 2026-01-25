@@ -23,10 +23,11 @@ interface ValidationReportProps {
     clarificationQuestions?: string[];
     onProceed: () => void;
     onEdit: () => void;
+    isProceeding?: boolean;
     onSubmitClarifications?: (answers: Record<string, string>) => void;
 }
 
-export function ValidationReport({ issues, clarificationQuestions = [], onProceed, onEdit, onSubmitClarifications }: ValidationReportProps) {
+export function ValidationReport({ issues, clarificationQuestions = [], onProceed, onEdit, isProceeding, onSubmitClarifications }: ValidationReportProps) {
     const criticalCount = issues.filter(i => i.severity === 'critical').length;
     const warningCount = issues.filter(i => i.severity === 'warning').length;
     const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -193,8 +194,8 @@ export function ValidationReport({ issues, clarificationQuestions = [], onProcee
                 <Button variant="outline" onClick={onEdit}>
                     <ArrowLeft className="h-4 w-4 mr-2" /> Back to Inputs
                 </Button>
-                <Button onClick={onProceed} disabled={isBlocked} size="lg">
-                    Generate SRS Analysis (Layer 3)
+                <Button onClick={onProceed} disabled={isBlocked || isProceeding} size="lg">
+                    {isProceeding ? "Proceeding..." : "Generate SRS Analysis (Layer 3)"}
                 </Button>
             </div>
         </div>

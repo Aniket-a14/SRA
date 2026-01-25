@@ -10,10 +10,17 @@ import { ResultsTabs } from "@/components/results-tabs"
 import { AboutSection } from "@/components/about-section"
 import { FaqSection } from "@/components/faq-section"
 import { Footer } from "@/components/footer"
-import type { AnalysisResult } from "@/types/analysis"
+import type { Analysis, AnalysisResult } from "@/types/analysis"
 import { toast } from "sonner"
 
-const defaultAnalysis: AnalysisResult = {
+const defaultAnalysis: Analysis = {
+  id: "preview",
+  userId: "preview",
+  status: "COMPLETED",
+  version: 1,
+  createdAt: new Date().toISOString(),
+  rootId: "preview",
+  parentId: null,
   projectTitle: "Untitled Project",
   introduction: {
     purpose: "",
@@ -63,7 +70,7 @@ function HomeContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { authenticateWithToken, token } = useAuth()
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResult>(defaultAnalysis)
+  const [analysisResult, setAnalysisResult] = useState<Analysis>(defaultAnalysis)
   const [isLoading, setIsLoading] = useState(false)
 
   const projectId = searchParams.get("projectId")
@@ -92,7 +99,7 @@ function HomeContent() {
     setIsLoading(true)
     try {
       // LAYER 1 TRANSITION: Create Draft instead of immediate analysis
-      console.log("Sending Analysis Request:", { requirements, settings, name, projectId });
+      // LAYER 1 TRANSITION: Create Draft instead of immediate analysis
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, {
         method: "POST",
         headers: {

@@ -1,47 +1,50 @@
-import { DIAGRAM_AUTHORITY_PROMPT } from '../prompt_templates/diagram_authority.js';
+import { getDiagramAuthorityPrompt } from '../prompt_templates/diagram_authority.js';
 
-export const generate = (settings = {}) => {
-    const {
-        profile = "default",
-        depth = 3,      // 1-5 (Verbosity)
-        strictness = 3  // 1-5 (Creativity: 5=Creative, 1=Strict/Dry)
-    } = settings;
+export const generate = async (settings = {}) => {
+  const {
+    profile = "default",
+    depth = 3,      // 1-5 (Verbosity)
+    strictness = 3  // 1-5 (Creativity: 5=Creative, 1=Strict/Dry)
+  } = settings;
 
-    // 1. PERSONA INJECTION
-    let personaInstruction = "You are an expert Software Requirements Analyst strictly adhering to IEEE 830-1998 standards.";
+  // 0. FETCH DYNAMIC AUTHORITY
+  const diagramAuthority = await getDiagramAuthorityPrompt();
 
-    if (profile === "business_analyst") {
-        personaInstruction = `
+  // 1. PERSONA INJECTION
+  let personaInstruction = "You are an expert Software Requirements Analyst strictly adhering to IEEE 830-1998 standards.";
+
+  if (profile === "business_analyst") {
+    personaInstruction = `
 You are a Senior Business Analyst focused on Business Value and ROI.
 Your requirements should emphasize business goals, user benefits, revenue impact, and operational efficiency.
 Focus on "What" and "Why".
       `;
-    } else if (profile === "system_architect") {
-        personaInstruction = `
+  } else if (profile === "system_architect") {
+    personaInstruction = `
 You are a Principal System Architect focused on Scalability, Reliability, and Technology.
 Your requirements should emphasize non-functional requirements like performance, security, database consistency, and microservices interactions.
       `;
-    } else if (profile === "security_analyst") {
-        personaInstruction = `
+  } else if (profile === "security_analyst") {
+    personaInstruction = `
 You are a Lead Security Analyst focused on Threat Modeling and Compliance.
 Your requirements must explicitly address Authentication, Authorization, Data Privacy (GDPR/CCPA), Encryption, and Vulnerability prevention.
       `;
-    }
+  }
 
-    // 2. DEPTH/VERBOSITY (1 = Concise, 5 = Detailed)
-    const detailLevel = depth <= 2 ? "Concise and high-level" : depth >= 4 ? "Extremely detailed and exhaustive" : "Detailed and professional";
+  // 2. DEPTH/VERBOSITY (1 = Concise, 5 = Detailed)
+  const detailLevel = depth <= 2 ? "Concise and high-level" : depth >= 4 ? "Extremely detailed and exhaustive" : "Detailed and professional";
 
-    // 3. STRICTNESS/CREATIVITY
-    let creativityInstruction = "";
-    if (strictness >= 4) {
-        creativityInstruction = "STRICTNESS: HIGH. Do NOT infer features not explicitly requested. Stick exactly to the user input.";
-    } else if (strictness <= 2) {
-        creativityInstruction = "STRICTNESS: LOW. Be CREATIVE. Proactively infer necessary features (like 'Forgot Password' or 'Admin Panel') even if not explicitly mentioned.";
-    } else {
-        creativityInstruction = "STRICTNESS: MEDIUM. Infer standard implicit features (like Login) but do not invent core modules.";
-    }
-    return `
-${DIAGRAM_AUTHORITY_PROMPT}
+  // 3. STRICTNESS/CREATIVITY
+  let creativityInstruction = "";
+  if (strictness >= 4) {
+    creativityInstruction = "STRICTNESS: HIGH. Do NOT infer features not explicitly requested. Stick exactly to the user input.";
+  } else if (strictness <= 2) {
+    creativityInstruction = "STRICTNESS: LOW. Be CREATIVE. Proactively infer necessary features (like 'Forgot Password' or 'Admin Panel') even if not explicitly mentioned.";
+  } else {
+    creativityInstruction = "STRICTNESS: MEDIUM. Infer standard implicit features (like Login) but do not invent core modules.";
+  }
+  return `
+${diagramAuthority}
 
 ${personaInstruction}
 
@@ -182,12 +185,6 @@ You MUST return output ONLY in the following exact JSON structure. Do not add ex
           "syntaxExplanation": "FORMAL SPECIFICATION: Explanation of participants and time flow.", 
           "code": "Mermaid sequenceDiagram code...", 
           "caption": "Core workflow sequence interaction." 
-      },
-      "dataFlowDiagram": { 
-          "level0": "Mermaid flowchart TD code...", 
-          "level1": "Mermaid flowchart TD code...", 
-          "syntaxExplanation": "FORMAL SPECIFICATION: DFD Mapping rules for Level 0 and 1.",
-          "caption": "Level 0 and Level 1 DFDs."
       },
       "entityRelationshipDiagram": { 
           "syntaxExplanation": "FORMAL SPECIFICATION: ER Entity and Cardinality rules.", 

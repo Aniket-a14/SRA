@@ -1,12 +1,15 @@
-import { DIAGRAM_AUTHORITY_PROMPT } from '../prompt_templates/diagram_authority.js';
+import { getDiagramAuthorityPrompt } from '../prompt_templates/diagram_authority.js';
 
-export const generate = (settings = {}) => {
+export const generate = async (settings = {}) => {
   const {
     profile = "default",
     depth = 3,      // 1-5 (Verbosity)
     strictness = 3, // 1-5 (Creativity: 5=Creative, 1=Strict/Dry)
     projectName = "Project"
   } = settings;
+
+  // 0. FETCH DYNAMIC AUTHORITY
+  const diagramAuthority = await getDiagramAuthorityPrompt();
 
   // Derive Prefix: Take uppercase initials or first 2-3 letters
   const projectPrefix = projectName
@@ -51,7 +54,7 @@ Your requirements must explicitly address Authentication, Authorization, Data Pr
   }
 
   return `
-${DIAGRAM_AUTHORITY_PROMPT}
+${diagramAuthority}
 
 ${personaInstruction}
 
@@ -212,7 +215,7 @@ You MUST return output ONLY in the following exact JSON structure. Do not add ex
     "documentConventions": "Describe any standards or typographical conventions that were followed when writing this SRS, such as fonts or highlighting that have special significance. For example, state whether priorities for higher-level requirements are assumed to be inherited by detailed requirements, or whether every requirement statement is to have its own priority.",
     "intendedAudience": "Describe the different types of reader that the document is intended for, such as developers, project managers, marketing staff, users, testers, and documentation writers. Describe what the rest of this SRS contains and how it is organized. Suggest a sequence for reading the document, beginning with the overview sections and proceeding through the sections that are most pertinent to each reader type. Minimum 1-2 solid paragraphs.",
     "productScope": "Provide a short description of the software being specified and its purpose, including relevant benefits, objectives, and goals. Relate the software to corporate goals or business strategies. If a separate vision and scope document is available, refer to it rather than duplicating its contents here. Minimum 1-2 solid paragraphs.",
-    "references": ["List any other documents or Web addresses to which this SRS refers. These may include user interface style guides, contracts, standards, system requirements specifications, use case documents, or a vision and scope document. Provide enough information so that the reader could access a copy of each reference, including title, author, version number, date, and source or location."]
+    "references": ["List any other documents or Web addresses. Include title, author, version, date, and source."]
   },
   "overallDescription": {
     "productPerspective": "Describe the context and origin of the product being specified in this SRS. For example, state whether this product is a follow-on member of a product family, a replacement for certain existing systems, or a new, self-contained product. If the SRS defines a component of a larger system, relate the requirements of the larger system to the functionality of this software and identify interfaces between the two. A simple diagram that shows the major components of the overall system, subsystem interconnections, and external interfaces can be helpful. Split into paragraphs.",
@@ -262,12 +265,6 @@ You MUST return output ONLY in the following exact JSON structure. Do not add ex
           "code": "Mermaid sequenceDiagram code...", 
           "caption": "Core workflow sequence interaction." 
       },
-      "dataFlowDiagram": { 
-          "level0": "Mermaid flowchart TD code...", 
-          "level1": "Mermaid flowchart TD code...", 
-          "syntaxExplanation": "FORMAL SPECIFICATION: DFD Mapping rules for Level 0 and 1.",
-          "caption": "Level 0 and Level 1 DFDs."
-      },
       "entityRelationshipDiagram": { 
           "syntaxExplanation": "FORMAL SPECIFICATION: ER Entity and Cardinality rules.", 
           "code": "Mermaid erDiagram code...", 
@@ -289,6 +286,7 @@ STRICT RULES:
 2. Mermaid syntax must be RAW string. No markdown code blocks. CRITICAL: Quote ALL node labels with spaces/symbols (e.g., id1["Text"]). Use simple alphanumeric IDs.
 3. System Features must follow specific structure defined above or output is INVALID.
 4. Output MUST be valid JSON only.
+5. ERD SPECIAL RULE: Relationships MUST be 'ENTITY1 rel ENTITY2 : "label"'. NO COLONS BEFORE LABELS.
 
 User Input (Raw Description):
 `;

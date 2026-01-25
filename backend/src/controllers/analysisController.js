@@ -9,7 +9,7 @@ import { analyzeText, repairDiagram as aiRepairDiagram } from '../services/aiSer
 import { embedText } from '../services/embeddingService.js';
 import { ensureProjectExists } from '../services/projectService.js';
 import { findReuseCandidate } from '../services/reuseService.js';
-import { FEATURE_EXPANSION_PROMPT } from '../utils/prompts.js';
+import { FEATURE_EXPANSION_PROMPT, DFD_STRUCT_GEN_PROMPT } from '../utils/prompts.js';
 import prisma from '../config/prisma.js';
 import crypto from 'crypto';
 
@@ -746,8 +746,41 @@ export const repairDiagram = async (req, res, next) => {
             throw err;
         }
 
-        const repairedCode = await aiRepairDiagram(code, error, settings || {});
+        const repairedCode = await aiRepairDiagram(code, error, settings || {}, req.body.syntaxExplanation || "");
         res.json({ code: repairedCode });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const generateDFD = async (req, res, next) => {
+    try {
+        const { projectName, description, srsContent, settings } = req.body;
+
+        if (!projectName || !description) {
+            const err = new Error('Project Name and Description are required');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        // Prepare prompt
+        const finalPrompt = `
+${DFD_STRUCT_GEN_PROMPT}
+
+USER INPUT:
+Project Name: ${projectName}
+Description: ${description}
+SRS Content (Reference): ${srsContent || "N/A"}
+`;
+
+        // Call AI Service
+        const result = await analyzeText(finalPrompt, settings || {});
+
+        if (result.error) {
+            throw new Error(result.error);
+        }
+
+        res.json(result);
     } catch (error) {
         next(error);
     }

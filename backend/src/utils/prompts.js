@@ -9,19 +9,22 @@ import { FEATURE_EXPANSION_PROMPT } from './prompt_templates/feature_expansion.j
 import { CODE_GEN_PROMPT } from './prompt_templates/code_gen.js';
 import { ALIGNMENT_CHECK_PROMPT } from './prompt_templates/alignment_check.js';
 import { DIAGRAM_REPAIR_PROMPT } from './prompt_templates/diagram_repair.js';
+import { DFD_STRUCT_GEN_PROMPT } from './prompt_templates/dfd_struct_gen.js';
+
 
 // 1. REGISTER VERSIONS
 registerPromptVersion('1.0.0', v1.generate);
 registerPromptVersion('1.1.0', v1_1.generate);
 
 // 2. CENTRAL FACTORY
-export const constructMasterPrompt = (settings = {}, version = 'latest') => {
+// Now ASYNC because generators allow I/O
+export const constructMasterPrompt = async (settings = {}, version = 'latest') => {
   const v = version === 'latest' ? getLatestVersion() : version;
   if (version !== 'latest') {
     console.log(`[Governance] Using explicit prompt version: ${v}`);
   }
   const generator = getPromptByVersion(v);
-  return generator(settings);
+  return await generator(settings);
 };
 
 // Re-export constants for compatibility
@@ -31,8 +34,7 @@ export {
   FEATURE_EXPANSION_PROMPT,
   CODE_GEN_PROMPT,
   ALIGNMENT_CHECK_PROMPT,
-  DIAGRAM_REPAIR_PROMPT
+  DIAGRAM_REPAIR_PROMPT,
+  DFD_STRUCT_GEN_PROMPT
 };
-
-
 

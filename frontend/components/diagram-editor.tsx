@@ -86,7 +86,8 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
                 },
                 body: JSON.stringify({
                     code: code,
-                    error: lastError
+                    error: lastError,
+                    syntaxExplanation: syntaxExplanation
                 })
             })
 
@@ -101,7 +102,7 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
                 setCode(repairedCode)
                 setLastError(null)
 
-                toast.success("Repaired automatically. Persisting...", { id: "repair-status" })
+                toast.success("Intelligent repair successful", { id: "repair-status" })
                 try {
                     await onSave(repairedCode, { inPlace: true })
                     toast.success("Diagram fixed and saved", { id: "repair-status" })
@@ -190,7 +191,8 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
                                                 {isRepairing && (
                                                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-card/80 z-20 backdrop-blur-sm transition-all duration-300">
                                                         <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-                                                        <p className="text-sm font-medium animate-pulse">rendering diagram</p>
+                                                        <p className="text-sm font-medium animate-pulse">Intelligent Repair in Progress...</p>
+                                                        <p className="text-xs text-muted-foreground mt-1">Applying Diagram Authority Rules</p>
                                                     </div>
                                                 )}
                                             </div>
@@ -224,7 +226,7 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
                 {isRepairing && !open && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-card/80 z-20 backdrop-blur-sm transition-all duration-300">
                         <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-                        <p className="text-sm font-medium animate-pulse">rendering diagram</p>
+                        <p className="text-sm font-medium animate-pulse">Repairing Syntax...</p>
                     </div>
                 )}
             </div>

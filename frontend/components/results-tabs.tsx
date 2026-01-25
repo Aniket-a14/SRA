@@ -1,32 +1,44 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import React, { useEffect, useRef, useState, memo } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { AlertTriangle, Bot, ShieldCheck, Code, Loader2, Bug, CheckCircle2 } from "lucide-react"
-import type { AnalysisResult, Diagram } from "@/types/analysis"
-import { DiagramEditor } from "@/components/diagram-editor"
+import type { Analysis, AnalysisResult, Diagram } from "@/types/analysis"
 import { useAuth } from "@/lib/auth-context"
 import { Progress } from "@/components/ui/progress"
 import { useParams, useRouter } from "next/navigation"
-import { CodeViewer, type CodeViewerProps } from "@/components/code-viewer"
 import { toast } from "sonner"
 import { FeatureDisplay } from "@/components/feature-display"
 import { KVDisplay } from "@/components/kv-display"
 import { renderMarkdown } from "@/lib/render-markdown"
 import { EditableSection } from "@/components/editable-section"
+import { DFDDiagramSection } from "@/components/analysis/dfd-diagram-section"
+import dynamic from "next/dynamic"
+import type { CodeViewerProps } from "@/components/code-viewer"
+
+const DiagramEditor = dynamic(() => import("@/components/diagram-editor").then(mod => mod.DiagramEditor), {
+  loading: () => <div className="h-[400px] w-full bg-muted/20 animate-pulse rounded-lg" />,
+  ssr: false
+})
+
+const CodeViewer = dynamic(() => import("@/components/code-viewer").then(mod => mod.CodeViewer), {
+  loading: () => <div className="h-[600px] w-full bg-muted/20 animate-pulse rounded-lg" />,
+  ssr: false
+})
+
 
 
 interface ResultsTabsProps {
-  data?: AnalysisResult
+  data?: Analysis
   onDiagramEditChange?: (isEditing: boolean) => void
   onRefresh?: () => void
 }
 
-export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTabsProps) {
+export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTabsProps) {
   const sectionRef = useRef<HTMLElement>(null)
   const { token } = useAuth()
   const router = useRouter()
@@ -462,119 +474,50 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
                     onOpenChange={onDiagramEditChange}
                   />
                 </div>
+
+                {/* DFD Section (React Flow - Level 0 & 1 Combined) */}
+                <div className="mt-6">
+                  <DFDDiagramSection
+                    data={appendices?.analysisModels?.dataFlowDiagram}
+                    projectTitle={data.projectTitle}
+                    description={data.introduction?.productScope || ""}
+                    srsContent={JSON.stringify(data)}
+                    onUpdate={(newDfdInput) => {
+                      const newDFD = {
+                        ...((typeof appendices?.analysisModels?.dataFlowDiagram === 'object' ? appendices.analysisModels.dataFlowDiagram : {})),
+                        ...newDfdInput,
+                        caption: "Data Flow Diagram"
+                      };
+
+                      fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
+                        method: "PUT",
+                        headers: {
+                          "Content-Type": "application/json",
+                          Authorization: `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                          appendices: {
+                            ...appendices,
+                            analysisModels: {
+                              ...appendices?.analysisModels,
+                              dataFlowDiagram: newDFD
+                            }
+                          },
+                          skipAlignment: true,
+                          inPlace: true // Force persist on current version
+                        })
+                      }).then(res => {
+                        if (res.ok) {
+                          onRefresh?.();
+                        } else {
+                          toast.error("Failed to save generated DFD");
+                        }
+                      });
+                    }}
+                  />
+                </div>
+
                 <div className="grid lg:grid-cols-2 gap-6 mt-6">
-                  <DiagramEditor
-                    title="DFD Level 0 (Context)"
-                    initialCode={
-                      // Robust check for new structure vs old
-                      typeof appendices?.analysisModels?.dataFlowDiagram === 'object' && appendices.analysisModels.dataFlowDiagram !== null && 'level0' in appendices.analysisModels.dataFlowDiagram
-                        ? (appendices.analysisModels.dataFlowDiagram as { level0: string }).level0
-                        : (typeof appendices?.analysisModels?.dataFlowDiagram === 'string'
-                          ? appendices.analysisModels.dataFlowDiagram
-                          : (appendices?.analysisModels?.dataFlowDiagram as Diagram)?.code) || ""
-                    }
-                    syntaxExplanation={typeof appendices?.analysisModels?.dataFlowDiagram === 'object' && appendices.analysisModels.dataFlowDiagram !== null ? (appendices.analysisModels.dataFlowDiagram as Diagram).syntaxExplanation : undefined}
-                    onSave={async (newCode, options) => {
-                      try {
-                        const isInPlace = !!options?.inPlace;
-                        const currentDFD = appendices?.analysisModels?.dataFlowDiagram;
-                        const isDfdObj = typeof currentDFD === 'object' && currentDFD !== null;
-
-                        const newDFD = {
-                          ...((isDfdObj ? currentDFD : {}) as Record<string, unknown>),
-                          level0: newCode,
-                          // Preserve level1 if it exists, or init empty
-                          level1: (isDfdObj && 'level1' in currentDFD ? (currentDFD as { level1: string }).level1 : ""),
-                          caption: (isDfdObj && 'caption' in currentDFD ? (currentDFD as { caption: string }).caption : "Data Flow Diagram")
-                        };
-
-                        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
-                          method: "PUT",
-                          headers: {
-                            "Content-Type": "application/json",
-                            Authorization: `Bearer ${token}`
-                          },
-                          body: JSON.stringify({
-                            appendices: {
-                              ...appendices,
-                              analysisModels: {
-                                ...appendices?.analysisModels,
-                                dataFlowDiagram: newDFD
-                              }
-                            },
-                            skipAlignment: true,
-                            inPlace: isInPlace
-                          })
-                        })
-                        if (!res.ok) throw new Error("Failed to save")
-                        const updated = await res.json()
-                        if (!isInPlace && updated.id && updated.id !== analysisId) {
-                          toast.success("New version created")
-                          router.push(`/analysis/${updated.id}`)
-                        } else {
-                          toast.success(isInPlace ? "Level 0 fixed" : "Saved Level 0")
-                          onRefresh?.()
-                        }
-                      } catch {
-                        toast.error("Failed to save diagram")
-                      }
-                    }}
-                    onOpenChange={onDiagramEditChange}
-                  />
-                  <DiagramEditor
-                    title="DFD Level 1"
-                    initialCode={
-                      typeof appendices?.analysisModels?.dataFlowDiagram === 'object' && appendices.analysisModels.dataFlowDiagram !== null && 'level1' in appendices.analysisModels.dataFlowDiagram
-                        ? (appendices.analysisModels.dataFlowDiagram as { level1: string }).level1
-                        : ""
-                    }
-                    syntaxExplanation={typeof appendices?.analysisModels?.dataFlowDiagram === 'object' && appendices.analysisModels.dataFlowDiagram !== null ? (appendices.analysisModels.dataFlowDiagram as Diagram).syntaxExplanation : undefined}
-                    onSave={async (newCode, options) => {
-                      try {
-                        const isInPlace = !!options?.inPlace;
-                        const currentDFD = appendices?.analysisModels?.dataFlowDiagram;
-                        const isDfdObj = typeof currentDFD === 'object' && currentDFD !== null;
-
-                        const newDFD = {
-                          ...((isDfdObj ? currentDFD : {}) as Record<string, unknown>),
-                          level0: (isDfdObj && 'level0' in currentDFD ? (currentDFD as { level0: string }).level0 : ""),
-                          level1: newCode,
-                          caption: (isDfdObj && 'caption' in currentDFD ? (currentDFD as { caption: string }).caption : "Data Flow Diagram")
-                        };
-
-                        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
-                          method: "PUT",
-                          headers: {
-                            "Content-Type": "application/json",
-                            Authorization: `Bearer ${token}`
-                          },
-                          body: JSON.stringify({
-                            appendices: {
-                              ...appendices,
-                              analysisModels: {
-                                ...appendices?.analysisModels,
-                                dataFlowDiagram: newDFD
-                              }
-                            },
-                            skipAlignment: true,
-                            inPlace: isInPlace
-                          })
-                        })
-                        if (!res.ok) throw new Error("Failed to save")
-                        const updated = await res.json()
-                        if (!isInPlace && updated.id && updated.id !== analysisId) {
-                          toast.success("New version created")
-                          router.push(`/analysis/${updated.id}`)
-                        } else {
-                          toast.success(isInPlace ? "Level 1 fixed" : "Saved Level 1")
-                          onRefresh?.()
-                        }
-                      } catch {
-                        toast.error("Failed to save diagram")
-                      }
-                    }}
-                    onOpenChange={onDiagramEditChange}
-                  />
                   <DiagramEditor
                     title="Entity Relationship Diagram"
                     initialCode={typeof appendices?.analysisModels?.entityRelationshipDiagram === 'string'
@@ -772,8 +715,23 @@ export function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTab
           </Tabs>
         </div>
       </div>
-    </section>
+    </section >
   )
-}
+}, (prev, next) => {
+  // Custom comparison to prevent re-renders during polling if data hasn't changed substantively
+  if (prev.onDiagramEditChange !== next.onDiagramEditChange) return false;
+  if (prev.onRefresh !== next.onRefresh) return false;
+
+  const p = prev.data;
+  const n = next.data;
+
+  if (!p || !n) return p === n;
+
+  return p.id === n.id &&
+    p.status === n.status &&
+    p.isFinalized === n.isFinalized &&
+    JSON.stringify(p.metadata) === JSON.stringify(n.metadata) &&
+    p.version === n.version;
+});
 
 

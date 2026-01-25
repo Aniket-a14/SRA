@@ -15,13 +15,14 @@ interface MermaidRendererProps {
     title: string
     className?: string
     onError?: (error: string) => void
+    isExport?: boolean
 }
 
 interface MermaidInstance {
     render: (id: string, text: string) => Promise<{ svg: string }>
 }
 
-export function MermaidRenderer({ chart, title, className, onError }: MermaidRendererProps) {
+export function MermaidRenderer({ chart, title, className, onError, isExport = false }: MermaidRendererProps) {
     const ref = useRef<HTMLDivElement>(null)
     const [mermaidInstance, setMermaidInstance] = useState<MermaidInstance | null>(null)
     const [hasError, setHasError] = useState(false)
@@ -30,13 +31,22 @@ export function MermaidRenderer({ chart, title, className, onError }: MermaidRen
         import("mermaid").then((m) => {
             m.default.initialize({
                 startOnLoad: false,
-                theme: 'default',
+                theme: isExport ? 'neutral' : 'default', // Neutral is reliable grayscale/B&W
+                themeVariables: isExport ? {
+                    fontFamily: 'arial, sans-serif',
+                    fontSize: '16px', // Force larger font
+                    nodeBorder: '#000000',
+                    mainBkg: '#ffffff',
+                    textColor: '#000000',
+                    lineColor: '#000000'
+                } : undefined,
                 securityLevel: 'loose',
-                fontFamily: 'inherit',
+                fontFamily: 'arial, sans-serif',
+                flowchart: { useMaxWidth: !isExport, htmlLabels: true }
             })
             setMermaidInstance(m.default)
         })
-    }, [])
+    }, [isExport])
 
     useEffect(() => {
         setHasError(false)
@@ -66,6 +76,16 @@ export function MermaidRenderer({ chart, title, className, onError }: MermaidRen
 
                 if (ref.current) {
                     ref.current.innerHTML = svg
+                    // Force SVG to be 100% width/height if export
+                    if (isExport) {
+                        const svgEl = ref.current.querySelector('svg');
+                        if (svgEl) {
+                            svgEl.removeAttribute('height'); // Allow scaling
+                            svgEl.removeAttribute('width');
+                            svgEl.style.width = '100%';
+                            svgEl.style.height = 'auto';
+                        }
+                    }
                 }
             } catch (err) {
                 console.error("Mermaid Render Error:", err)
@@ -76,8 +96,26 @@ export function MermaidRenderer({ chart, title, className, onError }: MermaidRen
         }
 
         renderDiagram()
-    }, [chart, mermaidInstance, title])
+        renderDiagram()
+    }, [chart, mermaidInstance, title, isExport])
 
+    // EXPORT MODE: Render clean, auto-sized div without Card/Scrollbars
+    if (isExport) {
+        return (
+            <div className={cn("w-full bg-white flex flex-col items-center", className)}>
+                <div
+                    ref={ref}
+                    className={cn(
+                        "w-full flex justify-center", // Removed p-4 to minimize padding
+                        (hasError || !chart) ? "opacity-0" : "opacity-100"
+                    )}
+                />
+                {hasError && <p className="text-red-500 text-sm">Render Error</p>}
+            </div>
+        )
+    }
+
+    // NORMAL MODE: Interactive Card
     return (
         <Card className={cn(
             "h-[500px] w-full bg-card border-border transition-all duration-300 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 group flex flex-col relative",
