@@ -69,7 +69,6 @@ model Analysis {
   status      String  @default("COMPLETED") // PENDING, COMPLETED, FAILED
   
   // Use Unsupported type for pgvector column
-  // This requires the migration to manually create the column as vector(768)
   vectorSignature Unsupported("vector(768)")? 
 
   // Versioning Relations
@@ -93,6 +92,8 @@ model Analysis {
   @@index([rootId])
   @@index([parentId])
   @@index([projectId])
+  @@index([resultJson], type: Gin)
+  @@index([generatedCode], type: Gin)
 }
 
 model Account {
