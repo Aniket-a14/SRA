@@ -46,7 +46,7 @@ REMINDER: Return ONLY a valid JSON object.
       }
     }
 
-    masterPrompt = constructMasterPrompt({ ...promptSettings, projectName }, promptVersion);
+    masterPrompt = await constructMasterPrompt({ ...promptSettings, projectName }, promptVersion);
     finalPrompt = `
 ${masterPrompt}
 
@@ -189,7 +189,7 @@ ${text}
   };
 }
 
-export async function repairDiagram(code, error, settings = {}) {
+export async function repairDiagram(code, error, settings = {}, customInstruction = "") {
   const {
     modelName = "gemini-2.5-flash",
   } = settings;
@@ -204,6 +204,8 @@ ${code}
 
 Error Message:
 ${error}
+
+${customInstruction ? `DIAGRAM TYPE SPECIFIC RULES:\n${customInstruction}` : ""}
 
 Return ONLY the corrected code.
 `;

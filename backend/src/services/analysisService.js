@@ -1,6 +1,6 @@
 import prisma from '../config/prisma.js';
 import { lintRequirements, checkAlignment } from './qualityService.js';
-import { analyzeText } from './aiService.js';
+import { analyzeText, repairDiagram } from './aiService.js';
 import crypto from 'crypto';
 
 export const performAnalysis = async (userId, text, projectId = null, parentId = null, rootId = null, settings = {}, analysisId = null) => {
@@ -14,6 +14,9 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         if (response.success && response.srs) {
             resultJson = response.srs;
             analysisMeta = response.meta || {};
+
+            // Backend Self-Correction: Fix diagrams before finalizing
+            await validateAndAutoRepairDiagrams(resultJson, settings);
         } else {
             throw new Error(response.error || "AI Analysis execution failed to return valid SRS");
         }
@@ -217,3 +220,59 @@ export const getAnalysisById = async (userId, analysisId) => {
 
     return analysis;
 };
+
+/**
+ * Heuristic validation and AI repair for Mermaid diagrams in the SRS.
+ */
+async function validateAndAutoRepairDiagrams(srs, settings) {
+    if (!srs.appendices?.analysisModels) return;
+
+    const models = srs.appendices.analysisModels;
+    const diagramTypes = [
+        { key: 'flowchartDiagram', name: 'Flowchart' },
+        { key: 'sequenceDiagram', name: 'Sequence Diagram' },
+        { key: 'entityRelationshipDiagram', name: 'Entity Relationship Diagram' }
+    ];
+
+    for (const { key, name } of diagramTypes) {
+        const diagram = models[key];
+        if (diagram && diagram.code) {
+            // Heuristic Check: Known "breaking" patterns
+            let needsRepair = false;
+            let heuristicError = "";
+
+            const code = diagram.code.trim();
+
+            if (key === 'entityRelationshipDiagram') {
+                // Rule: Entities must not have colons before relationship
+                if (code.includes(' : ') && code.indexOf(' : ') < code.indexOf('--')) {
+                    needsRepair = true;
+                    heuristicError = "Suspected invalid ERD colon placement (labels must come after relationship).";
+                }
+                // Rule: Relationships should have quoted labels if spaces exist
+                if (code.includes(' : ') && !code.includes('"') && code.split(' : ')[1]?.includes(' ')) {
+                    needsRepair = true;
+                    heuristicError = "ERD labels with spaces must be double-quoted.";
+                }
+            }
+
+            if (needsRepair) {
+                console.log(`[Analysis Service] Auto-repairing ${name} due to: ${heuristicError}`);
+                try {
+                    const repaired = await repairDiagram(
+                        diagram.code,
+                        heuristicError,
+                        settings,
+                        diagram.syntaxExplanation || ""
+                    );
+                    if (repaired && repaired !== diagram.code) {
+                        diagram.code = repaired;
+                        console.log(`[Analysis Service] Successful auto-repair for ${name}`);
+                    }
+                } catch (err) {
+                    console.warn(`[Analysis Service] Auto-repair failed for ${name}:`, err.message);
+                }
+            }
+        }
+    }
+}

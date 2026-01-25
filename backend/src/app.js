@@ -3,6 +3,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import { authLimiter, aiLimiter, apiLimiter } from './middleware/rateLimiters.js';
 import authRoutes from './routes/authRoutes.js';
 import analysisRoutes from './routes/analysisRoutes.js';
 import projectRoutes from './routes/projectRoutes.js';
@@ -22,14 +23,7 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
 app.use(helmet());
 
-// Rate limiting
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 1000, // Increased for dev: Limit each IP to 1000 requests per `window`
-    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-});
-app.use(limiter);
+app.use(apiLimiter);
 
 app.use(cors({
     origin: FRONTEND_URL,
@@ -59,8 +53,8 @@ app.use('/internal/analyze', aiEndpoint);
 
 // Public/Protected Routes
 // Public/Protected Routes
-app.use(['/auth', '/api/auth'], authRoutes);
-app.use(['/analyze', '/api/analyze'], analysisRoutes);
+app.use(['/auth', '/api/auth'], authLimiter, authRoutes);
+app.use(['/analyze', '/api/analyze'], aiLimiter, analysisRoutes);
 app.use(['/projects', '/api/projects'], projectRoutes);
 import workerRoutes from './routes/workerRoutes.js';
 

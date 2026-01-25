@@ -91,6 +91,7 @@ model Analysis {
   
   @@index([userId])
   @@index([rootId])
+  @@index([parentId])
   @@index([projectId])
 }
 
@@ -105,6 +106,7 @@ model Account {
   user               User    @relation(fields: [userId], references: [id])
 
   @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 model Project {
@@ -136,4 +138,6 @@ model KnowledgeChunk {
 
   @@index([type])
   @@index([hash])
+  @@index([sourceAnalysisId])
+  @@index([tags], type: Gin)
 }

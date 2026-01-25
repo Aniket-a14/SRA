@@ -1,9 +1,4 @@
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import JSZip from 'jszip';
-import { saveAs } from 'file-saver';
 import { getAcronym } from '@/lib/utils';
-
 import type { AnalysisResult, Diagram } from '@/types/analysis';
 
 // Helper: Convert SVG string to PNG Blob (kept from original)
@@ -102,90 +97,258 @@ const normalizeText = (text: string) => {
     return cleaned.trim();
 };
 
+// -----------------------------------------------------------------------------
+// UNIFIED DIAGRAM CAPTURE (Photo Click for ALL)
+// -----------------------------------------------------------------------------
 export const renderMermaidDiagrams = async (data: AnalysisResult): Promise<Record<string, string>> => {
     const images: Record<string, string> = {};
     if (!data.appendices?.analysisModels) return images;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let mermaid: any = null;
     try {
-        const mermaidModule = await import('mermaid');
-        mermaid = mermaidModule.default;
-        mermaid.initialize({
-            startOnLoad: false,
-            theme: 'base',
-            securityLevel: 'loose',
-            flowchart: { useMaxWidth: false, htmlLabels: true }
-        });
-    } catch (e) {
-        console.warn("Mermaid failed to load", e);
-        return images;
-    }
+        const { createRoot } = await import('react-dom/client');
+        const { toPng } = await import('html-to-image');
+        const { DFDViewer } = await import('@/components/DFDViewer');
+        const { MermaidRenderer } = await import('@/components/mermaid-renderer');
+        const React = await import('react');
 
-    const render = async (code: string, id: string) => {
-        try {
-            if (!code) return null;
-            const uniqueId = `${id}-${Math.random().toString(36).substr(2, 9)}`;
-            const element = document.createElement('div');
-            document.body.appendChild(element);
-            const { svg } = await mermaid.render(uniqueId, code, element);
-            document.body.removeChild(element);
+        // 1. Create Off-Screen Container (HIDDEN but in viewport)
+        const container = document.createElement('div');
+        container.style.position = 'fixed';
+        container.style.left = '0';
+        container.style.top = '0';
+        container.style.zIndex = '-9999'; // Behind everything
+        // CRITICAL: Massive container to simply never clip content even if it's huge
+        container.style.width = '10000px';
+        container.style.height = '10000px';
+        container.style.backgroundColor = 'white';
+        // CRITICAL: Opacity 1 ensures browser renders it cheaply but fully. 
+        container.style.opacity = '1';
+        container.style.pointerEvents = 'none';
+        document.body.appendChild(container);
 
-            const pngBlob = await svgToPng(svg);
-            if (!pngBlob) return null;
+        // Helper: Capture any component
+        const captureComponent = async (element: React.ReactElement, key: string, width = 1200, height = 800, isFlexible = false) => {
+            const wrapper = document.createElement('div');
 
-            return new Promise<string>((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.readAsDataURL(pngBlob);
+            if (isFlexible) {
+                // MERMAID FIX: Unbounded growth
+                wrapper.style.display = 'inline-block'; // Shrink wrap or expand
+                wrapper.style.width = 'auto';
+                wrapper.style.height = 'auto';
+                // Respect the REQUESTED min size, but allow growing
+                wrapper.style.minWidth = `${width}px`;
+                wrapper.style.minHeight = `${height}px`;
+            } else {
+                // REACT FLOW FIX: Strict box
+                wrapper.style.display = 'flex';
+                wrapper.style.flexDirection = 'column';
+                wrapper.style.width = `${width}px`;
+                wrapper.style.height = `${height}px`;
+            }
+
+            wrapper.style.backgroundColor = 'white';
+            wrapper.className = "export-wrapper relative";
+
+            container.appendChild(wrapper);
+            const root = createRoot(wrapper);
+
+            root.render(element);
+
+            // Wait for render
+            await new Promise(r => setTimeout(r, 2500));
+
+            // BRUTE FORCE STYLES: Manually paint it black
+            // This bypasses CSS isolation, Shadow DOM, and library limitations.
+            // BRUTE FORCE STYLES: Manually paint it black (and now SIZE it correctly)
+            const svgElements = wrapper.querySelectorAll('svg');
+            let contentWidth = width;
+            let contentHeight = height;
+
+            svgElements.forEach(svg => {
+                // 1. DIMENSION SYNC (Crucial for Mermaid clipping fix)
+                // Mermaid often sets height="100%" which can collapse or clip.
+                // We trust the viewBox which represents the true diagram size.
+                if (isFlexible && svg.getAttribute('viewBox')) {
+                    const viewBox = svg.getAttribute('viewBox')!.split(' ').map(parseFloat);
+                    if (viewBox.length === 4) {
+                        const [, , vbWidth, vbHeight] = viewBox;
+                        // Force the SVG to be its natural size
+                        svg.setAttribute('width', `${vbWidth}px`);
+                        svg.setAttribute('height', `${vbHeight}px`);
+                        svg.style.width = `${vbWidth}px`;
+                        svg.style.height = `${vbHeight}px`;
+
+                        // Update wrapper tracking
+                        contentWidth = Math.max(contentWidth, vbWidth);
+                        contentHeight = Math.max(contentHeight, vbHeight);
+                    }
+                }
+
+                // Text: Solid Black
+                svg.querySelectorAll('text').forEach(el => {
+                    const htmlEl = el as unknown as HTMLElement;
+                    htmlEl.style.fill = '#000000';
+                    htmlEl.style.color = '#000000';
+                    // REMOVED bold to prevent text overflow
+                    htmlEl.style.fontFamily = 'Arial, sans-serif';
+                });
+                // Paths/Lines: Solid Black
+                svg.querySelectorAll('path, line, polyline').forEach(el => {
+                    const htmlEl = el as unknown as HTMLElement;
+                    htmlEl.style.stroke = '#000000';
+                    htmlEl.style.strokeWidth = '2px';
+                    // Don't force fill on paths as they might be edges (fill: none)
+                    if (el.classList.contains('react-flow__edge-path')) {
+                        htmlEl.style.fill = 'none';
+                    }
+                });
+                // Nodes: White fill, Black border
+                svg.querySelectorAll('rect, circle, polygon').forEach(el => {
+                    // Check if it's a marker or node
+                    const fill = el.getAttribute('fill');
+                    if (fill !== 'none') {
+                        const htmlEl = el as unknown as HTMLElement;
+                        htmlEl.style.fill = '#ffffff';
+                        htmlEl.style.stroke = '#000000';
+                        htmlEl.style.strokeWidth = '2px';
+                    }
+                });
+                // Markers (Arrowheads)
+                svg.querySelectorAll('marker path').forEach(el => {
+                    const htmlEl = el as unknown as HTMLElement;
+                    htmlEl.style.fill = '#000000';
+                    htmlEl.style.stroke = 'none';
+                });
             });
-        } catch (e) {
-            console.error(`Failed to render diagram ${id}`, e);
-            return null;
+
+            // Specific DFD text overrides
+            wrapper.querySelectorAll('.react-flow__node').forEach(node => {
+                const textDivs = node.querySelectorAll('div');
+                textDivs.forEach(t => {
+                    t.style.color = '#000000';
+                    t.style.fontWeight = 'bold'; // Keep DFD bold as it handles it fine
+                });
+            });
+
+            // GENERIC HTML TEXT OVERRIDE (For Mermaid htmlLabels)
+            // Mermaid uses <foreignObject><div>...</div></foreignObject>
+            wrapper.querySelectorAll('div, span, p, label').forEach(el => {
+                const htmlEl = el as unknown as HTMLElement;
+                // Avoid overwriting React Flow handles or structural divs if they don't have text
+                if (htmlEl.innerText && htmlEl.innerText.trim().length > 0) {
+                    htmlEl.style.color = '#000000';
+                    // REMOVED bold to prevent overflow
+                    htmlEl.style.fontFamily = 'Arial, sans-serif';
+                }
+            });
+
+            try {
+                // dynamic sizing for capture
+                const captureWidth = isFlexible ? contentWidth + 40 : width;
+                const captureHeight = isFlexible ? contentHeight + 40 : height;
+
+                // Explicitly resize wrapper to match content before capture
+                if (isFlexible) {
+                    wrapper.style.width = `${captureWidth}px`;
+                    wrapper.style.height = `${captureHeight}px`;
+                }
+
+                const dataUrl = await toPng(wrapper, {
+                    quality: 1.0,
+                    backgroundColor: 'white',
+                    width: captureWidth,
+                    height: captureHeight,
+                    filter: (node) => !node.classList?.contains('react-flow__controls'),
+                    skipFonts: true, // Prevent loading errors
+                    style: { transform: 'scale(1)', opacity: '1' }
+                });
+                if (dataUrl) images[key] = dataUrl;
+            } catch (e) {
+                console.error(`[Export] Failed to capture ${key}`, e);
+            }
+
+            root.unmount();
+            container.removeChild(wrapper);
+            // Small cooling off to prevent browser hiccups
+            await new Promise(r => setTimeout(r, 100));
+        };
+
+        const models = data.appendices.analysisModels;
+
+        // Helper to extract code
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const getCode = (d: any) => typeof d === 'string' ? d : d?.code;
+
+        // 1. Flowchart
+        const flowCode = getCode(models.flowchartDiagram);
+        if (flowCode) {
+            await captureComponent(
+                React.createElement(MermaidRenderer, { chart: flowCode, title: "Flowchart", isExport: true }),
+                'flowchart',
+                1200, 800, true // Flexible=true
+            );
         }
-    };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const getCode = (diagram: Diagram | string | null | undefined) => typeof diagram === 'string' ? diagram : diagram?.code;
-
-    if (data.appendices.analysisModels.flowchartDiagram) {
-        const img = await render(getCode(data.appendices.analysisModels.flowchartDiagram) || "", 'flowchart');
-        if (img) images['flowchart'] = img;
-    }
-
-    if (data.appendices.analysisModels.sequenceDiagram) {
-        const img = await render(getCode(data.appendices.analysisModels.sequenceDiagram) || "", 'sequence');
-        if (img) images['sequence'] = img;
-    }
-
-    if (data.appendices.analysisModels.dataFlowDiagram) {
-        // Handle new structure { level0, level1 } vs old structure (Diagram | string)
-        const dfd = data.appendices.analysisModels.dataFlowDiagram;
-        const isDfdObj = typeof dfd === 'object' && dfd !== null;
-
-        const level0Code = (isDfdObj && 'level0' in dfd)
-            ? (dfd as { level0: string }).level0
-            : (typeof dfd === 'string' ? dfd : (dfd as Diagram)?.code);
-
-        if (level0Code) {
-            const img = await render(level0Code, 'dataFlowLevel0');
-            if (img) images['dataFlowLevel0'] = img;
+        // 2. Sequence Diagram
+        const seqCode = getCode(models.sequenceDiagram);
+        if (seqCode) {
+            await captureComponent(
+                React.createElement(MermaidRenderer, { chart: seqCode, title: "Sequence Diagram", isExport: true }),
+                'sequence',
+                1200, 800, true // Flexible=true
+            );
         }
 
-        const level1Code = (isDfdObj && 'level1' in dfd)
-            ? (dfd as { level1: string }).level1
-            : "";
-
-        if (level1Code) {
-            const img = await render(level1Code, 'dataFlowLevel1');
-            if (img) images['dataFlowLevel1'] = img;
+        // 3. ERD
+        const erdCode = getCode(models.entityRelationshipDiagram);
+        if (erdCode) {
+            await captureComponent(
+                React.createElement(MermaidRenderer, { chart: erdCode, title: "Entity Relationship Diagram", isExport: true }),
+                'entityRelationship',
+                1200, 800, true // Flexible=true
+            );
         }
-    }
 
-    if (data.appendices.analysisModels.entityRelationshipDiagram) {
-        const img = await render(getCode(data.appendices.analysisModels.entityRelationshipDiagram) || "", 'entityRelationship');
-        if (img) images['entityRelationship'] = img;
+        // 4. DFD (React Flow)
+        if (models.dataFlowDiagram) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const dfdObj = models.dataFlowDiagram as any;
+            const isDfdJson = (dfdObj.dfd_level_0 || dfdObj.dfd_level_1);
+
+            if (isDfdJson) {
+                // Level 0
+                if (dfdObj.dfd_level_0) {
+                    await captureComponent(
+                        React.createElement(DFDViewer, { data: { dfd_level_0: dfdObj.dfd_level_0 }, isExport: true }),
+                        'dataFlowLevel0',
+                        1600, 1000, false // Fixed
+                    );
+                }
+                // Level 1
+                if (dfdObj.dfd_level_1) {
+                    await captureComponent(
+                        React.createElement(DFDViewer, { data: { dfd_level_1: dfdObj.dfd_level_1 }, isExport: true }),
+                        'dataFlowLevel1',
+                        1600, 1200, false // Fixed
+                    );
+                }
+            } else {
+                // Fallback Legacy
+                const legacyCode = getCode(dfdObj);
+                if (legacyCode) {
+                    await captureComponent(
+                        React.createElement(MermaidRenderer, { chart: legacyCode, title: "Data Flow Diagram", isExport: true }),
+                        'dataFlowLevel0',
+                        1200, 800, true // Flexible
+                    );
+                }
+            }
+        }
+
+        document.body.removeChild(container);
+
+    } catch (e) {
+        console.error("Unified Image Export Failed", e);
     }
 
     return images;
@@ -248,8 +411,12 @@ const calculateTocItems = (data: AnalysisResult) => {
     return items;
 };
 
-export const generateSRS = (data: AnalysisResult, title: string, diagramImages: Record<string, string> = {}) => {
-    const doc = new jsPDF({ compress: true });
+export const generateSRS = async (data: AnalysisResult, title: string, diagramImages: Record<string, string> = {}) => {
+    const { default: jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const doc: any = new jsPDF({ compress: true });
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
 
@@ -920,115 +1087,154 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
         if (data.appendices.analysisModels.sequenceDiagram) {
             addSectionHeader("B.2", "Sequence Diagram");
 
-            if (diagramImages['sequence']) {
-                const imgData = diagramImages['sequence'];
-                const imgProps = doc.getImageProperties(imgData);
-                const imgRatio = imgProps.height / imgProps.width;
-                const imgWidth = contentWidth;
-                const imgHeight = imgWidth * imgRatio;
+            const imgData = diagramImages['sequence'];
+            const imgProps = doc.getImageProperties(imgData);
+            const imgRatio = imgProps.height / imgProps.width;
 
-                checkPageBreak(imgHeight + 20);
-                doc.addImage(imgData, 'PNG', margins.left, yPos, imgWidth, imgHeight);
-                yPos += imgHeight + 5;
-            } else {
-                doc.setFont("courier", "normal");
-                doc.setFontSize(8);
+            // Max dimensions
+            const maxWidth = contentWidth;
+            const maxHeight = pageHeight - margins.top - margins.bottom - 40; // buffers
 
-                const codeLines = doc.splitTextToSize(getDiagramCode(data.appendices.analysisModels.sequenceDiagram), contentWidth - 4);
-                const boxHeight = (codeLines.length * 4) + 6;
-                checkPageBreak(boxHeight + 20);
+            let finalWidth = maxWidth;
+            let finalHeight = finalWidth * imgRatio;
 
-                doc.rect(margins.left, yPos, contentWidth, boxHeight);
-                doc.text(codeLines, margins.left + 2, yPos + 4);
-                yPos += boxHeight + 5;
+            // If too tall, scale by height
+            if (finalHeight > maxHeight) {
+                finalHeight = maxHeight;
+                finalWidth = finalHeight / imgRatio;
             }
 
-            const caption = getDiagramCaption(data.appendices.analysisModels.sequenceDiagram, "System Sequence Diagram");
-            const figId = "Figure B.2";
-            doc.setFont("times", "normal");
-            doc.setFontSize(12);
-            doc.text(`${figId}: ${caption}`, pageWidth / 2, yPos, { align: 'center' });
-            yPos += 10;
+            checkPageBreak(finalHeight + 20);
+            // Center if narrower than full width
+            const xOffset = margins.left + (contentWidth - finalWidth) / 2;
+            doc.addImage(imgData, 'PNG', xOffset, yPos, finalWidth, finalHeight);
+            yPos += finalHeight + 5;
+        } else {
+            doc.setFont("courier", "normal");
+            doc.setFontSize(8);
+
+            const codeLines = doc.splitTextToSize(getDiagramCode(data.appendices.analysisModels.sequenceDiagram), contentWidth - 4);
+            const boxHeight = (codeLines.length * 4) + 6;
+            checkPageBreak(boxHeight + 20);
+
+            doc.rect(margins.left, yPos, contentWidth, boxHeight);
+            doc.text(codeLines, margins.left + 2, yPos + 4);
+            yPos += boxHeight + 5;
         }
 
-        if (data.appendices.analysisModels.dataFlowDiagram) {
-            // Level 0 (Context)
-            if (diagramImages['dataFlowLevel0']) {
-                addSectionHeader("B.3.1", "Data Flow Diagram - Level 0 (Context)");
+        const caption = getDiagramCaption(data.appendices.analysisModels.sequenceDiagram, "System Sequence Diagram");
+        const figId = "Figure B.2";
+        doc.setFont("times", "normal");
+        doc.setFontSize(12);
+        doc.text(`${figId}: ${caption}`, pageWidth / 2, yPos, { align: 'center' });
+        yPos += 10;
+    }
 
-                const imgData = diagramImages['dataFlowLevel0'];
-                const imgProps = doc.getImageProperties(imgData);
-                const imgRatio = imgProps.height / imgProps.width;
-                const imgWidth = contentWidth;
-                const imgHeight = imgWidth * imgRatio;
+    if (data.appendices.analysisModels.dataFlowDiagram) {
+        // Level 0 (Context)
+        if (diagramImages['dataFlowLevel0']) {
+            addSectionHeader("B.3.1", "Data Flow Diagram - Level 0 (Context)");
 
-                checkPageBreak(imgHeight + 20);
-                doc.addImage(imgData, 'PNG', margins.left, yPos, imgWidth, imgHeight);
-                yPos += imgHeight + 5;
+            const imgData = diagramImages['dataFlowLevel0'];
+            const imgProps = doc.getImageProperties(imgData);
+            const imgRatio = imgProps.height / imgProps.width;
+
+            const maxWidth = contentWidth;
+            const maxHeight = pageHeight - margins.top - margins.bottom - 40;
+
+            let finalWidth = maxWidth;
+            let finalHeight = finalWidth * imgRatio;
+
+            if (finalHeight > maxHeight) {
+                finalHeight = maxHeight;
+                finalWidth = finalHeight / imgRatio;
             }
 
-            // Level 1
-            if (diagramImages['dataFlowLevel1']) {
-                addSectionHeader("B.3.2", "Data Flow Diagram - Level 1");
-
-                const imgData = diagramImages['dataFlowLevel1'];
-                const imgProps = doc.getImageProperties(imgData);
-                const imgRatio = imgProps.height / imgProps.width;
-                const imgWidth = contentWidth;
-                const imgHeight = imgWidth * imgRatio;
-
-                checkPageBreak(imgHeight + 20);
-                doc.addImage(imgData, 'PNG', margins.left, yPos, imgWidth, imgHeight);
-                yPos += imgHeight + 5;
-            }
-
-            // Fallback / Description
-            const dfd = data.appendices.analysisModels.dataFlowDiagram;
-            const caption = (typeof dfd === 'object' && dfd !== null && 'caption' in dfd ? (dfd as { caption: string }).caption : "Data Flow Diagrams");
-            const figId = "Figure B.3";
-
-            // Only show caption if we printed something? Or generally.
-            // Let's print it once at the end.
-            checkPageBreak(15);
-            doc.setFont("times", "normal");
-            doc.setFontSize(12);
-            doc.text(`${figId}: ${caption}`, pageWidth / 2, yPos, { align: 'center' });
-            yPos += 10;
+            checkPageBreak(finalHeight + 20);
+            const xOffset = margins.left + (contentWidth - finalWidth) / 2;
+            doc.addImage(imgData, 'PNG', xOffset, yPos, finalWidth, finalHeight);
+            yPos += finalHeight + 5;
         }
 
-        if (data.appendices.analysisModels.entityRelationshipDiagram) {
-            addSectionHeader("B.4", "Entity Relationship Diagram");
+        // Level 1
+        if (diagramImages['dataFlowLevel1']) {
+            addSectionHeader("B.3.2", "Data Flow Diagram - Level 1");
 
-            if (diagramImages['entityRelationship']) {
-                const imgData = diagramImages['entityRelationship'];
-                const imgProps = doc.getImageProperties(imgData);
-                const imgRatio = imgProps.height / imgProps.width;
-                const imgWidth = contentWidth;
-                const imgHeight = imgWidth * imgRatio;
+            const imgData = diagramImages['dataFlowLevel1'];
+            const imgProps = doc.getImageProperties(imgData);
+            const imgRatio = imgProps.height / imgProps.width;
 
-                checkPageBreak(imgHeight + 20);
-                doc.addImage(imgData, 'PNG', margins.left, yPos, imgWidth, imgHeight);
-                yPos += imgHeight + 5;
-            } else {
-                doc.setFont("courier", "normal");
-                doc.setFontSize(8);
+            const maxWidth = contentWidth;
+            const maxHeight = pageHeight - margins.top - margins.bottom - 40;
 
-                const codeLines = doc.splitTextToSize(getDiagramCode(data.appendices.analysisModels.entityRelationshipDiagram), contentWidth - 4);
-                const boxHeight = (codeLines.length * 4) + 6;
-                checkPageBreak(boxHeight + 20);
+            let finalWidth = maxWidth;
+            let finalHeight = finalWidth * imgRatio;
 
-                doc.rect(margins.left, yPos, contentWidth, boxHeight);
-                doc.text(codeLines, margins.left + 2, yPos + 4);
-                yPos += boxHeight + 5;
+            if (finalHeight > maxHeight) {
+                finalHeight = maxHeight;
+                finalWidth = finalHeight / imgRatio;
             }
 
-            const caption = getDiagramCaption(data.appendices.analysisModels.entityRelationshipDiagram, "Entity Relationship Diagram");
-            const figId = "Figure B.4";
-            doc.setFont("times", "normal");
-            doc.setFontSize(12);
-            doc.text(`${figId}: ${caption}`, pageWidth / 2, yPos, { align: 'center' });
-            yPos += 10;
+            checkPageBreak(finalHeight + 20);
+            const xOffset = margins.left + (contentWidth - finalWidth) / 2;
+            doc.addImage(imgData, 'PNG', xOffset, yPos, finalWidth, finalHeight);
+            yPos += finalHeight + 5;
         }
+
+        // Fallback / Description
+        const dfd = data.appendices.analysisModels.dataFlowDiagram;
+        const caption = (typeof dfd === 'object' && dfd !== null && 'caption' in dfd ? (dfd as { caption: string }).caption : "Data Flow Diagrams");
+        const figId = "Figure B.3";
+
+        checkPageBreak(15);
+        doc.setFont("times", "normal");
+        doc.setFontSize(12);
+        doc.text(`${figId}: ${caption}`, pageWidth / 2, yPos, { align: 'center' });
+        yPos += 10;
+    }
+
+    if (data.appendices.analysisModels.entityRelationshipDiagram) {
+        addSectionHeader("B.4", "Entity Relationship Diagram");
+
+        if (diagramImages['entityRelationship']) {
+            const imgData = diagramImages['entityRelationship'];
+            const imgProps = doc.getImageProperties(imgData);
+            const imgRatio = imgProps.height / imgProps.width;
+
+            const maxWidth = contentWidth;
+            const maxHeight = pageHeight - margins.top - margins.bottom - 40;
+
+            let finalWidth = maxWidth;
+            let finalHeight = finalWidth * imgRatio;
+
+            if (finalHeight > maxHeight) {
+                finalHeight = maxHeight;
+                finalWidth = finalHeight / imgRatio;
+            }
+
+            checkPageBreak(finalHeight + 20);
+            const xOffset = margins.left + (contentWidth - finalWidth) / 2;
+            doc.addImage(imgData, 'PNG', xOffset, yPos, finalWidth, finalHeight);
+            yPos += finalHeight + 5;
+        } else {
+            doc.setFont("courier", "normal");
+            doc.setFontSize(8);
+
+            const codeLines = doc.splitTextToSize(getDiagramCode(data.appendices.analysisModels.entityRelationshipDiagram), contentWidth - 4);
+            const boxHeight = (codeLines.length * 4) + 6;
+            checkPageBreak(boxHeight + 20);
+
+            doc.rect(margins.left, yPos, contentWidth, boxHeight);
+            doc.text(codeLines, margins.left + 2, yPos + 4);
+            yPos += boxHeight + 5;
+        }
+
+        const caption = getDiagramCaption(data.appendices.analysisModels.entityRelationshipDiagram, "Entity Relationship Diagram");
+        const figId = "Figure B.4";
+        doc.setFont("times", "normal");
+        doc.setFontSize(12);
+        doc.text(`${figId}: ${caption}`, pageWidth / 2, yPos, { align: 'center' });
+        yPos += 10;
     }
 
     if (data.appendices?.tbdList) {
@@ -1227,7 +1433,7 @@ export const generateSRS = (data: AnalysisResult, title: string, diagramImages: 
     /* 
     const reservedEndPage = tocStartPage + tocNeedsPages - 1;
     const actuallyUsedPage = currentTocPage;
-
+    
     if (actuallyUsedPage < reservedEndPage) {
         // Safe cleanup not possible easily with existing links. 
         // Better to leave blank page than crash.
@@ -1276,6 +1482,8 @@ export const generateAPI = (data: AnalysisResult) => {
 };
 
 export const downloadBundle = async (data: AnalysisResult, title: string) => {
+    const { default: JSZip } = await import('jszip');
+    const { saveAs } = await import('file-saver');
     const zip = new JSZip();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1294,8 +1502,9 @@ export const downloadBundle = async (data: AnalysisResult, title: string) => {
     }
 
     try {
-        const srsDoc = generateSRS(data, title);
-        zip.file("SRS_Report.pdf", srsDoc.output('blob'));
+        const srsDoc = await generateSRS(data, title);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        zip.file("SRS_Report.pdf", (srsDoc as any).output('blob'));
     } catch (e) {
         console.error("Failed to add SRS to bundle", e);
     }
@@ -1368,7 +1577,10 @@ interface CodebaseData {
 }
 
 export const downloadCodebase = async (codeData: CodebaseData, title: string) => {
-    // Kept as is for now
+    // Dynamic imports to reduce bundle size
+    const { default: JSZip } = await import('jszip');
+    const { saveAs } = await import('file-saver');
+
     const zip = new JSZip();
     if (codeData.schema) zip.file("prisma/schema.prisma", codeData.schema);
 

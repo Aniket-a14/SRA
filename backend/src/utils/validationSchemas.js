@@ -13,8 +13,18 @@ export const analyzeSchema = z.object({
             modelProvider: z.string().optional(),
             modelName: z.string().optional()
         }).optional(),
-        srsData: z.record(z.any()).optional(), // Loose validation for now
+        srsData: z.object({
+            details: z.object({
+                projectName: z.object({ content: z.string() }).optional(),
+                fullDescription: z.object({ content: z.string() }).optional()
+            }).optional(),
+            metadata: z.record(z.any()).optional()
+        }).optional(),
         draft: z.boolean().optional(),
-        validationResult: z.any().optional()
+        validationResult: z.object({
+            validation_status: z.string(),
+            issues: z.array(z.any()).optional(),
+            clarification_questions: z.array(z.string()).optional()
+        }).optional()
     })
 });
