@@ -66,14 +66,14 @@ function AnalysisDetailContent() {
 
     const [analysis, setAnalysis] = useState<Analysis | null>(null)
     const [isLoading, setIsLoading] = useState(true)
-    const [loadingMessage, setLoadingMessage] = useState("Loading analysis details...")
+    const [, setLoadingMessage] = useState("Loading analysis details...")
     const [error, setError] = useState("")
     const [isDiagramEditing, setIsDiagramEditing] = useState(false)
     const [isImproveDialogOpen, setIsImproveDialogOpen] = useState(false)
     const [isFinalizing, setIsFinalizing] = useState(false)
     const [isValidating, setIsValidating] = useState(false)
     const [isProceeding, setIsProceeding] = useState(false)
-    const [isPending, startTransition] = useTransition()
+    const [,] = useTransition()
     const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([]);
     const lastIdRef = useRef<string | null>(null);
     const pollingTimeoutRef = useRef<NodeJS.Timeout | null>(null);

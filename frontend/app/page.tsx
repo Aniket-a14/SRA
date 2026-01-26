@@ -10,7 +10,7 @@ import { ResultsTabs } from "@/components/results-tabs"
 import { AboutSection } from "@/components/about-section"
 import { FaqSection } from "@/components/faq-section"
 import { Footer } from "@/components/footer"
-import type { Analysis, AnalysisResult } from "@/types/analysis"
+import type { Analysis } from "@/types/analysis"
 import { toast } from "sonner"
 
 const defaultAnalysis: Analysis = {
