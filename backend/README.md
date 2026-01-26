@@ -15,7 +15,7 @@ Our core logic is partitioned into five distinct service layers for maximum reli
 graph TD
     A[API Controllers] -->|Publish| Q[Upstash QStash]
     Q -->|Webhook| W[Serverless Worker Services]
-    
+
     subgraph "The Analysis Pipeline"
         W --> L1[IntakeService<br/>Structural Mapping]
         L1 --> L2[ValidationService<br/>Quality Gate]
@@ -50,6 +50,26 @@ Shreds finalized analyses into semantic chunks. Implements the "Hash-and-Match" 
 -   **Dynamic Provider Switching**: Abstraction layer supports Gemini 2.5 and OpenAI GPT-4o.
 -   **Error Backoff**: Automated exponential backoff for 429 (Rate Limit) and 5xx (AI Downtime) errors.
 
+## 📂 Architecture
+
+### Key Files
+
+| Path | Purpose |
+|------|---------|
+| `src/app.js` | Express app configuration and middleware setup. |
+| `src/controllers/analysisController.js` | Main entry point for starting analysis and handling refinements. |
+| `src/services/geminiService.js` | Wrapper for Google Gemini API interactions. |
+| `src/workers/analysisWorker.js` | Background worker that executes the heavy AI analysis tasks. |
+| `prisma/schema.prisma` | Database schema definition (PostgreSQL). |
+
+### Dependencies
+
+-   **Upstream**: None (Entry point for the system).
+-   **Downstream**:
+    -   **PostgreSQL**: Persistence for Users, Projects, and Analysis history.
+    -   **Upstash QStash**: Async task queue for reliable long-running processes.
+    -   **Google Gemini**: Intelligence provider for all requirement generation.
+
 ## 🚀 Setup & Deployment
 
 ### Prerequisites
@@ -66,7 +86,7 @@ Shreds finalized analyses into semantic chunks. Implements the "Hash-and-Match" 
     ```
 
 2.  **Environment Configuration**:
-    Configure `.env` (see root README for template).
+    Configure `.env` (seed variable table in root README).
 
 3.  **Database Migration**:
     ```bash
@@ -77,6 +97,22 @@ Shreds finalized analyses into semantic chunks. Implements the "Hash-and-Match" 
     ```bash
     npm run dev
     ```
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+**`429 Too Many Requests` (AI)**
+-   **Cause**: You have hit the rate limit for the Google Gemini API.
+-   **Fix**: Wait a minute and retry. The system has built-in backoff, but frequent retries may still be blocked.
+
+**Analysis Stuck in `PENDING`**
+-   **Cause**: The QStash webhook is not reaching your local machine.
+-   **Fix**: Ensure your local server is exposed to the internet (e.g., using ngrok) or you are testing in a cloud environment where QStash can reach the `ANALYZER_URL`.
+
+**Prisma Connection Error**
+-   **Cause**: Incorrect `DATABASE_URL`.
+-   **Fix**: Check your `.env` file and ensure the Supabase connection string is correct and the database is active.
 
 ## 🔗 Key API Domains
 
