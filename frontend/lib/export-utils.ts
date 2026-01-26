@@ -1553,7 +1553,6 @@ export const downloadBundle = async (data: AnalysisResult, title: string) => {
     saveAs(content, `${title.replace(/\s+/g, '_')}_Bundle.zip`);
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 interface FileNode {
     path: string;
     type: "file" | "directory";

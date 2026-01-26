@@ -1,21 +1,17 @@
 "use client"
 
-import React, { useCallback, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import {
     ReactFlow,
     Background,
     Controls,
-    MiniMap,
     useNodesState,
     useEdgesState,
-    addEdge,
-    Connection,
-    Edge,
     MarkerType,
-    Handle,
-    Position,
     NodeProps,
     Node,
+    Handle,
+    Position,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
