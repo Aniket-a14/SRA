@@ -33,5 +33,11 @@ jobs:
     - name: Run Lint
       run: npm run lint
 
+    - name: Type Check
+      run: npx tsc --noEmit
+
+    - name: Security Scan
+      run: npm audit --audit-level=high || true
+
     - name: Run Build
       run: npm run build
