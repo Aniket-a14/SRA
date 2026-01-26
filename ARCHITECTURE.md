@@ -81,3 +81,44 @@ classDiagram
 
 ## AI Service Tier
 The system implements a **Provider Abstraction** pattern. This allows the same logic (e.g., Layer 3 generation) to run on different LLMs (Gemini, GPT-4, etc.) without code changes, simply by toggling a setting in the `Analysis` metadata.
+
+## System Capabilities & Workflow Walkthrough
+
+This section outlines how the architecture supports the core user flows using the 5-Layer Pipeline.
+
+### 1. Authentication Flow
+- **Architecture Component**: Auth Service (NextAuth.js / OAuth Providers)
+- **Flow**:
+    - Users sign in via Google or GitHub.
+    - JWT tokens govern session state, securing API routes.
+
+### 2. Creating a New Analysis (Layers 1 & 2)
+- **Scenario**: A user submits a raw idea (e.g., "ZombieFitness app").
+- **Architectural Flow**:
+    1.  **Frontend** sends the prompt to the `IntakeService`.
+    2.  **Layer 1 (Intake)**: Structured data capture converts free text to JSON.
+    3.  **Layer 2 (Validation)**: The AI Gatekeeper validates the prompt for clarity.
+    4.  **Async Processing**: If validated, a job is published to **Upstash QStash**, releasing the HTTP connection immediately.
+
+### 3. Exploring Results (Layer 3)
+- **Scenario**: Analyzing the generated IEEE-830 specification.
+- **Architectural Flow**:
+    -   **Deep Dive Tabs**: The frontend renders the complex JSON structure into readable tabs (User Stories, Diagrams).
+    -   **Diagram Syntax Authority**:
+        -   The **MermaidRenderer** component enforces strict syntax.
+        -   Users can click "View Syntax Explanation" to see the AI's justification, ensuring the diagram matches the formal specification.
+
+### 4. Iterative Refinement (Layer 4)
+- **Scenario**: Adding a missing feature via chat.
+- **Architectural Flow**:
+    -   **Refinement Service**: Accepts natural language modification requests.
+    -   **Time Travel**: The backend creates a *new* `Analysis` version record linked to the parent.
+    -   **Version Tree**: The frontend uses the `rootId` to display the entire version timeline, allowing instant switching between states.
+
+### 5. Finalizing & Exporting (Layer 5)
+- **Scenario**: Exporting the final SRS.
+- **Architectural Flow**:
+    -   **Knowledge Base**: "Shredder" workers break down the final JSON into vector embeddings for future retrieval (RAG).
+    -   **Client-Side PDF**: The **Layer 5 Document Compiler** (`export-utils.ts`) generates the PDF entirely in the browser, ensuring scalability by offloading compute from the server.
+    -   **Code Bundle**: Zips raw JSON and Markdown contracts for developer handoff.
+
