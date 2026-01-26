@@ -1,0 +1,40 @@
+name: Auto Tag Backend Version
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/package.json'
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get version from package.json
+        id: package-version
+        working-directory: ./backend
+        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Create and Push Tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.package-version.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          TAG="v$VERSION"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists. Skipping."
+          else
+            echo "Creating tag $TAG"
+            git tag "$TAG"
+            git push origin "$TAG"
+          fi
