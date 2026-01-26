@@ -21,7 +21,18 @@ app.set('trust proxy', 1);
 // CORS setup
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"], // unsafe-inline often needed for some React dev tools/scripts, refine for strict prod
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com"],
+            imgSrc: ["'self'", "data:", "https:"],
+            connectSrc: ["'self'", process.env.FRONTEND_URL || "http://localhost:3000", "https://generativelanguage.googleapis.com"],
+        },
+    },
+}));
 
 app.use(apiLimiter);
 

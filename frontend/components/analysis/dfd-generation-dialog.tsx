@@ -38,9 +38,9 @@ export function DFDGenerationDialog({ projectName, description, srsContent }: DF
             })
             setData(result)
             toast.success("DFD Generated Successfully")
-        } catch (err) {
+        } catch (err: any) {
             console.error(err)
-            toast.error("Failed to generate DFD")
+            toast.error(err.message || "Failed to generate DFD")
         } finally {
             setIsLoading(false)
         }

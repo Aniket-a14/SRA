@@ -120,7 +120,16 @@ ${text}
       const isRetryable = error.message.includes("429") || error.message.includes("503") || error.message.includes("Timeout");
 
       if (attempt === maxAttempts || !isRetryable) {
-        throw error; // Let outer try/catch handle it or return error object
+          // Enhance error message for 429
+          if (error.message.includes("429")) {
+              const retryMatch = error.message.match(/retry in\s+([0-9.]+)/i);
+              const retrySeconds = retryMatch ? Math.ceil(parseFloat(retryMatch[1])) : 60;
+              const enhancedError = new Error(`AI Quota Exceeded. Please retry in ${retrySeconds} seconds.`);
+              enhancedError.statusCode = 429;
+              enhancedError.retryAfter = retrySeconds;
+              throw enhancedError;
+          }
+           throw error; // Let outer try/catch handle it or return error object
       }
       console.warn(`[AI Service] Attempt ${attempt} failed: ${error.message}. Retrying...`);
       await sleep(attempt * 2000);

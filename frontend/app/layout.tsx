@@ -17,8 +17,45 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "Smart Requirements Analyzer",
-  description: "Transform your requirements into technical specifications with AI",
+  title: {
+    default: "Smart Requirements Analyzer | AI-Powered SRS Tool",
+    template: "%s | SRA",
+  },
+  description: "Transform your raw project ideas into professional IEEE-830 Software Requirements Specifications (SRS) with our 5-Layer AI Agentic Pipeline.",
+  keywords: ["SRS", "Requirements Engineering", "AI", "Gemini", "Software Architecture", "IEEE-830"],
+  authors: [{ name: "SRA Team" }],
+  creator: "SRA Team",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://sra-xi.vercel.app/",
+    title: "Smart Requirements Analyzer",
+    description: "Automated, Professional SRS Generation for Enterprise Software.",
+    siteName: "Smart Requirements Analyzer",
+    images: [
+      {
+        url: "/assets/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "SRA Dashboard",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Smart Requirements Analyzer",
+    description: "Turn ideas into specs in seconds.",
+    images: ["/assets/og-image.png"],
+    creator: "@sra_team",
+  },
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+  },
+  icons: {
+    icon: "/favicon.ico",
+  },
 }
 
 export default function RootLayout({
