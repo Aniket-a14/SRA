@@ -7,6 +7,7 @@ async function handleResponse(res: Response) {
         let errorMessage = res.statusText;
         try {
             const errorData = await res.json();
+            // Backend sends { error: "Message", code: "CODE" }
             errorMessage = errorData.error || errorData.message || res.statusText;
         } catch {
             // Ignore JSON parse error, fallback to statusText
