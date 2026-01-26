@@ -113,6 +113,7 @@ Create a `.env` file in the `backend` directory.
 | `DIRECT_URL` | Direct database connection string for migrations |
 | **Auth** | |
 | `JWT_SECRET` | Secret key for signing JWT tokens |
+| `COOKIE_SECRET` | Secret key for signing cookies |
 | `GOOGLE_CLIENT_ID` | OAuth Client ID for Google |
 | `GOOGLE_CLIENT_SECRET` | OAuth Client Secret for Google |
 | `GOOGLE_REDIRECT_URI` | Callback URI for Google OAuth |
