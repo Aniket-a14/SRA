@@ -43,39 +43,52 @@ Integrated directly into the workspace, providing real-time Feedback on:
 
 ## 📂 Architecture
 
-```
-frontend/
-├── app/analysis/     # Core Workspace & Logic
-├── components/
-│   ├── ui/           # Design System primitives (Shadcn/Tailwind v4)
-│   ├── analysis/     # Specialized workspace components
-├── lib/
-│   ├── auth-context  # Social & JWT Session Mgmt
-│   ├── projects-api  # Type-safe API client
-├── types/
-│   ├── analysis.ts   # Shared Analysis & SRS definitions
-```
+### Key Files
+
+| Path | Purpose |
+|------|---------|
+| `app/analysis/page.tsx` | Main workspace entry point. Orchestrates data fetching and state. |
+| `components/analysis/results-tabs.tsx` | State container for the analysis tabs (Results, Diagrams, etc.). |
+| `components/analysis/diagram-editor.tsx` | Live Mermaid diagram editor with syntax validation. |
+| `lib/projects-api.ts` | Type-safe API client for communicating with the backend. |
+| `types/analysis.ts` | Shared TypeScript definitions for SRS models. |
 
 ## 🏁 Getting Started
+
+### Prerequisites
+
+-   Node.js (v18+)
+-   Backend running on port 3000
+
+### Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_BACKEND_URL` | URL of the backend API (e.g., `http://localhost:3000/api`) |
+
+### Installation
 
 1.  **Install Dependencies**:
     ```bash
     cd frontend && npm install
     ```
 
-2.  **Environment Setup**:
-    Create `.env.local`:
-    ```env
-    NEXT_PUBLIC_BACKEND_URL=http://localhost:3000/api
-    ```
-
-3.  **Start Development Server**:
+2.  **Start Development Server**:
     ```bash
     npm run dev
     ```
 
-All production-ready code must pass the build and lint checks:
-```bash
-npm run lint
-npm run build
-```
+3.  **Open Application**:
+    Visit [http://localhost:3001](http://localhost:3001)
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+**`Error: Can't resolve 'tailwindcss'`**
+-   **Cause**: Node module resolution issues in Windows environments.
+-   **Fix**: Ensure `tailwindcss` is listed in your dependencies and try running `npm install` again. If persistent, check for global vs local install conflicts.
+
+**Linting Errors on Build**
+-   **Cause**: We enforce `strict` mode. `any` types and unused variables will fail the build.
+-   **Fix**: Run `npm run lint` locally and fix distinct type errors before committing.

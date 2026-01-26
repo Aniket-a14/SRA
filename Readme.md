@@ -6,6 +6,13 @@
 
 **SRA** is an intelligent, AI-powered ecosystem designed to automate and professionalize the software requirements engineering process. By leveraging a multi-layer analysis pipeline, it transforms raw project visions into high-fidelity IEEE-830 artifacts.
 
+## Why This Exists?
+
+Requirements engineering is often the bottleneck in software development. Ambiguous requirements lead to expensive rework. SRA solves this by:
+1.  **Standardizing Input**: Forcing unstructured ideas into structured models.
+2.  **Validating Logic**: catching contradictions before a single line of code is written.
+3.  **Automating Documentation**: Generating professional artifacts that would take humans hours to write.
+
 ## 🚀 The 5-Stage Analysis Pipeline
 
 SRA follows a rigid, automated pipeline to ensure requirement quality and architectural consistency.
@@ -90,41 +97,34 @@ cd backend
 npm install
 ```
 
-Create a `.env` file in the `backend` directory:
+Create a `.env` file in the `backend` directory.
 
-```env
-# Server
-NODE_ENV=development
-PORT=3000
-FRONTEND_URL=http://localhost:3001
-ANALYZER_URL=http://localhost:3000/internal/analyze
+#### Environment Variables
 
-# Database (Supabase)
-DATABASE_URL="postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true"
-DIRECT_URL="postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:5432/postgres"
-
-# Authentication
-JWT_SECRET=your_super_secret_jwt_key
-
-# Google OAuth
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
-
-# GitHub OAuth
-GITHUB_CLIENT_ID=your_github_client_id
-GITHUB_CLIENT_SECRET=your_github_client_secret
-GITHUB_CALLBACK_URL=http://localhost:3000/api/auth/github/callback
-
-# AI
-GEMINI_API_KEY=your_gemini_api_key_here
-
-# Upstash QStash (Async Job Queue)
-QSTASH_URL=https://qstash.upstash.io/v2/publish/
-QSTASH_TOKEN=your_qstash_token
-QSTASH_CURRENT_SIGNING_KEY=your_current_signing_key
-QSTASH_NEXT_SIGNING_KEY=your_next_signing_key
-```
+| Variable | Description |
+|----------|-------------|
+| **Server** | |
+| `NODE_ENV` | Environment mode (development/production) |
+| `PORT` | Server port (default: 3000) |
+| `FRONTEND_URL` | URL of the frontend application |
+| `ANALYZER_URL` | Internal URL for analysis (default: http://localhost:3000/internal/analyze) |
+| **Database** | |
+| `DATABASE_URL` | Prisma connection string with pooling |
+| `DIRECT_URL` | Direct database connection string for migrations |
+| **Auth** | |
+| `JWT_SECRET` | Secret key for signing JWT tokens |
+| `GOOGLE_CLIENT_ID` | OAuth Client ID for Google |
+| `GOOGLE_CLIENT_SECRET` | OAuth Client Secret for Google |
+| `GOOGLE_REDIRECT_URI` | Callback URI for Google OAuth |
+| `GITHUB_CLIENT_ID` | OAuth Client ID for GitHub |
+| `GITHUB_CLIENT_SECRET` | OAuth Client Secret for GitHub |
+| `GITHUB_CALLBACK_URL` | Callback URL for GitHub OAuth |
+| **AI & Async** | |
+| `GEMINI_API_KEY` | Your Google Gemini API Key |
+| `QSTASH_URL` | Upstash QStash Publish URL |
+| `QSTASH_TOKEN` | Upstash QStash Token |
+| `QSTASH_CURRENT_SIGNING_KEY` | Current signing key for webhooks |
+| `QSTASH_NEXT_SIGNING_KEY` | Next signing key for webhooks |
 
 Initialize the database:
 
@@ -160,33 +160,30 @@ Open [http://localhost:3001](http://localhost:3001) to view the application.
 
 ```
 SRA/
-├── backend/                # Express.js server
+├── backend/                # Server & API (See backend/README.md)
 │   ├── prisma/
 │   │   └── schema.prisma   # PostgreSQL database schema
 │   ├── src/
 │   │   ├── config/         # App configuration & OAuth
 │   │   ├── controllers/    # API Request handlers
-│   │   ├── middleware/     # Auth, Security, Error middleware
-│   │   ├── routes/         # Express routes definitions
 │   │   ├── services/       # AI (Gemini), Queue (Bull), & business logic
-│   │   ├── workers/        # Background workers for analysis
-│   │   ├── utils/          # Helper functions
-│   │   └── app.js          # App setup
+│   │   └── workers/        # Background workers for analysis
 │   └── .env
 │
-├── frontend/               # Next.js 15 App
+├── frontend/               # Next.js App (See frontend/README.md)
 │   ├── app/                # App Router pages
-│   │   ├── analysis/       # Analysis & History pages
-│   │   ├── auth/           # Login/Signup pages
-│   │   └── page.tsx        # Landing Page
 │   ├── components/         # React Components
-│   │   ├── ui/             # Shadcn UI primitives
-│   │   ├── analysis-history.tsx
-│   │   └── ...
 │   └── .env.local
 │
 └── README.md
 ```
+
+## 🧠 What I Learned
+
+Building SRA was a deep dive into modern full-stack architecture. Key takeaways:
+-   **Orchestrating AI**: Managing long-running AI tasks requires robust async queues (Upstash) rather than simple request-response cycles.
+-   **Structured Outputs**: Getting LLMs to output strictly valid JSON for downstream systems is an art of prompt engineering and schema validation.
+-   **State Management**: Synchronizing a complex multi-tab workspace with server state taught me the value of immutable state patterns in React.
 
 ## 🗺️ Roadmap
 
