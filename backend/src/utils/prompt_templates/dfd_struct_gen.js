@@ -76,8 +76,9 @@ Use ONLY these types:
 🔑 IMPORTANT CONSTRAINTS
 - Output ONLY JSON.
 - Do NOT use markdown code blocks. Just return the raw JSON string.
-- Ensure all JSON keys are quoted.
+- NO comments ( // or /* ... */ ) inside the JSON.
 - NO trailing commas.
+- Ensure all JSON keys are quoted.
 - Every node must have: id, type, label
 - Every flow must have: from, to, label
 - IDs referenced in flows must exist in nodes

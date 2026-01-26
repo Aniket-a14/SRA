@@ -120,16 +120,16 @@ ${text}
       const isRetryable = error.message.includes("429") || error.message.includes("503") || error.message.includes("Timeout");
 
       if (attempt === maxAttempts || !isRetryable) {
-          // Enhance error message for 429
-          if (error.message.includes("429")) {
-              const retryMatch = error.message.match(/retry in\s+([0-9.]+)/i);
-              const retrySeconds = retryMatch ? Math.ceil(parseFloat(retryMatch[1])) : 60;
-              const enhancedError = new Error(`AI Quota Exceeded. Please retry in ${retrySeconds} seconds.`);
-              enhancedError.statusCode = 429;
-              enhancedError.retryAfter = retrySeconds;
-              throw enhancedError;
-          }
-           throw error; // Let outer try/catch handle it or return error object
+        // Enhance error message for 429
+        if (error.message.includes("429")) {
+          const retryMatch = error.message.match(/retry in\s+([0-9.]+)/i);
+          const retrySeconds = retryMatch ? Math.ceil(parseFloat(retryMatch[1])) : 60;
+          const enhancedError = new Error(`AI Quota Exceeded. Please retry in ${retrySeconds} seconds.`);
+          enhancedError.statusCode = 429;
+          enhancedError.retryAfter = retrySeconds;
+          throw enhancedError;
+        }
+        throw error; // Let outer try/catch handle it or return error object
       }
       console.warn(`[AI Service] Attempt ${attempt} failed: ${error.message}. Retrying...`);
       await sleep(attempt * 2000);
@@ -149,6 +149,7 @@ ${text}
   // Parse JSON
   let parsedSRS;
   try {
+
     // 1. Remove markdown code blocks
     let cleanOutput = output.replace(/```json/g, "").replace(/```/g, "").trim();
 
@@ -159,6 +160,18 @@ ${text}
     if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
       cleanOutput = cleanOutput.substring(firstBrace, lastBrace + 1);
     }
+
+    // 3. Advanced Cleaning: Remove Comments (//... or /*...*/)
+    // Note: Regex for removing C-style comments safely is complex, but for AI JSON this usually works well.
+    // We only apply this if initial parse fails or proactively if we suspect issues.
+    // Let's keep one "clean" pass.
+    cleanOutput = cleanOutput
+      .replace(/\/\*[\s\S]*?\*\//g, "") // Block comments
+      .replace(/\/\/.*$/gm, "");         // Line comments
+
+    // 4. Remove Trailing Commas (Common AI JSON error)
+    // Replaces ",}" with "}" and ",]" with "]"
+    cleanOutput = cleanOutput.replace(/,\s*}/g, "}").replace(/,\s*\]/g, "]");
 
     try {
       parsedSRS = JSON.parse(cleanOutput);
@@ -171,12 +184,32 @@ ${text}
       // This is a common AI error especially in Mermaid/diagram strings.
       let fixedOutput = cleanOutput.replace(/\\(?!(["\\/bfnrt]|u[0-9a-fA-F]{4}))/g, "\\\\");
 
-      // Also handle cases where AI might have literal newlines inside strings 
-      // This is harder to fix with regex without breaking structure, but we can try to fix the most common.
-
-      parsedSRS = JSON.parse(fixedOutput);
-      console.log("[AI Service] Secondary parse SUCCESS after manual escaping.");
+      // Attempt parsing again
+      try {
+        parsedSRS = JSON.parse(fixedOutput);
+        console.log("[AI Service] Secondary parse SUCCESS after manual escaping.");
+      } catch (secondaryError) {
+        // Final attempt: fallback for newlines in strings or other desperate measures
+        // For now, allow it to fail but log it clearly
+        console.error("[AI Service] JSON Final Parse Error:", secondaryError.message);
+        console.error("[AI Service] Raw Output Snippet:", output.substring(0, 500));
+        return {
+          success: false,
+          error: `Invalid JSON from model (Error: ${secondaryError.message}). The AI might have struggled with the complexity of the request or generated invalid escape sequences.`,
+          raw: output
+        };
+      }
     }
+
+    return {
+      success: true, // Standardize success flag
+      srs: parsedSRS,
+      meta: {
+        promptVersion: systemPrompt ? "task-specific" : promptVersion,
+        modelProvider,
+        modelName
+      }
+    };
   } catch (parseError) {
     console.error("[AI Service] JSON Final Parse Error:", parseError.message);
     console.error("[AI Service] Raw Output Snippet:", output.substring(0, 500));
@@ -186,16 +219,6 @@ ${text}
       raw: output
     };
   }
-
-  return {
-    success: true, // Standardize success flag
-    srs: parsedSRS,
-    meta: {
-      promptVersion: systemPrompt ? "task-specific" : promptVersion,
-      modelProvider,
-      modelName
-    }
-  };
 }
 
 export async function repairDiagram(code, error, settings = {}, customInstruction = "") {
