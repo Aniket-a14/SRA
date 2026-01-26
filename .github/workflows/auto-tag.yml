@@ -28,14 +28,28 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ steps.package-version.outputs.version }}
+        id: tag-logic
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           TAG="v$VERSION"
           if git ls-remote --tags --exit-code origin "refs/tags/$TAG" >/dev/null 2>&1; then
             echo "Tag $TAG already exists on remote. Skipping."
+            echo "tag_created=false" >> $GITHUB_OUTPUT
           else
             echo "Creating tag $TAG"
             git tag "$TAG"
             git push origin "$TAG"
+            echo "tag_created=true" >> $GITHUB_OUTPUT
           fi
+
+      - name: Create Release
+        if: steps.tag-logic.outputs.tag_created == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ steps.package-version.outputs.version }}"
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
