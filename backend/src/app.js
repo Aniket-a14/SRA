@@ -11,6 +11,14 @@ import validationRoutes from './routes/validationRoutes.js';
 import aiEndpoint from './routes/aiEndpoint.js';
 import { errorHandler } from './middleware/errorMiddleware.js';
 import { logger } from './middleware/logger.js';
+import swaggerUi from 'swagger-ui-express';
+import yaml from 'yamljs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const swaggerDocument = yaml.load(path.join(__dirname, 'swagger.yaml'));
 
 
 const app = express();
@@ -56,6 +64,9 @@ app.get('/', (req, res) => {
 });
 
 app.get('/favicon.ico', (req, res) => res.status(204).end());
+
+// Swagger API Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Internal AI Endpoint
 // Mounted as /internal/analyze so it doesn't conflict with the main /analyze route

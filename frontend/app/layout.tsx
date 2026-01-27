@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Inter, Outfit } from "next/font/google"
 import "./globals.css"
 import { Providers } from "@/components/providers"
@@ -16,7 +16,14 @@ const outfit = Outfit({
   display: "swap",
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+}
+
 export const metadata: Metadata = {
+  metadataBase: new URL("https://sra-xi.vercel.app"),
   title: {
     default: "Smart Requirements Analyzer | AI-Powered SRS Tool",
     template: "%s | SRA",
@@ -47,11 +54,6 @@ export const metadata: Metadata = {
     description: "Turn ideas into specs in seconds.",
     images: ["/assets/og-image.png"],
     creator: "@sra_team",
-  },
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
   },
   icons: {
     icon: "/favicon.ico",

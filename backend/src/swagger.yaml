@@ -1,0 +1,93 @@
+openapi: 3.0.0
+info:
+  title: Smart Requirements Analyzer API
+  description: API for automating IEEE-830 SRS generation.
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000
+    description: Local server
+  - url: https://api.sra-xi.vercel.app/
+    description: Production server
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - bearerAuth: []
+paths:
+  /auth/register:
+    post:
+      summary: Register a new user
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, name]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 6
+                name:
+                  type: string
+      responses:
+        201:
+          description: User registered successfully
+  /auth/login:
+    post:
+      summary: Login user
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        200:
+          description: Login successful
+  /analyze/start:
+    post:
+      summary: Start a new analysis job
+      tags: [Analysis]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [inputText, projectId]
+              properties:
+                inputText:
+                  type: string
+                projectId:
+                  type: string
+      responses:
+        202:
+          description: Analysis started
+  /analyze/{id}:
+    get:
+      summary: Get analysis results
+      tags: [Analysis]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Analysis results
