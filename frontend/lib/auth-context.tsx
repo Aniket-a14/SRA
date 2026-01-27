@@ -42,6 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         localStorage.removeItem("token")
         localStorage.removeItem("refreshToken")
+        localStorage.removeItem("user")
         setToken(null)
         setUser(null)
         router.push("/")
@@ -57,6 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (res.ok) {
                 const userData = await res.json()
                 setUser(userData)
+                localStorage.setItem("user", JSON.stringify(userData))
             } else if (res.status === 401) {
                 // Try refreshing token
                 const rfToken = localStorage.getItem("refreshToken")
@@ -92,8 +94,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         // Check local storage on mount
         const storedToken = localStorage.getItem("token")
+        const storedUser = localStorage.getItem("user")
+
         if (storedToken) {
             setToken(storedToken)
+
+            // Optimization: If we have cached user data, load it immediately
+            if (storedUser) {
+                try {
+                    const parsedUser = JSON.parse(storedUser)
+                    setUser(parsedUser)
+                    setIsLoading(false) // Instant load!
+                } catch (e) {
+                    console.error("Failed to parse cached user", e)
+                }
+            }
+
+            // Always validate/refresh in background
             fetchUser(storedToken)
         } else {
             setIsLoading(false)
@@ -103,6 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const login = React.useCallback((newToken: string, newRefreshToken: string, newUser: User) => {
         localStorage.setItem("token", newToken)
         localStorage.setItem("refreshToken", newRefreshToken)
+        localStorage.setItem("user", JSON.stringify(newUser))
         setToken(newToken)
         setUser(newUser)
         // router.push("/") // Optional: Assume login component handles redirect or keep it? Original had it.

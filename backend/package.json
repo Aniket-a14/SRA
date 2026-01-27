@@ -33,7 +33,9 @@
     "openai": "^6.10.0",
     "pino": "^10.1.0",
     "pino-http": "^11.0.0",
+    "swagger-ui-express": "^5.0.1",
     "uuid": "^13.0.0",
+    "yamljs": "^0.3.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
