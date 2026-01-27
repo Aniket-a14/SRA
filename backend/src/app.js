@@ -12,13 +12,14 @@ import aiEndpoint from './routes/aiEndpoint.js';
 import { errorHandler } from './middleware/errorMiddleware.js';
 import { logger } from './middleware/logger.js';
 import swaggerUi from 'swagger-ui-express';
-import yaml from 'yamljs';
+import fs from 'fs';
+import yaml from 'js-yaml';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const swaggerDocument = yaml.load(path.join(__dirname, 'swagger.yaml'));
+const swaggerDocument = yaml.load(fs.readFileSync(path.join(__dirname, 'swagger.yaml'), 'utf8'));
 
 
 const app = express();
