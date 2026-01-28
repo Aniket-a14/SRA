@@ -12,6 +12,7 @@ import { useAuth } from "@/lib/auth-context"
 import { Progress } from "@/components/ui/progress"
 import { useParams, useRouter } from "next/navigation"
 import { toast } from "sonner"
+import { throttle } from "@/lib/utils"
 import { FeatureDisplay } from "@/components/feature-display"
 import { KVDisplay } from "@/components/kv-display"
 import { renderMarkdown } from "@/lib/render-markdown"
@@ -65,7 +66,7 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
     }
   }, [data, isEditing, analysisId])
 
-  const handleSave = async () => {
+  const handleSave = throttle(async () => {
     if (!editedData) return
 
     // Validation
@@ -120,7 +121,7 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
       console.error(error)
       toast.error("Failed to save changes")
     }
-  }
+  }, 2000)
 
   const updateSection = (section: keyof AnalysisResult, value: unknown) => {
     if (!editedData) return

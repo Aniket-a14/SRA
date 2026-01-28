@@ -6,8 +6,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { MessageSquare, Send, Bot, User, Loader2, Sparkles } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { Bot, User, Loader2, Sparkles, MessageSquare, Send } from "lucide-react"
+import { cn, throttle } from "@/lib/utils"
 import { toast } from "sonner"
 
 interface ChatMessage {
@@ -65,7 +65,7 @@ export function ProjectChatPanel({ analysisId, onAnalysisUpdate, hidden, isFinal
     // Safety check: Don't render if critical data is missing
     if (!analysisId) return null;
 
-    const handleSend = async () => {
+    const handleSend = throttle(async () => {
         if (!input.trim() || isLoading) return
 
         const userMsg = input
@@ -108,7 +108,7 @@ export function ProjectChatPanel({ analysisId, onAnalysisUpdate, hidden, isFinal
         } finally {
             setIsLoading(false)
         }
-    }
+    }, 1000)
 
     return (
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
