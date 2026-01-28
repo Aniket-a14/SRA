@@ -7,6 +7,7 @@ import { MermaidRenderer } from "@/components/mermaid-renderer"
 import { Edit2, Save, ExternalLink, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { useAuth } from "@/lib/auth-context"
+import { throttle } from "@/lib/utils"
 import {
     Sheet,
     SheetContent,
@@ -43,7 +44,7 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
         onOpenChange?.(newOpen)
     }
 
-    const handleSave = async () => {
+    const handleSave = throttle(async () => {
         setIsSaving(true)
         try {
             await onSave(code)
@@ -55,7 +56,7 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
         } finally {
             setIsSaving(false)
         }
-    }
+    }, 2000)
 
     const openLiveEditor = () => {
         const state = {
@@ -73,7 +74,7 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
         window.open(`https://mermaid.live/edit#base64:${data}`, '_blank')
     }
 
-    const repairWithAI = useCallback(async () => {
+    const repairWithAI = useCallback(throttle(async () => {
         if (!lastError) return
 
         setIsRepairing(true)
@@ -122,7 +123,7 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
         } finally {
             setIsRepairing(false)
         }
-    }, [code, lastError, token, onSave])
+    }, 3000), [code, lastError, token, onSave])
 
     // Automatic Repair Trigger
     useEffect(() => {

@@ -16,6 +16,7 @@ import { PromptSettings } from "@/types/project"
 import { useAuth } from "@/lib/auth-context"
 import { updateProject } from "@/lib/projects-api"
 import { useSearchParams } from "next/navigation"
+import { throttle } from "@/lib/utils"
 
 interface ChatInputProps {
   onAnalyze: (requirements: string, settings: PromptSettings, projectName: string) => void
@@ -256,7 +257,7 @@ export function ChatInput({ onAnalyze, isLoading, initialSettings }: ChatInputPr
                 </p>
                 <Button
                   className="gap-2 bg-primary hover:bg-primary/90 w-full sm:w-auto order-1 sm:order-2 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-primary/25"
-                  onClick={() => onAnalyze(projectName, settings, projectName)}
+                  onClick={throttle(() => onAnalyze(projectName, settings, projectName), 2000)}
                   disabled={isLoading || !projectName.trim()}
                 >
                   <Sparkles className="h-4 w-4" />
