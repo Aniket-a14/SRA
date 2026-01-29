@@ -70,11 +70,11 @@ const svgToPng = (svgStr: string): Promise<Blob | null> => {
 const clean = (text: string) => text?.replace(/\s+/g, ' ').trim() || "";
 
 // Helper to extract code from string or Diagram object
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const getDiagramCode = (diagram: Diagram | string | null | undefined): string => typeof diagram === 'string' ? diagram : (diagram?.code || "");
 
 // Helper to extract caption
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const getDiagramCaption = (diagram: Diagram | string | null | undefined, defaultCaption: string): string => {
     return (typeof diagram !== 'string' && diagram?.caption) ? diagram.caption : defaultCaption;
 };
@@ -1021,7 +1021,7 @@ export const generateSRS = async (data: AnalysisResult, title: string, diagramIm
                 0: { cellWidth: 50, fontStyle: 'bold' }, // Term
                 1: { cellWidth: 'auto' } // Definition
             },
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+             
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             didDrawPage: (data: any) => {
                 // Update final Y position after table
@@ -1486,7 +1486,7 @@ export const downloadBundle = async (data: AnalysisResult, title: string) => {
     const { saveAs } = await import('file-saver');
     const zip = new JSZip();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mermaid: any = null;
     try {
