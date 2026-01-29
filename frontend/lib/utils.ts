@@ -60,8 +60,7 @@ export function throttle<T extends (...args: any[]) => any>(
 ): (...args: Parameters<T>) => void {
   let timeout: NodeJS.Timeout | null = null;
   let previous = 0;
-
-  return function (this: any, ...args: Parameters<T>) {
+  return function (this: unknown, ...args: Parameters<T>) {
     const now = Date.now();
     const remaining = wait - (now - previous);
 
@@ -93,8 +92,7 @@ export function debounce<T extends (...args: any[]) => any>(
   wait: number
 ): (...args: Parameters<T>) => void {
   let timeout: NodeJS.Timeout | null = null;
-
-  return function (this: any, ...args: Parameters<T>) {
+  return function (this: unknown, ...args: Parameters<T>) {
     if (timeout) clearTimeout(timeout);
     timeout = setTimeout(() => {
       func.apply(this, args);
