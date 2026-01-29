@@ -140,7 +140,22 @@ npm run dev
 ```
 The server will start on `http://localhost:3000`.
 
-### 2. Frontend Setup
+### 2. Docker Setup (Recommended)
+The easiest way to run SRA is using Docker. This works on Windows, macOS, and Linux.
+
+1.  **Configure Environment**:
+    Ensure you have `.env` files in both `backend/` and `frontend/` directories (use `.env.example` as a template).
+
+2.  **Run with Docker Compose**:
+    ```bash
+    docker-compose up --build
+    ```
+
+    - **Backend**: Runs on `http://localhost:3000`
+    - **Frontend**: Runs on `http://localhost:3001`
+    - **Database**: Connects to your external Supabase instance.
+
+### 3. Manual Frontend Setup
 
 Open a new terminal, navigate to the frontend directory, and install dependencies:
 
