@@ -1,0 +1,24 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sra-backend
+    restart: always
+    env_file:
+      - ./backend/.env
+    ports:
+      - "3000:3000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sra-frontend
+    restart: always
+    env_file:
+      - ./frontend/.env
+    ports:
+      - "3001:3001"
+    depends_on:
+      - backend
