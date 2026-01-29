@@ -122,3 +122,16 @@ This section outlines how the architecture supports the core user flows using th
     -   **Client-Side PDF**: The **Layer 5 Document Compiler** (`export-utils.ts`) generates the PDF entirely in the browser, ensuring scalability by offloading compute from the server.
     -   **Code Bundle**: Zips raw JSON and Markdown contracts for developer handoff.
 
+## Deployment & Infrastructure
+
+The entire platform is containerized for consistency across development and production environments.
+
+### Docker Containers
+- **Backend Service**: Node.js container handling API requests, Auth, and AI orchestration.
+- **Frontend Service**: Next.js Standalone container serving the UI.
+- **Orchestration**: `docker-compose` manages the lifecycle and networking between these services, ensuring they can communicate securely while isolating them from the host system.
+
+### External Services (Serverless/Managed)
+- **Database**: Managed Supabase PostgreSQL instance (persists data outside containers).
+- **Redis/Queue**: Managed Upstash instance (serverless job queue).
+

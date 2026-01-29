@@ -48,7 +48,15 @@ Ensure you have the following installed or set up:
 -   **Upstash Account** (Redis + QStash)
 -   A **Google Gemini API Key** (Get one [here](https://aistudio.google.com/app/apikey))
 
-### Backend Setup
+### Docker Setup (Preferred)
+1.  **Configure Environment**: Ensure you have `.env` files in both `backend/` and `frontend/` directories.
+2.  **Run with Docker Compose**:
+    ```bash
+    docker-compose up --build
+    ```
+    This spins up both services enabling you to test the full stack immediately.
+
+### Backend Setup (Manual)
 1.  Navigate to the backend directory:
     ```bash
     cd backend
