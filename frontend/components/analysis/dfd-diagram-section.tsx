@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, Network, RefreshCw, Sparkles, Binary, Shapes } from "lucide-react"
+import { Network, RefreshCw, Sparkles, Binary, Shapes } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
 import { generateDFD } from "@/lib/analysis-api"
