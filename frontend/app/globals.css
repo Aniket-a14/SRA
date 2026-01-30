@@ -242,11 +242,33 @@ html {
   opacity: 0;
 }
 
+/* React Flow Premium Overrides */
+.react-flow__controls {
+  @apply !bg-white/80 !backdrop-blur-md !border-gray-200/50 !rounded-xl !shadow-lg !overflow-hidden;
+}
+
+.react-flow__controls-button {
+  @apply !bg-transparent !border-b !border-gray-200/50 hover:!bg-primary/5 transition-colors !h-9 !w-9;
+}
+
+.react-flow__controls-button:last-child {
+  @apply !border-b-0;
+}
+
+.react-flow__controls-button svg {
+  @apply !fill-slate-600;
+}
+
+.react-flow__attribution {
+  @apply !bg-transparent !text-[10px] !text-gray-400;
+}
+
 ::-webkit-scrollbar{
   display: none;
 }
 
-::view-transition-old(root), ::view-transition-new(root) {
-    animation: none;
-    mix-blend-mode: normal;
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
 }

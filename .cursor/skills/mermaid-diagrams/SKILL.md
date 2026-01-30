@@ -11,10 +11,10 @@ Create professional software diagrams using Mermaid's text-based syntax. Mermaid
 
 All Mermaid diagrams follow this pattern:
 
-\`\`\`mermaid
+```mermaid
 diagramType
   definition content
-\`\`\`
+```
 
 **Key principles:**
 - First line declares diagram type (e.g., `classDiagram`, `sequenceDiagram`, `flowchart`)
@@ -62,7 +62,7 @@ diagramType
 ## Quick Start Examples
 
 ### Class Diagram (Domain Model)
-\`\`\`mermaid
+```mermaid
 classDiagram
     Title -- Genre
     Title *-- Season
@@ -79,10 +79,10 @@ classDiagram
         +string name
         +getTopTitles()
     }
-\`\`\`
+```
 
 ### Sequence Diagram (API Flow)
-\`\`\`mermaid
+```mermaid
 sequenceDiagram
     participant User
     participant API
@@ -96,10 +96,10 @@ sequenceDiagram
     else Invalid credentials
         API-->>User: 401 Unauthorized
     end
-\`\`\`
+```
 
 ### Flowchart (User Journey)
-\`\`\`mermaid
+```mermaid
 flowchart TD
     Start([User visits site]) --> Auth{Authenticated?}
     Auth -->|No| Login[Show login page]
@@ -109,10 +109,10 @@ flowchart TD
     Validate -->|Yes| Dashboard
     Validate -->|No| Error[Show error]
     Error --> Login
-\`\`\`
+```
 
 ### ERD (Database Schema)
-\`\`\`mermaid
+```mermaid
 erDiagram
     USER ||--o{ ORDER : places
     ORDER ||--|{ LINE_ITEM : contains
@@ -131,7 +131,7 @@ erDiagram
         decimal total
         datetime created_at
     }
-\`\`\`
+```
 
 ## Detailed References
 
@@ -158,7 +158,7 @@ For in-depth guidance on specific diagram types, see:
 
 Configure diagrams using frontmatter:
 
-\`\`\`mermaid
+```mermaid
 ---
 config:
   theme: base
@@ -167,7 +167,7 @@ config:
 ---
 flowchart LR
     A --> B
-\`\`\`
+```
 
 **Available themes:** default, forest, dark, neutral, base
 
