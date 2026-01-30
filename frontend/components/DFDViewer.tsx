@@ -1,7 +1,10 @@
 "use client"
 
-import React, { useEffect } from 'react';
-import { Layers } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
+import { Layers, Download } from 'lucide-react';
+import { toPng } from 'html-to-image';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import {
     ReactFlow,
     Background,
@@ -197,18 +200,28 @@ const DiagramCanvas = ({ title, data, isExport = false, direction = 'LR', levelP
     const [nodes, setNodes, onNodesChange] = useNodesState<DFDNodeType>([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState<any>([]);
     const { fitView } = useReactFlow();
+    const containerRef = useRef<HTMLDivElement>(null);
 
-    // Re-sync if prop data changes
-    useEffect(() => {
-        const { nodes: n, edges: e } = mapToReactFlow(data, direction, levelPrefix);
-        setNodes(n);
-        setEdges(e);
+    const exportToImage = async () => {
+        if (!containerRef.current) return;
 
-        // Dynamic fitView with small delay for React Flow to settle
-        setTimeout(() => {
-            fitView({ padding: 0.2, duration: 400 });
-        }, 100);
-    }, [data, direction, setNodes, setEdges, fitView, levelPrefix]);
+        try {
+            const dataUrl = await toPng(containerRef.current, {
+                backgroundColor: '#ffffff',
+                quality: 1,
+                pixelRatio: 2, // Retína quality
+            });
+
+            const link = document.createElement('a');
+            link.download = `sra-dfd-${title.toLowerCase().replace(/\s+/g, '-')}.png`;
+            link.href = dataUrl;
+            link.click();
+            toast.success("Image exported successfully!");
+        } catch (err) {
+            console.error("Export failed:", err);
+            toast.error("Failed to export image");
+        }
+    };
 
     if (!data) return null;
 
@@ -217,12 +230,25 @@ const DiagramCanvas = ({ title, data, isExport = false, direction = 'LR', levelP
             {!isExport && (
                 <div className="px-6 py-4 border-b flex items-center justify-between transition-colors bg-slate-50 border-slate-200">
                     <span className="font-bold text-slate-800 tracking-tight">{title}</span>
-                    <div className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all bg-blue-100 text-blue-700">
-                        Interactive
+                    <div className="flex items-center gap-3">
+                        {!isExport && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={exportToImage}
+                                className="h-7 gap-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-all rounded-lg"
+                            >
+                                <Download className="h-3.5 w-3.5" />
+                                <span className="text-[10px] font-bold uppercase tracking-tight">Export PNG</span>
+                            </Button>
+                        )}
+                        <div className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all bg-blue-100 text-blue-700">
+                            Interactive
+                        </div>
                     </div>
                 </div>
             )}
-            <div className="flex-1 w-full h-full relative overflow-hidden bg-white">
+            <div ref={containerRef} className="flex-1 w-full h-full relative overflow-hidden bg-white">
                 <ReactFlow
                     nodes={nodes}
                     edges={edges}
