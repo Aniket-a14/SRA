@@ -178,7 +178,10 @@ You must adhere to the following strict formatting rules. ANY violation will ren
 
 4. SYSTEM FEATURE STRUCTURE (IEEE Section 4.x)
    - Each System Feature MUST contain:
-     * Description: Mandatory 2 paragraphs explaining value and priority.
+     * Description: Mandatory 2-3 paragraphs explaining:
+       * 🎯 **User Value (DDD)**: How this feature improves the user's life.
+       * ⚙️ **Technical Impact (DDD)**: How this feature affects the system architecture.
+       * Priority: High, Medium, or Low.
      * Stimulus/Response Sequences: STRICT FORMAT REQUIRED:
        "Stimulus: <user action> Response: <system behavior>"
      * Functional Requirements:
@@ -243,11 +246,11 @@ You MUST return output ONLY in the following exact JSON structure. Do not add ex
     }
   ],
   "nonFunctionalRequirements": {
-    "performanceRequirements": ["If there are performance requirements for the product under various circumstances, state them here and explain their rationale, to help the developers understand the intent and make suitable design choices. Specify the timing relationships for real time systems. Make such requirements as specific as possible. You may need to state performance requirements for individual functional requirements or features."],
-    "safetyRequirements": ["Specify those requirements that are concerned with possible loss, damage, or harm that could result from the use of the product. Define any safeguards or actions that must be taken, as well as actions that must be prevented. Refer to any external policies or regulations that state safety issues that affect the product’s design or use. Define any safety certifications that must be satisfied."],
-    "securityRequirements": ["Specify any requirements regarding security or privacy issues surrounding use of the product or protection of the data used or created by the product. Define any user identity authentication requirements. Refer to any external policies or regulations containing security issues that affect the product. Define any security or privacy certifications that must be satisfied."],
-    "softwareQualityAttributes": ["Specify any additional quality characteristics for the product that will be important to either the customers or the developers. Some to consider are: adaptability, availability, correctness, flexibility, interoperability, maintainability, portability, reliability, reusability, robustness, testability, and usability. Write these to be specific, quantitative, and verifiable when possible. At the least, clarify the relative preferences for various attributes, such as ease of use over ease of learning."],
-    "businessRules": ["List any operating principles about the product, such as which individuals or roles can perform which functions under specific circumstances. These are not functional requirements in themselves, but they may imply certain functional requirements to enforce the rules."]
+    "performanceRequirements": ["State requirement AND rationale explicitly. Focus on system efficiency."],
+    "safetyRequirements": ["Define safeguards AND rationale. Focus on data integrity."],
+    "securityRequirements": ["Specify authentication/privacy AND rationale. Focus on protection."],
+    "softwareQualityAttributes": ["Specify attributes AND rationale (Reliability, Scalability, etc.)."],
+    "businessRules": ["List operating principles and regulatory constraints."]
   },
   "otherRequirements": ["Define any other requirements not covered elsewhere in the SRS. This might include database requirements, internationalization requirements, legal requirements, reuse objectives for the project, and so on. Add any new sections that are pertinent to the project."],
   "glossary": [

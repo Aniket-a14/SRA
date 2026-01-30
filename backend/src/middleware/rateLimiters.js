@@ -13,10 +13,10 @@ export const authLimiter = rateLimit({
 
 // Moderate limiter for AI generation routes to prevent resource abuse
 export const aiLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 30, // Limit each IP to 30 requests per hour
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 500, // Increased to support polling and active generation
     message: {
-        error: "AI generation limit reached. Please wait an hour before generating more requirements.",
+        error: "AI generation limit reached. Please wait a few minutes before generating more requirements.",
     },
     standardHeaders: true,
     legacyHeaders: false,
@@ -25,7 +25,7 @@ export const aiLimiter = rateLimit({
 // General purpose limiter for standard API routes
 export const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 200,
+    max: 1000, // Higher limit for general API usage
     standardHeaders: true,
     legacyHeaders: false,
 });

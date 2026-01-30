@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useEffect } from 'react';
+import { Layers } from 'lucide-react';
 import {
     ReactFlow,
     Background,
@@ -12,8 +13,11 @@ import {
     Node,
     Handle,
     Position,
+    ReactFlowProvider,
+    useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+// import * as dagre from '@dagrejs/dagre'; // Removed top-level import to avoid require error
 
 // -----------------------------------------------------------------------------
 // 0. SHARED TYPES
@@ -26,59 +30,82 @@ interface DFDNodeData extends Record<string, unknown> {
 type DFDNodeType = Node<DFDNodeData>;
 
 // -----------------------------------------------------------------------------
-// 1. CUSTOM NODE COMPONENTS
-// -----------------------------------------------------------------------------
+import { motion, AnimatePresence } from 'framer-motion';
 
-// Process Node: Circular, Vibrant, Modern - DARKER for visibility
+// ... (keep nodeTypes as is)
+
+// Process Node: Gane-Sarson Style (Rounded corners, thick borders)
 const ProcessNode = ({ data }: NodeProps<DFDNodeType>) => {
     return (
-        <div className="flex flex-col items-center justify-center p-2 rounded-full bg-blue-100 border-[3px] border-blue-600 shadow-lg w-[130px] h-[130px] hover:shadow-xl transition-all duration-300 group">
-            <Handle type="target" position={Position.Top} className="w-3 h-3 bg-blue-600 border-2 border-white" />
-            <Handle type="target" position={Position.Left} className="w-3 h-3 bg-blue-600 border-2 border-white" />
+        <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            whileHover={{ scale: 1.05 }}
+            transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 20 }}
+            className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white border-[2.5px] border-blue-600 shadow-sm w-[140px] h-[140px] hover:shadow-blue-200/50 hover:shadow-2xl transition-all duration-300 group relative"
+        >
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-[10px] text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter">
+                Process
+            </div>
 
-            <div className="text-center text-sm font-extrabold text-blue-950 leading-tight px-1 group-hover:scale-105 transition-transform">
+            <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-blue-600 !border-white" />
+            <Handle type="target" position={Position.Left} className="!w-2 !h-2 !bg-blue-600 !border-white" />
+
+            <div className="text-center text-xs font-bold text-slate-900 leading-tight px-1 group-hover:scale-110 transition-transform">
                 {data.label}
             </div>
 
-            <Handle type="source" position={Position.Right} className="w-3 h-3 bg-blue-600 border-2 border-white" />
-            <Handle type="source" position={Position.Bottom} className="w-3 h-3 bg-blue-600 border-2 border-white" />
-        </div>
+            <Handle type="source" position={Position.Right} className="!w-2 !h-2 !bg-blue-600 !border-white" />
+            <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !bg-blue-600 !border-white" />
+        </motion.div>
     );
 };
 
-// External Entity Node: Solid, Authoritative, Rectangular - BOLDER
+// External Entity Node: Professional, Solid, Square
 const ExternalEntityNode = ({ data }: NodeProps<DFDNodeType>) => {
     return (
-        <div className="flex flex-col items-center justify-center px-4 py-3 rounded-lg bg-white border-[3px] border-slate-900 shadow-md min-w-[140px] hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-            <Handle type="target" position={Position.Top} className="w-3 h-3 bg-slate-900 border-2 border-white" />
-            <Handle type="target" position={Position.Left} className="w-3 h-3 bg-slate-900 border-2 border-white" />
+        <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            whileHover={{ y: -5 }}
+            transition={{ duration: 0.4 }}
+            className="flex flex-col items-center justify-center px-5 py-4 rounded-md bg-slate-900 border-[2px] border-slate-900 shadow-md min-w-[150px] hover:bg-slate-800 transition-all duration-300 relative"
+        >
+            <div className="absolute -top-2.5 left-4 bg-slate-400 text-[9px] text-white px-1.5 py-0.5 rounded font-black uppercase italic">
+                External
+            </div>
 
-            <div className="text-center font-bold text-black uppercase text-xs tracking-widest">
+            <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-slate-400 !border-slate-900" />
+            <Handle type="target" position={Position.Left} className="!w-2 !h-2 !bg-slate-400 !border-slate-900" />
+
+            <div className="text-center font-black text-white uppercase text-[11px] tracking-widest leading-none">
                 {data.label}
             </div>
 
-            <Handle type="source" position={Position.Right} className="w-3 h-3 bg-slate-900 border-2 border-white" />
-            <Handle type="source" position={Position.Bottom} className="w-3 h-3 bg-slate-900 border-2 border-white" />
-        </div>
+            <Handle type="source" position={Position.Right} className="!w-2 !h-2 !bg-slate-400 !border-slate-900" />
+            <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !bg-slate-400 !border-slate-900" />
+        </motion.div>
     );
 };
 
-// Data Store Node: Open-ended style - DARKER
+// Data Store Node: Open-ended Parallel Lines
 const DataStoreNode = ({ data }: NodeProps<DFDNodeType>) => {
     return (
-        <div className="relative flex items-center justify-center px-6 py-4 min-w-[160px] bg-emerald-100 border-t-[3px] border-b-[3px] border-emerald-700 shadow-sm hover:bg-emerald-200 transition-colors">
-            {/* Left Cap Line */}
-            <div className="absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-r from-emerald-300 to-transparent pointer-events-none"></div>
+        <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            whileHover={{ boxShadow: "0 10px 25px -5px rgba(16, 185, 129, 0.2)" }}
+            className="relative flex items-center justify-center px-8 py-5 min-w-[180px] bg-emerald-50 border-y-[3px] border-emerald-600 shadow-sm hover:bg-emerald-100 transition-colors group"
+        >
+            <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-600"></div>
 
-            <div className="text-center text-sm font-bold text-emerald-950 tracking-wide">
+            <div className="text-center text-[11px] font-black text-emerald-900 uppercase tracking-wider">
                 {data.label}
             </div>
 
-            <Handle type="target" position={Position.Top} className="w-2 h-2 bg-emerald-700 opacity-0" />
-            <Handle type="target" position={Position.Left} className="w-3 h-3 bg-emerald-700 border-2 border-white" />
-            <Handle type="source" position={Position.Right} className="w-3 h-3 bg-emerald-700 border-2 border-white" />
-            <Handle type="source" position={Position.Bottom} className="w-2 h-2 bg-emerald-700 opacity-0" />
-        </div>
+            <Handle type="target" position={Position.Left} className="!w-2 !h-2 !bg-emerald-600 !border-white" />
+            <Handle type="source" position={Position.Right} className="!w-2 !h-2 !bg-emerald-600 !border-white" />
+        </motion.div>
     );
 };
 
@@ -118,64 +145,84 @@ export type DFDInput = {
 // 3. HELPER: DATA MAPPING
 // -----------------------------------------------------------------------------
 
-const mapToReactFlow = (dfdData: DFDLevel | undefined) => {
+// -----------------------------------------------------------------------------
+// 3. HELPER: DATA MAPPING & LAYOUT (DAGRE)
+// -----------------------------------------------------------------------------
+
+const mapToReactFlow = (dfdData: DFDLevel | undefined, direction = 'LR', idPrefix = '') => {
     if (!dfdData) return { nodes: [], edges: [] };
 
-    // Simple layout strategy: distribute in a grid or circle
-    // Real apps might use 'dagre' or 'elkjs' for auto-layout.
-    // We'll implemented a naive positioner for demonstration.
-    const nodes = dfdData.nodes.map((node, index) => {
-        // Stagger positions to prevent overlap - Increased spacing
-        const x = (index % 3) * 450 + 100;
-        const y = Math.floor(index / 3) * 300 + 100;
+    const isHorizontal = direction === 'LR';
 
-        return {
-            id: node.id,
-            type: node.type, // Maps to nodeTypes keys
-            position: { x, y },
-            data: { label: node.label },
-        };
-    });
-
-    const edges = dfdData.flows.map((flow, i) => ({
-        id: `e-${i}-${flow.from}-${flow.to}`,
-        source: flow.from,
-        target: flow.to,
-        label: flow.label,
-        type: 'smoothstep',
-        markerEnd: { type: MarkerType.ArrowClosed, color: '#000000' }, // Black arrows
-        style: { stroke: '#000000', strokeWidth: 2 }, // Thicker black strokes
-        labelStyle: { fill: '#000000', fontWeight: 700, fontSize: 12, background: 'white' }, // Darker Text
-        labelBgStyle: { fill: 'white', fillOpacity: 0.9 }
+    const initialNodes = dfdData.nodes.map((node: any) => ({
+        id: idPrefix + node.id,
+        type: node.type,
+        data: { label: node.label },
+        // Use backend provided position, or default to 0,0
+        position: node.position || { x: 0, y: 0 },
+        targetPosition: isHorizontal ? Position.Left : Position.Top,
+        sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
     }));
 
-    return { nodes, edges };
+    const initialEdges = dfdData.flows.map((flow, i) => ({
+        id: `${idPrefix}e-${i}-${flow.from}-${flow.to}`,
+        source: idPrefix + flow.from,
+        target: idPrefix + flow.to,
+        label: flow.label,
+        type: 'smoothstep',
+        animated: true,
+        markerEnd: {
+            type: MarkerType.ArrowClosed,
+            color: '#334155',
+            width: 20,
+            height: 20
+        },
+        style: { stroke: '#64748b', strokeWidth: 2.5 },
+        labelStyle: { fill: '#0f172a', fontWeight: 800, fontSize: 10 },
+        labelBgStyle: { fill: '#f8fafc', fillOpacity: 0.9, rx: 4 }
+    }));
+
+    return { nodes: initialNodes, edges: initialEdges };
 };
 
-// ...
+interface DiagramCanvasProps {
+    title: string;
+    data: DFDLevel | undefined;
+    isExport?: boolean;
+    direction?: 'LR' | 'TB';
+    levelPrefix: string;
+}
 
-const DiagramCanvas = ({ title, data, isExport = false }: { title: string; data: DFDLevel | undefined; isExport?: boolean }) => {
-    const { nodes: initialNodes, edges: initialEdges } = mapToReactFlow(data);
-    const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-    const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+const DiagramCanvas = ({ title, data, isExport = false, direction = 'LR', levelPrefix }: DiagramCanvasProps) => {
+    const [nodes, setNodes, onNodesChange] = useNodesState<DFDNodeType>([]);
+    const [edges, setEdges, onEdgesChange] = useEdgesState<any>([]);
+    const { fitView } = useReactFlow();
 
     // Re-sync if prop data changes
     useEffect(() => {
-        const { nodes: n, edges: e } = mapToReactFlow(data);
+        const { nodes: n, edges: e } = mapToReactFlow(data, direction, levelPrefix);
         setNodes(n);
         setEdges(e);
-    }, [data, setNodes, setEdges]);
+
+        // Dynamic fitView with small delay for React Flow to settle
+        setTimeout(() => {
+            fitView({ padding: 0.2, duration: 400 });
+        }, 100);
+    }, [data, direction, setNodes, setEdges, fitView, levelPrefix]);
 
     if (!data) return null;
 
     return (
-        <div className={`w-full border border-gray-200 rounded-lg overflow-hidden bg-white flex flex-col ${isExport ? 'min-h-[800px] border-0' : 'h-[400px] mb-8'}`}>
+        <div className={`w-full border border-slate-200 bg-white rounded-xl overflow-hidden flex flex-col transition-all duration-500 shadow-sm ${isExport ? 'min-h-[800px] border-0' : 'h-[600px] mb-8'}`}>
             {!isExport && (
-                <div className="bg-gray-100 px-4 py-2 border-b border-gray-200 font-bold text-gray-700">
-                    {title}
+                <div className="px-6 py-4 border-b flex items-center justify-between transition-colors bg-slate-50 border-slate-200">
+                    <span className="font-bold text-slate-800 tracking-tight">{title}</span>
+                    <div className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all bg-blue-100 text-blue-700">
+                        Interactive
+                    </div>
                 </div>
             )}
-            <div className="flex-1 w-full h-full relative">
+            <div className="flex-1 w-full h-full relative overflow-hidden bg-white">
                 <ReactFlow
                     nodes={nodes}
                     edges={edges}
@@ -183,10 +230,11 @@ const DiagramCanvas = ({ title, data, isExport = false }: { title: string; data:
                     onEdgesChange={onEdgesChange}
                     nodeTypes={nodeTypes}
                     fitView
-                    fitViewOptions={{ padding: 0.2, duration: 0 }} // INSTANT FIT
+                    fitViewOptions={{ padding: 0.1 }}
                     attributionPosition="bottom-right"
                     minZoom={0.1}
                     maxZoom={2}
+                    nodesConnectable={false}
                 >
                     <Background color="#aaa" gap={16} />
                     {!isExport && <Controls />}
@@ -200,15 +248,37 @@ export const DFDViewer = ({ data, isExport = false }: { data: DFDInput; isExport
     if (!data) return <div className="text-gray-500 italic">No DFD data available</div>;
 
     return (
-        <div className={`w-full flex flex-col ${isExport ? 'h-full gap-0' : 'gap-8'}`}>
-            {data.dfd_level_0 && (
-                <DiagramCanvas title="DFD Level 0 (Context Diagram)" data={data.dfd_level_0} isExport={isExport} />
+        <div className={`w-full flex flex-col ${isExport ? 'h-full gap-0' : 'gap-8 px-4 py-6'}`}>
+            {!isExport && (
+                <div className="flex items-center justify-end mb-2">
+                    <div className="text-[10px] text-slate-400 font-medium uppercase tracking-[0.2em] flex items-center gap-2 mr-2">
+                        <Layers className="h-3 w-3" />
+                        Analysis Fidelity
+                    </div>
+                </div>
             )}
-            {/* If exporting, we typically only render ONE canvas at a time in the loop. 
-                But if rendering both, we need to handle layout. 
-                For export-utils, we render them individually. */}
+
+            {data.dfd_level_0 && (
+                <ReactFlowProvider>
+                    <DiagramCanvas
+                        title="DFD Level 0 (Context Diagram)"
+                        data={data.dfd_level_0}
+                        isExport={isExport}
+                        direction="LR"
+                        levelPrefix="l0-"
+                    />
+                </ReactFlowProvider>
+            )}
             {data.dfd_level_1 && (
-                <DiagramCanvas title="DFD Level 1 (Decomposition)" data={data.dfd_level_1} isExport={isExport} />
+                <ReactFlowProvider>
+                    <DiagramCanvas
+                        title="DFD Level 1 (Decomposition)"
+                        data={data.dfd_level_1}
+                        isExport={isExport}
+                        direction="TB"
+                        levelPrefix="l1-"
+                    />
+                </ReactFlowProvider>
             )}
         </div>
     );

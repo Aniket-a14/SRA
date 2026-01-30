@@ -1,6 +1,7 @@
 import { getLatestVersion } from "../utils/promptRegistry.js";
 import { constructMasterPrompt, DIAGRAM_REPAIR_PROMPT } from "../utils/prompts.js";
 import { genAI } from "../config/gemini.js";
+import { AnalysisResultSchema } from "../utils/schemas.js";
 
 
 export async function analyzeText(text, settings = {}) {
@@ -101,7 +102,10 @@ ${text}
         }), timeoutMs);
         output = completion.choices[0].message.content;
       } else {
-        const model = genAI.getGenerativeModel({ model: modelName || "gemini-2.5-flash" });
+        const model = genAI.getGenerativeModel({
+          model: modelName || "gemini-2.5-flash",
+          generationConfig: { responseMimeType: "application/json" }
+        });
         const result = await callWithTimeout(model.generateContent(finalPrompt), timeoutMs);
 
         if (result && result.response && typeof result.response.text === "function") {
@@ -146,64 +150,59 @@ ${text}
     };
   }
 
-  // Parse JSON
-  let parsedSRS;
+  // 4. Parse JSON & Validate
   try {
-
-    // 1. Remove markdown code blocks
-    let cleanOutput = output.replace(/```json/g, "").replace(/```/g, "").trim();
-
-    // 2. Try to find the first '{' and last '}' to isolate the JSON object
-    const firstBrace = cleanOutput.indexOf('{');
-    const lastBrace = cleanOutput.lastIndexOf('}');
-
-    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-      cleanOutput = cleanOutput.substring(firstBrace, lastBrace + 1);
-    }
-
-    // 3. Advanced Cleaning: Remove Comments (//... or /*...*/)
-    // Note: Regex for removing C-style comments safely is complex, but for AI JSON this usually works well.
-    // We only apply this if initial parse fails or proactively if we suspect issues.
-    // Let's keep one "clean" pass.
-    cleanOutput = cleanOutput
-      .replace(/\/\*[\s\S]*?\*\//g, "") // Block comments
-      .replace(/\/\/.*$/gm, "");         // Line comments
-
-    // 4. Remove Trailing Commas (Common AI JSON error)
-    // Replaces ",}" with "}" and ",]" with "]"
-    cleanOutput = cleanOutput.replace(/,\s*}/g, "}").replace(/,\s*\]/g, "]");
-
+    let parsedSRS;
+    // Native JSON mode should return clean JSON, but we keep a safety parse
     try {
-      parsedSRS = JSON.parse(cleanOutput);
+      parsedSRS = JSON.parse(output);
     } catch (primaryError) {
-      console.warn("[AI Service] Initial JSON parse failed, attempting secondary fix for bad escapes...");
-
+      console.warn("[AI Service] Native JSON parse failed, attempting secondary fix for bad escapes...");
       // Secondary Fix: Handle unescaped backslashes that aren't valid JSON escapes
-      // Valid JSON escapes: \", \\, \/, \b, \f, \n, \r, \t, \uXXXX
-      // We look for a backslash that is NOT followed by any of those and escape it.
-      // This is a common AI error especially in Mermaid/diagram strings.
-      let fixedOutput = cleanOutput.replace(/\\(?!(["\\/bfnrt]|u[0-9a-fA-F]{4}))/g, "\\\\");
-
-      // Attempt parsing again
+      let fixedOutput = output.replace(/\\(?!(["\\/bfnrt]|u[0-9a-fA-F]{4}))/g, "\\\\");
       try {
         parsedSRS = JSON.parse(fixedOutput);
         console.log("[AI Service] Secondary parse SUCCESS after manual escaping.");
       } catch (secondaryError) {
-        // Final attempt: fallback for newlines in strings or other desperate measures
-        // For now, allow it to fail but log it clearly
-        console.error("[AI Service] JSON Final Parse Error:", secondaryError.message);
-        console.error("[AI Service] Raw Output Snippet:", output.substring(0, 500));
-        return {
-          success: false,
-          error: `Invalid JSON from model (Error: ${secondaryError.message}). The AI might have struggled with the complexity of the request or generated invalid escape sequences.`,
-          raw: output
-        };
+        throw secondaryError;
+      }
+    }
+
+    // 5. Type-Safe Validation (Zod)
+    const targetSchema = settings.zodSchema === null ? null : (settings.zodSchema || AnalysisResultSchema);
+    const isFullSRS = !settings.zodSchema && settings.zodSchema !== null;
+    let validationErrors = null;
+
+    if (targetSchema) {
+      const validation = targetSchema.safeParse(parsedSRS);
+      if (!validation.success) {
+        if (isFullSRS) {
+          console.warn("[AI Service] Zod Validation Issues found. Keys present in parsed object:", Object.keys(parsedSRS));
+          console.warn("[AI Service] Full Validation Errors:", JSON.stringify(validation.error.format(), null, 2));
+        }
+
+        // Attempt to look for a nested 'srs' or 'result' field if the AI wrapped it
+        if (parsedSRS.srs && typeof parsedSRS.srs === 'object') {
+          const nestedValidation = targetSchema.safeParse(parsedSRS.srs);
+          if (nestedValidation.success) {
+            console.log("[AI Service] SUCCESS: Found valid object nested inside 'srs' key.");
+            parsedSRS = parsedSRS.srs;
+          }
+        } else if (parsedSRS.result && typeof parsedSRS.result === 'object') {
+          const nestedValidation = targetSchema.safeParse(parsedSRS.result);
+          if (nestedValidation.success) {
+            console.log("[AI Service] SUCCESS: Found valid object nested inside 'result' key.");
+            parsedSRS = parsedSRS.result;
+          }
+        }
+        validationErrors = validation.error.issues;
       }
     }
 
     return {
-      success: true, // Standardize success flag
+      success: true,
       srs: parsedSRS,
+      validationErrors,
       meta: {
         promptVersion: systemPrompt ? "task-specific" : promptVersion,
         modelProvider,
@@ -215,7 +214,7 @@ ${text}
     console.error("[AI Service] Raw Output Snippet:", output.substring(0, 500));
     return {
       success: false,
-      error: `Invalid JSON from model (Error: ${parseError.message}). The AI might have struggled with the complexity of the request or generated invalid escape sequences.`,
+      error: `Invalid JSON from model (Error: ${parseError.message}).`,
       raw: output
     };
   }

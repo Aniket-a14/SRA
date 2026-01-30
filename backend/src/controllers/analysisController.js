@@ -10,6 +10,7 @@ import { embedText } from '../services/embeddingService.js';
 import { ensureProjectExists } from '../services/projectService.js';
 import { findReuseCandidate } from '../services/reuseService.js';
 import { FEATURE_EXPANSION_PROMPT, DFD_STRUCT_GEN_PROMPT } from '../utils/prompts.js';
+import { layoutAllDFD } from '../services/dfdLayoutService.js';
 import prisma from '../config/prisma.js';
 import crypto from 'crypto';
 
@@ -723,8 +724,12 @@ export const expandFeature = async (req, res, next) => {
             .replace('{{name}}', name)
             .replace('{{prompt}}', prompt);
 
-        // Call AI Service
-        const result = await analyzeText(finalPrompt, settings || {});
+        // Call AI Service with clean system prompt and no SRS validation
+        const result = await analyzeText(req.body.prompt || "", {
+            ...settings,
+            systemPrompt: finalPrompt,
+            zodSchema: null
+        });
 
         if (result.error) {
             throw new Error(result.error);
@@ -765,7 +770,7 @@ export const generateDFD = async (req, res, next) => {
 
         // Prepare prompt
         const finalPrompt = `
-${DFD_STRUCT_GEN_PROMPT}
+${DFD_STRUCT_GEN_PROMPT.replaceAll('{{projectName}}', projectName)}
 
 USER INPUT:
 Project Name: ${projectName}
@@ -773,11 +778,20 @@ Description: ${description}
 SRS Content (Reference): ${srsContent || "N/A"}
 `;
 
-        // Call AI Service
-        const result = await analyzeText(finalPrompt, settings || {});
+        // Call AI Service with clean system prompt and no SRS validation
+        const result = await analyzeText(`Project: ${projectName}\nDescription: ${description}`, {
+            ...settings,
+            systemPrompt: finalPrompt,
+            zodSchema: null
+        });
 
         if (result.error) {
             throw new Error(result.error);
+        }
+
+        // Apply Layouting
+        if (result.success && result.srs) {
+            result.srs = layoutAllDFD(result.srs);
         }
 
         res.json(result);
