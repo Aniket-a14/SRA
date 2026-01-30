@@ -10,12 +10,14 @@ import {
     Controls,
     useNodesState,
     useEdgesState,
+    MarkerType,
     NodeProps,
     Node,
     Edge,
     Handle,
     Position,
     ReactFlowProvider,
+    useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 // import * as dagre from '@dagrejs/dagre'; // Removed top-level import to avoid require error
@@ -160,9 +162,50 @@ interface DiagramCanvasProps {
 }
 
 const DiagramCanvas = ({ title, data, isExport = false }: DiagramCanvasProps) => {
-    const [nodes, , onNodesChange] = useNodesState<DFDNodeType>([]);
-    const [edges, , onEdgesChange] = useEdgesState<Edge>([]);
+    const [nodes, setNodes, onNodesChange] = useNodesState<DFDNodeType>([]);
+    const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
     const containerRef = useRef<HTMLDivElement>(null);
+    const { fitView } = useReactFlow();
+
+    React.useEffect(() => {
+        if (!data) return;
+
+        const initialNodes = data.nodes.map((node: DFDNode) => ({
+            id: node.id,
+            type: node.type,
+            data: { label: node.label },
+            position: node.position || { x: 0, y: 0 },
+            targetPosition: Position.Left,
+            sourcePosition: Position.Right,
+        }));
+
+        const initialEdges = data.flows.map((flow, i) => ({
+            id: `e-${i}-${flow.from}-${flow.to}`,
+            source: flow.from,
+            target: flow.to,
+            label: flow.label,
+            type: 'smoothstep',
+            animated: true,
+            markerEnd: {
+                type: MarkerType.ArrowClosed,
+                color: '#334155',
+                width: 20,
+                height: 20
+            },
+            style: { stroke: '#64748b', strokeWidth: 2.5 },
+            labelStyle: { fill: '#0f172a', fontWeight: 800, fontSize: 10 },
+            labelBgStyle: { fill: '#f8fafc', fillOpacity: 0.9, rx: 4 }
+        }));
+
+        setNodes(initialNodes);
+        setEdges(initialEdges);
+
+        // Optional: fitView after a short delay to ensure rendering is complete
+        const timer = setTimeout(() => {
+            fitView({ padding: 0.2 });
+        }, 100);
+        return () => clearTimeout(timer);
+    }, [data, setNodes, setEdges, fitView]);
 
     const exportToImage = async () => {
         if (!containerRef.current) return;
