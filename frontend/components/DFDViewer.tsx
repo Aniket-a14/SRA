@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import { Layers, Download } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import {
     MarkerType,
     NodeProps,
     Node,
+    Edge,
     Handle,
     Position,
     ReactFlowProvider,
@@ -33,7 +34,7 @@ interface DFDNodeData extends Record<string, unknown> {
 type DFDNodeType = Node<DFDNodeData>;
 
 // -----------------------------------------------------------------------------
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 // ... (keep nodeTypes as is)
 
@@ -126,6 +127,7 @@ type DFDNode = {
     id: string;
     type: 'process' | 'external_entity' | 'data_store';
     label: string;
+    position?: { x: number; y: number };
 };
 
 type DFDFlow = {
@@ -152,12 +154,10 @@ export type DFDInput = {
 // 3. HELPER: DATA MAPPING & LAYOUT (DAGRE)
 // -----------------------------------------------------------------------------
 
-const mapToReactFlow = (dfdData: DFDLevel | undefined, direction = 'LR', idPrefix = '') => {
+const mapToReactFlow = (dfdData: DFDLevel | undefined, isHorizontal: boolean, idPrefix = '') => {
     if (!dfdData) return { nodes: [], edges: [] };
 
-    const isHorizontal = direction === 'LR';
-
-    const initialNodes = dfdData.nodes.map((node: any) => ({
+    const initialNodes = dfdData.nodes.map((node: DFDNode) => ({
         id: idPrefix + node.id,
         type: node.type,
         data: { label: node.label },
@@ -197,9 +197,8 @@ interface DiagramCanvasProps {
 }
 
 const DiagramCanvas = ({ title, data, isExport = false, direction = 'LR', levelPrefix }: DiagramCanvasProps) => {
-    const [nodes, setNodes, onNodesChange] = useNodesState<DFDNodeType>([]);
-    const [edges, setEdges, onEdgesChange] = useEdgesState<any>([]);
-    const { fitView } = useReactFlow();
+    const [nodes, , onNodesChange] = useNodesState<DFDNodeType>([]);
+    const [edges, , onEdgesChange] = useEdgesState<Edge>([]);
     const containerRef = useRef<HTMLDivElement>(null);
 
     const exportToImage = async () => {

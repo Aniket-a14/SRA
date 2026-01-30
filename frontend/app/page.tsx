@@ -71,7 +71,7 @@ function HomeContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { authenticateWithToken, token } = useAuth()
-  const [analysisResult, setAnalysisResult] = useState<Analysis>(defaultAnalysis)
+  const [analysisResult] = useState<Analysis>(defaultAnalysis)
 
   const [state, formAction, isPending] = useActionState(createAnalysisAction, {});
 

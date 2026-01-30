@@ -2,7 +2,6 @@
 
 import { z } from "zod";
 import { PromptSettings } from "@/types/project";
-import { redirect } from "next/navigation";
 
 const AnalysisSchema = z.object({
     requirements: z.string().min(1, "Requirements are required"),

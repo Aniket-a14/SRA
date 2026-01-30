@@ -1,21 +1,43 @@
-# Security Policy
+# Security Policy: SRA Platform
 
-## Supported Versions
+## 🛡️ Commitment to Security
+At SRA, security is not an afterthought—it is a foundational component of our architectural design. We are committed to maintaining the integrity, confidentiality, and availability of requirements engineering data.
 
-Use this section to tell people about which versions of your project are
-currently being supported with security updates.
+## 🚀 Supported Versions
+We provide security updates for the following versions:
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.0.x   | :white_check_mark: |
-| < 1.0   | :x:                |
+| Version | Lifecycle Stage | Security Support |
+| :--- | :--- | :---: |
+| **2.2.x** | **Current Release** | :white_check_mark: |
+| 2.1.x | Active Maintenance | :white_check_mark: |
+| 2.0.x | Legacy Stable | :warning: |
+| < 2.0.0 | Deprecated | :x: |
 
-## Reporting a Vulnerability
+## 🔍 Vulnerability Disclosure Process
+If you discover a security vulnerability within SRA, we appreciate your efforts-   **Google Gemini 2.0 Flash API Key** (Get one [here](https://aistudio.google.com/app/apikey))
 
-Use this section to tell people how to report a vulnerability.
+**Please do NOT open a public GitHub issue for security vulnerabilities.**
 
-Tell them where to go, how often they can expect to get an update on a
-reported vulnerability, what to expect if the vulnerability is accepted or
-declined, etc.
+### Reporting Channels
+Please report vulnerabilities via the following channels:
+1.  **Email**: Send a detailed report to `security@sra-platform.com` (Placeholder).
+2.  **GitHub Private Reporting**: Use the "Report a vulnerability" button on the **Security** tab of this repository.
 
-If you find a security vulnerability, please do NOT open an issue. Email the maintainers instead.
+### What to Include
+*   A descriptive title of the vulnerability.
+*   The version(s) affected.
+*   A detailed step-by-step guide to reproduce the issue.
+*   Potential impact (e.g., Data Leakage, RCE, Broken Auth).
+*   Any suggested remediation or mitigation.
+
+## 📝 Our Response Commitment
+*   **Acknowledgment**: We aim to acknowledge your report within **24 hours**.
+*   **Evaluation**: Our security team will perform a full triage and impact analysis within **3 business days**.
+*   **Resolution**: We aim to resolve critical vulnerabilities within **7 business days** of confirmation.
+*   **Public Disclosure**: Once a patch is released, we will issue a Security Advisory (GHSA) to inform the community.
+
+## ⚖️ Bounty Program
+We currently operate a private, invite-only bug bounty program. Exceptional researchers who submit high-quality, actionable reports via our disclosure channels may be invited to the program.
+
+---
+*Thank you for helping us keep SRA secure.*

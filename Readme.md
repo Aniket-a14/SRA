@@ -1,219 +1,171 @@
 # SRA (Smart Requirements Analyzer)
 
-![Status](https://img.shields.io/badge/Status-V2_Verified-brightgreen)
-![Pipeline](https://img.shields.io/badge/Strategy-5_Layer_Analysis-blue)
-![SRA View](/assets/overview.png)
+[![CodeQL Security](https://github.com/Aniket-a14/SRA/actions/workflows/codeql.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/codeql.yml)
+[![Linting Quality](https://github.com/Aniket-a14/SRA/actions/workflows/lint.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/lint.yml)
+[![Deployment Status](https://img.shields.io/badge/Deployment-Verified-brightgreen)](https://github.com/Aniket-a14/SRA)
+[![IEEE-830](https://img.shields.io/badge/Compliance-IEEE--830-blue)](https://ieeexplore.ieee.org/document/720577)
+[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/Aniket-a14/SRA/graphs/commit-activity)
 
-**SRA** is an intelligent, AI-powered ecosystem designed to automate and professionalize the software requirements engineering process. By leveraging a multi-layer analysis pipeline, it transforms raw project visions into high-fidelity IEEE-830 artifacts.
+**SRA** is an enterprise-grade, AI-orchestrated ecosystem designed to formalize the software requirements engineering lifecycle. By combining Large Language Model (LLM) reasoning with rigorous architectural standards, SRA transforms fragmented project visions into high-fidelity, production-ready technical specifications (IEEE-830).
 
-## Why This Exists?
+---
 
-Requirements engineering is often the bottleneck in software development. Ambiguous requirements lead to expensive rework. SRA solves this by:
-1.  **Standardizing Input**: Forcing unstructured ideas into structured models.
-2.  **Validating Logic**: catching contradictions before a single line of code is written.
-3.  **Automating Documentation**: Generating professional artifacts that would take humans hours to write.
+## 🏛️ Executive Summary
 
-## 🚀 The 5-Stage Analysis Pipeline
+In contemporary software development, **43% of project failures** are attributed to poor requirements gathering. **SRA** mitigates this risk by providing an automated, multi-layered validation and synthesis engine. It serves as the bridge between business objectives and technical execution, ensuring that every project starts with a cohesive, logical, and architecturally sound foundation.
 
-SRA follows a rigid, automated pipeline to ensure requirement quality and architectural consistency.
+### Core Value Propositions
+*   **Zero-Ambiguity Intake**: Standardizes raw stakeholder descriptions into structured architectural models.
+*   **AI-Driven Governance**: Real-time logic checking to identify contradictions, missing logic, and technical gaps.
+*   **High-Fidelity Visuals**: Automated generation of multi-level Data Flow Diagrams (DFD) and system-level Mermaid diagrams.
+*   **Semantic Intelligence**: Leverages vector-based knowledge retrieval (RAG) to ensure consistency across complex project portfolios.
+
+---
+
+## �️ The 5-Layer Analysis Pipeline
+
+SRA operates on a proprietary 5-layer pipeline that ensures every requirement is processed through a rigid quality-control sequence.
 
 ```mermaid
-graph LR
-    L1[<b>Layer 1: Intake</b><br/>Raw Description] --> L2[<b>Layer 2: Validation</b><br/>AI Gatekeeper]
-    L2 -->|PASS| L3[<b>Layer 3: Analysis</b><br/>IEEE SRS Generation]
-    L2 -->|FAIL| L1
-    L3 --> L4[<b>Layer 4: Refinement</b><br/>Chat & Patch]
-    L4 --> L5[<b>Layer 5: Knowledge Base</b><br/>Shred & Reuse]
+graph TD
+    subgraph "The SRA Pipeline"
+    L1[<b>Layer 1: Strategic Intake</b><br/>Unstructured Input Mapping]
+    L2[<b>Layer 2: Logic Validation</b><br/>AI-Gatekeeper Verification]
+    L3[<b>Layer 3: Analysis & Synthesis</b><br/>IEEE SRS Generation]
+    L4[<b>Layer 4: Iterative Refinement</b><br/>Live Workspace & Diff Tracking]
+    L5[<b>Layer 5: Knowledge Persistence</b><br/>Semantic Indexing & Reuse]
+    end
+
+    Stakeholder((Stakeholder)) -->|Raw Vision| L1
+    L1 --> L2
+    L2 --|FAIL: Ambiguity Detected| L1
+    L2 --|PASS| L3
+    L3 --> L4
+    L4 -->|Export| Artifacts[IEEE SRS, PDF, DFD, API Spec]
+    L4 --> L5
 ```
 
-### 1. **Structured Intake** (Layer 1)
-Translates free-text descriptions into an initial structured JSON model mapping to IEEE SRS sections.
+### Layer Breakdown
+1.  **Strategic Intake**: Translates free-text into a mapped JSON model aligned with IEEE section hierarchies.
+2.  **Logic Validation**: A high-speed reasoning pass (Gatekeeper) that evaluates clarity, consistency, and detail sufficiency.
+3.  **Analysis & Synthesis**: Heavy LLM processing to generate the full document, including User Stories, Acceptance Criteria, and Entity-Relationship maps.
+4.  **Iterative Refinement**: A premium Workspace UI for manual adjustments, version branching, and intelligent diagram repair.
+5.  **Knowledge Persistence**: Finalized requirements are "shredded" and indexed into a Vector Database for cross-project intelligence and RAG.
 
-### 2. **Validation Gatekeeper** (Layer 2)
-An AI logic-check that ensures input is clear, consistent, and has sufficient detail before proceeding to heavy analysis.
+---
 
-### 3. **Final Analysis & SRS Generation** (Layer 3)
-Generates the full SRS document, including User Stories, Acceptance Criteria, and UML/Mermaid diagrams.
+## ✨ Enterprise Feature Modules
 
-### 4. **Iterative Refinement** (Layer 4)
-Real-time chat interface to tweak requirements, automatically creating new versions and diffs.
+### 📊 Professional Requirements Engineering
+*   **IEEE-830 Compliance**: Automated generation of standard sections (Product Perspective, System Features, NFRs).
+*   **User Story Evolution**: Generates "Jira-Ready" user stories with granular acceptance criteria.
+*   **Entity Mapping**: Automated identification of core data entities, system actors, and external interfaces.
 
-### 5. **Knowledge Base Reuse** (Layer 5)
-Finalized requirements are shredded into the Knowledge Base, allowing for optimized sub-second responses on recurring project patterns.
+### 🎨 Advanced Architectural Visualization
+*   **Multi-Level DFDs**: Generates Level 0 (Context) and Level 1 (Functional Decomposition) Gane-Sarson diagrams.
+-   **Interactive Explorer**: Powered by `@xyflow/react` with support for high-fidelity **PNG Export**.
+*   **Self-Healing Diagrams**: Integrated **Mermaid Repair Engine** that identifies and fixes syntax errors in generated UML.
 
-## ✨ Core Features
+### � Security & Governance
+*   **RBAC Architecture**: Secure access control with JWT integration and social OAuth (Google/GitHub).
+*   **Revision History**: Complete versioning system with visual diff tracking between requirement updates.
+*   **Audit-Ready Exports**: One-click professional PDF generation with table of contents and revision logs.
 
-### 📊 Professional Analysis
--   **IEEE-830 Compliance**: Generates standardized sections from Introduction to Appendices.
--   **User Story Generator**: Standardized "As a... I want to... So that..." format.
--   **Acceptance Criteria**: Fine-grained success metrics for every feature.
--   **Entity Mapping**: Automated identification of data models.
+---
 
-### 🎨 Visual Modeling
--   **System Diagrams**: Automated generation of Sequence and Flowchart diagrams using Mermaid.js.
--   **Interactive Workspace**: Edit requirements in-place with real-time preview.
+## � Tech Stack & Rationale
 
-### 📦 Export & Portability
--   **Standardized PDF**: Professional export with Table of Contents and Revision History.
--   **Project Bundle**: Download zip containing diagrams, API docs, and raw JSON data.
--   **API Blueprint**: AI-generated Markdown contract for frontend/backend development.
+| Component | Technology | Rationale |
+|-----------|------------|-----------|
+| **Frontend** | [Next.js 15](https://nextjs.org/) | App Router for optimal SEO and server-side rendering performance. |
+| **Styling** | [Tailwind CSS v4](https://tailwindcss.com/) | Next-gen utility-first CSS for premium, high-performance UI components. |
+| **Backend** | [Node.js](https://nodejs.org/) / [Prisma](https://www.prisma.io/) | Type-safe ORM for robust data management and rapid scaling. |
+| **Database** | [PostgreSQL](https://www.postgresql.org/) ([Supabase](https://supabase.com/)) | Relational integrity paired with `pgvector` for semantic search. |
+| **AI Orchestration** | [Upstash QStash](https://upstash.com/) | Serverless job queuing to manage long-running AI tasks without request timeouts. |
+| **LLM Engine** | [Google Gemini 2.0](https://ai.google.dev/) | State-of-the-art vision and reasoning for complex architectural analysis. |
 
-### 🔒 Enterprise Ready
--   **Smart Versioning**: Branching and merging logic for requirements evolution.
--   **RBAC & Security**: Secure JWT authentication with Google/GitHub OAuth support.
--   **Background Queues**: Redis-backed asynchronous processing for complex AI tasks.
+---
 
-## 🛠️ Tech Stack
+## ⚙️ Operational Guide & Deployment
 
-### Frontend
--   **Core**: [Next.js 15](https://nextjs.org/) (App Router), TypeScript.
--   **Styling**: [Tailwind CSS v4](https://tailwindcss.com/), Radix UI.
--   **Visualization**: [Mermaid.js](https://mermaid.js.org/).
+### 1. Advanced Environment Configuration
 
-### Backend
--   **Runtime**: [Node.js](https://nodejs.org/) (Deployed to Vercel Serverless).
--   **Data**: [PostgreSQL](https://www.postgresql.org/) + [Prisma ORM](https://www.prisma.io/) (Supabase).
--   **Vector DB**: [pgvector](https://github.com/pgvector/pgvector) for Retrieval Augmented Generation (RAG).
--   **Async**: [Upstash QStash](https://upstash.com/docs/qstash/overall/getstarted) for Serverless Job Queues.
--   **AI**: [Google Gemini 2.5 Flash](https://ai.google.dev/).
+Ensure the following variables are defined in your infrastructure (see `.env.example` for details):
 
-## 🏁 Getting Started
+| Group | Key | Required | Description |
+|-------|-----|:--------:|-------------|
+| **Database** | `DATABASE_URL` | Yes | Postgres connection string with pooling. |
+| **Database** | `DIRECT_URL` | Yes | Direct connection string for Prisma migrations. |
+| **Auth** | `JWT_SECRET` | Yes | Secret key for signing authorization tokens. |
+| **AI** | `GEMINI_API_KEY` | Yes | API key for Google Gemini 2.0 Flash. |
+| **Async** | `QSTASH_TOKEN` | Yes | Bearer token for Upstash QStash job publishing. |
+| **Identity** | `GOOGLE_CLIENT_ID` | Optional | Client ID for Google Workspace integration. |
 
-Follow these steps to set up the project locally.
+### 2. Deployment Strategies
 
-### Prerequisites
--   Node.js (v18 or higher)
--   npm or yarn
--   A Google Gemini API Key
--   Supabase Project (PostgreSQL + pgvector)
--   Upstash Account (Redis + QStash)
-
-### 1. Backend Setup
-
-Navigate to the backend directory and install dependencies:
-
+#### 🐳 Docker Orchestration (Recommended)
+SRA is fully containerized for cloud-agnostic deployment.
 ```bash
-cd backend
-npm install
+docker-compose up --build -d
 ```
+*   **API Service**: `http://localhost:3000`
+*   **Application UI**: `http://localhost:3001`
 
-Create a `.env` file in the `backend` directory.
-
-#### Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| **Server** | |
-| `NODE_ENV` | Environment mode (development/production) |
-| `PORT` | Server port (default: 3000) |
-| `FRONTEND_URL` | URL of the frontend application |
-| `ANALYZER_URL` | Internal URL for analysis (default: http://localhost:3000/internal/analyze) |
-| **Database** | |
-| `DATABASE_URL` | Prisma connection string with pooling |
-| `DIRECT_URL` | Direct database connection string for migrations |
-| **Auth** | |
-| `JWT_SECRET` | Secret key for signing JWT tokens |
-| `COOKIE_SECRET` | Secret key for signing cookies |
-| `GOOGLE_CLIENT_ID` | OAuth Client ID for Google |
-| `GOOGLE_CLIENT_SECRET` | OAuth Client Secret for Google |
-| `GOOGLE_REDIRECT_URI` | Callback URI for Google OAuth |
-| `GITHUB_CLIENT_ID` | OAuth Client ID for GitHub |
-| `GITHUB_CLIENT_SECRET` | OAuth Client Secret for GitHub |
-| `GITHUB_CALLBACK_URL` | Callback URL for GitHub OAuth |
-| **AI & Async** | |
-| `GEMINI_API_KEY` | Your Google Gemini API Key |
-| `QSTASH_URL` | Upstash QStash Publish URL |
-| `QSTASH_TOKEN` | Upstash QStash Token |
-| `QSTASH_CURRENT_SIGNING_KEY` | Current signing key for webhooks |
-| `QSTASH_NEXT_SIGNING_KEY` | Next signing key for webhooks |
-
-Initialize the database:
-
+#### ⚒️ Manual Infrastructure Setup
+For local development or specialized environments:
 ```bash
-npx prisma migrate dev --name init
+# Initialize Identity & Data
+cd backend && npm install && npx prisma migrate dev
+
+# Initialize Application Layer
+cd ../frontend && npm install && npm run dev
 ```
 
-Start the backend server:
+#### 🤖 Agentic Workflows
+If using an AI Engineering Agent (e.g., Antigravity), use the built-in executable workflows:
+*   `/setup` - Initializes environment and database.
+*   `/deploy` - Orchestrates a production build and startup.
+*   `/test` - Executes the full verification suite.
 
-```bash
-npm run dev
-```
-The server will start on `http://localhost:3000`.
-
-### 2. Docker Setup (Recommended)
-The easiest way to run SRA is using Docker. This works on Windows, macOS, and Linux.
-
-1.  **Configure Environment**:
-    Ensure you have `.env` files in both `backend/` and `frontend/` directories (use `.env.example` as a template).
-
-2.  **Run with Docker Compose**:
-    ```bash
-    docker-compose up --build
-    ```
-
-    - **Backend**: Runs on `http://localhost:3000`
-    - **Frontend**: Runs on `http://localhost:3001`
-    - **Database**: Connects to your external Supabase instance.
-
-### 3. Manual Frontend Setup
-
-Open a new terminal, navigate to the frontend directory, and install dependencies:
-
-```bash
-cd frontend
-npm install
-```
-
-Start the Next.js development server:
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3001](http://localhost:3001) to view the application.
+---
 
 ## 📂 Project Structure
 
-```
+```bash
 SRA/
-├── backend/                # Server & API (See backend/README.md)
-│   ├── prisma/
-│   │   └── schema.prisma   # PostgreSQL database schema
+├── .github/                # CI/CD Workflows (Lint, CodeQL, Stale)
+├── .agent/                 # Agentic Workflows (Setup, Test, Deploy)
+├── backend/                # API Engine & AI Orchestration
+│   ├── prisma/             # Schema & Migrations
 │   ├── src/
-│   │   ├── config/         # App configuration & OAuth
-│   │   ├── controllers/    # API Request handlers
-│   │   ├── services/       # AI (Gemini), Queue (Bull), & business logic
-│   │   └── workers/        # Background workers for analysis
-│   └── .env
-│
-├── frontend/               # Next.js App (See frontend/README.md)
-│   ├── app/                # App Router pages
-│   ├── components/         # React Components
-│   └── .env.local
-│
+│   │   ├── services/       # AI logic, QStash workers, & business rules
+│   │   └── controllers/    # API request handlers
+├── frontend/               # Next.js 15 Application Layer
+│   ├── app/                # Server-driven App Router
+│   ├── components/         # High-fidelity React components
+│   └── lib/                # Shared utilities & API clients
 └── README.md
 ```
 
-## 🧠 What I Learned
+---
 
-Building SRA was a deep dive into modern full-stack architecture. Key takeaways:
--   **Orchestrating AI**: Managing long-running AI tasks requires robust async queues (Upstash) rather than simple request-response cycles.
--   **Structured Outputs**: Getting LLMs to output strictly valid JSON for downstream systems is an art of prompt engineering and schema validation.
--   **State Management**: Synchronizing a complex multi-tab workspace with server state taught me the value of immutable state patterns in React.
+## 🗺️ Roadmap & Governance
 
-## 🗺️ Roadmap
+- [x] **v2.0**: Strategic 5-Layer Pipeline Implementation.
+- [x] **v2.1**: Interactive DFD Explorer & PNG Export.
+- [x] **v2.2**: GitHub CI/CD & Agentic Automation.
+- [ ] **v2.5**: Collaborative Real-time Multi-User Editing.
+- [ ] **v3.0**: Enterprise Custom Model Fine-tuning (MLOps integration).
 
-- [x] **Social Login**: Google & GitHub OAuth.
-- [x] **History**: Save and view past analyses.
-- [x] **Security**: Rate limiting and payload validation.
-- [x] **Export Options**: Export requirements to PDF, CSV, or Jira.
-- [ ] **Custom Prompts**: Allow users to tweak the AI system prompt.
-- [ ] **Dark Mode**: Full dark mode support for the UI (Partially implemented).
+### Contributing
+We welcome contributions from the community. Please review our [Contribution Guidelines](CONTRIBUTING.md) for architectural context and coding standards.
 
-## 🤝 Contributing
+### Security Policy
+To report vulnerabilities, please contact the security team via the repository's security advisory tab.
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+---
 
 ## 📄 License
 
-This project is licensed under the Apache License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **Apache License 2.0**. See the [LICENSE](LICENSE) file for the full legal text.
+
