@@ -10,7 +10,6 @@ import {
     Controls,
     useNodesState,
     useEdgesState,
-    MarkerType,
     NodeProps,
     Node,
     Edge,
