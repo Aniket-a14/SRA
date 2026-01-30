@@ -38,8 +38,8 @@ graph TD
 
     Stakeholder((Stakeholder)) -->|Raw Vision| L1
     L1 --> L2
-    L2 --|FAIL: Ambiguity Detected| L1
-    L2 --|PASS| L3
+    L2 -->|FAIL: Ambiguity Detected| L1
+    L2 -->|PASS| L3
     L3 --> L4
     L4 -->|Export| Artifacts[IEEE SRS, PDF, DFD, API Spec]
     L4 --> L5
