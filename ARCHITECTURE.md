@@ -1,103 +1,114 @@
-# System Architecture
+# System Architecture: SRA Platform
 
-## Overview
+## 📑 Executive Overview
 
-The SRA (Smart Requirements Analyst) system is a modern, event-driven ecosystem designed as a highly decoupled multi-layer pipeline. It follows a **Pipeline-as-a-Service** pattern where each layer adds increasing levels of fidelity and verification to the requirements.
+The **SRA (Smart Requirements Analyzer)** is engineered as a high-fidelity, decoupled multi-layer analysis pipeline. Unlike traditional one-shot AI applications, SRA treats requirements engineering as a structured manufacturing process, where raw intent is iteratively refined, validated, and formalized into IEEE-830 artifacts.
+
+---
+
+## 🏗️ Architectural Blueprint
+
+The system follows a modern **Manager-Worker** pattern, utilizing serverless orchestration for high scalability and resilience.
 
 ```mermaid
 graph TD
-    User[User] -->|Interacts| Client["Frontend (Next.js 15)"]
-    Client -->|REST API| API["Backend API (Vercel Serverless)"]
-    
-    subgraph "Orchestration Layer"
-        API -->|Auth| Auth[Auth Service]
-        API -->|CRUD| DB[(Supabase <br/> PostgreSQL + pgvector)]
-        API -->|Publish Job| QStash[Upstash QStash]
+    subgraph "Application Layer (Frontend)"
+        UI["Next.js 15 UI"] -->|REST / JWT| Gateway["API Gateway"]
+        UI -->|State Management| ReactFlow["@xyflow/react Engine"]
     end
 
-    subgraph "Async Analysis Pipeline"
-        QStash -->|Webhook| Worker["Worker Endpoint (Vercel)"]
-        Worker --> W1[Layer 1: Intake Model]
-        W1 --> W2[Layer 2: Validation Gate]
-        W2 --> W3[Layer 3: SRS Constructor]
-        W3 --> W4[Layer 4: Refinement Hub]
-        W4 --> W5[Layer 5: KB Shredder]
-        W5 -->|Embeddings| DB
+    subgraph "Orchestration Layer (Backend)"
+        Gateway -->|Verify Session| Auth["Auth Service (JWT/OAuth)"]
+        Gateway -->|Transaction| Prisma["Prisma ORM Layer"]
+        Prisma --> DB[(Supabase <br/> PostgreSQL + pgvector)]
+        Gateway -->|Dispatch Job| QStash["Upstash QStash Queue"]
     end
-    
-    subgraph "AI Core"
-        W1 & W2 & W3 & W4 & W5 -->|Abstracted Call| AIService[AI Service Layer]
-        AIService -->|Google| Gemini[Gemini 2.5 Flash]
+
+    subgraph "Analysis Engine (Async Pipelines)"
+        QStash -->|Event Trigger| Worker["Serverless Worker"]
+        Worker --> P1["L1: Intake Mapping"]
+        P1 --> P2["L2: Logic Gatekeeper"]
+        P2 --> P3["L3: SRS Constructor"]
+        P3 --> P4["L4: Refinement Hub"]
+        P4 --> P5["L5: Knowledge Indexer"]
+    end
+
+    subgraph "AI Core & Intelligence"
+        P1 & P2 & P3 & P4 & P5 -->|Unified Call| AIService["AI Service Layer"]
+        AIService -->|Model: Gemini 2.0 Flash| GenAI["Google Generative AI"]
+        P5 -->|Embeddings| DB
     end
 ```
 
-## The 5-Layer Analysis Strategy
+---
 
-SRA moves beyond simple "prompt-and-result" patterns by treating requirement generation as a multi-step manufacturing process.
+## 🚀 The 5-Layer Analysis Pipeline
 
-### Layer 1: Structured Intake
-Converts raw, unstructured user intent into a **Standard Intake Model**. This ensures that even the most chaotic descriptions are mapped to the correct IEEE sections early in the process.
+The core innovation of SRA is its rigid, automated pipeline that ensures requirement integrity.
 
-### Layer 2: Validation Gatekeeper
-A critical "Quality Gate" that analyzes the Layer 1 output for ambiguity, missing context, or internal contradictions. 
-- **PASS**: Proceeds to full generation.
-- **FAIL**: Returns to user with specific "Clarity Requests".
+### Layer 1: Strategic Intake Mapping
+*   **Purpose**: Translates unstructured stakeholder vision into a standardized JSON intake model.
+*   **Logic**: Uses semantic mapping to categorize input into draft IEEE sections (Scope, Perspective, etc.).
 
-### Layer 3: Final Analysis (IEEE SRS)
-This layer consumes the validated intake model to generate the "Source of Truth" SRS. It synthesizes user stories, functional specs, and visual Mermaid.js models.
+### Layer 2: Verification Gatekeeper (Quality Gate)
+*   **Purpose**: Acts as an automated "Requirement Reviewer".
+*   **Action**: Analyzes the intake model for ambiguity, contradictions (e.g., conflicting performance vs. safety requirements), and detail sufficiency.
+*   **Outcome**: Yields a `PASS/FAIL/WARN` status. Fails trigger an interactive feedback loop for the user.
 
-### Layer 4: Refinement Cycle (Chat & Patch)
-Enables iterative human-in-the-loop improvements. Users talk to the AI to "nudge" specific requirements, and the system performs a non-destructive patch to the existing model, creating a new version.
+### Layer 3: High-Fidelity SRS Constructor
+*   **Purpose**: The primary formalization stage.
+*   **Output**: Generates full IEEE-830 compliant markdown, JIRA-ready user stories, and Mermaid.js diagrams.
+*   **Technique**: Prompt-chaining with distinct personas (Architect, Business Analyst, QA Lead).
 
-### Layer 5: Knowledge Base Reuse
-Finalized SRS modules are shredded into semantic chunks and stored in the **Knowledge Base**. Identical or sufficiently similar future requests are served directly from this pre-validated cache, ensuring sub-second response times.
+### Layer 4: Interactive Refinement Hub
+*   **Purpose**: Enables "Human-in-the-loop" iterations.
+*   **Features**: Intelligent patching, version branching, and "Self-Healing" diagram repair for syntax errors.
 
-## Versioning & Data Tree
+### Layer 5: Semantic Knowledge Persistence
+*   **Purpose**: Enterprise-scale requirement reuse.
+*   **persistence**: Shreds finalized requirements into semantic fragments and indexes them via `pgvector`.
+*   **Result**: Sub-second context retrieval for project-level consistency.
 
-SRA uses a **Branching Version Tree** to manage the evolution of projects.
+---
 
-### Entity Relationship
-- **Analysis**: Each version is a standalone record linked via `rootId` and `parentId`.
-- **Project**: A top-level container that tracks user ownership and metadata.
+## 💾 Data Modeling & Persistence
 
-```mermaid
-classDiagram
-    class Project {
-        +String id
-        +String name
-        +String description
-        +DateTime createdAt
-    }
-    class Analysis {
-        +String id
-        +String rootId
-        +String parentId
-        +Integer version
-        +Boolean isFinalized
-        +JSON resultJson
-    }
-    Project "1" -- "*" Analysis : contains
-```
+SRA implements a **Recursive Versioning Tree**, ensuring that every change is non-destructive and auditable.
 
-## AI Service Tier
-The system implements a **Provider Abstraction** pattern. This allows the same logic (e.g., Layer 3 generation) to run on different LLMs (Gemini, GPT-4, etc.) without code changes, simply by toggling a setting in the `Analysis` metadata.
+### Entity Relationships (Prisma)
+- **Project**: The top-level administrative unit (Owner, Settings, Metadata).
+- **Analysis**: A single point in time for a project's requirements.
+- **Hierarchical Logic**: Analyses are linked via `rootId` (original version) and `parentId` (direct predecessor), forming a visual project timeline.
 
-## System Capabilities & Workflow Walkthrough
+---
 
-This section outlines how the architecture supports the core user flows using the 5-Layer Pipeline.
+## 🛡️ Security & Operational Integrity
 
-### 1. Authentication Flow
-- **Architecture Component**: Auth Service (NextAuth.js / OAuth Providers)
-- **Flow**:
-    - Users sign in via Google or GitHub.
-    - JWT tokens govern session state, securing API routes.
+### Authentication Architecture
+- **JWT-First**: All API interactions are governed by signed JWT tokens.
+- **Provider Abstraction**: Unified support for Google Workspace and GitHub Enterprise OAuth.
+- **RLS (Row Level Security)**: Supabase-level security ensuring that even at the database layer, users can only access their authorized project fragments.
 
-### 2. Creating a New Analysis (Layers 1 & 2)
-- **Scenario**: A user submits a raw idea (e.g., "ZombieFitness app").
-- **Architectural Flow**:
-    1.  **Frontend** sends the prompt to the `IntakeService`.
-    2.  **Layer 1 (Intake)**: Structured data capture converts free text to JSON.
-    3.  **Layer 2 (Validation)**: The AI Gatekeeper validates the prompt for clarity.
+### Resilience Patterns
+- **Exponential Backoff**: Used in QStash for AI service failures.
+- **State Hydration**: Frontend recovery logic for long-running analyses.
+- **Error Boundaries**: Granular React boundaries to isolate Mermaid rendering or Flowchart failures from the main UI.
+
+---
+
+## 🔧 AI Orchestration Strategy
+
+The system utilizes a **Prompt Factory** pattern to maintain consistent AI outputs across multiple versions.
+
+1.  **Strict JSON Schemas**: AI outputs are validated against Zod schemas before being committed to the database.
+2.  **Context Injection**: Dynamic injection of project history and architectural constraints into LLM prompts.
+3.  **Cost Optimization**: Leveraging Gemini 2.0 Flash for high-speed, high-context reasoning at scale.
+
+---
+
+## 🗺️ Roadmap & Operational Governance
+
+Detailed governance and contribution models are maintained in the [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md) documents. For technical maintenance, refer to the [Agent Workflows](.agent/workflows/).
     4.  **Async Processing**: If validated, a job is published to **Upstash QStash**, releasing the HTTP connection immediately.
 
 ### 3. Exploring Results (Layer 3)

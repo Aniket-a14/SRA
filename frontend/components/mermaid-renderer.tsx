@@ -90,14 +90,13 @@ export function MermaidRenderer({ chart, title, className, onError, isExport = f
             } catch (err) {
                 console.error("Mermaid Render Error:", err)
                 const errorMessage = err instanceof Error ? err.message : String(err)
-                setHasError(true)
                 onError?.(errorMessage)
             }
         }
 
         renderDiagram()
         renderDiagram()
-    }, [chart, mermaidInstance, title, isExport])
+    }, [chart, mermaidInstance, title, isExport, onError])
 
     // EXPORT MODE: Render clean, auto-sized div without Card/Scrollbars
     if (isExport) {
