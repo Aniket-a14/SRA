@@ -1,4 +1,6 @@
-extends: ["spectral:oas, recommended"]
+extends:
+  - spectral:oas
+  - spectral:recommended
 
 rules:
   # Enforce operation IDs for better code generation
