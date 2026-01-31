@@ -16,12 +16,12 @@ const pinoLogger = pino({
 export const logger = pinoHttp({
     logger: pinoLogger,
     autoLogging: true,
-    genReqId: (req) => req.headers['x-correlation-id'] || uuidv4(),
+    genReqId: (req) => req.id || req.headers['x-request-id'] || uuidv4(),
     customProps: (req, res) => ({
         method: req.method,
         url: req.url,
         userId: req.user?.userId,
-        correlationId: req.id
+        requestId: req.id
     })
 });
 

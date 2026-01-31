@@ -3,6 +3,7 @@ import { Inter, Outfit } from "next/font/google"
 import "./globals.css"
 import { Providers } from "@/components/providers"
 import { Toaster } from "@/components/ui/sonner"
+import { VitalsMonitor } from "@/components/monitoring/VitalsMonitor"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -69,6 +70,7 @@ export default function RootLayout({
     <html lang="en" className="scroll-smooth" suppressHydrationWarning>
       <body className={`${inter.variable} ${outfit.variable} font-sans antialiased bg-background text-foreground`}>
         <Providers>{children}</Providers>
+        <VitalsMonitor />
         <Toaster />
       </body>
     </html>

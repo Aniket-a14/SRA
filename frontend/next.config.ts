@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   /* config options here */
   output: 'standalone',
   experimental: {
-    reactCompiler: true,
+    turbopackUseSystemTlsCerts: true,
   },
   async headers() {
     return [
