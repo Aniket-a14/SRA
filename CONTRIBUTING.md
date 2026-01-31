@@ -25,7 +25,7 @@ The backend is built with **Node.js** and designed for **Vercel Serverless**, or
 -   **`.env`**: Stores environment variables like your API key and database URL. **Do not commit this file.**
 
 ### Frontend (`/frontend`)
-The frontend is built with **Next.js 15 (App Router)** and **TypeScript**, styled with **Tailwind CSS v4**.
+The frontend is built with **Next.js 16 (App Router)** and **TypeScript**, styled with **Tailwind CSS v4**.
 -   **`app/`**: Contains the application routes and pages.
     -   `page.tsx`: The main landing page and UI.
     -   `layout.tsx`: The root layout wrapper.

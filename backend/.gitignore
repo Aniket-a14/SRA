@@ -1,8 +1,13 @@
-
+# Dependencies
 node_modules/
 npm-debug.log
+
+# Build
 dist/
 
+# Prisma
 /src/generated/prisma
+
+# Environment
 .env
 .env.local

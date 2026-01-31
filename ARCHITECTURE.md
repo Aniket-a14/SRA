@@ -13,7 +13,7 @@ The system follows a modern **Manager-Worker** pattern, utilizing serverless orc
 ```mermaid
 graph TD
     subgraph "Application Layer (Frontend)"
-        UI["Next.js 15 UI"] -->|REST / JWT| Gateway["API Gateway"]
+        UI["Next.js 16 UI"] -->|REST / JWT| Gateway["API Gateway"]
         UI -->|State Management| ReactFlow["@xyflow/react Engine"]
     end
 

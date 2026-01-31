@@ -88,7 +88,7 @@ SRA is engineered for stability, security, and enterprise-grade performance.
 ### 🧩 Infrastructure Security
 - **Multi-Stage Docker Builds**: Minimized production images using separate build/runtime environments.
 - **Non-Root Execution**: Containers run as unprivileged users (`nodejs`/`nextjs`) to mitigate security risks.
-- **Dependency Pinning**: Strict versioning of core dependencies (e.g., Next.js 15.5.11) to ensure environment parity.
+- **Dependency Pinning**: Strict versioning of core dependencies (e.g., Next.js 16.1.6) to ensure environment parity.
 
 ### 🌐 Network & Content Security
 - **Hardened CSP**: Strict Content Security Policy injected via Next.js and Express security headers.
@@ -125,7 +125,7 @@ SRA leverages professional GitHub Actions for continuous quality assurance and o
 
 | Component | Technology | Rationale |
 |-----------|------------|-----------|
-| **Frontend** | [Next.js 15.5.11](https://nextjs.org/) | App Router with standalone output for enterprise scalability. |
+| **Frontend** | [Next.js 16.1.6](https://nextjs.org/) | App Router with standalone output for enterprise scalability. |
 | **Styling** | [Tailwind CSS v4](https://tailwindcss.com/) | Next-gen JIT engine for high-performance, responsive UI. |
 | **Backend** | [Node.js 20](https://nodejs.org/) / [Prisma 6](https://www.prisma.io/) | Type-safe ORM for robust asynchronous data orchestration. |
 | **Database** | [PostgreSQL 16+](https://www.postgresql.org/) | High-concurrency persistence with `pgvector` RAG support. |
@@ -197,7 +197,7 @@ SRA/
 │   ├── src/
 │   │   ├── services/       # AI logic, QStash workers, & business rules
 │   │   └── controllers/    # API request handlers
-├── frontend/               # Next.js 15 Application Layer
+├── frontend/               # Next.js 16 Application Layer
 │   ├── app/                # Server-driven App Router
 │   ├── components/         # High-fidelity React components
 │   └── lib/                # Shared utilities & API clients

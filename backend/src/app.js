@@ -9,6 +9,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 import { authLimiter, aiLimiter, apiLimiter } from './middleware/rateLimiters.js';
+import { requestIdMiddleware } from './middleware/requestIdMiddleware.js';
 import { doubleCsrfProtection, generateToken } from './middleware/csrfMiddleware.js';
 import { errorHandler } from './middleware/errorMiddleware.js';
 import { logger } from './middleware/logger.js';
@@ -77,6 +78,7 @@ app.get('/api/csrf-token', (req, res) => {
 
 app.use('/api/health', healthRoutes);
 
+app.use(requestIdMiddleware);
 app.use(logger);
 app.use(doubleCsrfProtection);
 
