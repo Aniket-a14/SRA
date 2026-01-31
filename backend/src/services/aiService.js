@@ -160,12 +160,8 @@ ${text}
       console.warn("[AI Service] Native JSON parse failed, attempting secondary fix for bad escapes...");
       // Secondary Fix: Handle unescaped backslashes that aren't valid JSON escapes
       let fixedOutput = output.replace(/\\(?!(["\\/bfnrt]|u[0-9a-fA-F]{4}))/g, "\\\\");
-      try {
-        parsedSRS = JSON.parse(fixedOutput);
-        console.log("[AI Service] Secondary parse SUCCESS after manual escaping.");
-      } catch (secondaryError) {
-        throw secondaryError;
-      }
+      parsedSRS = JSON.parse(fixedOutput);
+      console.log("[AI Service] Secondary parse SUCCESS after manual escaping.");
     }
 
     // 5. Type-Safe Validation (Zod)
