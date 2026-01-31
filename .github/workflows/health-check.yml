@@ -1,6 +1,8 @@
 name: Scheduled Health Check
 
 on:
+  push:
+    branches: [ "main" ]
   schedule:
     - cron: '0 * * * *' # Every hour
   workflow_dispatch:
@@ -11,7 +13,7 @@ jobs:
     steps:
       - name: Check Backend Health
         run: |
-          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://sra-xi.vercel.app/api/)
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://sra-backend-six.vercel.app/)
           if [ "$RESPONSE" -ne 200 ]; then
             echo "Backend health check failed with status $RESPONSE"
             exit 1
