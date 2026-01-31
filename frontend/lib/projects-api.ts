@@ -22,7 +22,9 @@ export async function fetchProjects(token: string): Promise<Project[]> {
     });
     await handleResponse(res);
     const json = await res.json();
-    return json.data || json;
+    const data = json.data || json;
+    // Ensure we always return an array
+    return Array.isArray(data) ? data : [];
 }
 
 export async function fetchProject(token: string, id: string): Promise<Project> {
