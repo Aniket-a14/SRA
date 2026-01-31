@@ -129,16 +129,21 @@ SRA leverages professional GitHub Actions for continuous quality assurance and o
 
 ### 1. Advanced Environment Configuration
 
-Ensure the following variables are defined in your infrastructure (see `.env.example` for details):
+Ensure the following variables are defined in your infrastructure (see `.env.example` files in `backend/` and `frontend/` for details):
 
 | Group | Key | Required | Description |
 |-------|-----|:--------:|-------------|
 | **Database** | `DATABASE_URL` | Yes | Postgres connection string with pooling. |
 | **Database** | `DIRECT_URL` | Yes | Direct connection string for Prisma migrations. |
-| **Auth** | `JWT_SECRET` | Yes | Secret key for signing authorization tokens. |
-| **AI** | `GEMINI_API_KEY` | Yes | API key for Google Gemini 2.0 Flash. |
+| **Database** | `REDIS_URL` | Optional | Redis connection string for rate limiting/caching. |
+| **AI (Gemini)** | `GEMINI_API_KEY` | Yes | API key for Google Gemini 2.0 Flash (Primary). |
+| **AI (OpenAI)**| `OPENAI_API_KEY` | Optional | API key for OpenAI (Secondary/Internal). |
 | **Async** | `QSTASH_TOKEN` | Yes | Bearer token for Upstash QStash job publishing. |
-| **Identity** | `GOOGLE_CLIENT_ID` | Optional | Client ID for Google Workspace integration. |
+| **Async** | `QSTASH_SIGNING_KEYS` | Yes | Signing keys for verifying QStash webhooks. |
+| **Auth** | `JWT_SECRET` | Yes | Secret key for signing authorization tokens. |
+| **Auth** | `COOKIE_SECRET` | Yes | Secret key for signed cookies. |
+| **Social Auth** | `GOOGLE_CLIENT_ID` | Optional | Google OAuth 2.0 Client ID. |
+| **Social Auth** | `GITHUB_CLIENT_ID` | Optional | GitHub OAuth App Client ID. |
 
 ### 2. Deployment Strategies
 

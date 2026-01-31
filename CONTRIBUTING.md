@@ -42,7 +42,7 @@ The frontend is built with **Next.js 15 (App Router)** and **TypeScript**, style
 
 ### Prerequisites
 Ensure you have the following installed or set up:
--   **Node.js** (v18 or higher)
+-   **Node.js** (v20 or higher)
 -   **npm** (comes with Node.js)
 -   **Supabase Project** (PostgreSQL + pgvector)
 -   **Upstash Account** (Redis + QStash)

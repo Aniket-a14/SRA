@@ -14,7 +14,7 @@ We provide security updates for the following versions:
 | < 2.0.0 | Deprecated | :x: |
 
 ## 🔍 Vulnerability Disclosure Process
-If you discover a security vulnerability within SRA, we appreciate your efforts-   **Google Gemini 2.0 Flash API Key** (Get one [here](https://aistudio.google.com/app/apikey))
+If you discover a security vulnerability within SRA, we appreciate your efforts in disclosing it to us in a responsible manner.
 
 **Please do NOT open a public GitHub issue for security vulnerabilities.**
 
