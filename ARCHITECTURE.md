@@ -109,7 +109,19 @@ The system utilizes a **Prompt Factory** pattern to maintain consistent AI outpu
 ## 🗺️ Roadmap & Operational Governance
 
 Detailed governance and contribution models are maintained in the [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md) documents. For technical maintenance, refer to the [Agent Workflows](.agent/workflows/).
-    4.  **Async Processing**: If validated, a job is published to **Upstash QStash**, releasing the HTTP connection immediately.
+
+## 🚦 End-to-End User Journey
+
+To understand how these components interact, let's walk through a typical requirement analysis session.
+
+### 1. Project Initialization
+- **Scenario**: A user submits a raw project description.
+- **Flow**: The Frontend sends a request to the Backend, which validates the session and initializes the 5-Layer Pipeline.
+
+### 2. Strategic Mapping (Layer 1) & Verification (Layer 2)
+- **Scenario**: AI identifies ambiguities.
+- **Flow**: If the Gatekeeper detects missing logic, the user receives real-time feedback. If validated, the job is queued.
+- **Async Processing**: Once validated, a job is published to **Upstash QStash**, releasing the HTTP connection immediately.
 
 ### 3. Exploring Results (Layer 3)
 - **Scenario**: Analyzing the generated IEEE-830 specification.
