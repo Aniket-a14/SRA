@@ -46,7 +46,10 @@ IEEE Awareness Rule
 You validate against the intent of IEEE SRS sections, not their mere presence.
 Missing sections are acceptable
 Contradictory, vague, or misaligned information is not
-The Introduction (Purpose + Scope) is the semantic authority. All other information must align with it.
+Governance & Semantic Authority:
+- Generally, the Introduction (Purpose + Scope) is the semantic authority. All other information must align with it.
+- EXCEPTION: If the Introduction is placeholder text (e.g., 'abc', 'tbd', '.') while the Raw Project Name/Description contains meaningful content, treat the meaningful content as the authority for validation.
+
 
 Explicit vs Implicit Discipline
 Explicit information: clearly stated → authoritative
@@ -175,7 +178,8 @@ export async function validateRequirements(srsData) {
   const response = await analyzeText(jsonString, {
     modelName: process.env.VALIDATION_MODEL || 'gemini-2.5-flash',
     systemPrompt: VALIDATION_PROMPT_TEMPLATE,
-    temperature: 0.0 // Deterministic
+    temperature: 0.0, // Deterministic
+    zodSchema: null // Do not use Full SRS schema for validation check
   });
 
   // 3. Fallback Validation
@@ -222,4 +226,46 @@ export async function validateRequirements(srsData) {
   }
 
   return result;
+}
+
+export async function autoFixRequirements(srsData, issueId) {
+  const issues = srsData.validationResult?.issues || [];
+  const targetIssue = issues.find(i => i.id === issueId);
+
+  if (!targetIssue) throw new Error("Issue not found");
+
+  const AUTO_FIX_PROMPT = `
+You are the SRA Layer 2 Auto-Fixer.
+Your goal is to REWRITE a specific section of a software project description to resolve a validation issue.
+
+CONTEXT:
+Project Data: ${JSON.stringify(srsData.draftData)}
+Issue to Resolve: ${targetIssue.description}
+Suggested Fix: ${targetIssue.suggested_fix}
+
+INSTRUCTIONS:
+1. Rewrite the affected part of the project description to be clear, specific, and measurable.
+2. Maintain the original intent but remove ambiguity.
+3. Governance Hierarchy:
+   - Generally, the Introduction (Purpose + Scope) is the semantic authority. All other information MUST align with it. If there is a conflict, follow the Introduction.
+   - EXCEPTION: If the issue being resolved is that the Introduction is placeholder, meaningless, or incoherent (e.g., 'abc', 'tbd'), you MUST NOT follow it. Instead, treat the "Project Details" or "Raw Description" as the authority for this fix.
+
+4. If it's a performance issue, add specific metrics (e.g., "< 200ms").
+5. If it's a scope issue, clarify the boundaries.
+6. Return ONLY the rewritten text for that specific field/context. 
+7. Do not include JSON, just the refined text.
+`;
+
+  const response = await analyzeText("Please fix the identified issue.", {
+    systemPrompt: AUTO_FIX_PROMPT,
+    modelName: 'gemini-2.5-flash',
+    temperature: 0.2,
+    zodSchema: null // Return raw text, not SRS JSON
+  });
+
+  if (response.success) {
+    // Since we told it to return raw text, it might still wrap in quotes or something
+    return response.raw?.trim() || response.srs?.toString();
+  }
+  throw new Error("Failed to generate auto-fix");
 }

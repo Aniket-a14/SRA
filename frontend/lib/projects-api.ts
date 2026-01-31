@@ -35,6 +35,7 @@ export async function fetchProject(token: string, id: string): Promise<Project> 
 export async function createProject(token: string, data: { name: string; description?: string }, csrfToken?: string | null): Promise<Project> {
     const res = await fetch(`${BACKEND_URL}/projects`, {
         method: "POST",
+        credentials: "include",
         headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
@@ -49,6 +50,7 @@ export async function createProject(token: string, data: { name: string; descrip
 export async function updateProject(token: string, id: string, data: { name?: string; description?: string; settings?: PromptSettings }, csrfToken?: string | null): Promise<Project> {
     const res = await fetch(`${BACKEND_URL}/projects/${id}`, {
         method: "PUT",
+        credentials: "include",
         headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
@@ -63,6 +65,7 @@ export async function updateProject(token: string, id: string, data: { name?: st
 export async function deleteProject(token: string, id: string, csrfToken?: string | null): Promise<void> {
     const res = await fetch(`${BACKEND_URL}/projects/${id}`, {
         method: "DELETE",
+        credentials: "include",
         headers: {
             Authorization: `Bearer ${token}`,
             ...(csrfToken && { "x-csrf-token": csrfToken })

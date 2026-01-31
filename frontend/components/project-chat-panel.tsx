@@ -24,7 +24,7 @@ interface ProjectChatPanelProps {
 }
 
 export function ProjectChatPanel({ analysisId, onAnalysisUpdate, hidden, isFinalized }: ProjectChatPanelProps) {
-    const { token, csrfToken, user } = useAuth()
+    const { token, csrfToken, user, fetchCsrf } = useAuth()
 
     const [messages, setMessages] = useState<ChatMessage[]>([])
     const [input, setInput] = useState("")
@@ -76,13 +76,20 @@ export function ProjectChatPanel({ analysisId, onAnalysisUpdate, hidden, isFinal
         const tempId = Date.now().toString()
         setMessages(prev => [...prev, { id: tempId, role: "user", content: userMsg }])
 
+        // PROACTIVE CSRF REFRESH
+        let effectiveCsrf = csrfToken;
+        if (!effectiveCsrf) {
+            effectiveCsrf = await fetchCsrf();
+        }
+
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}/chat`, {
                 method: "POST",
+                credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
-                    ...(csrfToken && { "x-csrf-token": csrfToken })
+                    ...(effectiveCsrf && { "x-csrf-token": effectiveCsrf })
                 },
                 body: JSON.stringify({ message: userMsg })
             })

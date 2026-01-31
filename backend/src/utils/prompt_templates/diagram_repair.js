@@ -28,6 +28,11 @@ COMMON PITFALLS TO FIX
    - FIX: If the label is before the relationship (e.g., 'E1 : label E2 rel E3'), move it to the end.
    - FIX: Ensure valid connectivity symbols (e.g., '||--|{', '||--o{', '||..|{').
 
+6. ERD Attribute Syntax:
+   - "Attributes MUST be in the format 'type name'. No spaces in either unless quoted."
+   - FIX: If an attribute name has multiple words (e.g. 'Definition JSON'), join them with underscores (e.g. 'Definition_JSON') or remove the extra word.
+   - FIX: Ensure type is provided (default to 'string' if missing).
+   - FIX: Attributes MUST NOT contain JSON-like braces or commas inside the entity block.
 ================================================================
 INSTRUCTIONS
 ================================================================

@@ -32,6 +32,7 @@ import dynamic from "next/dynamic"
 import saveAs from "file-saver"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ErrorBoundary } from "@/components/error-boundary"
+import { SourcesPanel } from "@/components/analysis/sources-panel"
 import { useTransition } from "react"
 
 const ResultsTabs = dynamic(() => import("@/components/results-tabs").then(mod => mod.ResultsTabs), {
@@ -61,7 +62,7 @@ function AnalysisDetailContent() {
     const params = useParams()
     const id = params?.id as string
     const router = useRouter()
-    const { user, token, csrfToken, isLoading: authLoading } = useAuth()
+    const { user, token, csrfToken, isLoading: authLoading, fetchCsrf } = useAuth()
     const { unlockAndNavigate, unlockLayer, setLayer, setIsFinalized } = useLayer()
 
     const [analysis, setAnalysis] = useState<Analysis | null>(null)
@@ -73,10 +74,12 @@ function AnalysisDetailContent() {
     const [isFinalizing, setIsFinalizing] = useState(false)
     const [isValidating, setIsValidating] = useState(false)
     const [isProceeding, setIsProceeding] = useState(false)
+    const [isFixing, setIsFixing] = useState<string | null>(null);
     const [,] = useTransition()
     const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([]);
     const lastIdRef = useRef<string | null>(null);
     const pollingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const activePollingIdRef = useRef<string | null>(null);
 
     // Draft State
     const [draftData, setDraftData] = useState<SRSIntakeModel | null>(null)
@@ -110,10 +113,19 @@ function AnalysisDetailContent() {
                     ? "AI is analyzing requirements (Layer 3)..."
                     : "Queueing analysis job...";
                 setLoadingMessage(msg)
-                setAnalysis(data) // Ensure analysis is set so AnalysisLoading can render
-                // Clear existing timeout before setting new one to avoid multiple chains
-                if (pollingTimeoutRef.current) clearTimeout(pollingTimeoutRef.current);
-                pollingTimeoutRef.current = setTimeout(() => fetchAnalysis(analysisId), 3000)
+
+                // ROBUST POLLING: Only set a new timeout if this ID matches our current target
+                // and we don't have a newer polling loop starting.
+                if (analysisId === lastIdRef.current) {
+                    if (pollingTimeoutRef.current) clearTimeout(pollingTimeoutRef.current);
+                    activePollingIdRef.current = analysisId;
+                    pollingTimeoutRef.current = setTimeout(() => {
+                        // Double check we are still interested in this ID
+                        if (analysisId === lastIdRef.current) {
+                            fetchAnalysis(analysisId);
+                        }
+                    }, 3000);
+                }
                 return
             }
 
@@ -122,19 +134,29 @@ function AnalysisDetailContent() {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const errorMsg = (data.resultJson as any)?.error || "Analysis generation failed. The AI worker encountered an error.";
                 setError(errorMsg);
-                setIsLoading(false)
+                setIsLoading(false);
+                activePollingIdRef.current = null;
                 return
             }
 
             // EXTRA GUARD: If status is COMPLETED but we have no results yet, keep polling
-            // This handles potential DB consistency delay or early status flips
-            const hasResults = data.resultJson && Object.keys(data.resultJson).length > 2; // projectTitle + introduction is at least something
+            const hasResults = data.resultJson && Object.keys(data.resultJson).length > 2;
             if (currentStatus === 'COMPLETED' && !hasResults) {
                 setLoadingMessage("Finalizing results...")
-                if (pollingTimeoutRef.current) clearTimeout(pollingTimeoutRef.current);
-                pollingTimeoutRef.current = setTimeout(() => fetchAnalysis(analysisId), 2000)
+                if (analysisId === lastIdRef.current) {
+                    if (pollingTimeoutRef.current) clearTimeout(pollingTimeoutRef.current);
+                    activePollingIdRef.current = analysisId;
+                    pollingTimeoutRef.current = setTimeout(() => {
+                        if (analysisId === lastIdRef.current) {
+                            fetchAnalysis(analysisId);
+                        }
+                    }, 2000);
+                }
                 return
             }
+
+            // Successfully reached terminal state
+            activePollingIdRef.current = null;
 
             // Layer Synchronization from Metadata
             const status = data.metadata?.status;
@@ -253,12 +275,16 @@ function AnalysisDetailContent() {
         if (!id || !draftData) return;
         const loadingToast = toast.loading("Saving draft to cloud...");
         try {
+            let activeCsrf = csrfToken;
+            if (!activeCsrf) activeCsrf = await fetchCsrf();
+
             const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${id}`, {
                 method: "PUT",
+                credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
-                    ...(csrfToken && { "x-csrf-token": csrfToken })
+                    ...(activeCsrf && { "x-csrf-token": activeCsrf })
                 },
                 body: JSON.stringify({
                     metadata: { ...analysis?.metadata, draftData, status: 'DRAFT' }
@@ -266,22 +292,26 @@ function AnalysisDetailContent() {
             });
             if (!res.ok) throw new Error("Save failed");
             toast.success("Draft saved", { id: loadingToast });
-        } catch (e) {
-            console.error(e);
-            toast.error("Failed to save draft", { id: loadingToast });
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : "Failed to initialize project";
+            toast.error(errorMessage, { id: loadingToast });
         }
     }
 
     const handleRunValidation = async () => {
         setIsValidating(true);
         try {
+            let activeCsrf = csrfToken;
+            if (!activeCsrf) activeCsrf = await fetchCsrf();
+
             // First Save current draft to ensure validation uses latest data
             await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${id}`, {
                 method: "PUT",
+                credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
-                    ...(csrfToken && { "x-csrf-token": csrfToken })
+                    ...(activeCsrf && { "x-csrf-token": activeCsrf })
                 },
                 body: JSON.stringify({
                     metadata: { ...analysis?.metadata, draftData, status: 'DRAFT' }
@@ -290,9 +320,10 @@ function AnalysisDetailContent() {
 
             const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${id}/validate`, {
                 method: "POST",
+                credentials: "include",
                 headers: {
                     Authorization: `Bearer ${token}`,
-                    ...(csrfToken && { "x-csrf-token": csrfToken })
+                    ...(activeCsrf && { "x-csrf-token": activeCsrf })
                 }
             });
             if (!res.ok) throw new Error("Validation failed");
@@ -308,15 +339,77 @@ function AnalysisDetailContent() {
         }
     }
 
-    const handleProceedToAnalysis = async () => {
-        setIsProceeding(true);
+    const handleAutoFix = async (issueId: string) => {
+        if (!token) {
+            toast.error("Authentication required");
+            return;
+        }
+
+        setIsFixing(issueId);
+        const loadingToast = toast.loading("AI is repairing your requirement...");
+
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, {
+            let activeCsrf = csrfToken;
+            if (!activeCsrf) activeCsrf = await fetchCsrf();
+
+            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${id}/auto-fix`, {
                 method: "POST",
+                credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
-                    ...(csrfToken && { "x-csrf-token": csrfToken })
+                    ...(activeCsrf && { "x-csrf-token": activeCsrf })
+                },
+                body: JSON.stringify({ issueId })
+            });
+
+            if (!res.ok) throw new Error("Auto-fix failed");
+
+            const { fixedText } = await res.json();
+
+            // Find the issue to know WHICH section it belongs to
+            const issues: ValidationIssue[] = analysis?.metadata?.validationResult?.issues || [];
+            const issue = issues.find(i => i.id === issueId);
+
+            if (issue && issue.section) {
+                const section = issue.section.toLowerCase();
+                setDraftData(prev => {
+                    if (!prev) return prev;
+                    const next = { ...prev } as unknown as SRSIntakeModel;
+
+                    // Simple heuristic mapping - can be expanded
+                    if (section.includes('introduction') || section.includes('purpose') || section.includes('description')) {
+                        if (next.details?.fullDescription) {
+                            next.details.fullDescription.content = fixedText;
+                        }
+                    }
+                    return next;
+                });
+                toast.success("AI fix applied! You can now review and re-validate.", { id: loadingToast });
+            } else {
+                toast.info(`AI suggestion: ${fixedText}`, { id: loadingToast, duration: 5000 });
+            }
+        } catch (e: unknown) {
+            const errorMessage = e instanceof Error ? e.message : "Failed to apply auto-fix.";
+            toast.error(errorMessage, { id: loadingToast });
+        } finally {
+            setIsFixing(null);
+        }
+    };
+
+    const handleProceedToAnalysis = async () => {
+        setIsProceeding(true);
+        try {
+            let activeCsrf = csrfToken;
+            if (!activeCsrf) activeCsrf = await fetchCsrf();
+
+            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                    ...(activeCsrf && { "x-csrf-token": activeCsrf })
                 },
                 body: JSON.stringify({
                     projectId: analysis?.projectId,
@@ -342,12 +435,16 @@ function AnalysisDetailContent() {
 
     const handleBackToEdit = async () => {
         try {
+            let activeCsrf = csrfToken;
+            if (!activeCsrf) activeCsrf = await fetchCsrf();
+
             await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${id}`, {
                 method: "PUT",
+                credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
-                    ...(csrfToken && { "x-csrf-token": csrfToken })
+                    ...(activeCsrf && { "x-csrf-token": activeCsrf })
                 },
                 body: JSON.stringify({
                     metadata: { ...analysis?.metadata, status: 'DRAFT' } // Explicit status reset
@@ -363,11 +460,15 @@ function AnalysisDetailContent() {
         if (!id) return;
         setIsFinalizing(true);
         try {
+            let activeCsrf = csrfToken;
+            if (!activeCsrf) activeCsrf = await fetchCsrf();
+
             const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${id}/finalize`, {
                 method: "POST",
+                credentials: "include",
                 headers: {
                     Authorization: `Bearer ${token}`,
-                    ...(csrfToken && { "x-csrf-token": csrfToken })
+                    ...(activeCsrf && { "x-csrf-token": activeCsrf })
                 }
             });
             if (res.ok) {
@@ -512,6 +613,8 @@ function AnalysisDetailContent() {
                         onProceed={handleProceedToAnalysis}
                         onEdit={handleBackToEdit}
                         isProceeding={isProceeding}
+                        onAutoFix={handleAutoFix}
+                        isFixing={isFixing}
                     />
                 </div>
             </div>
@@ -535,7 +638,7 @@ function AnalysisDetailContent() {
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-3">
                                         <h1 className="text-xl sm:text-2xl font-bold tracking-tight truncate max-w-[300px] sm:max-w-md">
-                                            {analysis?.title || "Analysis Result"}
+                                            {draftData?.details?.projectName?.content || analysis?.title || "Analysis Result"}
                                         </h1>
                                         {analysis?.version && (
                                             <span className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full font-medium border border-primary/20">
@@ -712,14 +815,17 @@ function AnalysisDetailContent() {
                         </div>
 
                         {analysis && (
-                            <div className="border p-2 mb-4 bg-muted">
-                                <ErrorBoundary name="Results View">
-                                    <ResultsTabs
-                                        data={analysis}
-                                        onDiagramEditChange={memoizedOnDiagramEditChange}
-                                        onRefresh={memoizedOnRefresh}
-                                    />
-                                </ErrorBoundary>
+                            <div className="flex flex-col gap-4 mb-4">
+                                <SourcesPanel sources={analysis.metadata?.ragSources || []} />
+                                <div className="border p-2 bg-muted rounded-lg">
+                                    <ErrorBoundary name="Results View">
+                                        <ResultsTabs
+                                            data={analysis}
+                                            onDiagramEditChange={memoizedOnDiagramEditChange}
+                                            onRefresh={memoizedOnRefresh}
+                                        />
+                                    </ErrorBoundary>
+                                </div>
                             </div>
                         )}
                     </div>

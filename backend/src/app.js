@@ -60,14 +60,13 @@ app.use(express.json({
     }
 })); // Increase limit for large SRS data
 app.use(cookieParser());
-app.use(doubleCsrfProtection);
-app.use(logger);
-
-// CSRF Token endpoint
 app.get('/api/csrf-token', (req, res) => {
     const token = generateToken(req, res);
     res.json({ csrfToken: token });
 });
+
+app.use(logger);
+app.use(doubleCsrfProtection);
 
 // Root health check
 app.get('/', (req, res) => {

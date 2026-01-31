@@ -30,24 +30,39 @@ REMINDER: Return ONLY a valid JSON object.
 `;
   } else {
     // Standard SRA generation flow
-    // Extract Project Name for Governance if using Word Array format
-    let projectName = "Project";
-    try {
-      const words = JSON.parse(text);
-      if (Array.isArray(words)) {
-        const pIdx = words.findIndex(w => w === "Project:");
-        if (pIdx !== -1 && words[pIdx + 1]) {
-          projectName = words[pIdx + 1];
+    // Extract Project Name for Governance
+    let projectName = settings.projectName || "Project";
+
+    // If not provided in settings, attempt extraction from text
+    if (projectName === "Project") {
+      try {
+        const words = JSON.parse(text);
+        if (Array.isArray(words)) {
+          // Look for "Project:" and join all subsequent words until the next section marker "Description:"
+          const pIdx = words.findIndex(w => w === "Project:");
+          const dIdx = words.findIndex(w => w === "Description:");
+          if (pIdx !== -1) {
+            const endIdx = dIdx !== -1 ? dIdx : words.length;
+            projectName = words.slice(pIdx + 1, endIdx).join(" ").trim();
+          }
         }
-      }
-    } catch (e) {
-      if (text && typeof text === 'string') {
-        const match = text.match(/Project:\s*([^\n\r]+)/);
-        if (match) projectName = match[1].trim();
+      } catch (e) {
+        if (text && typeof text === 'string') {
+          // Regex for multi-line/multi-word name extraction
+          const match = text.match(/Project:\s*([^\n\r]+)/);
+          if (match) projectName = match[1].trim();
+        }
       }
     }
 
+    if (!projectName) projectName = "Project";
+
     masterPrompt = await constructMasterPrompt({ ...promptSettings, projectName }, promptVersion);
+
+    if (settings.systemPromptExtension) {
+      masterPrompt += `\n\n${settings.systemPromptExtension}`;
+    }
+
     finalPrompt = `
 ${masterPrompt}
 
@@ -94,17 +109,23 @@ ${text}
 
       console.log(`[AI Service] Using Provider: ${modelProvider}, Model: ${modelName} (Attempt ${attempt}/${maxAttempts})`);
 
+      const targetSchema = settings.zodSchema === null ? null : (settings.zodSchema || AnalysisResultSchema);
+
       if (modelProvider === "openai") {
         const completion = await callWithTimeout(openai.chat.completions.create({
           messages: [{ role: "system", content: masterPrompt }, { role: "user", content: text }],
           model: modelName,
           temperature: 0.7,
+          response_format: targetSchema ? { type: "json_object" } : undefined
         }), timeoutMs);
         output = completion.choices[0].message.content;
       } else {
         const model = genAI.getGenerativeModel({
           model: modelName || "gemini-2.5-flash",
-          generationConfig: { responseMimeType: "application/json" }
+          generationConfig: {
+            responseMimeType: "application/json",
+            temperature: settings.temperature || 0.7
+          }
         });
         const result = await callWithTimeout(model.generateContent(finalPrompt), timeoutMs);
 

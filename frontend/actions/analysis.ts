@@ -18,10 +18,14 @@ export type AnalysisActionState = {
     pending?: boolean;
 };
 
+import { cookies } from "next/headers";
+
 export async function createAnalysisAction(
     prevState: AnalysisActionState,
     formData: FormData
 ): Promise<AnalysisActionState> {
+    const cookieStore = await cookies();
+    const cookieString = cookieStore.toString();
     const token = formData.get("token") as string;
     const requirements = formData.get("requirements") as string;
     const projectName = formData.get("projectName") as string;
@@ -56,6 +60,7 @@ export async function createAnalysisAction(
             headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
+                Cookie: cookieString,
                 ...(csrfToken && { "x-csrf-token": csrfToken })
             },
             body: JSON.stringify({

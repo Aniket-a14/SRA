@@ -25,9 +25,11 @@ interface ValidationReportProps {
     onEdit: () => void;
     isProceeding?: boolean;
     onSubmitClarifications?: (answers: Record<string, string>) => void;
+    onAutoFix?: (issueId: string) => void;
+    isFixing?: string | null;
 }
 
-export function ValidationReport({ issues, clarificationQuestions = [], onProceed, onEdit, isProceeding, onSubmitClarifications }: ValidationReportProps) {
+export function ValidationReport({ issues, clarificationQuestions = [], onProceed, onEdit, isProceeding, onSubmitClarifications, onAutoFix, isFixing }: ValidationReportProps) {
     const criticalCount = issues.filter(i => i.severity === 'critical').length;
     const warningCount = issues.filter(i => i.severity === 'warning').length;
     const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -179,8 +181,20 @@ export function ValidationReport({ issues, clarificationQuestions = [], onProcee
                                     {issue.severity === 'critical' ? "Status: Must be resolved." : "Status: Recommended fix."}
                                 </p>
                                 {issue.suggested_fix && (
-                                    <div className="mt-2 text-xs bg-muted/50 p-2 rounded text-foreground/80 border border-border/50">
-                                        <span className="font-semibold text-primary/80">Suggestion: </span>{issue.suggested_fix}
+                                    <div className="mt-2 space-y-2">
+                                        <div className="text-xs bg-muted/50 p-2 rounded text-foreground/80 border border-border/50">
+                                            <span className="font-semibold text-primary/80">Suggestion: </span>{issue.suggested_fix}
+                                        </div>
+                                        <Button
+                                            size="sm"
+                                            variant="secondary"
+                                            className="h-7 text-[10px] gap-1.5"
+                                            onClick={() => onAutoFix && onAutoFix(issue.id)}
+                                            disabled={isFixing === issue.id}
+                                        >
+                                            <ShieldAlert className="h-3 w-3" />
+                                            {isFixing === issue.id ? "Fixing..." : "Apply AI Fix"}
+                                        </Button>
                                     </div>
                                 )}
                             </div>

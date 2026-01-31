@@ -1,5 +1,5 @@
 import express from 'express';
-import { analyze, getHistory, getAnalysis, chat, getChatHistory, updateAnalysis, generateCode, checkJobStatus, getHistoryForRoot, performComparison, regenerate, finalizeAnalysis, validateAnalysis, expandFeature, repairDiagram, generateDFD } from '../controllers/analysisController.js';
+import { analyze, getHistory, getAnalysis, chat, getChatHistory, updateAnalysis, generateCode, checkJobStatus, getHistoryForRoot, performComparison, regenerate, finalizeAnalysis, validateAnalysis, expandFeature, repairDiagram, generateDFD, autoFixValidationIssue } from '../controllers/analysisController.js';
 import { authenticate } from '../middleware/authMiddleware.js';
 
 import { validate } from '../middleware/validationMiddleware.js';
@@ -20,7 +20,8 @@ router.post('/:id/finalize', finalizeAnalysis);
 router.put('/:id', updateAnalysis);
 router.post('/:id/code', generateCode);
 router.post('/:id/regenerate', regenerate);
-router.post('/:id/validate', validateAnalysis); // Layer 2 Check
+router.post('/:id/validate', validateAnalysis); 
+router.post('/:id/auto-fix', autoFixValidationIssue);
 router.post('/:id/chat', chat);
 router.get('/:id/chat', getChatHistory);
 router.post('/expand-feature', expandFeature);

@@ -18,6 +18,7 @@ interface AuthContextType {
     authenticateWithToken: (token: string, refreshToken?: string) => Promise<void>
     logout: () => void
     isLoading: boolean
+    fetchCsrf: () => Promise<string | null>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -35,6 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             try {
                 await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/logout`, {
                     method: "POST",
+                    credentials: "include",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ refreshToken: rfToken })
                 })
@@ -67,6 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 if (rfToken) {
                     const refreshRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/refresh`, {
                         method: "POST",
+                        credentials: "include",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ refreshToken: rfToken })
                     })
@@ -95,13 +98,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const fetchCsrf = React.useCallback(async () => {
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/csrf-token`);
+            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/csrf-token`, {
+                credentials: "include"
+            });
             if (res.ok) {
                 const data = await res.json();
                 setCsrfToken(data.csrfToken);
+                return data.csrfToken;
             }
+            return null;
         } catch (error) {
             console.error("Failed to fetch CSRF token", error);
+            return null;
         }
     }, []);
 
@@ -132,7 +140,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
             setIsLoading(false)
         }
-    }, [fetchUser])
+    }, [fetchUser, fetchCsrf])
 
     const login = React.useCallback((newToken: string, newRefreshToken: string, newUser: User) => {
         localStorage.setItem("token", newToken)
@@ -156,8 +164,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         router.push("/")
     }, [fetchUser, router])
 
+    const value = React.useMemo(() => ({
+        user,
+        token,
+        csrfToken,
+        login,
+        authenticateWithToken,
+        logout,
+        isLoading,
+        fetchCsrf
+    }), [user, token, csrfToken, login, authenticateWithToken, logout, isLoading, fetchCsrf]);
+
     return (
-        <AuthContext.Provider value={{ user, token, csrfToken, login, authenticateWithToken, logout, isLoading }}>
+        <AuthContext.Provider value={value}>
             {children}
         </AuthContext.Provider>
     )

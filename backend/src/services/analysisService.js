@@ -2,18 +2,30 @@ import prisma from '../config/prisma.js';
 import { lintRequirements, checkAlignment } from './qualityService.js';
 import { analyzeText, repairDiagram } from './aiService.js';
 import crypto from 'crypto';
+import { retrieveContext, formatRagContext } from './ragService.js';
 
 export const performAnalysis = async (userId, text, projectId = null, parentId = null, rootId = null, settings = {}, analysisId = null) => {
     let resultJson;
     let analysisMeta = {};
 
     try {
-        // Direct function call
-        const response = await analyzeText(text, settings);
+        // LAYER 5: Granular RAG Retrieval
+        const ragChunks = await retrieveContext(text);
+        const ragContext = formatRagContext(ragChunks);
+        const ragSources = [...new Set(ragChunks.map(c => c.sourceTitle).filter(Boolean))];
+
+        // Direct function call with RAG context
+        const response = await analyzeText(text, {
+            ...settings,
+            systemPromptExtension: ragContext
+        });
 
         if (response.success && response.srs) {
             resultJson = response.srs;
-            analysisMeta = response.meta || {};
+            analysisMeta = {
+                ...(response.meta || {}),
+                ragSources
+            };
 
             // Backend Self-Correction: Fix diagrams before finalizing
             await validateAndAutoRepairDiagrams(resultJson, settings);
