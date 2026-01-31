@@ -1,26 +1,36 @@
-# Use Node.js LTS (v20)
-FROM node:20-alpine
-
-# Install openssl for Prisma
+# Stage 1: Dependencies
+FROM node:20-alpine AS deps
 RUN apk add --no-cache openssl
+WORKDIR /app
+COPY package*.json ./
+COPY prisma ./prisma/
+RUN npm ci
 
-# Set working directory
+# Stage 2: Build
+FROM node:20-alpine AS build
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN npx prisma generate
+
+# Stage 3: Runner
+FROM node:20-alpine AS runner
+RUN apk add --no-cache openssl
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+ENV NODE_ENV=production
 
-# Copy Prisma schema (needed for postinstall: prisma generate)
-COPY prisma ./prisma/
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
 
-# Install dependencies
-RUN npm install
+COPY --from=build --chown=nodejs:nodejs /app/package*.json ./
+COPY --from=build --chown=nodejs:nodejs /app/node_modules ./node_modules
+COPY --from=build --chown=nodejs:nodejs /app/src ./src
+COPY --from=build --chown=nodejs:nodejs /app/prisma ./prisma
 
-# Copy the rest of the application code
-COPY . .
+USER nodejs
 
-# Expose backend port
 EXPOSE 3000
 
-# Start the application
-CMD ["npm", "run", "dev"]
+CMD ["node", "src/server.js"]

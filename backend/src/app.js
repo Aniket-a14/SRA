@@ -34,13 +34,15 @@ app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'"], // unsafe-inline often needed for some React dev tools/scripts, refine for strict prod
+            scriptSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
             imgSrc: ["'self'", "data:", "https:"],
-            connectSrc: ["'self'", process.env.FRONTEND_URL || "http://localhost:3000", "https://generativelanguage.googleapis.com"],
+            connectSrc: ["'self'", "https://sra-xi.vercel.app", "https://generativelanguage.googleapis.com"],
+            frameAncestors: ["'none'"],
         },
     },
+    crossOriginEmbedderPolicy: false,
 }));
 
 app.use(apiLimiter);

@@ -1,0 +1,26 @@
+name: Scheduled Health Check
+
+on:
+  schedule:
+    - cron: '0 * * * *' # Every hour
+  workflow_dispatch:
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Backend Health
+        run: |
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://sra-xi.vercel.app/api/)
+          if [ "$RESPONSE" -ne 200 ]; then
+            echo "Backend health check failed with status $RESPONSE"
+            exit 1
+          fi
+
+      - name: Check Frontend Health
+        run: |
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://sra-xi.vercel.app/)
+          if [ "$RESPONSE" -ne 200 ]; then
+            echo "Frontend health check failed with status $RESPONSE"
+            exit 1
+          fi
