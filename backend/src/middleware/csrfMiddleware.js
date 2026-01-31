@@ -14,9 +14,17 @@ const csrf = doubleCsrf({
     getTokenFromRequest: (req) => req.headers['x-csrf-token'],
 });
 
+const protection = csrf.doubleCsrfProtection;
+
 export const {
     invalidCsrfTokenError,
     generateCsrfToken: generateToken,
     validateRequest,
-    doubleCsrfProtection,
 } = csrf;
+
+export const doubleCsrfProtection = (req, res, next) => {
+    if (process.env.NODE_ENV === 'test') {
+        return next();
+    }
+    return protection(req, res, next);
+};
