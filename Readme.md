@@ -5,6 +5,8 @@
 [![Linting Quality](https://github.com/Aniket-a14/SRA/actions/workflows/lint.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/lint.yml)
 [![Publish Docker Images](https://github.com/Aniket-a14/SRA/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/docker-publish.yml)
 [![CodeQL Security](https://github.com/Aniket-a14/SRA/actions/workflows/codeql.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/codeql.yml)
+[![Security Audit](https://github.com/Aniket-a14/SRA/actions/workflows/security-audit.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/security-audit.yml)
+[![Automated Backup](https://github.com/Aniket-a14/SRA/actions/workflows/automated-backup.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/automated-backup.yml)
 [![Dependency Review](https://github.com/Aniket-a14/SRA/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/dependency-review.yml)
 [![OpenAPI Lint](https://github.com/Aniket-a14/SRA/actions/workflows/openapi-lint.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/openapi-lint.yml)
 [![Lighthouse CI](https://github.com/Aniket-a14/SRA/actions/workflows/lighthouse.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/lighthouse.yml)
@@ -114,6 +116,21 @@ SRA is engineered for stability, security, and enterprise-grade performance.
 - **Automated SEO**: Dynamic `sitemap.xml` and `robots.txt` generation for search engine discoverability.
 - **Graceful Shutdown**: Native handling of `SIGTERM`/`SIGINT` to ensure zero-downtime deployments and safe process termination.
 - **Standalone Mode**: Next.js optimized standalone output for significantly faster boot times in containerized environments.
+- **Smart Data Fetching**: SWR-based caching and background revalidation for optimal user experience.
+
+### 🔐 Backup & Disaster Recovery
+- **Automated Encrypted Backups**: Weekly automated database backups with AES-256-GCM encryption.
+- **Point-in-Time Recovery**: 7-day PITR via Supabase for granular data restoration.
+- **CLI Backup Management**: Command-line tools for manual backup creation, restoration, and verification.
+- **Multi-Location Storage**: Backups stored locally, in GitHub Artifacts, and Supabase snapshots.
+- **Integrity Verification**: SHA-256 checksums ensure backup file integrity.
+
+### 🛡️ Security Monitoring & Audit
+- **Comprehensive Audit Logging**: Tracks all sensitive operations (create, delete, export) with full metadata.
+- **Threat Detection**: Real-time monitoring for brute force attempts, mass deletions, and unusual access patterns.
+- **Field-Level Encryption**: PII data encrypted at rest using AES-256-GCM.
+- **Daily Security Audits**: Automated dependency scanning, secret leak detection, and security header validation.
+- **Compliance Ready**: Audit trails and security reports for regulatory compliance.
 
 ---
 
@@ -132,6 +149,8 @@ SRA leverages professional GitHub Actions for continuous quality assurance and o
 - **Docker Healthchecks**: Infrastructure-aware readiness probes ensure the frontend only serves traffic once the backend is fully initialized.
 - **CodeQL Security Scans**: Proactive identification of security vulnerabilities and common coding errors.
 - **Dependency Vulnerability Checks**: Scans for known vulnerabilities in project dependencies.
+- **Automated Backup Verification**: Weekly encrypted database backups with integrity validation.
+- **Daily Security Audits**: Comprehensive security posture checks including secret leak detection and permission audits.
 
 ---
 
@@ -165,6 +184,11 @@ Ensure the following variables are defined in your infrastructure (see `.env.exa
 | **Async** | `QSTASH_SIGNING_KEYS` | Yes | Signing keys for verifying QStash webhooks. |
 | **Auth** | `JWT_SECRET` | Yes | Secret key for signing authorization tokens. |
 | **Auth** | `COOKIE_SECRET` | Yes | Secret key for signed cookies. |
+| **Security** | `CSRF_SECRET` | Yes | Secret key for CSRF protection (required in production). |
+| **Backup** | `BACKUP_ENCRYPTION_KEY` | Yes | AES-256 key for encrypting database backups. |
+| **Backup** | `ENCRYPTION_KEY` | Yes | Master key for field-level data encryption. |
+| **Backup** | `BACKUP_DIR` | Optional | Directory for backup storage (default: `./backups`). |
+| **Backup** | `BACKUP_RETENTION_DAYS` | Optional | Backup retention period in days (default: 30). |
 | **Social Auth** | `GOOGLE_CLIENT_ID` | Optional | Google OAuth 2.0 Client ID. |
 | **Social Auth** | `GITHUB_CLIENT_ID` | Optional | GitHub OAuth App Client ID. |
 
@@ -225,8 +249,10 @@ SRA/
 - [x] **v2.0**: Strategic 5-Layer Pipeline Implementation.
 - [x] **v2.1**: Interactive DFD Explorer & PNG Export.
 - [x] **v2.2**: GitHub CI/CD & Agentic Automation.
-- [ ] **v2.5**: Collaborative Real-time Multi-User Editing.
-- [ ] **v3.0**: Enterprise Custom Model Fine-tuning (MLOps integration).
+- [x] **v3.0**: SWR Data Fetching & Backup Automation.
+- [x] **v3.0**: Enterprise Security Monitoring & Audit Logging.
+- [ ] **v3.5**: Collaborative Real-time Multi-User Editing.
+- [ ] **v4.0**: Custom Model Fine-tuning (MLOps integration).
 
 ### Contributing
 We welcome contributions from the community. Please review our [Contribution Guidelines](CONTRIBUTING.md) and [Governance Policy](GOVERNANCE.md) for architectural context and coding standards.
