@@ -9,8 +9,20 @@ services:
       - ./backend/.env
     ports:
       - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - AI_NAME=SRA
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/health').then(r => r.ok ? process.exit(0) : process.exit(1))"]
+      test: [ "CMD", "node", "-e", "fetch('http://localhost:3000/api/health').then(r => r.ok ? process.exit(0) : process.exit(1))" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -26,11 +38,24 @@ services:
       - ./frontend/.env
     ports:
       - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      # Production Overrides (Uncomment to use)
+      # - NEXT_PUBLIC_BACKEND_URL=https://sra-backend-six.vercel.app
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     depends_on:
       backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://localhost:3001').then(r => r.ok ? process.exit(0) : process.exit(1))"]
+      test: [ "CMD", "node", "-e", "fetch('http://localhost:3001').then(r => r.ok ? process.exit(0) : process.exit(1))" ]
       interval: 30s
       timeout: 10s
       retries: 3

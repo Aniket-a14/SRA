@@ -31,8 +31,8 @@ const app = express();
 app.set('trust proxy', 1);
 
 // CORS setup
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
-
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3001';
+bitumen
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
@@ -75,12 +75,11 @@ app.use(doubleCsrfProtection);
 app.get('/', (req, res) => {
     res.json({
         message: 'Smart Requirements Analyzer Backend Running',
-        version: '3.0.7',
+        version: '3.0.8',
         environment: process.env.NODE_ENV || 'development'
     });
 });
 
-app.use('/api/health', healthRoutes);
 
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 

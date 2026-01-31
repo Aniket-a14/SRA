@@ -6,7 +6,7 @@ info:
 servers:
   - url: http://localhost:3000
     description: Local server
-  - url: https://api.sra-xi.vercel.app/
+  - url: https://sra-backend-six.vercel.app/
     description: Production server
 components:
   securitySchemes:
