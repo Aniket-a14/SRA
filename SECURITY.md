@@ -20,7 +20,7 @@ If you discover a security vulnerability within SRA, we appreciate your efforts 
 
 ### Reporting Channels
 Please report vulnerabilities via the following channels:
-1.  **Email**: Send a detailed report to `security@sra-platform.com` (Placeholder).
+1.  **Email**: Send a detailed report to `aniketsahaworkspace@gmail.com`.
 2.  **GitHub Private Reporting**: Use the "Report a vulnerability" button on the **Security** tab of this repository.
 
 ### What to Include
