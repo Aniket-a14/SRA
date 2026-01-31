@@ -8,8 +8,8 @@ We provide security updates for the following versions:
 
 | Version | Lifecycle Stage | Security Support |
 | :--- | :--- | :---: |
-| **2.2.x** | **Current Release** | :white_check_mark: |
-| 2.1.x | Active Maintenance | :white_check_mark: |
+| **3.0.x** | **Current Release** | :white_check_mark: |
+| 2.2.x | Active Maintenance | :white_check_mark: |
 | 2.0.x | Legacy Stable | :warning: |
 | < 2.0.0 | Deprecated | :x: |
 
