@@ -1,9 +1,8 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../config/prisma.js';
 import { successResponse, errorResponse } from '../utils/response.js';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 router.get('/', async (req, res) => {
     const health = {

@@ -32,7 +32,7 @@ app.set('trust proxy', 1);
 
 // CORS setup
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3001';
-bitumen
+
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
