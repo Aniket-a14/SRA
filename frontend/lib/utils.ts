@@ -53,8 +53,7 @@ export function cleanInputText(text: string): string {
  * Creates a throttled function that only invokes func at most once per
  * every wait milliseconds.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function throttle<T extends (...args: any[]) => any>(
+export function throttle<T extends (...args: unknown[]) => unknown>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {
@@ -86,8 +85,7 @@ export function throttle<T extends (...args: any[]) => any>(
  * milliseconds have elapsed since the last time the debounced function was
  * invoked.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (...args: unknown[]) => unknown>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {

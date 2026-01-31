@@ -70,11 +70,11 @@ const svgToPng = (svgStr: string): Promise<Blob | null> => {
 const clean = (text: string) => text?.replace(/\s+/g, ' ').trim() || "";
 
 // Helper to extract code from string or Diagram object
- 
+
 const getDiagramCode = (diagram: Diagram | string | null | undefined): string => typeof diagram === 'string' ? diagram : (diagram?.code || "");
 
 // Helper to extract caption
- 
+
 const getDiagramCaption = (diagram: Diagram | string | null | undefined, defaultCaption: string): string => {
     return (typeof diagram !== 'string' && diagram?.caption) ? diagram.caption : defaultCaption;
 };
@@ -319,7 +319,8 @@ export const renderMermaidDiagrams = async (data: AnalysisResult): Promise<Recor
                 // Level 0
                 if (dfdObj.dfd_level_0) {
                     await captureComponent(
-                        React.createElement(DFDViewer, { data: { dfd_level_0: dfdObj.dfd_level_0 }, isExport: true }),
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        React.createElement(DFDViewer, { data: { dfd_level_0: dfdObj.dfd_level_0 } as any, isExport: true }),
                         'dataFlowLevel0',
                         1600, 1000, false // Fixed
                     );
@@ -327,7 +328,8 @@ export const renderMermaidDiagrams = async (data: AnalysisResult): Promise<Recor
                 // Level 1
                 if (dfdObj.dfd_level_1) {
                     await captureComponent(
-                        React.createElement(DFDViewer, { data: { dfd_level_1: dfdObj.dfd_level_1 }, isExport: true }),
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        React.createElement(DFDViewer, { data: { dfd_level_1: dfdObj.dfd_level_1 } as any, isExport: true }),
                         'dataFlowLevel1',
                         1600, 1200, false // Fixed
                     );
@@ -415,6 +417,8 @@ export const generateSRS = async (data: AnalysisResult, title: string, diagramIm
     const { default: jsPDF } = await import('jspdf');
     const { default: autoTable } = await import('jspdf-autotable');
 
+    // We use unknown cast for jsPDF because its types are augmented by plugins in ways 
+    // that the base compiler sometimes misses during complex builds.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const doc: any = new jsPDF({ compress: true });
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -1021,7 +1025,6 @@ export const generateSRS = async (data: AnalysisResult, title: string, diagramIm
                 0: { cellWidth: 50, fontStyle: 'bold' }, // Term
                 1: { cellWidth: 'auto' } // Definition
             },
-             
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             didDrawPage: (data: any) => {
                 // Update final Y position after table
@@ -1472,12 +1475,7 @@ export const generateSRS = async (data: AnalysisResult, title: string, diagramIm
 
 // Keep other exports, maybe adjusting them if needed, but generateSRS is key.
 export const generateAPI = (data: AnalysisResult) => {
-    console.log("Generating API for", data.projectTitle);
-    // API logic might need to check if existing apiContracts exist in new structure
-    // This part is less critical for the specific user request about SRS PDF, but good compatibility to keep.
-    // Using 'data' completely avoids the unused variable warning if we just log it or use it trivially, 
-    // but for now we just accept it to match the call signature.
-    // console.log("Generating API for", data.title); 
+    console.log("Generating API for", data.introduction?.projectName || "Project");
     return "# API Documentation\n(To be implemented for new structure)";
 };
 
@@ -1486,13 +1484,14 @@ export const downloadBundle = async (data: AnalysisResult, title: string) => {
     const { saveAs } = await import('file-saver');
     const zip = new JSZip();
 
-     
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mermaid: any = null;
     try {
         const mermaidModule = await import('mermaid');
-        mermaid = mermaidModule.default;
-        mermaid.initialize({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        mermaid = (mermaidModule as any).default;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (mermaid as any).initialize({
             startOnLoad: false,
             theme: 'base',
             securityLevel: 'loose',
