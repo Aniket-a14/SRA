@@ -188,7 +188,7 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
           <div className="flex items-center justify-between mb-8 animate-on-scroll opacity-0">
             <div className="flex items-start gap-4">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary animate-pulse-glow shadow-lg shadow-primary/20">
-                <Bot className="h-5 w-5 text-primary-foreground" />
+                <Bot className="h-5 w-5 text-primary-foreground" aria-hidden="true" />
               </div>
               <div>
                 <h2 className="text-2xl font-bold tracking-tight mb-1">Analysis Report</h2>
@@ -257,7 +257,7 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
                     <Card className="bg-amber-500/5 border-amber-500/20">
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-amber-500 text-lg">
-                          <AlertTriangle className="h-5 w-5" />
+                          <AlertTriangle className="h-5 w-5" aria-hidden="true" />
                           Missing Logic
                         </CardTitle>
                       </CardHeader>
@@ -274,7 +274,7 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
                     <Card className="bg-destructive/5 border-destructive/20">
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-destructive text-lg">
-                          <Bug className="h-5 w-5" />
+                          <Bug className="h-5 w-5" aria-hidden="true" />
                           Contradictions Found
                         </CardTitle>
                       </CardHeader>

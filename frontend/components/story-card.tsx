@@ -30,8 +30,9 @@ export function StoryCard({ role, feature, benefit, story, index = 0, isEditing 
           size="icon"
           onClick={onDelete}
           className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:bg-destructive/10 h-6 w-6"
+          aria-label="Delete user story"
         >
-          <Trash2 className="h-3 w-3" />
+          <Trash2 className="h-3 w-3" aria-hidden="true" />
         </Button>
         <CardContent className="space-y-3 pt-6">
           <div className="space-y-1">
