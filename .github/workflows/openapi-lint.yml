@@ -5,10 +5,14 @@ on:
     branches: [ "main" ]
     paths:
       - "backend/src/swagger.yaml"
+      - ".spectral.yaml"
+      - ".github/workflows/openapi-lint.yml"
   pull_request:
     branches: [ "main" ]
     paths:
       - "backend/src/swagger.yaml"
+      - ".spectral.yaml"
+      - ".github/workflows/openapi-lint.yml"
 
 jobs:
   lint:
