@@ -7,7 +7,6 @@
 [![CodeQL Security](https://github.com/Aniket-a14/SRA/actions/workflows/codeql.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/codeql.yml)
 [![Security Audit](https://github.com/Aniket-a14/SRA/actions/workflows/security-audit.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/security-audit.yml)
 [![Automated Backup](https://github.com/Aniket-a14/SRA/actions/workflows/automated-backup.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/automated-backup.yml)
-[![Dependency Review](https://github.com/Aniket-a14/SRA/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/dependency-review.yml)
 [![OpenAPI Lint](https://github.com/Aniket-a14/SRA/actions/workflows/openapi-lint.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/openapi-lint.yml)
 [![Lighthouse CI](https://github.com/Aniket-a14/SRA/actions/workflows/lighthouse.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/lighthouse.yml)
 [![Bundle Size Check](https://github.com/Aniket-a14/SRA/actions/workflows/bundle-size.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/bundle-size.yml)
