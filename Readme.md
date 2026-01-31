@@ -211,7 +211,7 @@ SRA/
 - [ ] **v3.0**: Enterprise Custom Model Fine-tuning (MLOps integration).
 
 ### Contributing
-We welcome contributions from the community. Please review our [Contribution Guidelines](CONTRIBUTING.md) for architectural context and coding standards.
+We welcome contributions from the community. Please review our [Contribution Guidelines](CONTRIBUTING.md) and [Governance Policy](GOVERNANCE.md) for architectural context and coding standards.
 
 ### Security Policy
 To report vulnerabilities, please contact the security team via the repository's security advisory tab.

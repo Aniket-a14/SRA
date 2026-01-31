@@ -143,6 +143,7 @@ Ensure you have the following installed or set up:
     git push origin feature/amazing-new-feature
     ```
 7.  **Open a Pull Request** on the original repository.
+8.  **Wait for Status Checks**: Ensure your PR adheres to the rules defined in [GOVERNANCE.md](GOVERNANCE.md).
 
 ## 🐛 Reporting Issues
 
