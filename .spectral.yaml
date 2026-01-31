@@ -1,6 +1,4 @@
-extends:
-  - spectral:oas
-  - spectral:recommended
+extends: spectral:oas
 
 rules:
   # Enforce operation IDs for better code generation
