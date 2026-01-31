@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { authLimiter, aiLimiter, apiLimiter } from './middleware/rateLimiters.js';
+import { doubleCsrfProtection, generateToken } from './middleware/csrfMiddleware.js';
 import authRoutes from './routes/authRoutes.js';
 import analysisRoutes from './routes/analysisRoutes.js';
 import projectRoutes from './routes/projectRoutes.js';
@@ -38,7 +39,7 @@ app.use(helmet({
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
             imgSrc: ["'self'", "data:", "https:"],
-            connectSrc: ["'self'", "https://sra-xi.vercel.app", "https://generativelanguage.googleapis.com"],
+            connectSrc: ["'self'", "http://localhost:*", "https://sra-xi.vercel.app", "https://sra-backend-six.vercel.app", "https://generativelanguage.googleapis.com"],
             frameAncestors: ["'none'"],
         },
     },
@@ -59,7 +60,14 @@ app.use(express.json({
     }
 })); // Increase limit for large SRS data
 app.use(cookieParser());
+app.use(doubleCsrfProtection);
 app.use(logger);
+
+// CSRF Token endpoint
+app.get('/api/csrf-token', (req, res) => {
+    const token = generateToken(req, res);
+    res.json({ csrfToken: token });
+});
 
 // Root health check
 app.get('/', (req, res) => {

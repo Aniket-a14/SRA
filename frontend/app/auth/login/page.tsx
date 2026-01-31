@@ -13,7 +13,7 @@ export default function LoginPage() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [isLoading, setIsLoading] = useState(false)
-    const { login } = useAuth()
+    const { login, csrfToken } = useAuth()
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -22,7 +22,10 @@ export default function LoginPage() {
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(csrfToken && { "x-csrf-token": csrfToken })
+                },
                 body: JSON.stringify({ email, password }),
             })
 

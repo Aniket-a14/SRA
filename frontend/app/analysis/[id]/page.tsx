@@ -61,7 +61,7 @@ function AnalysisDetailContent() {
     const params = useParams()
     const id = params?.id as string
     const router = useRouter()
-    const { user, token, isLoading: authLoading } = useAuth()
+    const { user, token, csrfToken, isLoading: authLoading } = useAuth()
     const { unlockAndNavigate, unlockLayer, setLayer, setIsFinalized } = useLayer()
 
     const [analysis, setAnalysis] = useState<Analysis | null>(null)
@@ -257,7 +257,8 @@ function AnalysisDetailContent() {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
+                    Authorization: `Bearer ${token}`,
+                    ...(csrfToken && { "x-csrf-token": csrfToken })
                 },
                 body: JSON.stringify({
                     metadata: { ...analysis?.metadata, draftData, status: 'DRAFT' }
@@ -279,7 +280,8 @@ function AnalysisDetailContent() {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
+                    Authorization: `Bearer ${token}`,
+                    ...(csrfToken && { "x-csrf-token": csrfToken })
                 },
                 body: JSON.stringify({
                     metadata: { ...analysis?.metadata, draftData, status: 'DRAFT' }
@@ -288,7 +290,10 @@ function AnalysisDetailContent() {
 
             const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${id}/validate`, {
                 method: "POST",
-                headers: { Authorization: `Bearer ${token}` }
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    ...(csrfToken && { "x-csrf-token": csrfToken })
+                }
             });
             if (!res.ok) throw new Error("Validation failed");
 
@@ -310,7 +315,8 @@ function AnalysisDetailContent() {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
+                    Authorization: `Bearer ${token}`,
+                    ...(csrfToken && { "x-csrf-token": csrfToken })
                 },
                 body: JSON.stringify({
                     projectId: analysis?.projectId,
@@ -340,7 +346,8 @@ function AnalysisDetailContent() {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
+                    Authorization: `Bearer ${token}`,
+                    ...(csrfToken && { "x-csrf-token": csrfToken })
                 },
                 body: JSON.stringify({
                     metadata: { ...analysis?.metadata, status: 'DRAFT' } // Explicit status reset
@@ -358,7 +365,10 @@ function AnalysisDetailContent() {
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${id}/finalize`, {
                 method: "POST",
-                headers: { Authorization: `Bearer ${token}` }
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    ...(csrfToken && { "x-csrf-token": csrfToken })
+                }
             });
             if (res.ok) {
                 toast.success("SRS Finalized & Added to Knowledge Base");

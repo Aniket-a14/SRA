@@ -24,7 +24,7 @@ interface ProjectChatPanelProps {
 }
 
 export function ProjectChatPanel({ analysisId, onAnalysisUpdate, hidden, isFinalized }: ProjectChatPanelProps) {
-    const { token, user } = useAuth()
+    const { token, csrfToken, user } = useAuth()
 
     const [messages, setMessages] = useState<ChatMessage[]>([])
     const [input, setInput] = useState("")
@@ -81,7 +81,8 @@ export function ProjectChatPanel({ analysisId, onAnalysisUpdate, hidden, isFinal
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
+                    Authorization: `Bearer ${token}`,
+                    ...(csrfToken && { "x-csrf-token": csrfToken })
                 },
                 body: JSON.stringify({ message: userMsg })
             })

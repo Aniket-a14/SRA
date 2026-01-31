@@ -29,7 +29,7 @@ const SECTIONS = [
 
 export function ImprovementDialog({ open, onOpenChange, analysisId, version }: ImprovementDialogProps) {
     const router = useRouter()
-    const { token } = useAuth()
+    const { token, csrfToken } = useAuth()
     const [selectedSections, setSelectedSections] = useState<string[]>([])
     const [notes, setNotes] = useState("")
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -54,7 +54,8 @@ export function ImprovementDialog({ open, onOpenChange, analysisId, version }: I
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
+                    Authorization: `Bearer ${token}`,
+                    ...(csrfToken && { "x-csrf-token": csrfToken })
                 },
                 body: JSON.stringify({
                     affectedSections: selectedSections,

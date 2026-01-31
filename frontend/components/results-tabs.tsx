@@ -41,7 +41,7 @@ interface ResultsTabsProps {
 
 export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTabsProps) {
   const sectionRef = useRef<HTMLElement>(null)
-  const { token } = useAuth()
+  const { token, csrfToken } = useAuth()
   const router = useRouter()
   const params = useParams()
   const analysisId = params?.id as string
@@ -97,7 +97,8 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
+          ...(csrfToken && { "x-csrf-token": csrfToken })
         },
         body: JSON.stringify({
           ...editedData,
@@ -404,7 +405,8 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
                           method: "PUT",
                           headers: {
                             "Content-Type": "application/json",
-                            Authorization: `Bearer ${token}`
+                            Authorization: `Bearer ${token}`,
+                            ...(csrfToken && { "x-csrf-token": csrfToken })
                           },
                           body: JSON.stringify({
                             appendices: {
@@ -445,7 +447,8 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
                           method: "PUT",
                           headers: {
                             "Content-Type": "application/json",
-                            Authorization: `Bearer ${token}`
+                            Authorization: `Bearer ${token}`,
+                            ...(csrfToken && { "x-csrf-token": csrfToken })
                           },
                           body: JSON.stringify({
                             appendices: {
@@ -494,7 +497,8 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
                         method: "PUT",
                         headers: {
                           "Content-Type": "application/json",
-                          Authorization: `Bearer ${token}`
+                          Authorization: `Bearer ${token}`,
+                          ...(csrfToken && { "x-csrf-token": csrfToken })
                         },
                         body: JSON.stringify({
                           appendices: {
@@ -532,7 +536,8 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
                           method: "PUT",
                           headers: {
                             "Content-Type": "application/json",
-                            Authorization: `Bearer ${token}`
+                            Authorization: `Bearer ${token}`,
+                            ...(csrfToken && { "x-csrf-token": csrfToken })
                           },
                           body: JSON.stringify({
                             appendices: {
@@ -621,7 +626,10 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
                       try {
                         const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}/code`, {
                           method: "POST",
-                          headers: { Authorization: `Bearer ${token}` }
+                          headers: {
+                            Authorization: `Bearer ${token}`,
+                            ...(csrfToken && { "x-csrf-token": csrfToken })
+                          }
                         });
                         if (!res.ok) throw new Error("Failed to generate code");
                         const js = await res.json();

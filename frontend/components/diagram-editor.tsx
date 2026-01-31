@@ -32,7 +32,7 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
     const [lastError, setLastError] = useState<string | null>(null)
     const [isRepairing, setIsRepairing] = useState(false)
     const [failedCodes, setFailedCodes] = useState<Set<string>>(new Set())
-    const { token } = useAuth()
+    const { token, csrfToken } = useAuth()
 
     // Sync if prop changes externally
     useEffect(() => {
@@ -83,7 +83,8 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
+                    Authorization: `Bearer ${token}`,
+                    ...(csrfToken && { "x-csrf-token": csrfToken })
                 },
                 body: JSON.stringify({
                     code: code,
