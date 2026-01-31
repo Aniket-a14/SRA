@@ -17,7 +17,7 @@
   "dependencies": {
     "@dagrejs/dagre": "^2.0.3",
     "@google/generative-ai": "^0.24.1",
-    "@prisma/client": "^6.3.1",
+    "@prisma/client": "^7.3.0",
     "@upstash/qstash": "^2.8.4",
     "axios": "^1.13.2",
     "bcryptjs": "^3.0.3",
