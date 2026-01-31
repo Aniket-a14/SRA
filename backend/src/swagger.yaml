@@ -19,16 +19,38 @@ security:
 paths:
   /health:
     get:
+      operationId: getHealth
       summary: System health check
+      description: Returns the current health status of the system including database and AI provider connectivity
       tags: [System]
       responses:
-        200:
+        '200':
           description: System is healthy
-        503:
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+        '503':
           description: System is degraded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
   /auth/register:
     post:
+      operationId: registerUser
       summary: Register a new user
+      description: Creates a new user account with email and password
       tags: [Auth]
       requestBody:
         required: true
@@ -47,11 +69,22 @@ paths:
                 name:
                   type: string
       responses:
-        201:
+        '201':
           description: User registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
   /auth/login:
     post:
+      operationId: loginUser
       summary: Login user
+      description: Authenticates a user and returns a JWT token
       tags: [Auth]
       requestBody:
         required: true
@@ -66,11 +99,25 @@ paths:
                 password:
                   type: string
       responses:
-        200:
+        '200':
           description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
   /analyze/start:
     post:
+      operationId: startAnalysis
       summary: Start a new analysis job
+      description: Queues a new requirements analysis job for processing
       tags: [Analysis]
       requestBody:
         required: true
@@ -82,21 +129,49 @@ paths:
               properties:
                 inputText:
                   type: string
+                  description: The raw requirements text to analyze
                 projectId:
                   type: string
+                  description: UUID of the project
       responses:
-        202:
+        '202':
           description: Analysis started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      jobId:
+                        type: string
+                      status:
+                        type: string
   /analyze/{id}:
     get:
+      operationId: getAnalysis
       summary: Get analysis results
+      description: Retrieves the results of a completed analysis job
       tags: [Analysis]
       parameters:
         - in: path
           name: id
           required: true
+          description: The analysis ID
           schema:
             type: string
       responses:
-        200:
+        '200':
           description: Analysis results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
