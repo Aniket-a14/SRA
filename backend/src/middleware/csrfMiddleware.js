@@ -1,9 +1,16 @@
 import { doubleCsrf } from 'csrf-csrf';
 
-const csrfSecret = process.env.CSRF_SECRET || 'a-very-secret-string-for-csrf';
+const csrfSecret = process.env.CSRF_SECRET;
+
+if (process.env.NODE_ENV === 'production' && !csrfSecret) {
+    console.error('FATAL: CSRF_SECRET environment variable is missing in production!');
+    process.exit(1);
+}
+
+const finalSecret = csrfSecret || 'a-very-secret-string-for-csrf';
 
 const csrf = doubleCsrf({
-    getSecret: () => csrfSecret,
+    getSecret: () => finalSecret,
     getSessionIdentifier: () => 'stateless', // Use a constant for stateless apps
     cookieName: 'x-csrf-token',
     cookieOptions: {

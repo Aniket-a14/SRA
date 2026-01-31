@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.9] - 2026-02-01
+### Fixed
+- **Post-Audit Stabilization**: Resolved project initialization regression caused by API response structure mismatch.
+
+## [3.0.0] - 2026-01-31
+### Added
+- **System-Wide Audit**: Completed a full-stack audit across Frontend, Backend, AI Orchestration, and DevOps.
+- **Modular Frontend Architecture**: Refactored `ResultsTabs.tsx` into 7 specialized, memoized sub-components for improved performance and maintainability.
+- **Centralized API Orchestration**: Implemented `useAuthFetch` hook for standardized, authenticated API calls with proactive CSRF handling.
+- **Security Hardening**: Enforced mandatory `CSRF_SECRET` validation in production environments.
+- **Performance Optimization**: Memoized `StoryCard.tsx` to optimize dashboard rendering.
+
 ## [2.2.0] - 2026-01-30
 ### Added
 - **Core Governance**: Integrated GitHub Actions for automated quality control (`Linting`, `CodeQL Security`, `Stale Bot`).

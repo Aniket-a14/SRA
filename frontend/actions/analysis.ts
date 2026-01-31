@@ -84,7 +84,8 @@ export async function createAnalysisAction(
             };
         }
 
-        const data = await response.json();
+        const json = await response.json();
+        const data = json.data || json;
 
         if (data.status === "draft" && data.id) {
             // We don't redirect inside the action if we want to handle it in the component 

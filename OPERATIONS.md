@@ -57,6 +57,14 @@ Secrets should be rotated every **90 days** or immediately upon suspected compro
 
 ---
 
+- **Interruption to async jobs**: Interruption to async jobs.
+
+## 🛡️ Security Hardening Standards
+### CSRF Protection
+Effective as of v3.0.0, the backend enforces a mandatory `CSRF_SECRET` in production environments.
+- **Enforcement**: The application will fail to start if the environment variable is missing or empty.
+- **Rotation**: Rotate `CSRF_SECRET` alongside `JWT_SECRET` during security audits.
+
 ## 🩺 System Health Monitoring
 Monitoring is performed hourly via GitHub Actions (`health-check.yml`).
 - **Endpoint:** `https://your-domain.com/api/health`

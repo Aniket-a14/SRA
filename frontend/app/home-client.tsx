@@ -134,7 +134,8 @@ export function HomeClient() {
                 throw new Error(errorData.error || "Failed to initialize project.");
             }
 
-            const data = await response.json();
+            const json = await response.json();
+            const data = json.data || json;
             if (data.status === "draft" && data.id) {
                 toast.success("Project initialized!", { id: loadingToast });
                 router.push(`/analysis/${data.id}`);

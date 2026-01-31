@@ -94,7 +94,8 @@ SRA implements a **Recursive Versioning Tree**, ensuring that every change is no
 - **Deep Health Probes**: Real-time monitoring via `/api/health` checking Prisma connectivity and LLM configurations.
 - **Graceful Shutdown**: The server implements clean process exit logic, allowing in-flight requests to complete before releasing resources.
 - **Exponential Backoff**: Used in QStash for AI service failures.
-- **State Hydration**: Frontend recovery logic for long-running analyses.
+- **Strict CSRF**: Mandatory `CSRF_SECRET` validation in production to prevent insecure session fallbacks.
+- **Unified API Bridge**: All client-side API interactions are consolidated through the `useAuthFetch` hook, which automatically manages bearer tokens and proactive CSRF refreshing.
 - **Error Boundaries**: Granular React boundaries to isolate Mermaid rendering or Flowchart failures from the main UI.
 
 ---
@@ -129,7 +130,7 @@ To understand how these components interact, let's walk through a typical requir
 ### 3. Exploring Results (Layer 3)
 - **Scenario**: Analyzing the generated IEEE-830 specification.
 - **Architectural Flow**:
-    -   **Deep Dive Tabs**: The frontend renders the complex JSON structure into readable tabs (User Stories, Diagrams).
+    -   **Modular Workspace Tabs**: The frontend renders the complex JSON structure into 7 specialized, memoized tab components (Introduction, Features, Interfaces, NFRs, Appendices, Code Assets, Quality Audit) to ensure high performance and maintainability.
     -   **Diagram Syntax Authority**:
         -   The **MermaidRenderer** component enforces strict syntax.
         -   Users can click "View Syntax Explanation" to see the AI's justification, ensuring the diagram matches the formal specification.

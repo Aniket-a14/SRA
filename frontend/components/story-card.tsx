@@ -1,3 +1,4 @@
+import { memo } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -14,7 +15,7 @@ interface StoryCardProps extends UserStory {
   onDelete?: () => void
 }
 
-export function StoryCard({ role, feature, benefit, story, index = 0, isEditing = false, onUpdate, onDelete }: StoryCardProps) {
+export const StoryCard = memo(function StoryCard({ role, feature, benefit, story, index = 0, isEditing = false, onUpdate, onDelete }: StoryCardProps) {
 
   const handleChange = (field: keyof UserStory, value: string) => {
     if (onUpdate) {
@@ -99,5 +100,5 @@ export function StoryCard({ role, feature, benefit, story, index = 0, isEditing 
       </CardContent>
     </Card>
   )
-}
+});
 

@@ -108,6 +108,7 @@ Shreds finalized analyses into semantic chunks. Implements the "Hash-and-Match" 
 The backend implements the Synchronizer Token Pattern using the `double-csrf` strategy. 
 - **Endpoint**: `GET /api/csrf-token` returns a dynamic token for the session.
 - **Enforcement**: All state-changing requests (`POST`, `PUT`, `DELETE`) require the `x-csrf-token` header.
+- **Strict Mode**: The server will fail to start in production if `CSRF_SECRET` is not defined, preventing insecure fallbacks.
 - **Configuration**: Managed in `src/middleware/csrfMiddleware.js`.
 
 ### Content Security Policy (CSP)
