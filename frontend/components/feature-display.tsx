@@ -87,6 +87,7 @@ export function FeatureDisplay({ features, projectTitle = "SRA", isEditing, onUp
                                         size="icon"
                                         className="text-destructive hover:bg-destructive/10"
                                         onClick={() => removeFeature(index)}
+                                        aria-label={`Remove feature ${feature.name}`}
                                     >
                                         <Trash2 className="h-4 w-4" />
                                     </Button>

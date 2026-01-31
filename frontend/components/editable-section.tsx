@@ -82,6 +82,7 @@ export function EditableSection({ items, isEditing, onUpdate, prefix = "ITEM", b
                         size="icon"
                         onClick={() => handleDelete(index)}
                         className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                        aria-label={`Delete item ${index + 1}`}
                     >
                         <Trash2 className="h-4 w-4" />
                     </Button>

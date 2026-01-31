@@ -142,7 +142,7 @@ export function ChatInput({ onAnalyze, isLoading, initialSettings }: ChatInputPr
                 {/* Settings Popover */}
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" size="icon" className="shrink-0 text-muted-foreground hover:text-primary">
+                    <Button variant="outline" size="icon" className="shrink-0 text-muted-foreground hover:text-primary" aria-label="Project settings">
                       <Settings2 className="h-4 w-4" />
                     </Button>
                   </PopoverTrigger>
@@ -242,6 +242,7 @@ export function ChatInput({ onAnalyze, isLoading, initialSettings }: ChatInputPr
               <div className="relative group">
                 <Input
                   placeholder="Project Name (e.g. HealthGuard AI)"
+                  aria-label="Project Name"
                   className="bg-secondary border-0 text-sm placeholder:text-muted-foreground/60 focus:ring-2 focus:ring-primary/50 mb-3"
                   value={projectName}
                   onChange={(e) => setProjectName(e.target.value)}
