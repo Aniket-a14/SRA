@@ -3,13 +3,29 @@ node_modules/
 .pnp
 .pnp.*
 
+# Logs
+logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Diagnostic reports (https://nodejs.org/api/report.html)
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
 # Testing
 coverage/
-*.log
 
 # Environment
 .env
 .env.local
+
+# Backups
+/backups
+
+# Personal Developer Notes
+/COMMANDS/
 .env.*.local
 
 # IDE
