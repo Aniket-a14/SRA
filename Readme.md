@@ -1,5 +1,8 @@
 # SRA (Smart Requirements Analyzer)
 
+[![Publish Docker Images](https://github.com/Aniket-a14/SRA/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/docker-publish.yml)
+[![Bundle Size Check](https://github.com/Aniket-a14/SRA/actions/workflows/bundle-size.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/bundle-size.yml)
+[![Scheduled Health Check](https://github.com/Aniket-a14/SRA/actions/workflows/health-check.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/health-check.yml)
 [![CodeQL Security](https://github.com/Aniket-a14/SRA/actions/workflows/codeql.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/codeql.yml)
 [![Linting Quality](https://github.com/Aniket-a14/SRA/actions/workflows/lint.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/lint.yml)
 [![Deployment Status](https://img.shields.io/badge/Deployment-Verified-brightgreen)](https://github.com/Aniket-a14/SRA)
@@ -66,23 +69,59 @@ graph TD
 -   **Interactive Explorer**: Powered by `@xyflow/react` with support for high-fidelity **PNG Export**.
 *   **Self-Healing Diagrams**: Integrated **Mermaid Repair Engine** that identifies and fixes syntax errors in generated UML.
 
-### � Security & Governance
+### 🔒 Security & Governance
 *   **RBAC Architecture**: Secure access control with JWT integration and social OAuth (Google/GitHub).
 *   **Revision History**: Complete versioning system with visual diff tracking between requirement updates.
 *   **Audit-Ready Exports**: One-click professional PDF generation with table of contents and revision logs.
 
 ---
 
-## � Tech Stack & Rationale
+## 🛡️ Production Hardening
+
+SRA is engineered for stability, security, and enterprise-grade performance.
+
+### 🧩 Infrastructure Security
+- **Multi-Stage Docker Builds**: Minimized production images using separate build/runtime environments.
+- **Non-Root Execution**: Containers run as unprivileged users (`nodejs`/`nextjs`) to mitigate security risks.
+- **Dependency Pinning**: Strict versioning of core dependencies (e.g., Next.js 15.5.11) to ensure environment parity.
+
+### 🌐 Network & Content Security
+- **Hardened CSP**: Strict Content Security Policy injected via Next.js and Express security headers.
+- **HSTS & Frame Protection**: Production-grade `Strict-Transport-Security` and `X-Frame-Options` (DENY/SAMEORIGIN) enforcement.
+- **Rate Limiting**: Intelligent API throttling across auth, analysis, and worker endpoints.
+
+### 🔍 Search & Performance Optimization
+- **Automated SEO**: Dynamic `sitemap.xml` and `robots.txt` generation for search engine discoverability.
+- **Standalone Mode**: Next.js optimized standalone output for significantly faster boot times in containerized environments.
+
+---
+
+## 🚀 CI/CD & Monitoring
+
+SRA leverages professional GitHub Actions for continuous quality assurance and operational excellence.
+
+### 🔄 Continuous Integration & Delivery
+- **Automated Docker Builds**: Multi-stage Docker builds triggered on every push to `main`, publishing optimized images to GHCR.
+- **Bundle Size Monitoring**: Tracks and reports JavaScript bundle size changes for the Next.js frontend, preventing performance regressions.
+- **Linting & Formatting**: Enforces consistent code style and catches potential errors early in the development cycle.
+
+### 🩺 Health & Security Monitoring
+- **Scheduled Health Checks**: Hourly automated uptime verification of the entire SRA pipeline (frontend, backend, database connectivity).
+- **CodeQL Security Scans**: Proactive identification of security vulnerabilities and common coding errors.
+- **Dependency Vulnerability Checks**: Scans for known vulnerabilities in project dependencies, ensuring a secure supply chain.
+
+---
+
+## 💻 Tech Stack & Rationale
 
 | Component | Technology | Rationale |
 |-----------|------------|-----------|
-| **Frontend** | [Next.js 15](https://nextjs.org/) | App Router for optimal SEO and server-side rendering performance. |
-| **Styling** | [Tailwind CSS v4](https://tailwindcss.com/) | Next-gen utility-first CSS for premium, high-performance UI components. |
-| **Backend** | [Node.js](https://nodejs.org/) / [Prisma](https://www.prisma.io/) | Type-safe ORM for robust data management and rapid scaling. |
-| **Database** | [PostgreSQL](https://www.postgresql.org/) ([Supabase](https://supabase.com/)) | Relational integrity paired with `pgvector` for semantic search. |
-| **AI Orchestration** | [Upstash QStash](https://upstash.com/) | Serverless job queuing to manage long-running AI tasks without request timeouts. |
-| **LLM Engine** | [Google Gemini 2.0](https://ai.google.dev/) | State-of-the-art vision and reasoning for complex architectural analysis. |
+| **Frontend** | [Next.js 15.5.11](https://nextjs.org/) | App Router with standalone output for enterprise scalability. |
+| **Styling** | [Tailwind CSS v4](https://tailwindcss.com/) | Next-gen JIT engine for high-performance, responsive UI. |
+| **Backend** | [Node.js 20](https://nodejs.org/) / [Prisma 6](https://www.prisma.io/) | Type-safe ORM for robust asynchronous data orchestration. |
+| **Database** | [PostgreSQL 16+](https://www.postgresql.org/) | High-concurrency persistence with `pgvector` RAG support. |
+| **Orchestration** | [Upstash QStash](https://upstash.com/) | Serverless job queue for reliable, long-running AI tasks. |
+| **LLM Engine** | [Gemini 2.0 Flash](https://ai.google.dev/) | Advanced reasoning and context window for complex architectural mapping. |
 
 ---
 
@@ -104,12 +143,15 @@ Ensure the following variables are defined in your infrastructure (see `.env.exa
 ### 2. Deployment Strategies
 
 #### 🐳 Docker Orchestration (Recommended)
-SRA is fully containerized for cloud-agnostic deployment.
+SRA is fully containerized for cloud-agnostic deployment. Our CI pipeline automatically publishes production-ready images to **GitHub Container Registry (GHCR)**.
+
 ```bash
+# Pull and run the latest images
 docker-compose up --build -d
 ```
-*   **API Service**: `http://localhost:3000`
-*   **Application UI**: `http://localhost:3001`
+*   **API Service**: `http://localhost:3000` (Optimized Multi-stage Build)
+*   **Application UI**: `http://localhost:3001` (Next.js Standalone Build)
+*   **Registry**: `ghcr.io/aniket-a14/sra-backend:latest`
 
 #### ⚒️ Manual Infrastructure Setup
 For local development or specialized environments:
@@ -121,11 +163,12 @@ cd backend && npm install && npx prisma migrate dev
 cd ../frontend && npm install && npm run dev
 ```
 
-#### 🤖 Agentic Workflows
-If using an AI Engineering Agent (e.g., Antigravity), use the built-in executable workflows:
-*   `/setup` - Initializes environment and database.
-*   `/deploy` - Orchestrates a production build and startup.
-*   `/test` - Executes the full verification suite.
+#### 🤖 Agentic & CI Workflows
+SRA leverages professional GitHub Actions for continuous quality assurance:
+*   **Publish Docker**: Automated image pushes to [GHCR](https://github.com/Aniket-a14/SRA/pkgs/container/sra-frontend).
+*   **Bundle Size**: Continuous monitoring of Next.js JS payloads on every branch.
+*   **Health Checks**: Hourly automated uptime verification of the entire pipeline.
+*   **Security Scans**: Integrated CodeQL and dependency vulnerability checks.
 
 ---
 
