@@ -24,11 +24,16 @@ jobs:
         env:
           NEXT_PUBLIC_BACKEND_URL: "http://localhost:3000"
 
+      - name: Serve app
+        run: |
+          cd frontend && npm run start &
+          sleep 5
+
       - name: Static Analysis with Lighthouse
         uses: treosh/lighthouse-ci-action@v11
         with:
           urls: |
-            http://localhost:3000/
+            http://localhost:3001/
           uploadArtifacts: true
           temporaryPublicStorage: true
           configPath: './frontend/.lighthouserc.json'
