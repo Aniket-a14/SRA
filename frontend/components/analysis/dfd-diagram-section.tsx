@@ -28,7 +28,7 @@ interface DFDDiagramSectionProps {
 }
 
 export function DFDDiagramSection({ data, projectTitle, description, srsContent, onUpdate }: DFDDiagramSectionProps) {
-    const { token } = useAuth()
+    const { token, csrfToken } = useAuth()
     const [isLoading, setIsLoading] = useState(false)
     const [localData, setLocalData] = useState<DFDInput | null>(null)
     const [loadingPhase, setLoadingPhase] = useState(0)
@@ -62,7 +62,7 @@ export function DFDDiagramSection({ data, projectTitle, description, srsContent,
                 projectName: projectTitle,
                 description,
                 srsContent
-            })
+            }, csrfToken)
 
             // Optimistic Update
             setLocalData(result);

@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/alert-dialog"
 
 export default function ProjectDetailPage() {
-    const { token } = useAuth();
+    const { token, csrfToken } = useAuth();
     const params = useParams();
     const router = useRouter();
     const [project, setProject] = useState<Project | null>(null);
@@ -59,7 +59,7 @@ export default function ProjectDetailPage() {
             const updated = await updateProject(token!, project!.id, {
                 name: editName,
                 description: editDesc
-            });
+            }, csrfToken);
             setProject(updated);
             setIsEditing(false);
             toast.success("Project updated");
@@ -70,7 +70,7 @@ export default function ProjectDetailPage() {
 
     const handleDelete = async () => {
         try {
-            await deleteProject(token!, project!.id);
+            await deleteProject(token!, project!.id, csrfToken);
             toast.success("Project deleted");
             router.push("/projects");
         } catch {

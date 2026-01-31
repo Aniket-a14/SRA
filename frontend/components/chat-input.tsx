@@ -50,7 +50,7 @@ export function ChatInput({ onAnalyze, isLoading, initialSettings }: ChatInputPr
 
   const [projectName, setProjectName] = useState("")
   const [settings, setSettings] = useState<PromptSettings>(initialSettings || DEFAULT_SETTINGS);
-  const { token } = useAuth();
+  const { token, csrfToken } = useAuth();
   const searchParams = useSearchParams();
   const projectId = searchParams.get("projectId");
 
@@ -73,7 +73,7 @@ export function ChatInput({ onAnalyze, isLoading, initialSettings }: ChatInputPr
 
     const timeout = setTimeout(async () => {
       try {
-        await updateProject(token, projectId, { settings });
+        await updateProject(token, projectId, { settings }, csrfToken);
         // Optional: toast.success("Settings saved");
       } catch (e) {
         console.error("Failed to save settings", e);

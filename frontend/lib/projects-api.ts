@@ -32,12 +32,13 @@ export async function fetchProject(token: string, id: string): Promise<Project> 
     return res.json();
 }
 
-export async function createProject(token: string, data: { name: string; description?: string }): Promise<Project> {
+export async function createProject(token: string, data: { name: string; description?: string }, csrfToken?: string | null): Promise<Project> {
     const res = await fetch(`${BACKEND_URL}/projects`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
+            Authorization: `Bearer ${token}`,
+            ...(csrfToken && { "x-csrf-token": csrfToken })
         },
         body: JSON.stringify(data)
     });
@@ -45,12 +46,13 @@ export async function createProject(token: string, data: { name: string; descrip
     return res.json();
 }
 
-export async function updateProject(token: string, id: string, data: { name?: string; description?: string; settings?: PromptSettings }): Promise<Project> {
+export async function updateProject(token: string, id: string, data: { name?: string; description?: string; settings?: PromptSettings }, csrfToken?: string | null): Promise<Project> {
     const res = await fetch(`${BACKEND_URL}/projects/${id}`, {
         method: "PUT",
         headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
+            Authorization: `Bearer ${token}`,
+            ...(csrfToken && { "x-csrf-token": csrfToken })
         },
         body: JSON.stringify(data)
     });
@@ -58,10 +60,13 @@ export async function updateProject(token: string, id: string, data: { name?: st
     return res.json();
 }
 
-export async function deleteProject(token: string, id: string): Promise<void> {
+export async function deleteProject(token: string, id: string, csrfToken?: string | null): Promise<void> {
     const res = await fetch(`${BACKEND_URL}/projects/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
+        headers: {
+            Authorization: `Bearer ${token}`,
+            ...(csrfToken && { "x-csrf-token": csrfToken })
+        }
     });
     await handleResponse(res);
 }

@@ -13,6 +13,7 @@ interface User {
 interface AuthContextType {
     user: User | null
     token: string | null
+    csrfToken: string | null
     login: (token: string, refreshToken: string, user: User) => void
     authenticateWithToken: (token: string, refreshToken?: string) => Promise<void>
     logout: () => void
@@ -24,6 +25,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null)
     const [token, setToken] = useState<string | null>(null)
+    const [csrfToken, setCsrfToken] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const router = useRouter()
 
@@ -91,7 +93,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [logout])
 
+    const fetchCsrf = React.useCallback(async () => {
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/csrf-token`);
+            if (res.ok) {
+                const data = await res.json();
+                setCsrfToken(data.csrfToken);
+            }
+        } catch (error) {
+            console.error("Failed to fetch CSRF token", error);
+        }
+    }, []);
+
     useEffect(() => {
+        // Fetch CSRF on mount
+        fetchCsrf();
+
         // Check local storage on mount
         const storedToken = localStorage.getItem("token")
         const storedUser = localStorage.getItem("user")
@@ -140,7 +157,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [fetchUser, router])
 
     return (
-        <AuthContext.Provider value={{ user, token, login, authenticateWithToken, logout, isLoading }}>
+        <AuthContext.Provider value={{ user, token, csrfToken, login, authenticateWithToken, logout, isLoading }}>
             {children}
         </AuthContext.Provider>
     )

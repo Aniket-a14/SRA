@@ -22,7 +22,7 @@ interface DFDGenerationDialogProps {
 }
 
 export function DFDGenerationDialog({ projectName, description, srsContent }: DFDGenerationDialogProps) {
-    const { token } = useAuth()
+    const { token, csrfToken } = useAuth()
     const [isOpen, setIsOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [data, setData] = useState<DFDInput | null>(null)
@@ -35,7 +35,7 @@ export function DFDGenerationDialog({ projectName, description, srsContent }: DF
                 projectName,
                 description,
                 srsContent
-            })
+            }, csrfToken)
             setData(result)
             toast.success("DFD Generated Successfully")
         } catch (err: unknown) {
