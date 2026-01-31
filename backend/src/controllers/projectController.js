@@ -1,4 +1,5 @@
 import prisma from '../config/prisma.js';
+import { successResponse } from '../utils/response.js';
 
 export const createProject = async (req, res, next) => {
     try {
@@ -18,7 +19,7 @@ export const createProject = async (req, res, next) => {
             }
         });
 
-        res.status(201).json(project);
+        return successResponse(res, project, 'Project created', 201);
     } catch (error) {
         next(error);
     }
@@ -51,7 +52,7 @@ export const getProjects = async (req, res, next) => {
         });
 
         console.log(`getProjects: Found ${projects.length} projects`);
-        res.json(projects);
+        return successResponse(res, projects);
     } catch (error) {
         console.error("getProjects: Fatal Error:", error);
         console.error("getProjects: Stack:", error.stack);
@@ -78,7 +79,7 @@ export const getProject = async (req, res, next) => {
             throw error;
         }
 
-        res.json(project);
+        return successResponse(res, project);
     } catch (error) {
         next(error);
     }
@@ -105,7 +106,7 @@ export const updateProject = async (req, res, next) => {
             }
         });
 
-        res.json(updated);
+        return successResponse(res, updated);
     } catch (error) {
         next(error);
     }
@@ -123,7 +124,7 @@ export const deleteProject = async (req, res, next) => {
         }
 
         await prisma.project.delete({ where: { id } });
-        res.json({ message: 'Project deleted successfully' });
+        return successResponse(res, null, 'Project deleted successfully');
     } catch (error) {
         next(error);
     }

@@ -23,6 +23,8 @@ const __dirname = path.dirname(__filename);
 const swaggerDocument = yaml.load(fs.readFileSync(path.join(__dirname, 'swagger.yaml'), 'utf8'));
 
 
+import healthRoutes from './routes/healthRoutes.js';
+
 const app = express();
 
 // Trust proxy for Render deployment
@@ -65,13 +67,20 @@ app.get('/api/csrf-token', (req, res) => {
     res.json({ csrfToken: token });
 });
 
+app.use('/api/health', healthRoutes);
+
 app.use(logger);
 app.use(doubleCsrfProtection);
 
-// Root health check
 app.get('/', (req, res) => {
-    res.json({ message: 'Smart Requirements Analyzer Backend Running' });
+    res.json({
+        message: 'Smart Requirements Analyzer Backend Running',
+        version: '3.0.7',
+        environment: process.env.NODE_ENV || 'development'
+    });
 });
+
+app.use('/api/health', healthRoutes);
 
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 

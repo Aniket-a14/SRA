@@ -1,31 +1,43 @@
 import express from 'express';
-import prisma from '../config/prisma.js';
+import { PrismaClient } from '@prisma/client';
+import { successResponse, errorResponse } from '../utils/response.js';
 
 const router = express.Router();
+const prisma = new PrismaClient();
 
 router.get('/', async (req, res) => {
     const health = {
-        status: 'healthy',
+        status: 'UP',
         timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        memory: process.memoryUsage(),
         services: {
-            database: 'checking...',
+            database: 'UNKNOWN',
+            ai_provider: 'UNKNOWN'
         }
     };
 
     try {
-        // Basic DB check
+        // Check Database
         await prisma.$queryRaw`SELECT 1`;
-        health.services.database = 'healthy';
-    } catch (error) {
-        health.status = 'degraded';
-        health.services.database = 'unhealthy';
-        health.error = error.message;
+        health.services.database = 'UP';
+    } catch (e) {
+        health.status = 'DEGRADED';
+        health.services.database = 'DOWN';
     }
 
-    const statusCode = health.status === 'healthy' ? 200 : 503;
-    res.status(statusCode).json(health);
+    // Check AI Provider (Basic availability check)
+    // We could do a more thorough check if needed, but for now just check if env vars exist
+    if (process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY) {
+        health.services.ai_provider = 'CONFIGURED';
+    } else {
+        health.status = 'DEGRADED';
+        health.services.ai_provider = 'MISSING_API_KEY';
+    }
+
+    if (health.status === 'UP') {
+        return successResponse(res, health, 'System is healthy');
+    } else {
+        return errorResponse(res, 'System is degraded', 503, 'SYSTEM_DEGRADED');
+    }
 });
 
 export default router;

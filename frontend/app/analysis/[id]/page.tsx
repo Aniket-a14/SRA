@@ -102,7 +102,8 @@ function AnalysisDetailContent() {
 
             if (!response.ok) throw new Error("Failed to load analysis");
 
-            const data: Analysis = await response.json()
+            const json = await response.json();
+            const data: Analysis = json.data || json;
             setAnalysis(data)
 
             // STATUS HANDLING
