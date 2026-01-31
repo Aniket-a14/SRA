@@ -1,4 +1,4 @@
-extends: ["spectral:oas", "spectral:asyncapi"]
+extends: ["spectral:oas, recommended"]
 
 rules:
   # Enforce operation IDs for better code generation
@@ -10,8 +10,3 @@ rules:
   
   # Ensure all operations have tags for organization
   operation-tags: warn
-  
-  # Require examples in schemas for better clarity
-  oas3-schema-examples: off
-  
-  # Custom rules can be added here as the API evolves
