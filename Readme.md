@@ -1,19 +1,41 @@
 # SRA (Smart Requirements Analyzer)
 
-[![Publish Docker Images](https://github.com/Aniket-a14/SRA/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/docker-publish.yml)
-[![Bundle Size Check](https://github.com/Aniket-a14/SRA/actions/workflows/bundle-size.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/bundle-size.yml)
-[![Scheduled Health Check](https://github.com/Aniket-a14/SRA/actions/workflows/health-check.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/health-check.yml)
-[![CodeQL Security](https://github.com/Aniket-a14/SRA/actions/workflows/codeql.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/codeql.yml)
-[![Linting Quality](https://github.com/Aniket-a14/SRA/actions/workflows/lint.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/lint.yml)
+<!-- CI/CD Badges -->
 [![Backend CI](https://github.com/Aniket-a14/SRA/actions/workflows/backend.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/backend.yml)
 [![Frontend CI](https://github.com/Aniket-a14/SRA/actions/workflows/frontend.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/frontend.yml)
+[![Linting Quality](https://github.com/Aniket-a14/SRA/actions/workflows/lint.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/lint.yml)
+[![Publish Docker Images](https://github.com/Aniket-a14/SRA/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/docker-publish.yml)
+
+<!-- Security & Quality Badges -->
+[![CodeQL Security](https://github.com/Aniket-a14/SRA/actions/workflows/codeql.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/codeql.yml)
+[![Dependency Review](https://github.com/Aniket-a14/SRA/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/dependency-review.yml)
 [![OpenAPI Lint](https://github.com/Aniket-a14/SRA/actions/workflows/openapi-lint.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/openapi-lint.yml)
-[![Dependabot](https://img.shields.io/badge/Dependabot-enabled-success)](https://github.com/Aniket-a14/SRA/blob/main/.github/dependabot.yml)
-[![Deployment Status](https://img.shields.io/badge/Deployment-Verified-brightgreen)](https://github.com/Aniket-a14/SRA)
+
+<!-- Performance & Monitoring Badges -->
+[![Lighthouse CI](https://github.com/Aniket-a14/SRA/actions/workflows/lighthouse.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/lighthouse.yml)
+[![Bundle Size Check](https://github.com/Aniket-a14/SRA/actions/workflows/bundle-size.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/bundle-size.yml)
+[![Health Check](https://github.com/Aniket-a14/SRA/actions/workflows/health-check.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/health-check.yml)
+
+<!-- Compliance & Standards Badges -->
 [![IEEE-830](https://img.shields.io/badge/Compliance-IEEE--830-blue)](https://ieeexplore.ieee.org/document/720577)
+[![Dependabot](https://img.shields.io/badge/Dependabot-enabled-success)](https://github.com/Aniket-a14/SRA/blob/main/.github/dependabot.yml)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/Aniket-a14/SRA/graphs/commit-activity)
 
+<!-- Deployment Status Badge -->
+[![Frontend Deploy](https://img.shields.io/badge/Frontend-Live-brightgreen?logo=vercel)](https://sra-xi.vercel.app/)
+
 **SRA** is an enterprise-grade, AI-orchestrated ecosystem designed to formalize the software requirements engineering lifecycle. By combining Large Language Model (LLM) reasoning with rigorous architectural standards, SRA transforms fragmented project visions into high-fidelity, production-ready technical specifications (IEEE-830).
+
+---
+
+## 🔗 Quick Links
+
+| Resource | URL | Description |
+|----------|-----|-------------|
+| **Live Application** | [sra-xi.vercel.app](https://sra-xi.vercel.app/) | Production frontend deployment |
+| **Architecture Guide** | [ARCHITECTURE.md](./ARCHITECTURE.md) | System architecture & design |
+| **Operations Manual** | [OPERATIONS.md](./OPERATIONS.md) | Deployment, backup & DR procedures |
+| **Contributing** | [CONTRIBUTING.md](./CONTRIBUTING.md) | Development setup & guidelines |
 
 ---
 

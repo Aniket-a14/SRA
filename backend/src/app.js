@@ -46,11 +46,12 @@ app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'"],
-            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://vercel.live"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
-            imgSrc: ["'self'", "data:", "https:"],
+            imgSrc: ["'self'", "data:", "https:", "https://cdnjs.cloudflare.com"],
             connectSrc: ["'self'", "http://localhost:*", "https://sra-xi.vercel.app", "https://sra-backend-six.vercel.app", "https://generativelanguage.googleapis.com"],
+            frameSrc: ["'self'", "https://vercel.live"],
             frameAncestors: ["'none'"],
         },
     },
@@ -95,7 +96,14 @@ app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 // Swagger API Documentation
 if (swaggerDocument) {
-    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+    const swaggerOptions = {
+        customCssUrl: 'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui.min.css',
+        customJs: [
+            'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui-bundle.min.js',
+            'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui-standalone-preset.min.js',
+        ],
+    };
+    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, swaggerOptions));
 }
 
 // Internal AI Endpoint
