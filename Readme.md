@@ -69,7 +69,8 @@ graph TD
 -   **Interactive Explorer**: Powered by `@xyflow/react` with support for high-fidelity **PNG Export**.
 *   **Self-Healing Diagrams**: Integrated **Mermaid Repair Engine** that identifies and fixes syntax errors in generated UML.
 
-### 🔒 Security & Governance
+### 🔒 Security, Privacy & Governance
+*   **Proactive PII Redaction**: Automated sanitization of user intent (Emails, Phone, CC) before processing by external AI providers.
 *   **RBAC Architecture**: Secure access control with JWT integration and social OAuth (Google/GitHub).
 *   **Revision History**: Complete versioning system with visual diff tracking between requirement updates.
 *   **Audit-Ready Exports**: One-click professional PDF generation with table of contents and revision logs.
@@ -88,10 +89,12 @@ SRA is engineered for stability, security, and enterprise-grade performance.
 ### 🌐 Network & Content Security
 - **Hardened CSP**: Strict Content Security Policy injected via Next.js and Express security headers.
 - **HSTS & Frame Protection**: Production-grade `Strict-Transport-Security` and `X-Frame-Options` (DENY/SAMEORIGIN) enforcement.
+- **Privacy Sanitization**: Integrated `sanitizer.js` layer to prevent data leakage to LLM providers.
 - **Rate Limiting**: Intelligent API throttling across auth, analysis, and worker endpoints.
 
 ### 🔍 Search & Performance Optimization
 - **Automated SEO**: Dynamic `sitemap.xml` and `robots.txt` generation for search engine discoverability.
+- **Graceful Shutdown**: Native handling of `SIGTERM`/`SIGINT` to ensure zero-downtime deployments and safe process termination.
 - **Standalone Mode**: Next.js optimized standalone output for significantly faster boot times in containerized environments.
 
 ---
@@ -106,9 +109,11 @@ SRA leverages professional GitHub Actions for continuous quality assurance and o
 - **Linting & Formatting**: Enforces consistent code style and catches potential errors early in the development cycle.
 
 ### 🩺 Health & Security Monitoring
-- **Scheduled Health Checks**: Hourly automated uptime verification of the entire SRA pipeline (frontend, backend, database connectivity).
+- **Scheduled Health Checks**: Hourly automated uptime verification of the entire SRA pipeline.
+- **Real-time Observability**: Dedicated `/api/health` endpoint for deep system diagnostics (DB, AI Provider).
+- **Docker Healthchecks**: Infrastructure-aware readiness probes ensure the frontend only serves traffic once the backend is fully initialized.
 - **CodeQL Security Scans**: Proactive identification of security vulnerabilities and common coding errors.
-- **Dependency Vulnerability Checks**: Scans for known vulnerabilities in project dependencies, ensuring a secure supply chain.
+- **Dependency Vulnerability Checks**: Scans for known vulnerabilities in project dependencies.
 
 ---
 

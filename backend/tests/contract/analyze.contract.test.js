@@ -69,8 +69,10 @@ describe('Contract Test: POST /api/analyze', () => {
         expect(response.status).toBe(202);
         expect(response.body).toEqual(expect.objectContaining({
             message: 'Analysis queued',
-            jobId: 'job-id',
-            status: 'queued'
+            data: expect.objectContaining({
+                jobId: 'job-id',
+                status: 'queued'
+            })
         }));
     });
 

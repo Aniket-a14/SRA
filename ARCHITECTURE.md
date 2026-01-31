@@ -89,7 +89,10 @@ SRA implements a **Recursive Versioning Tree**, ensuring that every change is no
 - **Provider Abstraction**: Unified support for Google Workspace and GitHub Enterprise OAuth.
 - **RLS (Row Level Security)**: Supabase-level security ensuring that even at the database layer, users can only access their authorized project fragments.
 
-### Resilience Patterns
+### Resilience & Observability Patterns
+- **Standardized API Bridge**: All endpoints follow a unified bridge pattern: `{ success: boolean, data: any, message: string, errorCode: string }`.
+- **Deep Health Probes**: Real-time monitoring via `/api/health` checking Prisma connectivity and LLM configurations.
+- **Graceful Shutdown**: The server implements clean process exit logic, allowing in-flight requests to complete before releasing resources.
 - **Exponential Backoff**: Used in QStash for AI service failures.
 - **State Hydration**: Frontend recovery logic for long-running analyses.
 - **Error Boundaries**: Granular React boundaries to isolate Mermaid rendering or Flowchart failures from the main UI.

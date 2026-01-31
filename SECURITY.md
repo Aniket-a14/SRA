@@ -3,6 +3,16 @@
 ## 🛡️ Commitment to Security
 At SRA, security is not an afterthought—it is a foundational component of our architectural design. We are committed to maintaining the integrity, confidentiality, and availability of requirements engineering data.
 
+## 🔒 Data Privacy & PII Redaction
+To protect sensitive stakeholder information, SRA implements a proactive **PII Redaction Layer**. Before any requirement text is transmitted to external AI providers (such as Google or OpenAI), it is passed through a high-performance sanitization engine that redacts:
+- Email Addresses
+- Phone Numbers
+- Credit Card Information
+- IPv4/IPv6 Addresses
+- Sensitive Authentication Tokens
+
+This ensures that your proprietary project vision remains private, even when leveraging the power of Large Language Models.
+
 ## 🚀 Supported Versions
 We provide security updates for the following versions:
 

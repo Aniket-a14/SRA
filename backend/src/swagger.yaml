@@ -17,6 +17,15 @@ components:
 security:
   - bearerAuth: []
 paths:
+  /health:
+    get:
+      summary: System health check
+      tags: [System]
+      responses:
+        200:
+          description: System is healthy
+        503:
+          description: System is degraded
   /auth/register:
     post:
       summary: Register a new user
