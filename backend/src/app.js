@@ -2,28 +2,36 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
-import { authLimiter, aiLimiter, apiLimiter } from './middleware/rateLimiters.js';
-import { doubleCsrfProtection, generateToken } from './middleware/csrfMiddleware.js';
-import authRoutes from './routes/authRoutes.js';
-import analysisRoutes from './routes/analysisRoutes.js';
-import projectRoutes from './routes/projectRoutes.js';
-import validationRoutes from './routes/validationRoutes.js';
-import aiEndpoint from './routes/aiEndpoint.js';
-import { errorHandler } from './middleware/errorMiddleware.js';
-import { logger } from './middleware/logger.js';
 import swaggerUi from 'swagger-ui-express';
 import fs from 'fs';
 import yaml from 'js-yaml';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+import { authLimiter, aiLimiter, apiLimiter } from './middleware/rateLimiters.js';
+import { doubleCsrfProtection, generateToken } from './middleware/csrfMiddleware.js';
+import { errorHandler } from './middleware/errorMiddleware.js';
+import { logger } from './middleware/logger.js';
+
+import authRoutes from './routes/authRoutes.js';
+import analysisRoutes from './routes/analysisRoutes.js';
+import projectRoutes from './routes/projectRoutes.js';
+import validationRoutes from './routes/validationRoutes.js';
+import aiEndpoint from './routes/aiEndpoint.js';
+import healthRoutes from './routes/healthRoutes.js';
+import workerRoutes from './routes/workerRoutes.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const swaggerDocument = yaml.load(fs.readFileSync(path.join(__dirname, 'swagger.yaml'), 'utf8'));
 
-
-import healthRoutes from './routes/healthRoutes.js';
+// Resilient Swagger Loading
+let swaggerDocument;
+try {
+    const swaggerPath = path.resolve(__dirname, 'swagger.yaml');
+    swaggerDocument = yaml.load(fs.readFileSync(swaggerPath, 'utf8'));
+} catch (e) {
+    console.warn("Failed to load swagger.yaml, documentation will be unavailable", e.message);
+}
 
 const app = express();
 
@@ -84,20 +92,17 @@ app.get('/', (req, res) => {
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 // Swagger API Documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+if (swaggerDocument) {
+    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+}
 
 // Internal AI Endpoint
-// Mounted as /internal/analyze so it doesn't conflict with the main /analyze route
-// Update your ANALYZER_URL env var to point here (e.g. http://localhost:3000/internal/analyze)
 app.use('/internal/analyze', aiEndpoint);
 
-// Public/Protected Routes
 // Public/Protected Routes
 app.use(['/auth', '/api/auth'], authLimiter, authRoutes);
 app.use(['/analyze', '/api/analyze'], aiLimiter, analysisRoutes);
 app.use(['/projects', '/api/projects'], projectRoutes);
-import workerRoutes from './routes/workerRoutes.js';
-
 app.use(['/validation', '/api/validation'], validationRoutes);
 app.use(['/worker', '/api/worker'], workerRoutes);
 
