@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.10] - 2026-02-01
+### Added
+- **SWR Data Fetching**: Migrated analysis pages to `useSWR` for smart polling, automatic caching, and background revalidation.
+- **Automated Backup System**: Weekly encrypted database backups with AES-256-GCM encryption and SHA-256 integrity verification.
+- **Backup CLI Tool**: Command-line interface for manual backup creation, restoration, listing, and verification.
+- **Audit Logging**: Comprehensive middleware tracking all sensitive operations (create, delete, finalize, exports) with full metadata.
+- **Security Monitoring**: Real-time threat detection for brute force attempts, mass deletions, and unusual access patterns.
+- **Field-Level Encryption**: Data encryption utilities for PII protection with AES-256-GCM.
+- **GitHub Actions Workflows**: Automated weekly backups and daily security audits (dependency scanning, secret leak detection).
+
+### Changed
+- **Data Fetching Architecture**: Replaced manual `setTimeout` polling with declarative SWR hooks (~150 lines of code reduction).
+- **Environment Variables**: Added `BACKUP_ENCRYPTION_KEY`, `ENCRYPTION_KEY`, `BACKUP_DIR`, and `BACKUP_RETENTION_DAYS`.
+
+### Security
+- **Enhanced Security Posture**: Daily automated security audits including secret leak detection, permission checks, and header validation.
+- **Backup Encryption**: All database backups are encrypted before storage with configurable retention policies.
+
 ## [3.0.9] - 2026-02-01
 ### Fixed
 - **Post-Audit Stabilization**: Resolved project initialization regression caused by API response structure mismatch.
