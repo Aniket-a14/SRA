@@ -20,6 +20,7 @@ async function handleResponse(res: Response) {
 export async function generateDFD(token: string, data: { projectName: string; description: string; srsContent?: string }, csrfToken?: string | null): Promise<DFDInput> {
     const res = await fetch(`${BACKEND_URL}/analyze/generate-dfd`, {
         method: "POST",
+        credentials: "include",
         headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,

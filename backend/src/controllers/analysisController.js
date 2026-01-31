@@ -4,7 +4,7 @@ import { generateCodeFromAnalysis } from '../services/codeGenService.js';
 import { addAnalysisJob, getJobStatus } from '../services/queueService.js';
 import { compareAnalyses } from '../services/diffService.js';
 import { lintRequirements, checkAlignment } from '../services/qualityService.js';
-import { validateRequirements } from '../services/validationService.js';
+import { validateRequirements, autoFixRequirements } from '../services/validationService.js';
 import { analyzeText, repairDiagram as aiRepairDiagram } from '../services/aiService.js';
 import { embedText } from '../services/embeddingService.js';
 import { ensureProjectExists } from '../services/projectService.js';
@@ -23,6 +23,8 @@ export const analyze = async (req, res, next) => {
         // Auto-Create Project if missing
         // Auto-Create Project if missing
         req.body.projectId = await ensureProjectExists(req.user.userId, req.body.projectId, srsData, text);
+
+        let projectName = "Project";
 
         // LAYER 3 INTEGRATION: Unified Input Handling
         if (srsData) {
@@ -112,7 +114,7 @@ export const analyze = async (req, res, next) => {
 
             // 2. Convert Unified Data to "Text" for Pipeline Compatibility
             // LAYER 2: Tokenization - Encapsulate logic in an array of words
-            const projectName = srsData.details?.projectName?.content || "Project";
+            projectName = srsData.details?.projectName?.content || "Project";
             const fullDesc = srsData.details?.fullDescription?.content || "";
 
             // Combine and Segregate into Word Array
@@ -153,6 +155,7 @@ export const analyze = async (req, res, next) => {
 
         const job = await addAnalysisJob(req.user.userId, sanitizedText, req.body.projectId, {
             ...req.body.settings,
+            projectName, // Force extraction/propagation
             reuseMetadata // Pass tiered reuse info to worker
         });
 
@@ -601,43 +604,82 @@ export const finalizeAnalysis = async (req, res, next) => {
 
         // A. Features
         if (result.systemFeatures && Array.isArray(result.systemFeatures)) {
-            result.systemFeatures.forEach(feature => {
+            for (const feature of result.systemFeatures) {
                 const contentStr = JSON.stringify(feature);
+                const chunkText = `${feature.name}: ${feature.description}\n${feature.functionalRequirements?.join(' ')}`;
+
+                let embedding = null;
+                try {
+                    embedding = process.env.MOCK_AI === 'true' ? Array(768).fill(0.01) : await embedText(chunkText);
+                } catch (err) {
+                    console.warn(`[Finalize] Failed to embed feature chunk: ${feature.name}`);
+                }
+
                 chunks.push({
+                    id: crypto.randomUUID(),
                     type: 'FEATURE',
                     content: feature,
                     hash: crypto.createHash('md5').update(contentStr).digest('hex'),
                     tags: [feature.name, ...(feature.functionalRequirements?.map(f => f.slice(0, 20)) || [])],
-                    sourceAnalysisId: id
+                    sourceAnalysisId: id,
+                    embedding: embedding
                 });
-            });
+            }
         }
 
         // B. NFRs
         if (result.nonFunctionalRequirements) {
-            Object.entries(result.nonFunctionalRequirements).forEach(([category, reqs]) => {
+            for (const [category, reqs] of Object.entries(result.nonFunctionalRequirements)) {
                 if (Array.isArray(reqs) && reqs.length > 0) {
                     const contentStr = JSON.stringify(reqs);
+                    const chunkText = `Non-Functional Requirement - ${category}: ${reqs.join(' ')}`;
+
+                    let embedding = null;
+                    try {
+                        embedding = process.env.MOCK_AI === 'true' ? Array(768).fill(0.02) : await embedText(chunkText);
+                    } catch (err) {
+                        console.warn(`[Finalize] Failed to embed NFR chunk: ${category}`);
+                    }
+
                     chunks.push({
+                        id: crypto.randomUUID(),
                         type: `NFR_${category.toUpperCase()}`,
-                        content: reqs, // Store the array of strings
+                        content: reqs,
                         hash: crypto.createHash('md5').update(contentStr).digest('hex'),
                         tags: [category],
-                        sourceAnalysisId: id
+                        sourceAnalysisId: id,
+                        embedding: embedding
                     });
+                }
+            }
+        }
+
+        // Batch Insert Chunks with pgvector support
+        if (chunks.length > 0) {
+            await prisma.$transaction(async (tx) => {
+                for (const chunk of chunks) {
+                    // 1. Create structure
+                    await tx.knowledgeChunk.create({
+                        data: {
+                            id: chunk.id,
+                            type: chunk.type,
+                            content: chunk.content,
+                            hash: chunk.hash,
+                            tags: chunk.tags,
+                            sourceAnalysisId: chunk.sourceAnalysisId
+                        }
+                    });
+
+                    // 2. Update vector (Unsupported column)
+                    if (chunk.embedding) {
+                        const vectorStr = `[${chunk.embedding.join(',')}]`;
+                        await tx.$executeRaw`UPDATE "KnowledgeChunk" SET "embedding" = ${vectorStr}::vector WHERE "id" = ${chunk.id}`;
+                    }
                 }
             });
         }
 
-        // Batch Insert Chunks
-        if (chunks.length > 0) {
-            await prisma.knowledgeChunk.createMany({
-                data: chunks,
-                skipDuplicates: true
-            });
-        }
-
-        res.json({ message: "Analysis finalized and broken into reusable chunks", id: finalized.id, chunksStored: chunks.length });
+        res.json({ message: "Analysis finalized and broken into reusable chunks with semantic embeddings", id: finalized.id, chunksStored: chunks.length });
     } catch (error) {
         next(error);
     }
@@ -795,6 +837,31 @@ SRS Content (Reference): ${srsContent || "N/A"}
         }
 
         res.json(result);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const autoFixValidationIssue = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { issueId } = req.body;
+
+        if (!issueId) {
+            const error = new Error('Issue ID is required');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const analysis = await prisma.analysis.findUnique({ where: { id, userId: req.user.userId } });
+        if (!analysis) {
+            const error = new Error('Analysis not found');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        const fixedText = await autoFixRequirements(analysis.metadata, issueId);
+        res.json({ fixedText });
     } catch (error) {
         next(error);
     }

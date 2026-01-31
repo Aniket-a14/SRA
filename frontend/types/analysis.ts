@@ -139,6 +139,7 @@ export interface Analysis extends AnalysisResult {
         source?: string
         optimized?: boolean
         reusedFrom?: string
+        ragSources?: string[]
         promptSettings?: Record<string, unknown> | null
     }
     reusedFrom?: string

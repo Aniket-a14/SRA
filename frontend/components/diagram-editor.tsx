@@ -32,7 +32,7 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
     const [lastError, setLastError] = useState<string | null>(null)
     const [isRepairing, setIsRepairing] = useState(false)
     const [failedCodes, setFailedCodes] = useState<Set<string>>(new Set())
-    const { token, csrfToken } = useAuth()
+    const { token, csrfToken, fetchCsrf } = useAuth()
 
     // Sync if prop changes externally
     useEffect(() => {
@@ -79,12 +79,18 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
 
         setIsRepairing(true)
         try {
+            let activeCsrfToken = csrfToken;
+            if (!activeCsrfToken) {
+                console.log("[DiagramEditor] CSRF token missing, attempting refresh...");
+                activeCsrfToken = await fetchCsrf();
+            }
+
             const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/repair-diagram`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
-                    ...(csrfToken && { "x-csrf-token": csrfToken })
+                    ...(activeCsrfToken && { "x-csrf-token": activeCsrfToken })
                 },
                 body: JSON.stringify({
                     code: code,
@@ -124,7 +130,7 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
         } finally {
             setIsRepairing(false)
         }
-    }, 3000), [code, lastError, token, onSave, syntaxExplanation])
+    }, 3000), [code, lastError, token, onSave, syntaxExplanation, csrfToken, fetchCsrf])
 
     // Automatic Repair Trigger
     useEffect(() => {

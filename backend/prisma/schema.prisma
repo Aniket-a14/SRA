@@ -132,6 +132,9 @@ model KnowledgeChunk {
   hash        String   // Content hash for exact dedup
   tags        String[] // Keywords for search
   
+  // Use Unsupported type for pgvector column
+  embedding  Unsupported("vector(768)")?
+
   sourceAnalysisId String
   sourceAnalysis   Analysis @relation(fields: [sourceAnalysisId], references: [id])
   

@@ -50,7 +50,7 @@ export function ChatInput({ onAnalyze, isLoading, initialSettings }: ChatInputPr
 
   const [projectName, setProjectName] = useState("")
   const [settings, setSettings] = useState<PromptSettings>(initialSettings || DEFAULT_SETTINGS);
-  const { token, csrfToken } = useAuth();
+  const { token, csrfToken, fetchCsrf } = useAuth();
   const searchParams = useSearchParams();
   const projectId = searchParams.get("projectId");
 
@@ -73,7 +73,13 @@ export function ChatInput({ onAnalyze, isLoading, initialSettings }: ChatInputPr
 
     const timeout = setTimeout(async () => {
       try {
-        await updateProject(token, projectId, { settings }, csrfToken);
+        // PROACTIVE CSRF REFRESH
+        let effectiveCsrf = csrfToken;
+        if (!effectiveCsrf) {
+          effectiveCsrf = await fetchCsrf();
+        }
+
+        await updateProject(token, projectId, { settings }, effectiveCsrf);
         // Optional: toast.success("Settings saved");
       } catch (e) {
         console.error("Failed to save settings", e);
@@ -81,7 +87,7 @@ export function ChatInput({ onAnalyze, isLoading, initialSettings }: ChatInputPr
     }, 1000);
 
     return () => clearTimeout(timeout);
-  }, [settings, token, projectId, initialSettings]);
+  }, [settings, token, projectId, initialSettings, fetchCsrf, csrfToken]);
 
 
   useEffect(() => {

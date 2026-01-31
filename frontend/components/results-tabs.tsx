@@ -41,7 +41,7 @@ interface ResultsTabsProps {
 
 export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange, onRefresh }: ResultsTabsProps) {
   const sectionRef = useRef<HTMLElement>(null)
-  const { token, csrfToken } = useAuth()
+  const { token, csrfToken, fetchCsrf } = useAuth()
   const router = useRouter()
   const params = useParams()
   const analysisId = params?.id as string
@@ -92,13 +92,20 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
       return
     }
 
+    // PROACTIVE CSRF REFRESH
+    let effectiveCsrf = csrfToken;
+    if (!effectiveCsrf) {
+      effectiveCsrf = await fetchCsrf();
+    }
+
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
         method: "PUT",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
-          ...(csrfToken && { "x-csrf-token": csrfToken })
+          ...(effectiveCsrf && { "x-csrf-token": effectiveCsrf })
         },
         body: JSON.stringify({
           ...editedData,
@@ -399,14 +406,19 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
                       ? appendices.analysisModels.flowchartDiagram
                       : appendices?.analysisModels?.flowchartDiagram?.code || ""}
                     onSave={async (newCode, options) => {
+                      // PROACTIVE CSRF REFRESH
+                      let effectiveCsrf = csrfToken;
+                      if (!effectiveCsrf) effectiveCsrf = await fetchCsrf();
+
                       try {
                         const isInPlace = !!options?.inPlace;
                         const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
                           method: "PUT",
+                          credentials: "include",
                           headers: {
                             "Content-Type": "application/json",
                             Authorization: `Bearer ${token}`,
-                            ...(csrfToken && { "x-csrf-token": csrfToken })
+                            ...(effectiveCsrf && { "x-csrf-token": effectiveCsrf })
                           },
                           body: JSON.stringify({
                             appendices: {
@@ -441,14 +453,19 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
                       ? appendices.analysisModels.sequenceDiagram
                       : appendices?.analysisModels?.sequenceDiagram?.code || ""}
                     onSave={async (newCode, options) => {
+                      // PROACTIVE CSRF REFRESH
+                      let effectiveCsrf = csrfToken;
+                      if (!effectiveCsrf) effectiveCsrf = await fetchCsrf();
+
                       try {
                         const isInPlace = !!options?.inPlace;
                         const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
                           method: "PUT",
+                          credentials: "include",
                           headers: {
                             "Content-Type": "application/json",
                             Authorization: `Bearer ${token}`,
-                            ...(csrfToken && { "x-csrf-token": csrfToken })
+                            ...(effectiveCsrf && { "x-csrf-token": effectiveCsrf })
                           },
                           body: JSON.stringify({
                             appendices: {
@@ -486,38 +503,47 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
                     projectTitle={data.projectTitle}
                     description={data.introduction?.productScope || ""}
                     srsContent={JSON.stringify(data)}
-                    onUpdate={(newDfdInput) => {
+                    onUpdate={async (newDfdInput) => {
                       const newDFD = {
                         ...((typeof appendices?.analysisModels?.dataFlowDiagram === 'object' ? appendices.analysisModels.dataFlowDiagram : {})),
                         ...newDfdInput,
                         caption: "Data Flow Diagram"
                       };
 
-                      fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
-                        method: "PUT",
-                        headers: {
-                          "Content-Type": "application/json",
-                          Authorization: `Bearer ${token}`,
-                          ...(csrfToken && { "x-csrf-token": csrfToken })
-                        },
-                        body: JSON.stringify({
-                          appendices: {
-                            ...appendices,
-                            analysisModels: {
-                              ...appendices?.analysisModels,
-                              dataFlowDiagram: newDFD
-                            }
+                      // PROACTIVE CSRF REFRESH
+                      let effectiveCsrf = csrfToken;
+                      if (!effectiveCsrf) effectiveCsrf = await fetchCsrf();
+
+                      try {
+                        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
+                          method: "PUT",
+                          credentials: "include",
+                          headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`,
+                            ...(effectiveCsrf && { "x-csrf-token": effectiveCsrf })
                           },
-                          skipAlignment: true,
-                          inPlace: true // Force persist on current version
+                          body: JSON.stringify({
+                            appendices: {
+                              ...appendices,
+                              analysisModels: {
+                                ...appendices?.analysisModels,
+                                dataFlowDiagram: newDFD
+                              }
+                            },
+                            skipAlignment: true,
+                            inPlace: true // Force persist on current version
+                          })
                         })
-                      }).then(res => {
                         if (res.ok) {
                           onRefresh?.();
                         } else {
                           toast.error("Failed to save generated DFD");
                         }
-                      });
+                      } catch (e) {
+                        console.error(e);
+                        toast.error("Failed to save generated DFD");
+                      }
                     }}
                   />
                 </div>
@@ -530,14 +556,19 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
                       : appendices?.analysisModels?.entityRelationshipDiagram?.code || ""}
                     syntaxExplanation={typeof appendices?.analysisModels?.entityRelationshipDiagram === 'object' && appendices.analysisModels.entityRelationshipDiagram !== null ? (appendices.analysisModels.entityRelationshipDiagram as Diagram).syntaxExplanation : undefined}
                     onSave={async (newCode, options) => {
+                      // PROACTIVE CSRF REFRESH
+                      let effectiveCsrf = csrfToken;
+                      if (!effectiveCsrf) effectiveCsrf = await fetchCsrf();
+
                       try {
                         const isInPlace = !!options?.inPlace;
                         const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
                           method: "PUT",
+                          credentials: "include",
                           headers: {
                             "Content-Type": "application/json",
                             Authorization: `Bearer ${token}`,
-                            ...(csrfToken && { "x-csrf-token": csrfToken })
+                            ...(effectiveCsrf && { "x-csrf-token": effectiveCsrf })
                           },
                           body: JSON.stringify({
                             appendices: {
@@ -623,12 +654,17 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
                     onClick={async () => {
                       setIsGeneratingCode(true);
                       setCodeError("");
+                      // PROACTIVE CSRF REFRESH
+                      let effectiveCsrf = csrfToken;
+                      if (!effectiveCsrf) effectiveCsrf = await fetchCsrf();
+
                       try {
                         const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}/code`, {
                           method: "POST",
+                          credentials: "include",
                           headers: {
                             Authorization: `Bearer ${token}`,
-                            ...(csrfToken && { "x-csrf-token": csrfToken })
+                            ...(effectiveCsrf && { "x-csrf-token": effectiveCsrf })
                           }
                         });
                         if (!res.ok) throw new Error("Failed to generate code");
