@@ -8,10 +8,20 @@ import { AnalysisHistory } from "@/components/analysis-history"
 import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
+// Import the type from the component
+type AnalysisHistoryItem = {
+    id: string
+    createdAt: string
+    inputText: string
+    inputPreview: string
+    version?: number
+    title?: string
+}
+
 export default function AnalysisPage() {
     const router = useRouter()
     const { user, token, isLoading: authLoading } = useAuth()
-    const [history, setHistory] = useState([])
+    const [history, setHistory] = useState<AnalysisHistoryItem[]>([])
     const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
@@ -28,7 +38,9 @@ export default function AnalysisPage() {
                 }
 
                 const data = await response.json()
-                setHistory(data)
+                // Handle standardized response format {success, data}
+                const historyData = data.data || data
+                setHistory(Array.isArray(historyData) ? historyData : [])
             } catch (err) {
                 console.error("Error fetching history:", err)
                 toast.error("Failed to load your analysis history. Please try again later.")
