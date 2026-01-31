@@ -130,7 +130,7 @@ describe('E2E Golden Path: Request -> Queue(Mock) -> Worker(Local) -> DB', () =>
             });
 
         expect(res.status).toBe(202);
-        const jobId = res.body.jobId;
+        const jobId = res.body.data.jobId;
         expect(jobId).toBeDefined();
 
         // 2. Wait for Worker (async local execution)

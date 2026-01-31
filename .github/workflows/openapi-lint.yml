@@ -1,0 +1,22 @@
+name: OpenAPI Contract Lint
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "backend/src/swagger.yaml"
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - "backend/src/swagger.yaml"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Spectral Lint
+        uses: stoplightio/spectral-action@v0.8.2
+        with:
+          file_glob: backend/src/swagger.yaml

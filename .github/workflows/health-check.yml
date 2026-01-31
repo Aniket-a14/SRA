@@ -13,9 +13,10 @@ jobs:
     steps:
       - name: Check Backend Health
         run: |
-          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://sra-backend-six.vercel.app/)
-          if [ "$RESPONSE" -ne 200 ]; then
-            echo "Backend health check failed with status $RESPONSE"
+          # The new health endpoint returns a JSON with { success: true }
+          RESPONSE=$(curl -s https://sra-backend-six.vercel.app/api/health)
+          if [[ "$RESPONSE" != *"\"success\":true"* ]]; then
+            echo "Backend health check failed: $RESPONSE"
             exit 1
           fi
 
