@@ -11,3 +11,5 @@ dist/
 # Environment
 .env
 .env.local
+
+/backups

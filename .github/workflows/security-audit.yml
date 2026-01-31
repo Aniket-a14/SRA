@@ -1,0 +1,189 @@
+name: Security Audit
+
+on:
+  schedule:
+    # Run daily at 6 AM UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - '.github/workflows/security-audit.yml'
+
+jobs:
+  dependency-audit:
+    name: Dependency Vulnerability Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Audit backend dependencies
+        working-directory: ./backend
+        run: |
+          npm audit --audit-level=moderate || true
+          npm audit --json > backend-audit.json || true
+
+      - name: Audit frontend dependencies
+        working-directory: ./frontend
+        run: |
+          npm audit --audit-level=moderate || true
+          npm audit --json > frontend-audit.json || true
+
+      - name: Upload audit results
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-audit-${{ github.run_number }}
+          path: |
+            backend/backend-audit.json
+            frontend/frontend-audit.json
+
+  secret-scan:
+    name: Secret Leak Detection
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for secret scanning
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  security-headers:
+    name: Security Headers Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check security headers configuration
+        run: |
+          echo "Verifying security headers in next.config.ts..."
+          
+          # Check for required headers
+          REQUIRED_HEADERS=(
+            "Content-Security-Policy"
+            "X-Frame-Options"
+            "X-Content-Type-Options"
+            "Referrer-Policy"
+            "Strict-Transport-Security"
+          )
+          
+          for header in "${REQUIRED_HEADERS[@]}"; do
+            if grep -q "$header" frontend/next.config.ts; then
+              echo "✅ $header configured"
+            else
+              echo "❌ $header missing"
+              exit 1
+            fi
+          done
+
+  permissions-audit:
+    name: File Permissions Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for overly permissive files
+        run: |
+          echo "Checking for files with dangerous permissions..."
+          
+          # Check for world-writable files
+          WRITABLE=$(find . -type f -perm -002 2>/dev/null | grep -v ".git" || true)
+          
+          if [ -n "$WRITABLE" ]; then
+            echo "❌ Found world-writable files:"
+            echo "$WRITABLE"
+            exit 1
+          else
+            echo "✅ No world-writable files found"
+          fi
+
+  env-validation:
+    name: Environment Variable Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for hardcoded secrets
+        run: |
+          echo "Scanning for potential hardcoded secrets..."
+          
+          # Patterns to search for
+          PATTERNS=(
+            "password\s*=\s*['\"][^'\"]+['\"]"
+            "api[_-]?key\s*=\s*['\"][^'\"]+['\"]"
+            "secret\s*=\s*['\"][^'\"]+['\"]"
+            "token\s*=\s*['\"][^'\"]+['\"]"
+          )
+          
+          FOUND=0
+          for pattern in "${PATTERNS[@]}"; do
+            MATCHES=$(grep -rniE "$pattern" --include="*.js" --include="*.ts" --exclude-dir=node_modules --exclude-dir=.git . || true)
+            if [ -n "$MATCHES" ]; then
+              echo "⚠️  Potential hardcoded secret found:"
+              echo "$MATCHES"
+              FOUND=1
+            fi
+          done
+          
+          if [ $FOUND -eq 1 ]; then
+            echo "❌ Security audit failed: Potential secrets found"
+            exit 1
+          else
+            echo "✅ No hardcoded secrets detected"
+          fi
+
+  report:
+    name: Generate Security Report
+    needs: [dependency-audit, secret-scan, security-headers, permissions-audit, env-validation]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Create security report
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const results = {
+              dependency_audit: '${{ needs.dependency-audit.result }}',
+              secret_scan: '${{ needs.secret-scan.result }}',
+              security_headers: '${{ needs.security-headers.result }}',
+              permissions_audit: '${{ needs.permissions-audit.result }}',
+              env_validation: '${{ needs.env-validation.result }}'
+            };
+            
+            const failed = Object.entries(results).filter(([_, status]) => status === 'failure');
+            
+            if (failed.length > 0) {
+              const body = `## 🚨 Security Audit Failed\n\n` +
+                `The following checks failed:\n\n` +
+                failed.map(([check, _]) => `- ❌ ${check}`).join('\n') +
+                `\n\nWorkflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+              
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: '🚨 Security Audit Failed',
+                body: body,
+                labels: ['security', 'critical']
+              });
+            }

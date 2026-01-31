@@ -24,6 +24,37 @@ This document outlines the operational procedures, backup strategies, and disast
 - All configuration and code are versioned in GitHub.
 - Environment variables are stored in Vercel/Production Secrets.
 
+### 3. Automated Backup System
+- **Weekly Automated Backups:** GitHub Actions workflow runs every Sunday at 2 AM UTC.
+- **Encryption:** All backups are encrypted using AES-256-GCM before storage.
+- **Retention:** Backups are retained for 30 days, with automatic cleanup.
+- **Verification:** Each backup is verified for integrity using SHA-256 checksums.
+
+#### Manual Backup Commands
+```bash
+# Create encrypted backup
+cd backend
+node scripts/backup-cli.js create
+
+# List all backups
+node scripts/backup-cli.js list
+
+# Restore from backup
+node scripts/backup-cli.js restore <filename> --yes
+
+# Verify backup integrity
+node scripts/backup-cli.js verify <filename>
+
+# Cleanup old backups
+node scripts/backup-cli.js cleanup
+```
+
+#### Required Environment Variables
+- `DATABASE_URL`: PostgreSQL connection string
+- `BACKUP_ENCRYPTION_KEY`: Master key for backup encryption (min 32 characters)
+- `BACKUP_DIR`: Directory for backup storage (default: `./backups`)
+- `BACKUP_RETENTION_DAYS`: Number of days to retain backups (default: 30)
+
 ---
 
 ## 🛡️ Disaster Recovery (DR) Runbook

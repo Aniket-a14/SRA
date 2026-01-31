@@ -1,8 +1,10 @@
 "use client"
 
-import { useEffect, useState, useCallback, useRef } from "react"
+import { useEffect, useState, useCallback, useRef, useMemo } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
+import useSWR from "swr";
+import { fetcher, swrOptions } from "@/lib/swr-utils";
 
 import { Button } from "@/components/ui/button"
 import { Loader2, ArrowLeft, Calendar, Download, Sparkles, Database, Save } from "lucide-react"
@@ -65,9 +67,31 @@ function AnalysisDetailContent() {
     const { user, token, csrfToken, isLoading: authLoading, fetchCsrf } = useAuth()
     const { unlockAndNavigate, unlockLayer, setLayer, setIsFinalized } = useLayer()
 
-    const [analysis, setAnalysis] = useState<Analysis | null>(null)
+    // SWR Data Fetching
+    const swrKey = useMemo(() => {
+        if (!id || !token || authLoading) return null;
+        return [`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${id}`, token, csrfToken];
+    }, [id, token, csrfToken, authLoading]);
+
+    const { data: analysis, error: swrError, mutate, isValidating: swrValidating } = useSWR<Analysis>(
+        swrKey,
+        fetcher,
+        {
+            ...swrOptions,
+            refreshInterval: (data) => {
+                const status = (data?.status || '').toUpperCase();
+                // Terminal or Draft states don't need polling
+                if (status === 'COMPLETED' || status === 'FAILED' || data?.isFinalized) return 0;
+                // Layer 1/2 Drafts don't need polling
+                if (data?.metadata?.status === 'DRAFT' || data?.metadata?.status === 'VALIDATED') return 0;
+                // Otherwise poll every 3s
+                return 3000;
+            }
+        }
+    );
+
     const [isLoading, setIsLoading] = useState(true)
-    const [, setLoadingMessage] = useState("Loading analysis details...")
+    const [loadingMessage, setLoadingMessage] = useState("Loading analysis details...")
     const [error, setError] = useState("")
     const [isDiagramEditing, setIsDiagramEditing] = useState(false)
     const [isImproveDialogOpen, setIsImproveDialogOpen] = useState(false)
@@ -78,170 +102,100 @@ function AnalysisDetailContent() {
     const [,] = useTransition()
     const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([]);
     const lastIdRef = useRef<string | null>(null);
-    const pollingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-    const activePollingIdRef = useRef<string | null>(null);
 
     // Draft State
     const [draftData, setDraftData] = useState<SRSIntakeModel | null>(null)
 
-    const fetchAnalysis = useCallback(async (analysisId: string) => {
-        try {
-            // Only set loading message if we don't have analysis yet, avoids flicker
-            setAnalysis(prev => {
-                if (!prev) setLoadingMessage("Loading project...");
-                return prev;
-            });
+    // State Sync Hook: Keep UI states in sync with SWR data
+    useEffect(() => {
+        if (!analysis) return;
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
-                cache: 'no-store',
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    'Pragma': 'no-cache'
-                }
-            })
+        const currentStatus = (analysis.status || '').toUpperCase();
 
-            if (!response.ok) throw new Error("Failed to load analysis");
-
-            const json = await response.json();
-            const data: Analysis = json.data || json;
-            setAnalysis(data)
-
-            // STATUS HANDLING
-            // Poll if PENDING or IN_PROGRESS
-            const currentStatus = (data.status || '').toUpperCase();
-            if (currentStatus === 'PENDING' || currentStatus === 'IN_PROGRESS' || currentStatus === 'QUEUED') {
-                const msg = currentStatus === 'IN_PROGRESS'
-                    ? "AI is analyzing requirements (Layer 3)..."
-                    : "Queueing analysis job...";
-                setLoadingMessage(msg)
-
-                // ROBUST POLLING: Only set a new timeout if this ID matches our current target
-                // and we don't have a newer polling loop starting.
-                if (analysisId === lastIdRef.current) {
-                    if (pollingTimeoutRef.current) clearTimeout(pollingTimeoutRef.current);
-                    activePollingIdRef.current = analysisId;
-                    pollingTimeoutRef.current = setTimeout(() => {
-                        // Double check we are still interested in this ID
-                        if (analysisId === lastIdRef.current) {
-                            fetchAnalysis(analysisId);
-                        }
-                    }, 3000);
-                }
-                return
-            }
-
-            // If FAILED, show error
-            if (data.status === 'FAILED') {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const errorMsg = (data.resultJson as any)?.error || "Analysis generation failed. The AI worker encountered an error.";
-                setError(errorMsg);
-                setIsLoading(false);
-                activePollingIdRef.current = null;
-                return
-            }
-
-            // EXTRA GUARD: If status is COMPLETED but we have no results yet, keep polling
-            const hasResults = data.resultJson && Object.keys(data.resultJson).length > 2;
-            if (currentStatus === 'COMPLETED' && !hasResults) {
-                setLoadingMessage("Finalizing results...")
-                if (analysisId === lastIdRef.current) {
-                    if (pollingTimeoutRef.current) clearTimeout(pollingTimeoutRef.current);
-                    activePollingIdRef.current = analysisId;
-                    pollingTimeoutRef.current = setTimeout(() => {
-                        if (analysisId === lastIdRef.current) {
-                            fetchAnalysis(analysisId);
-                        }
-                    }, 2000);
-                }
-                return
-            }
-
-            // Successfully reached terminal state
-            activePollingIdRef.current = null;
-
-            // Layer Synchronization from Metadata
-            const status = data.metadata?.status;
-
-            if (status === 'DRAFT') {
-                unlockAndNavigate(1);
-                setDraftData((data.metadata?.draftData as unknown as SRSIntakeModel) || null);
-            } else if (status === 'VALIDATING' || status === 'VALIDATED' || status === 'NEEDS_FIX') {
-                unlockAndNavigate(2);
-                setDraftData((data.metadata?.draftData as unknown as SRSIntakeModel) || null); // Keep draft data loaded if back nav needed
-                setValidationIssues(data.metadata?.validationResult?.issues || []);
-            } else {
-                // Default: COMPLETED (Layer 3 done)
-                // This handles 'COMPLETED', undefined (legacy), and any other post-analysis state.
-
-                // CRITICAL FIX: If we have resultJson, we are done.
-                if (data.status === 'COMPLETED' || (data.resultJson && Object.keys(data.resultJson).length > 2)) {
-                    setIsLoading(false);
-                }
-
-                if (data.isFinalized) {
-                    setIsFinalized(true);
-                    unlockAndNavigate(5);
-                } else {
-                    setIsFinalized(false);
-                    // Unlock everything (including 4 and 5) so user can choose to Improve or Finalize
-                    // But keep them on the Analysis Report (Layer 3) initially
-                    unlockLayer(5);
-                    setLayer(3);
-                }
-            }
-
-        } catch (err) {
-            console.error("Error fetching analysis:", err)
-            setError(err instanceof Error ? err.message : "Failed to load analysis")
-            setIsLoading(false)
-        } finally {
-            // No-op
+        // Handle Error terminal state
+        if (currentStatus === 'FAILED') {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const msg = (analysis.resultJson as any)?.error || "Analysis generation failed.";
+            setError(msg);
+            setIsLoading(false);
+            return;
         }
-    }, [token, unlockAndNavigate, unlockLayer, setLayer, setIsFinalized]);
+
+        // Handle Polling Messaging
+        if (currentStatus === 'PENDING' || currentStatus === 'IN_PROGRESS' || currentStatus === 'QUEUED') {
+            const msg = currentStatus === 'IN_PROGRESS'
+                ? "AI is analyzing requirements (Layer 3)..."
+                : "Queueing analysis job...";
+            setLoadingMessage(msg);
+            setIsLoading(true);
+            return;
+        }
+
+        // Terminal logic (COMPLETED or results exist)
+        const hasResults = analysis.resultJson && Object.keys(analysis.resultJson).length > 2;
+        if (currentStatus === 'COMPLETED' && !hasResults) {
+            setLoadingMessage("Finalizing results...");
+            setIsLoading(true);
+            return;
+        }
+
+        // Successfully loaded data
+        setIsLoading(false);
+        setError("");
+
+        // Layer Synchronization
+        const metadataStatus = analysis.metadata?.status;
+        if (metadataStatus === 'DRAFT') {
+            unlockAndNavigate(1);
+            setDraftData((analysis.metadata?.draftData as unknown as SRSIntakeModel) || null);
+        } else if (metadataStatus === 'VALIDATING' || metadataStatus === 'VALIDATED' || metadataStatus === 'NEEDS_FIX') {
+            unlockAndNavigate(2);
+            setDraftData((analysis.metadata?.draftData as unknown as SRSIntakeModel) || null);
+            setValidationIssues(analysis.metadata?.validationResult?.issues || []);
+        } else {
+            if (analysis.isFinalized) {
+                setIsFinalized(true);
+                unlockAndNavigate(5);
+            } else {
+                setIsFinalized(false);
+                unlockLayer(5);
+                setLayer(3);
+            }
+        }
+    }, [analysis, unlockAndNavigate, unlockLayer, setLayer, setIsFinalized]);
+
+    // Handle SWR errors separately
+    useEffect(() => {
+        if (swrError) {
+            setError(swrError.message || "Failed to sync analysis");
+            setIsLoading(false);
+        }
+    }, [swrError]);
 
     const memoizedOnDiagramEditChange = useCallback((isEditing: boolean) => {
         setIsDiagramEditing(isEditing)
     }, [])
 
     const memoizedOnRefresh = useCallback(() => {
-        if (id) fetchAnalysis(id)
-    }, [id, fetchAnalysis])
+        mutate();
+    }, [mutate])
 
     useEffect(() => {
-        // Wait for auth initialization
         if (authLoading) return
-
         if (!user || !token) {
-            // Not authenticated, stop loading and redirect
             setIsLoading(false)
             router.push("/auth/login")
             return
         }
 
-        if (id && id !== 'undefined') {
-            // CRITICAL: ONLY reset state if the ID has actually changed
-            // This prevents the infinite reset loop when fetchAnalysis dependencies change
-            if (id !== lastIdRef.current) {
-                lastIdRef.current = id;
-                setIsLoading(true);
-                setAnalysis(null);
-                setError("");
-                setLoadingMessage("Loading analysis details...");
-            }
-            fetchAnalysis(id)
-        } else if (id === 'undefined') {
+        if (id === 'undefined') {
             setError("Invalid Analysis ID");
             setIsLoading(false);
         }
-
-        // Cleanup timeout on unmount or id change
-        return () => {
-            if (pollingTimeoutRef.current) clearTimeout(pollingTimeoutRef.current);
-        };
-    }, [user, token, id, authLoading, router, fetchAnalysis])
+    }, [user, token, id, authLoading, router])
 
     const handleRefresh = () => {
-        if (id) fetchAnalysis(id)
+        mutate()
     }
 
     useEffect(() => {
@@ -331,7 +285,7 @@ function AnalysisDetailContent() {
 
             const result = await res.json();
             setValidationIssues(result.issues || []);
-            handleRefresh();
+            mutate();
             toast.success("Validation Complete");
         } catch {
             toast.error("Failed to run validation");
@@ -451,7 +405,7 @@ function AnalysisDetailContent() {
                     metadata: { ...analysis?.metadata, status: 'DRAFT' } // Explicit status reset
                 })
             });
-            handleRefresh();
+            mutate();
         } catch (e) {
             console.error("Failed to reset draft status", e);
         }
@@ -475,7 +429,7 @@ function AnalysisDetailContent() {
             if (res.ok) {
                 toast.success("SRS Finalized & Added to Knowledge Base");
                 setIsFinalized(true);
-                fetchAnalysis(id);
+                mutate();
             } else {
                 throw new Error("Failed to finalize");
             }
