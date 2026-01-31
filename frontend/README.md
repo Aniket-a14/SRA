@@ -1,11 +1,11 @@
 # SRA Frontend: Modern SRS Workspace
 
-![Next.js](https://img.shields.io/badge/Next.js-15-black)
+![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-cyan)
 ![Radix UI](https://img.shields.io/badge/Radix%20UI-Primitives-white)
 
-The SRA Frontend is a premium, type-safe Next.js 16 application designed to visualize and refine complex software requirements using a state-of-the-art interactive workspace.
+The SRA Frontend is a premium, type-safe Next.js 16.1.6 application designed to visualize and refine complex software requirements using a state-of-the-art interactive workspace.
 
 ## 💎 Design Philosophy & Standards
 
@@ -18,9 +18,9 @@ The frontend emphasizes **Visual Excellence** and **Absolute Type Safety**, ensu
 ## 🛠️ Feature Breakdown
 
 ### The Analysis Workspace
-The core of the application, orchestrating complex state across multiple tabs:
--   **`ResultsTabs`**: The main container managing synchronization between Diagrams, User Stories, and Appendix items.
--   **`KVDisplay`**: A modular component for rendering and editing key-value requirement pairs with auto-generated IDs.
+The core of the application, orchestrating complex state across modular tabs:
+-   **`ResultsTabs`**: The main coordinator managing synchronization between specialized sub-tabs.
+-   **`analysis/tabs/`**: Contains optimized components for Introduction, Features, Interfaces, NFRs, Appendices, Code, and Quality Audit.
 -   **`MermaidViewer`**: Client-side rendering and high-res export of system diagrams.
 
 ### SRS Versioning & Diffing
@@ -48,9 +48,8 @@ Integrated directly into the workspace, providing real-time Feedback on:
 | Path | Purpose |
 |------|---------|
 | `app/analysis/page.tsx` | Main workspace entry point. Orchestrates data fetching and state. |
-| `components/analysis/results-tabs.tsx` | State container for the analysis tabs (Results, Diagrams, etc.). |
-| `components/analysis/diagram-editor.tsx` | Live Mermaid diagram editor with syntax validation. |
-| `lib/projects-api.ts` | Type-safe API client for communicating with the backend. |
+| `components/analysis/tabs/` | **Modular UI layer** for each SRS section (Features, NFRs, etc.). |
+| `lib/hooks.ts` | **useAuthFetch**: Recommended hook for secure, authenticated API calls. |
 | `types/analysis.ts` | Shared TypeScript definitions for SRS models. |
 
 ## 🏁 Getting Started

@@ -69,7 +69,7 @@ graph TD
 1.  **Strategic Intake**: Translates free-text into a mapped JSON model aligned with IEEE section hierarchies.
 2.  **Logic Validation**: A high-speed reasoning pass (Gatekeeper) that evaluates clarity, consistency, and detail sufficiency.
 3.  **Analysis & Synthesis**: Heavy LLM processing to generate the full document, including User Stories, Acceptance Criteria, and Entity-Relationship maps.
-4.  **Iterative Refinement**: A premium Workspace UI for manual adjustments, version branching, and intelligent diagram repair.
+4.  **Iterative Refinement**: A modular Workspace UI for manual adjustments, version branching, and intelligent diagram repair.
 5.  **Knowledge Persistence**: Finalized requirements are "shredded" and indexed into a Vector Database for cross-project intelligence and RAG.
 
 ---
@@ -106,6 +106,7 @@ SRA is engineered for stability, security, and enterprise-grade performance.
 ### 🌐 Network & Content Security
 - **Hardened CSP**: Strict Content Security Policy injected via Next.js and Express security headers.
 - **HSTS & Frame Protection**: Production-grade `Strict-Transport-Security` and `X-Frame-Options` (DENY/SAMEORIGIN) enforcement.
+- **Strict CSRF Enforcement**: Mandatory `CSRF_SECRET` validation in production to prevent insecure session fallbacks.
 - **Privacy Sanitization**: Integrated `sanitizer.js` layer to prevent data leakage to LLM providers.
 - **Rate Limiting**: Intelligent API throttling across auth, analysis, and worker endpoints.
 

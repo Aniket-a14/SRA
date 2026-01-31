@@ -30,9 +30,10 @@ The frontend is built with **Next.js 16 (App Router)** and **TypeScript**, style
     -   `page.tsx`: The main landing page and UI.
     -   `layout.tsx`: The root layout wrapper.
 -   **`components/`**: Reusable UI components.
-    -   `ui/`: Base components from shadcn/ui (buttons, inputs, cards).
-    -   `ResultsTabs.tsx`: Displays the standard IEEE-830 analysis results.
-    -   `MermaidRenderer.tsx`: **Strict** renderer for diagrams (governed by Diagram Syntax Authority).
+    -   **`ui/`**: Base components from shadcn/ui.
+    -   **`analysis/tabs/`**: **NEW**. Modular sub-components for each analysis result tab.
+    -   **`ResultsTabs.tsx`**: The main coordinator that imports and orchestrates the modular tabs.
+    -   **`MermaidRenderer.tsx`**: **Strict** renderer for diagrams (governed by Diagram Syntax Authority).
 -   **`lib/`**: Utility functions and helpers.
     -   `data.ts`: Centralized static data repository.
     -   `export-utils.ts`: **Layer 5 Document Compiler** (Frontend-only PDF generation).
@@ -110,8 +111,9 @@ Ensure you have the following installed or set up:
     -   **Layer 4 (Refinement)** is implemented via `refinementService` in the backend.
     -   **Layer 5 (Document Compiler)** is pure client-side logic in `frontend/lib/export-utils.ts`. **Do not shift this to the backend.**
 -   **Frontend UI**:
-    -   To add a new section to the results, update `frontend/components/ResultsTabs.tsx`.
-    -   To change the input form, check `frontend/app/page.tsx`.
+    -   To add a new section to the results, create a new component in `frontend/components/analysis/tabs/` and register it in `ResultsTabs.tsx`.
+    -   **API Requests**: Use the `useAuthFetch` hook found in `lib/hooks.ts` for all authenticated requests. This hook handles CSRF and bearer tokens automatically.
+    -   To change the input form, check `frontend/app/home-client.tsx`.
 
 ### Styling
 -   We use **Tailwind CSS v4**. You can apply utility classes directly to your JSX elements.
