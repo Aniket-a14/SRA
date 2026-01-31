@@ -16,6 +16,7 @@ import fs from 'fs';
 import yaml from 'js-yaml';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import csurf from 'csurf';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -59,6 +60,10 @@ app.use(express.json({
     }
 })); // Increase limit for large SRS data
 app.use(cookieParser());
+
+const csrfProtection = csurf({ cookie: true });
+app.use(csrfProtection);
+
 app.use(logger);
 
 // Root health check
@@ -67,6 +72,11 @@ app.get('/', (req, res) => {
 });
 
 app.get('/favicon.ico', (req, res) => res.status(204).end());
+
+// Endpoint to retrieve CSRF token for clients that need it
+app.get('/csrf-token', (req, res) => {
+    res.json({ csrfToken: req.csrfToken() });
+});
 
 // Swagger API Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
