@@ -46,10 +46,10 @@ app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://vercel.live"],
-            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://vercel.live", "https://cdn.jsdelivr.net"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
-            imgSrc: ["'self'", "data:", "https:", "https://cdnjs.cloudflare.com"],
+            imgSrc: ["'self'", "data:", "https:", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
             connectSrc: ["'self'", "http://localhost:*", "https://sra-xi.vercel.app", "https://sra-backend-six.vercel.app", "https://generativelanguage.googleapis.com"],
             frameSrc: ["'self'", "https://vercel.live"],
             frameAncestors: ["'none'"],
@@ -97,11 +97,14 @@ app.get('/favicon.ico', (req, res) => res.status(204).end());
 // Swagger API Documentation
 if (swaggerDocument) {
     const swaggerOptions = {
-        customCssUrl: 'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui.min.css',
+        explorer: false,
+        customCss: '.swagger-ui .topbar { display: none }',
+        customCssUrl: 'https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.11.0/swagger-ui.css',
         customJs: [
-            'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui-bundle.min.js',
-            'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui-standalone-preset.min.js',
+            'https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.11.0/swagger-ui-bundle.js',
+            'https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.11.0/swagger-ui-standalone-preset.js'
         ],
+        customSiteTitle: "SRA API Documentation"
     };
     app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, swaggerOptions));
 }

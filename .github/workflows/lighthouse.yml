@@ -26,8 +26,9 @@ jobs:
 
       - name: Serve app
         run: |
-          cd frontend && npm run start &
-          sleep 5
+          npm install -g wait-on
+          cd frontend && npx next start -p 3001 &
+          wait-on http://localhost:3001 --timeout 60000
 
       - name: Static Analysis with Lighthouse
         uses: treosh/lighthouse-ci-action@v11
