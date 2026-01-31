@@ -60,7 +60,7 @@ export function HeroSection() {
               key={item.label}
               className="flex items-center gap-2 text-sm text-muted-foreground px-4 py-2 rounded-full bg-secondary/50 transition-all duration-300 hover:bg-secondary hover:scale-105"
             >
-              <item.icon className="h-4 w-4 text-primary" />
+              <item.icon className="h-4 w-4 text-primary" aria-hidden="true" />
               <span>{item.label}</span>
             </div>
           ))}

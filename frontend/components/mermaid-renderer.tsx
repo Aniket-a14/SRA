@@ -131,6 +131,8 @@ export function MermaidRenderer({ chart, title, className, onError, isExport = f
                 ) : null}
                 <div
                     ref={ref}
+                    role="img"
+                    aria-label={`Diagram: ${title}`}
                     className={cn(
                         "flex justify-center w-full min-w-max p-4",
                         (hasError || !chart) ? "opacity-0 pointer-events-none" : "opacity-100"

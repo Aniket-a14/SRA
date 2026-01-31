@@ -49,8 +49,8 @@ export function CodeViewer({ fileStructure, schema, backendRoutes, frontendCompo
             <Card className="md:col-span-1 bg-card border-border h-full flex flex-col min-w-0 overflow-hidden">
                 <div className="p-4 border-b flex justify-between items-center bg-muted/40">
                     <h3 className="font-semibold text-sm">Generated Assets</h3>
-                    <Button size="icon" variant="ghost" title="Download Codebase" onClick={() => downloadCodebase({ fileStructure, schema, backendRoutes, frontendComponents, testCases, backendReadme, frontendReadme }, "Generated_Project")}>
-                        <Download className="h-4 w-4" />
+                    <Button size="icon" variant="ghost" title="Download Codebase" aria-label="Download Codebase" onClick={() => downloadCodebase({ fileStructure, schema, backendRoutes, frontendComponents, testCases, backendReadme, frontendReadme }, "Generated_Project")}>
+                        <Download className="h-4 w-4" aria-hidden="true" />
                     </Button>
                 </div>
                 <ScrollArea className="flex-1 min-h-0">
