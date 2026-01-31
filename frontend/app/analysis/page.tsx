@@ -1,12 +1,13 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
+import useSWR from "swr";
+import { fetcher, swrOptions } from "@/lib/swr-utils";
 
 import { AnalysisHistory } from "@/components/analysis-history"
 import { Loader2 } from "lucide-react"
-import { toast } from "sonner"
 
 // Import the type from the component
 type AnalysisHistoryItem = {
@@ -20,46 +21,25 @@ type AnalysisHistoryItem = {
 
 export default function AnalysisPage() {
     const router = useRouter()
-    const { user, token, isLoading: authLoading } = useAuth()
-    const [history, setHistory] = useState<AnalysisHistoryItem[]>([])
-    const [isLoading, setIsLoading] = useState(true)
+    const { user, token, csrfToken, isLoading: authLoading } = useAuth()
+
+    const swrKey = useMemo(() => {
+        if (!token || authLoading) return null;
+        return [`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, token, csrfToken];
+    }, [token, csrfToken, authLoading]);
+
+    const { data: historyData, error, isValidating } = useSWR<AnalysisHistoryItem[]>(
+        swrKey,
+        fetcher,
+        swrOptions
+    );
+
+    const history = Array.isArray(historyData) ? historyData : [];
+    const isLoading = authLoading || (!historyData && !error);
 
     useEffect(() => {
-        const fetchHistory = async () => {
-            try {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                })
-
-                if (!response.ok) {
-                    throw new Error("Failed to fetch analysis history")
-                }
-
-                const data = await response.json()
-                // Handle standardized response format {success, data}
-                const historyData = data.data || data
-                setHistory(Array.isArray(historyData) ? historyData : [])
-            } catch (err) {
-                console.error("Error fetching history:", err)
-                toast.error("Failed to load your analysis history. Please try again later.")
-            } finally {
-                setIsLoading(false)
-            }
-        }
-
-        // If auth is done loading...
-        if (authLoading) return
-
-        if (!user || !token) {
-            setIsLoading(false)
+        if (!authLoading && (!user || !token)) {
             router.push("/auth/login")
-            return
-        }
-
-        if (user && token) {
-            fetchHistory()
         }
     }, [user, token, authLoading, router])
 
