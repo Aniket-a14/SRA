@@ -13,6 +13,7 @@ import { FEATURE_EXPANSION_PROMPT, DFD_STRUCT_GEN_PROMPT } from '../utils/prompt
 import { layoutAllDFD } from '../services/dfdLayoutService.js';
 import prisma from '../config/prisma.js';
 import crypto from 'crypto';
+import { successResponse } from '../utils/response.js';
 
 export const analyze = async (req, res, next) => {
     try {
@@ -87,11 +88,10 @@ export const analyze = async (req, res, next) => {
                     }
                 });
 
-                return res.status(200).json({
-                    message: "Draft created successfully",
+                return successResponse(res, {
                     id: newAnalysis.id,
                     status: "draft"
-                });
+                }, "Draft created successfully");
             }
 
             // 1. Validation Logic
@@ -173,14 +173,13 @@ export const analyze = async (req, res, next) => {
             }
         }
 
-        res.status(202).json({
-            message: "Analysis queued",
+        return successResponse(res, {
             jobId: job.id,
             id: job.id, // Fix: Frontend expects 'id'
             status: "queued",
             reuseFound: reuseMetadata.found,
             reuseType: reuseMetadata.type
-        });
+        }, "Analysis queued", 202);
     } catch (error) {
         next(error);
     }
@@ -197,7 +196,7 @@ export const checkJobStatus = async (req, res, next) => {
             throw error;
         }
 
-        res.json(status);
+        return successResponse(res, status);
     } catch (error) {
         next(error);
     }
@@ -206,7 +205,7 @@ export const checkJobStatus = async (req, res, next) => {
 export const getHistory = async (req, res, next) => {
     try {
         const history = await getUserAnalyses(req.user.userId);
-        res.json(history);
+        return successResponse(res, history);
     } catch (error) {
         next(error);
     }
@@ -216,7 +215,7 @@ export const getHistoryForRoot = async (req, res, next) => {
     try {
         const { rootId } = req.params;
         const history = await getAnalysisHistory(req.user.userId, rootId);
-        res.json(history);
+        return successResponse(res, history);
     } catch (error) {
         next(error);
     }
@@ -239,7 +238,7 @@ export const performComparison = async (req, res, next) => {
         }
 
         const diff = compareAnalyses(v1, v2);
-        res.json(diff);
+        return successResponse(res, diff);
     } catch (error) {
         next(error);
     }
@@ -254,7 +253,7 @@ export const getAnalysis = async (req, res, next) => {
             error.statusCode = 404;
             throw error;
         }
-        res.json({
+        return successResponse(res, {
             ...analysis.resultJson,
             resultJson: analysis.resultJson,
             id: analysis.id,
@@ -307,7 +306,7 @@ export const updateAnalysis = async (req, res, next) => {
                         : currentAnalysis.resultJson
                 }
             });
-            return res.json({ ...updated.resultJson, id: updated.id, metadata: updated.metadata });
+            return successResponse(res, { ...updated.resultJson, id: updated.id, metadata: updated.metadata });
         }
 
         // 3. Versioning Path (Layer 4+ refinements)
@@ -385,7 +384,7 @@ export const updateAnalysis = async (req, res, next) => {
             });
         });
 
-        res.json({
+        return successResponse(res, {
             ...newAnalysis.resultJson,
             id: newAnalysis.id,
             title: newAnalysis.title,
@@ -407,7 +406,7 @@ export const chat = async (req, res, next) => {
         if (!message) throw new Error("Message is required");
 
         const response = await processChat(req.user.userId, id, message);
-        res.json(response);
+        return successResponse(res, response);
     } catch (error) {
         next(error);
     }
@@ -441,7 +440,7 @@ export const getChatHistory = async (req, res, next) => {
             where: { analysisId: { in: chainIds } },
             orderBy: { createdAt: 'asc' }
         });
-        res.json(messages);
+        return successResponse(res, messages);
     } catch (error) {
         next(error);
     }
@@ -451,7 +450,7 @@ export const generateCode = async (req, res, next) => {
     try {
         const { id } = req.params;
         const result = await generateCodeFromAnalysis(req.user.userId, id);
-        res.json(result);
+        return successResponse(res, result);
     } catch (error) {
         next(error);
     }
@@ -525,11 +524,10 @@ INSTRUCTION: Regenerate the SRS based on the Original Request. Incorporate the I
             rootId // rootId
         );
 
-        res.status(202).json({
-            message: "Regeneration queued",
+        return successResponse(res, {
             jobId: job.id,
             status: "queued"
-        });
+        }, "Regeneration queued", 202);
 
     } catch (error) {
         next(error);
@@ -679,7 +677,7 @@ export const finalizeAnalysis = async (req, res, next) => {
             });
         }
 
-        res.json({ message: "Analysis finalized and broken into reusable chunks with semantic embeddings", id: finalized.id, chunksStored: chunks.length });
+        return successResponse(res, { message: "Analysis finalized and broken into reusable chunks with semantic embeddings", id: finalized.id, chunksStored: chunks.length });
     } catch (error) {
         next(error);
     }
@@ -744,8 +742,7 @@ export const validateAnalysis = async (req, res, next) => {
             data: { metadata: updatedMetadata }
         });
 
-        res.status(200).json(validationResult);
-
+        return successResponse(res, validationResult);
     } catch (error) {
         next(error);
     }
@@ -777,7 +774,7 @@ export const expandFeature = async (req, res, next) => {
             throw new Error(result.error);
         }
 
-        res.json(result);
+        return successResponse(res, result);
     } catch (error) {
         next(error);
     }
@@ -794,7 +791,7 @@ export const repairDiagram = async (req, res, next) => {
         }
 
         const repairedCode = await aiRepairDiagram(code, error, settings || {}, req.body.syntaxExplanation || "");
-        res.json({ code: repairedCode });
+        return successResponse(res, { code: repairedCode });
     } catch (error) {
         next(error);
     }

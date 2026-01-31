@@ -76,7 +76,8 @@ export function ImprovementDialog({ open, onOpenChange, analysisId, version }: I
                 throw new Error(err.message || "Failed to start regeneration")
             }
 
-            const data = await response.json()
+            const json = await response.json()
+            const data = json.data || json
             toast.success("Improvement cycle started!")
 
             // Poll for completion
@@ -97,7 +98,8 @@ export function ImprovementDialog({ open, onOpenChange, analysisId, version }: I
                 const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/job/${jobId}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 })
-                const jobState = await res.json()
+                const json = await res.json()
+                const jobState = json.data || json
 
                 if (jobState.state === "completed") {
                     clearInterval(interval)

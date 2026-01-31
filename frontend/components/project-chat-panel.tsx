@@ -42,8 +42,8 @@ export function ProjectChatPanel({ analysisId, onAnalysisUpdate, hidden, isFinal
                     headers: { Authorization: `Bearer ${token}` }
                 })
                 if (res.ok) {
-                    const data = await res.json()
-                    setMessages(data)
+                    const json = await res.json()
+                    setMessages(json.data || json)
                 }
             } catch (e) {
                 console.error("Failed to load chat history", e)
@@ -94,7 +94,8 @@ export function ProjectChatPanel({ analysisId, onAnalysisUpdate, hidden, isFinal
                 body: JSON.stringify({ message: userMsg })
             })
 
-            const data = await res.json()
+            const json = await res.json()
+            const data = json.data || json
 
             if (!res.ok) throw new Error(data.error || "Failed to send message")
 

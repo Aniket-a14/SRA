@@ -115,7 +115,8 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
 
       if (!res.ok) throw new Error("Failed to save changes")
 
-      const updated = await res.json()
+      const json = await res.json();
+      const updated = json.data || json;
       toast.success("Changes saved successfully")
       setIsEditing(false)
 
@@ -433,7 +434,8 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
                           })
                         })
                         if (!res.ok) throw new Error("Failed to save")
-                        const updated = await res.json()
+                        const json = await res.json()
+                        const updated = json.data || json
                         if (!isInPlace && updated.id && updated.id !== analysisId) {
                           toast.success("New version created")
                           router.push(`/analysis/${updated.id}`)
@@ -480,7 +482,8 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
                           })
                         })
                         if (!res.ok) throw new Error("Failed to save")
-                        const updated = await res.json()
+                        const json = await res.json()
+                        const updated = json.data || json
                         if (!isInPlace && updated.id && updated.id !== analysisId) {
                           toast.success("New version created")
                           router.push(`/analysis/${updated.id}`)
@@ -583,7 +586,8 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
                           })
                         })
                         if (!res.ok) throw new Error("Failed to save")
-                        const updated = await res.json()
+                        const json = await res.json()
+                        const updated = json.data || json
                         if (!isInPlace && updated.id && updated.id !== analysisId) {
                           toast.success("New version created")
                           router.push(`/analysis/${updated.id}`)
@@ -668,8 +672,8 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
                           }
                         });
                         if (!res.ok) throw new Error("Failed to generate code");
-                        const js = await res.json();
-                        setGeneratedCode(js);
+                        const json = await res.json();
+                        setGeneratedCode(json.data || json);
                       } catch (e) {
                         console.error(e);
                         setCodeError("Failed to generate code. Please try again.");

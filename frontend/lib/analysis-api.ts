@@ -30,5 +30,6 @@ export async function generateDFD(token: string, data: { projectName: string; de
     });
     await handleResponse(res);
     const json = await res.json();
-    return json.srs;
+    // Return json.data.srs if structured, else json.srs for backward compat (safety)
+    return (json.data && json.data.srs) ? json.data.srs : json.srs;
 }

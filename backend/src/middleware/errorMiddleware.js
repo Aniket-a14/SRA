@@ -1,8 +1,9 @@
 export const errorHandler = (err, req, res, next) => {
-    console.error(`[Error] ${err.message}`, err.stack);
-
     const statusCode = err.statusCode || 500;
     const message = err.message || "Internal Server Error";
+    const errorCode = err.code || (statusCode === 429 ? "QUOTA_EXCEEDED" : "INTERNAL_ERROR");
+
+    console.error(`[${errorCode}] ${statusCode} - ${err.message}`, err.stack);
 
     // Set headers if available (e.g., for Retry-After)
     if (err.retryAfter) {
@@ -10,8 +11,9 @@ export const errorHandler = (err, req, res, next) => {
     }
 
     res.status(statusCode).json({
-        error: message,
-        code: err.code || (statusCode === 429 ? "QUOTA_EXCEEDED" : "INTERNAL_ERROR"),
+        success: false,
+        message,
+        errorCode,
         retryAfter: err.retryAfter,
         details: process.env.NODE_ENV === "development" ? err.stack : undefined,
     });

@@ -21,7 +21,8 @@ export async function fetchProjects(token: string): Promise<Project[]> {
         headers: { Authorization: `Bearer ${token}` }
     });
     await handleResponse(res);
-    return res.json();
+    const json = await res.json();
+    return json.data || json;
 }
 
 export async function fetchProject(token: string, id: string): Promise<Project> {
@@ -29,7 +30,8 @@ export async function fetchProject(token: string, id: string): Promise<Project> 
         headers: { Authorization: `Bearer ${token}` }
     });
     await handleResponse(res);
-    return res.json();
+    const json = await res.json();
+    return json.data || json;
 }
 
 export async function createProject(token: string, data: { name: string; description?: string }, csrfToken?: string | null): Promise<Project> {
@@ -44,7 +46,8 @@ export async function createProject(token: string, data: { name: string; descrip
         body: JSON.stringify(data)
     });
     await handleResponse(res);
-    return res.json();
+    const json = await res.json();
+    return json.data || json;
 }
 
 export async function updateProject(token: string, id: string, data: { name?: string; description?: string; settings?: PromptSettings }, csrfToken?: string | null): Promise<Project> {
@@ -59,7 +62,8 @@ export async function updateProject(token: string, id: string, data: { name?: st
         body: JSON.stringify(data)
     });
     await handleResponse(res);
-    return res.json();
+    const json = await res.json();
+    return json.data || json;
 }
 
 export async function deleteProject(token: string, id: string, csrfToken?: string | null): Promise<void> {

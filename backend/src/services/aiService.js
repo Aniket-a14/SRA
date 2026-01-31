@@ -2,9 +2,11 @@ import { getLatestVersion } from "../utils/promptRegistry.js";
 import { constructMasterPrompt, DIAGRAM_REPAIR_PROMPT } from "../utils/prompts.js";
 import { genAI } from "../config/gemini.js";
 import { AnalysisResultSchema } from "../utils/schemas.js";
-
+import { sanitizePII } from "../utils/sanitizer.js";
 
 export async function analyzeText(text, settings = {}) {
+  // PII REDACTION for production safety
+  const sanitizedText = sanitizePII(text);
   const {
     modelProvider = "google",
     modelName = "gemini-2.5-flash",
