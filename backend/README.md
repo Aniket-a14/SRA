@@ -86,7 +86,11 @@ Shreds finalized analyses into semantic chunks. Implements the "Hash-and-Match" 
     ```
 
 2.  **Environment Configuration**:
-    Configure `.env` (seed variable table in root README).
+    Configure `.env` (see `.env.example`).
+    **Crucial**: Generate a secure `CSRF_SECRET` for production:
+    ```bash
+    node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+    ```
 
 3.  **Database Migration**:
     ```bash
@@ -97,6 +101,19 @@ Shreds finalized analyses into semantic chunks. Implements the "Hash-and-Match" 
     ```bash
     npm run dev
     ```
+
+## 🔒 Security Features
+
+### CSRF Protection
+The backend implements the Synchronizer Token Pattern using the `double-csrf` strategy. 
+- **Endpoint**: `GET /api/csrf-token` returns a dynamic token for the session.
+- **Enforcement**: All state-changing requests (`POST`, `PUT`, `DELETE`) require the `x-csrf-token` header.
+- **Configuration**: Managed in `src/middleware/csrfMiddleware.js`.
+
+### Content Security Policy (CSP)
+We use `helmet` to enforce a strict CSP.
+- **Default Policy**: Strict `script-src: ["'self'"]` is enforced by default.
+- **Local Dev Note**: While Next.js dev tools may trigger `unsafe-eval` warnings in the browser console, the server maintains its strict policy for maximum security.
 
 ## 🔧 Troubleshooting
 
