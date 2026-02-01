@@ -7,6 +7,7 @@ import fs from 'fs';
 import yaml from 'js-yaml';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import csrf from 'csurf';
 
 import { authLimiter, aiLimiter, apiLimiter } from './middleware/rateLimiters.js';
 import { requestIdMiddleware } from './middleware/requestIdMiddleware.js';
@@ -71,6 +72,14 @@ app.use(express.json({
     }
 })); // Increase limit for large SRS data
 app.use(cookieParser());
+
+// CSRF protection: uses cookies to store the CSRF secret
+app.use(csrf({ cookie: true }));
+
+// Endpoint to retrieve CSRF token for clients that need it
+app.get('/api/csrf-token', (req, res) => {
+    res.json({ csrfToken: req.csrfToken() });
+});
 
 app.use('/api/health', healthRoutes);
 
