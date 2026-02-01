@@ -107,7 +107,7 @@ SRA is engineered for stability, security, and enterprise-grade performance.
 ### 🌐 Network & Content Security
 - **Hardened CSP**: Strict Content Security Policy injected via Next.js and Express security headers.
 - **HSTS & Frame Protection**: Production-grade `Strict-Transport-Security` and `X-Frame-Options` (DENY/SAMEORIGIN) enforcement.
-- **Strict CSRF Enforcement**: Mandatory `CSRF_SECRET` validation in production to prevent insecure session fallbacks.
+- **Secure Session Management**: JWT-based authentication with secure cookie handling.
 - **Privacy Sanitization**: Integrated `sanitizer.js` layer to prevent data leakage to LLM providers.
 - **Rate Limiting**: Intelligent API throttling across auth, analysis, and worker endpoints.
 
@@ -238,7 +238,7 @@ Ensure the following variables are defined in your infrastructure (see `.env.exa
 | **Async** | `QSTASH_SIGNING_KEYS` | Yes | Signing keys for verifying QStash webhooks. |
 | **Auth** | `JWT_SECRET` | Yes | Secret key for signing authorization tokens. |
 | **Auth** | `COOKIE_SECRET` | Yes | Secret key for signed cookies. |
-| **Security** | `CSRF_SECRET` | Yes | Secret key for CSRF protection (required in production). |
+| **Security** | `JWT_SECRET` | Yes | Secret key for JWT signing. |
 | **Backup** | `BACKUP_ENCRYPTION_KEY` | Yes | AES-256 key for encrypting database backups. |
 | **Backup** | `ENCRYPTION_KEY` | Yes | Master key for field-level data encryption. |
 | **Backup** | `BACKUP_DIR` | Optional | Directory for backup storage (default: `./backups`). |

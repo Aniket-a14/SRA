@@ -109,7 +109,7 @@ Ensure you have the following installed or set up:
     -   **Layer 5 (Document Compiler)** is pure client-side logic in `frontend/lib/export-utils.ts`. **Do not shift this to the backend.**
 -   **Frontend UI**:
     -   To add a new section to the results, create a new component in `frontend/components/analysis/tabs/` and register it in `ResultsTabs.tsx`.
-    -   **API Requests**: Use the `useAuthFetch` hook found in `lib/hooks.ts` for all authenticated requests. This hook handles CSRF and bearer tokens automatically.
+    -   **API Requests**: Use the `useAuthFetch` hook found in `lib/hooks.ts` for all authenticated requests. This hook handles bearer tokens automatically.
     -   To change the input form, check `frontend/app/home-client.tsx`.
 
 ### Styling

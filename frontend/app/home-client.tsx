@@ -66,7 +66,7 @@ const defaultAnalysis: Analysis = {
 export function HomeClient() {
     const router = useRouter()
     const searchParams = useSearchParams()
-    const { authenticateWithToken, token, csrfToken, fetchCsrf } = useAuth()
+    const { authenticateWithToken, token } = useAuth()
     const [analysisResult] = useState<Analysis>(defaultAnalysis)
 
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -97,12 +97,6 @@ export function HomeClient() {
             return;
         }
 
-        // PROACTIVE CSRF REFRESH
-        let effectiveCsrf = csrfToken;
-        if (!effectiveCsrf) {
-            effectiveCsrf = await fetchCsrf();
-        }
-
         setIsAnalyzing(true);
         const loadingToast = toast.loading("Initializing project...");
 
@@ -112,8 +106,7 @@ export function HomeClient() {
                 credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                    ...(effectiveCsrf && { "x-csrf-token": effectiveCsrf })
+                    Authorization: `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     text: requirements,

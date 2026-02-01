@@ -31,7 +31,6 @@ export async function createAnalysisAction(
     const projectName = formData.get("projectName") as string;
     const projectId = formData.get("projectId") as string;
     const settingsRaw = formData.get("settings") as string;
-    const csrfToken = formData.get("csrfToken") as string;
 
     let settings: PromptSettings | undefined;
     try {
@@ -60,8 +59,7 @@ export async function createAnalysisAction(
             headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
-                Cookie: cookieString,
-                ...(csrfToken && { "x-csrf-token": csrfToken })
+                Cookie: cookieString
             },
             body: JSON.stringify({
                 text: requirements,

@@ -1,6 +1,6 @@
 import { toast } from "sonner";
 
-export const fetcher = async ([url, token, csrfToken]: [string, string | null, string | null]) => {
+export const fetcher = async ([url, token]: [string, string | null]) => {
     const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         'Pragma': 'no-cache',
@@ -9,10 +9,6 @@ export const fetcher = async ([url, token, csrfToken]: [string, string | null, s
 
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    if (csrfToken) {
-        headers['x-csrf-token'] = csrfToken;
     }
 
     const res = await fetch(url, {

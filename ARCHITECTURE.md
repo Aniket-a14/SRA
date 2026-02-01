@@ -94,8 +94,8 @@ SRA implements a **Recursive Versioning Tree**, ensuring that every change is no
 - **Deep Health Probes**: Real-time monitoring via `/api/health` checking Prisma connectivity and LLM configurations.
 - **Graceful Shutdown**: The server implements clean process exit logic, allowing in-flight requests to complete before releasing resources.
 - **Exponential Backoff**: Used in QStash for AI service failures.
-- **Strict CSRF**: Mandatory `CSRF_SECRET` validation in production to prevent insecure session fallbacks.
-- **Unified API Bridge**: All client-side API interactions are consolidated through the `useAuthFetch` hook, which automatically manages bearer tokens and proactive CSRF refreshing.
+- **JWT Auth**: Secure, stateless authentication using JSON Web Tokens.
+- **Unified API Bridge**: All client-side API interactions are consolidated through the `useAuthFetch` hook, which automatically manages bearer tokens for all requests.
 - **Error Boundaries**: Granular React boundaries to isolate Mermaid rendering or Flowchart failures from the main UI.
 
 ---

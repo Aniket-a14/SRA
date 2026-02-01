@@ -36,14 +36,13 @@ export async function fetchProject(token: string, id: string): Promise<Project> 
     return json.data || json;
 }
 
-export async function createProject(token: string, data: { name: string; description?: string }, csrfToken?: string | null): Promise<Project> {
+export async function createProject(token: string, data: { name: string; description?: string }): Promise<Project> {
     const res = await fetch(`${BACKEND_URL}/projects`, {
         method: "POST",
         credentials: "include",
         headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-            ...(csrfToken && { "x-csrf-token": csrfToken })
+            Authorization: `Bearer ${token}`
         },
         body: JSON.stringify(data)
     });
@@ -52,14 +51,13 @@ export async function createProject(token: string, data: { name: string; descrip
     return json.data || json;
 }
 
-export async function updateProject(token: string, id: string, data: { name?: string; description?: string; settings?: PromptSettings }, csrfToken?: string | null): Promise<Project> {
+export async function updateProject(token: string, id: string, data: { name?: string; description?: string; settings?: PromptSettings }): Promise<Project> {
     const res = await fetch(`${BACKEND_URL}/projects/${id}`, {
         method: "PUT",
         credentials: "include",
         headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-            ...(csrfToken && { "x-csrf-token": csrfToken })
+            Authorization: `Bearer ${token}`
         },
         body: JSON.stringify(data)
     });
@@ -68,13 +66,12 @@ export async function updateProject(token: string, id: string, data: { name?: st
     return json.data || json;
 }
 
-export async function deleteProject(token: string, id: string, csrfToken?: string | null): Promise<void> {
+export async function deleteProject(token: string, id: string): Promise<void> {
     const res = await fetch(`${BACKEND_URL}/projects/${id}`, {
         method: "DELETE",
         credentials: "include",
         headers: {
-            Authorization: `Bearer ${token}`,
-            ...(csrfToken && { "x-csrf-token": csrfToken })
+            Authorization: `Bearer ${token}`
         }
     });
     await handleResponse(res);

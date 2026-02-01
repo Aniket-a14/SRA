@@ -10,7 +10,6 @@ import { fileURLToPath } from 'url';
 
 import { authLimiter, aiLimiter, apiLimiter } from './middleware/rateLimiters.js';
 import { requestIdMiddleware } from './middleware/requestIdMiddleware.js';
-import { doubleCsrfProtection, generateToken } from './middleware/csrfMiddleware.js';
 import { errorHandler } from './middleware/errorMiddleware.js';
 import { logger } from './middleware/logger.js';
 
@@ -72,16 +71,11 @@ app.use(express.json({
     }
 })); // Increase limit for large SRS data
 app.use(cookieParser());
-app.get('/api/csrf-token', (req, res) => {
-    const token = generateToken(req, res);
-    res.json({ csrfToken: token });
-});
 
 app.use('/api/health', healthRoutes);
 
 app.use(requestIdMiddleware);
 app.use(logger);
-app.use(doubleCsrfProtection);
 
 app.get('/', (req, res) => {
     res.json({
