@@ -112,7 +112,11 @@ export const getJobStatus = async (jobId) => {
     // Now we can actually query the DB!
     const analysis = await prisma.analysis.findUnique({
         where: { id: jobId },
-        select: { status: true }
+        select: {
+            status: true,
+            resultJson: true,
+            id: true
+        }
     });
-    return analysis || { status: 'unknown' };
+    return analysis ? { ...analysis, result: analysis.resultJson } : { status: 'unknown' };
 };
