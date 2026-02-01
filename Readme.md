@@ -166,6 +166,61 @@ SRA leverages professional GitHub Actions for continuous quality assurance and o
 
 ---
 
+## 🏗️ Infrastructure as Code
+
+SRA uses **Terraform** to manage cloud infrastructure declaratively, ensuring reproducibility, disaster recovery, and version-controlled infrastructure changes.
+
+### Infrastructure Management
+
+All infrastructure configuration is defined in the `terraform/` directory:
+
+```bash
+terraform/
+├── main.tf                    # Provider & backend configuration
+├── variables.tf               # Variable definitions
+├── vercel.tf                  # Vercel project resources
+├── outputs.tf                 # Output values
+├── terraform.tfvars.example   # Configuration template
+└── README.md                  # Detailed usage guide
+```
+
+### Managed Resources
+
+Terraform manages the following infrastructure:
+- ✅ **Vercel Projects**: Frontend (`sra`) and Backend (`sra-backend`)
+- ✅ **Build Configuration**: Build/install commands and framework settings
+- ✅ **Git Integration**: Repository connections and deployment triggers
+
+**Note:** Environment variables are managed directly in Vercel dashboard to avoid storing secrets in Terraform state.
+
+### Quick Start
+
+```bash
+# Navigate to terraform directory
+cd terraform
+
+# Initialize Terraform
+terraform init
+
+# Preview infrastructure changes
+terraform plan
+
+# Apply changes (when ready)
+terraform apply
+```
+
+### Benefits
+
+- 🔄 **Version Control**: Infrastructure changes tracked in git
+- 🛡️ **Disaster Recovery**: Rebuild entire infrastructure with one command
+- 📝 **Documentation**: Infrastructure is self-documenting code
+- 🔍 **Audit Trail**: Complete history of infrastructure changes
+- 🤝 **Collaboration**: Team members can propose infrastructure changes via PRs
+
+For detailed Terraform usage, see [`terraform/README.md`](./terraform/README.md).
+
+---
+
 ## ⚙️ Operational Guide & Deployment
 
 ### 1. Advanced Environment Configuration
@@ -238,6 +293,13 @@ SRA/
 │   ├── app/                # Server-driven App Router
 │   ├── components/         # High-fidelity React components
 │   └── lib/                # Shared utilities & API clients
+├── terraform/              # Infrastructure as Code (Terraform)
+│   ├── main.tf             # Provider configuration
+│   ├── vercel.tf           # Vercel project resources
+│   └── README.md           # Terraform usage guide
+├── docs/                   # Documentation
+│   ├── security/           # Security policies & procedures
+│   └── operations/         # Operational procedures
 └── README.md
 ```
 

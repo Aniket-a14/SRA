@@ -162,3 +162,122 @@ The entire platform is containerized for consistency across development and prod
 - **Database**: Managed Supabase PostgreSQL instance (persists data outside containers).
 - **Redis/Queue**: Managed Upstash instance (serverless job queue).
 
+---
+
+## Content Delivery Network (CDN) Strategy
+
+### Overview
+SRA leverages **Vercel's global Edge Network** for optimal content delivery, caching, and performance across 300+ global locations.
+
+### Edge Network Configuration
+
+#### Static Assets
+- **Location:** `/_next/static/*`, `/public/*`
+- **Cache-Control:** `public, max-age=31536000, immutable`
+- **Edge Caching:** Enabled globally with automatic purge on deployment
+- **Compression:** Automatic Brotli/Gzip compression
+
+#### Dynamic Routes
+- **Location:** `/api/*`, `/app/*`
+- **Cache-Control:** `private, no-cache`
+- **Edge Functions:** Deployed to nearest region for minimal latency
+- **Streaming:** Enabled for Server Components
+
+### Caching Policies
+
+| Asset Type | Cache Duration | Strategy | Invalidation |
+|------------|----------------|----------|--------------|
+| JavaScript bundles | 1 year | Content-hashed filenames | Automatic on deploy |
+| CSS files | 1 year | Content-hashed filenames | Automatic on deploy |
+| Images (Next.js) | 1 year | Optimized + cached | On-demand revalidation |
+| Fonts | 1 year | Preloaded, immutable | Manual purge only |
+| API responses | No cache | Dynamic, user-specific | N/A |
+| HTML pages | No cache | SSR/ISR | Per-route revalidation |
+
+### Cache Headers Implementation
+
+Headers are configured in `frontend/next.config.ts`:
+```javascript
+async headers() {
+  return [
+    {
+      source: '/_next/static/:path*',
+      headers: [
+        {
+          key: 'Cache-Control',
+          value: 'public, max-age=31536000, immutable',
+        },
+      ],
+    },
+    {
+      source: '/api/:path*',
+      headers: [
+        {
+          key: 'Cache-Control',
+          value: 'private, no-cache, no-store, must-revalidate',
+        },
+      ],
+    },
+  ];
+}
+```
+
+### Asset Versioning
+
+#### Content Hashing
+- Next.js automatically generates content hashes for all static assets
+- Format: `[name].[contenthash].js`
+- Ensures cache busting on updates without manual intervention
+
+#### Deployment Strategy
+1. Build generates new hashed assets
+2. Deploy to Vercel Edge Network
+3. Old assets remain accessible (no 404s during rollout)
+4. Gradual rollout via Edge Network (zero-downtime)
+
+### Cache Purge Procedures
+
+#### Automatic Purge (On Deploy)
+- Vercel automatically purges cache on new deployments
+- No manual intervention required
+- Gradual rollout ensures smooth transitions
+
+#### Manual Purge (Vercel Dashboard)
+1. Navigate to Deployments
+2. Select deployment
+3. Click "Purge Cache"
+
+#### Emergency Purge (API)
+```bash
+# Purge specific deployment
+curl -X DELETE "https://api.vercel.com/v1/deployments/[deployment-id]/cache" \
+  -H "Authorization: Bearer $VERCEL_TOKEN"
+```
+
+### Performance Monitoring
+
+#### Metrics Tracked
+- **TTFB (Time to First Byte):** < 200ms target
+- **Cache Hit Ratio:** > 95% for static assets
+- **Edge Response Time:** < 50ms target
+- **Origin Request Rate:** Minimized via edge caching
+
+#### Monitoring Tools
+- **Vercel Analytics:** Built-in performance tracking
+- **Lighthouse CI:** Automated performance testing (`.github/workflows/lighthouse.yml`)
+- **Real User Monitoring (RUM):** Via Vercel Analytics
+- **Bundle Size Monitoring:** Automated via GitHub Actions
+
+### Global Distribution
+
+#### Edge Locations
+- **Americas:** 100+ locations
+- **Europe:** 100+ locations
+- **Asia-Pacific:** 100+ locations
+- **Latency Target:** < 100ms for 95% of users globally
+
+#### Regional Optimization
+- Static assets served from nearest edge location
+- API requests routed to optimal serverless region
+- Database queries optimized via connection pooling (Supabase)
+
