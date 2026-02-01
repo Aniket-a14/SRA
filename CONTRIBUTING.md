@@ -1,6 +1,6 @@
 # Contributing to SRA
 
-![Project Overview](assets/overview.png)
+![Project Overview](assets/Software_Architecture_Pipeline_Animation.gif)
 
 
 First off, thanks for taking the time to contribute! 🎉
