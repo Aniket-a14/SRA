@@ -1,3 +1,5 @@
+![Project Overview](assets/Software_Architecture_Pipeline_Animation.gif)
+
 # SRA (Smart Requirements Analyzer)
 
 [![Backend CI](https://github.com/Aniket-a14/SRA/actions/workflows/backend.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/backend.yml)
