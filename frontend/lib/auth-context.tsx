@@ -13,12 +13,10 @@ interface User {
 interface AuthContextType {
     user: User | null
     token: string | null
-    csrfToken: string | null
     login: (token: string, refreshToken: string, user: User) => void
     authenticateWithToken: (token: string, refreshToken?: string) => Promise<void>
     logout: () => void
     isLoading: boolean
-    fetchCsrf: () => Promise<string | null>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -26,7 +24,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null)
     const [token, setToken] = useState<string | null>(null)
-    const [csrfToken, setCsrfToken] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const router = useRouter()
 
@@ -96,26 +93,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [logout])
 
-    const fetchCsrf = React.useCallback(async () => {
-        try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/csrf-token`, {
-                credentials: "include"
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setCsrfToken(data.csrfToken);
-                return data.csrfToken;
-            }
-            return null;
-        } catch (error) {
-            console.error("Failed to fetch CSRF token", error);
-            return null;
-        }
-    }, []);
-
     useEffect(() => {
-        // Fetch CSRF on mount
-        fetchCsrf();
+
 
         // Check local storage on mount
         const storedToken = localStorage.getItem("token")
@@ -140,7 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
             setIsLoading(false)
         }
-    }, [fetchUser, fetchCsrf])
+    }, [fetchUser])
 
     const login = React.useCallback((newToken: string, newRefreshToken: string, newUser: User) => {
         localStorage.setItem("token", newToken)
@@ -167,13 +146,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const value = React.useMemo(() => ({
         user,
         token,
-        csrfToken,
         login,
         authenticateWithToken,
         logout,
-        isLoading,
-        fetchCsrf
-    }), [user, token, csrfToken, login, authenticateWithToken, logout, isLoading, fetchCsrf]);
+        isLoading
+    }), [user, token, login, authenticateWithToken, logout, isLoading]);
 
     return (
         <AuthContext.Provider value={value}>

@@ -12,7 +12,7 @@ import { format } from "date-fns";
 import { Plus, Folder } from "lucide-react";
 
 export default function ProjectsPage() {
-    const { token, csrfToken, isLoading: isAuthLoading } = useAuth();
+    const { token, isLoading: isAuthLoading } = useAuth();
     const router = useRouter(); // Helper needed
     const [projects, setProjects] = useState<Project[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -47,7 +47,7 @@ export default function ProjectsPage() {
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const project = await createProject(token!, { name: newProjectName }, csrfToken);
+            const project = await createProject(token!, { name: newProjectName });
             setProjects([project, ...projects]);
             setNewProjectName("");
             setIsCreating(false);

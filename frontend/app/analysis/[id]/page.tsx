@@ -64,14 +64,14 @@ function AnalysisDetailContent() {
     const params = useParams()
     const id = params?.id as string
     const router = useRouter()
-    const { user, token, csrfToken, isLoading: authLoading, fetchCsrf } = useAuth()
+    const { user, token, isLoading: authLoading } = useAuth()
     const { unlockAndNavigate, unlockLayer, setLayer, setIsFinalized } = useLayer()
 
     // SWR Data Fetching
     const swrKey = useMemo(() => {
         if (!id || !token || authLoading) return null;
-        return [`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${id}`, token, csrfToken];
-    }, [id, token, csrfToken, authLoading]);
+        return [`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${id}`, token];
+    }, [id, token, authLoading]);
 
     const { data: analysis, error: swrError, mutate, isValidating: swrValidating } = useSWR<Analysis>(
         swrKey,
@@ -230,16 +230,12 @@ function AnalysisDetailContent() {
         if (!id || !draftData) return;
         const loadingToast = toast.loading("Saving draft to cloud...");
         try {
-            let activeCsrf = csrfToken;
-            if (!activeCsrf) activeCsrf = await fetchCsrf();
-
             const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${id}`, {
                 method: "PUT",
                 credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                    ...(activeCsrf && { "x-csrf-token": activeCsrf })
+                    Authorization: `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     metadata: { ...analysis?.metadata, draftData, status: 'DRAFT' }
@@ -256,17 +252,13 @@ function AnalysisDetailContent() {
     const handleRunValidation = async () => {
         setIsValidating(true);
         try {
-            let activeCsrf = csrfToken;
-            if (!activeCsrf) activeCsrf = await fetchCsrf();
-
             // First Save current draft to ensure validation uses latest data
             await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${id}`, {
                 method: "PUT",
                 credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                    ...(activeCsrf && { "x-csrf-token": activeCsrf })
+                    Authorization: `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     metadata: { ...analysis?.metadata, draftData, status: 'DRAFT' }
@@ -277,8 +269,7 @@ function AnalysisDetailContent() {
                 method: "POST",
                 credentials: "include",
                 headers: {
-                    Authorization: `Bearer ${token}`,
-                    ...(activeCsrf && { "x-csrf-token": activeCsrf })
+                    Authorization: `Bearer ${token}`
                 }
             });
             if (!res.ok) throw new Error("Validation failed");
@@ -304,16 +295,12 @@ function AnalysisDetailContent() {
         const loadingToast = toast.loading("AI is repairing your requirement...");
 
         try {
-            let activeCsrf = csrfToken;
-            if (!activeCsrf) activeCsrf = await fetchCsrf();
-
             const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${id}/auto-fix`, {
                 method: "POST",
                 credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                    ...(activeCsrf && { "x-csrf-token": activeCsrf })
+                    Authorization: `Bearer ${token}`
                 },
                 body: JSON.stringify({ issueId })
             });
@@ -355,42 +342,22 @@ function AnalysisDetailContent() {
     const handleProceedToAnalysis = async () => {
         setIsProceeding(true);
         try {
-            let activeCsrf = csrfToken;
-            if (!activeCsrf) activeCsrf = await fetchCsrf();
-
-            const performFetch = async (csrf: string | null) => {
-                return await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, {
-                    method: "POST",
-                    credentials: "include",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                        ...(csrf && { "x-csrf-token": csrf })
-                    } as HeadersInit,
-                    body: JSON.stringify({
-                        projectId: analysis?.projectId,
-                        text: "Generated from Draft",
-                        srsData: draftData,
-                        validationResult: { validation_status: 'PASS', issues: validationIssues },
-                        parentId: id,
-                        draft: false
-                    })
-                });
-            };
-
-            let res = await performFetch(activeCsrf);
-
-            // CSRF Retry Logic
-            if (res.status === 403) {
-                const errorData = await res.json().catch(() => ({}));
-                if (errorData.code === 'EBADCSRFTOKEN' || errorData.message?.includes('csrf')) {
-                    console.log("CSRF Mismatch detected, refreshing token and retrying...");
-                    const newCsrf = await fetchCsrf();
-                    if (newCsrf) {
-                        res = await performFetch(newCsrf);
-                    }
-                }
-            }
+            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    projectId: analysis?.projectId,
+                    text: "Generated from Draft",
+                    srsData: draftData,
+                    validationResult: { validation_status: 'PASS', issues: validationIssues },
+                    parentId: id,
+                    draft: false
+                })
+            });
 
             if (!res.ok) throw new Error("Failed to start analysis");
             const result = await res.json();
@@ -406,16 +373,12 @@ function AnalysisDetailContent() {
 
     const handleBackToEdit = async () => {
         try {
-            let activeCsrf = csrfToken;
-            if (!activeCsrf) activeCsrf = await fetchCsrf();
-
             await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${id}`, {
                 method: "PUT",
                 credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                    ...(activeCsrf && { "x-csrf-token": activeCsrf })
+                    Authorization: `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     metadata: { ...analysis?.metadata, status: 'DRAFT' } // Explicit status reset
@@ -431,15 +394,11 @@ function AnalysisDetailContent() {
         if (!id) return;
         setIsFinalizing(true);
         try {
-            let activeCsrf = csrfToken;
-            if (!activeCsrf) activeCsrf = await fetchCsrf();
-
             const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${id}/finalize`, {
                 method: "POST",
                 credentials: "include",
                 headers: {
-                    Authorization: `Bearer ${token}`,
-                    ...(activeCsrf && { "x-csrf-token": activeCsrf })
+                    Authorization: `Bearer ${token}`
                 }
             });
             if (res.ok) {

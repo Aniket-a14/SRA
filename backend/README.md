@@ -87,9 +87,9 @@ Shreds finalized analyses into semantic chunks. Implements the "Hash-and-Match" 
 
 2.  **Environment Configuration**:
     Configure `.env` (see `.env.example`).
-    **Crucial**: Generate a secure `CSRF_SECRET` for production:
+    **Crucial**: Generate a secure `JWT_SECRET` for production:
     ```bash
-    node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+    openssl rand -base64 32
     ```
 
 3.  **Database Migration**:
@@ -104,12 +104,10 @@ Shreds finalized analyses into semantic chunks. Implements the "Hash-and-Match" 
 
 ## 🔒 Security Features
 
-### CSRF Protection
-The backend implements the Synchronizer Token Pattern using the `double-csrf` strategy. 
-- **Endpoint**: `GET /api/csrf-token` returns a dynamic token for the session.
-- **Enforcement**: All state-changing requests (`POST`, `PUT`, `DELETE`) require the `x-csrf-token` header.
-- **Strict Mode**: The server will fail to start in production if `CSRF_SECRET` is not defined, preventing insecure fallbacks.
-- **Configuration**: Managed in `src/middleware/csrfMiddleware.js`.
+### Authentication
+The backend uses JWT (JSON Web Tokens) for stateless authentication.
+- **JWT**: Tokens are issued upon successful login/signup and must be included in the `Authorization: Bearer <token>` header for protected routes.
+- **Security**: Mandatory `JWT_SECRET` validation in production.
 
 ### Content Security Policy (CSP)
 We use `helmet` to enforce a strict CSP.

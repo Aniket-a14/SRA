@@ -21,12 +21,12 @@ type AnalysisHistoryItem = {
 
 export default function AnalysisPage() {
     const router = useRouter()
-    const { user, token, csrfToken, isLoading: authLoading } = useAuth()
+    const { user, token, isLoading: authLoading } = useAuth()
 
     const swrKey = useMemo(() => {
         if (!token || authLoading) return null;
-        return [`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, token, csrfToken];
-    }, [token, csrfToken, authLoading]);
+        return [`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, token];
+    }, [token, authLoading]);
 
     const { data: historyData, error, isValidating } = useSWR<AnalysisHistoryItem[]>(
         swrKey,

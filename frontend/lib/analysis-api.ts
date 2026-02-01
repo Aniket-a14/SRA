@@ -17,14 +17,13 @@ async function handleResponse(res: Response) {
     return res;
 }
 
-export async function generateDFD(token: string, data: { projectName: string; description: string; srsContent?: string }, csrfToken?: string | null): Promise<DFDInput> {
+export async function generateDFD(token: string, data: { projectName: string; description: string; srsContent?: string }): Promise<DFDInput> {
     const res = await fetch(`${BACKEND_URL}/analyze/generate-dfd`, {
         method: "POST",
         credentials: "include",
         headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-            ...(csrfToken && { "x-csrf-token": csrfToken })
+            Authorization: `Bearer ${token}`
         },
         body: JSON.stringify(data)
     });

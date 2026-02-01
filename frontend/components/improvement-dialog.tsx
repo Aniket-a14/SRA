@@ -29,7 +29,7 @@ const SECTIONS = [
 
 export function ImprovementDialog({ open, onOpenChange, analysisId, version }: ImprovementDialogProps) {
     const router = useRouter()
-    const { token, csrfToken, fetchCsrf } = useAuth()
+    const { token } = useAuth()
     const [selectedSections, setSelectedSections] = useState<string[]>([])
     const [notes, setNotes] = useState("")
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -48,12 +48,6 @@ export function ImprovementDialog({ open, onOpenChange, analysisId, version }: I
             return
         }
 
-        // PROACTIVE CSRF REFRESH
-        let effectiveCsrf = csrfToken;
-        if (!effectiveCsrf) {
-            effectiveCsrf = await fetchCsrf();
-        }
-
         setIsSubmitting(true)
         try {
             const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}/regenerate`, {
@@ -61,8 +55,7 @@ export function ImprovementDialog({ open, onOpenChange, analysisId, version }: I
                 credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                    ...(effectiveCsrf && { "x-csrf-token": effectiveCsrf })
+                    Authorization: `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     affectedSections: selectedSections,

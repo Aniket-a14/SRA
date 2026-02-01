@@ -28,7 +28,7 @@ interface DFDDiagramSectionProps {
 }
 
 export function DFDDiagramSection({ data, projectTitle, description, srsContent, onUpdate }: DFDDiagramSectionProps) {
-    const { token, csrfToken, fetchCsrf } = useAuth()
+    const { token } = useAuth()
     const [isLoading, setIsLoading] = useState(false)
     const [localData, setLocalData] = useState<DFDInput | null>(null)
     const [loadingPhase, setLoadingPhase] = useState(0)
@@ -50,12 +50,6 @@ export function DFDDiagramSection({ data, projectTitle, description, srsContent,
     const handleGenerate = async () => {
         if (!token) return
 
-        // PROACTIVE CSRF REFRESH
-        let effectiveCsrf = csrfToken;
-        if (!effectiveCsrf) {
-            effectiveCsrf = await fetchCsrf();
-        }
-
         setIsLoading(true)
         setLoadingPhase(0)
 
@@ -69,7 +63,7 @@ export function DFDDiagramSection({ data, projectTitle, description, srsContent,
                 projectName: projectTitle,
                 description,
                 srsContent
-            }, effectiveCsrf)
+            })
 
             // Optimistic Update
             setLocalData(result);
