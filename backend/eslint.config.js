@@ -2,6 +2,9 @@ import js from "@eslint/js";
 import globals from "globals";
 
 export default [
+    {
+        ignores: ["src/generated/prisma/**"]
+    },
     js.configs.recommended,
     {
         files: ["**/*.js"],
