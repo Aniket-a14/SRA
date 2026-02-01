@@ -1,6 +1,6 @@
 {
   "name": "backend",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "description": "",
   "main": "index.js",
   "engines": {
@@ -11,7 +11,7 @@
     "lint": "eslint .",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "build": "prisma generate",
+    "prisma:generate": "prisma generate",
     "postinstall": "prisma generate"
   },
   "keywords": [],
