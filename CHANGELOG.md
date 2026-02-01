@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [3.2.0] - 2026-02-01
+## [3.1.1] - 2026-02-01
 
 ### 💎 Database & ORM
 - **Upgraded** Prisma ORM to **v7.3.0** (Major architectural upgrade)

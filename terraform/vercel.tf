@@ -25,7 +25,7 @@ resource "vercel_project" "sra_backend" {
     repo = var.github_repo_backend
   }
   
-  build_command = "npm run build"
+  framework = null
   install_command = "npm ci"
   
   # Note: Environment variables are managed directly in Vercel dashboard
