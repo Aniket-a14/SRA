@@ -159,7 +159,7 @@ SRA leverages professional GitHub Actions for continuous quality assurance and o
 |-----------|------------|-----------|
 | **Frontend** | [Next.js 16.1.6](https://nextjs.org/) | App Router with standalone output for enterprise scalability. |
 | **Styling** | [Tailwind CSS v4](https://tailwindcss.com/) | Next-gen JIT engine for high-performance, responsive UI. |
-| **Backend** | [Node.js 20](https://nodejs.org/) / [Prisma 6](https://www.prisma.io/) | Type-safe ORM for robust asynchronous data orchestration. |
+| **Backend** | [Node.js 20](https://nodejs.org/) / [Prisma 7](https://www.prisma.io/) | Type-safe ORM for robust asynchronous data orchestration. |
 | **Database** | [PostgreSQL 16+](https://www.postgresql.org/) | High-concurrency persistence with `pgvector` RAG support. |
 | **Orchestration** | [Upstash QStash](https://upstash.com/) | Serverless job queue for reliable, long-running AI tasks. |
 | **LLM Engine** | [Gemini 2.0 Flash](https://ai.google.dev/) | Advanced reasoning and context window for complex architectural mapping. |

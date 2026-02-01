@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.0] - 2026-02-01
+
+### 💎 Database & ORM
+- **Upgraded** Prisma ORM to **v7.3.0** (Major architectural upgrade)
+- **Implemented** Prisma Driver Adapters using `@prisma/adapter-pg` for enhanced PostgreSQL performance
+- **Added** Centralized Prisma configuration via `prisma.config.js`
+- **Updated** Prisma Client initialization to use the new adapter-based architecture
+- **Optimized** Database connection strategies using separate `DIRECT_URL` for migrations and `DATABASE_URL` (with PgBouncer) for application queries
+
+### 🏗️ Infrastructure & DevOps
+- **Updated** Terraform configuration for Prisma 7 compatibility (Node.js 20.x enforcement)
+- **Synchronized** Vercel deployment structure for multi-repo support (`SRA_frontend` and `SRA_backend`)
+- **Enhanced** Docker builds with `prisma.config.js` support and non-root execution safety
+- **Added** Node.js version enforcement (`engines`) across backend and frontend
+
+### 🛡️ Security & Quality
+- **Patched** Transitive vulnerabilities in `lodash` and `hono` via selective `npm overrides`
+- **Updated** ESLint configuration to ignore generated Prisma client artifacts
+- **Updated** Documentation (READMEs) across the repository to reflect v3.2 requirements
+
+
 ## [3.1.0] - 2026-02-01
 
 ### 🏗️ Infrastructure as Code

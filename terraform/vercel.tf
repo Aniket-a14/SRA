@@ -1,11 +1,11 @@
 # Frontend Project
 resource "vercel_project" "sra_frontend" {
-  name      = "sra"  # Actual project name in Vercel
+  name      = var.project_name
   framework = "nextjs"
   
   git_repository = {
     type = "github"
-    repo = "Aniket-a14/SRA_frontend"  # Actual deployed repo
+    repo = var.github_repo_frontend
   }
   
   build_command = "npm run build"
@@ -18,11 +18,11 @@ resource "vercel_project" "sra_frontend" {
 
 # Backend Project
 resource "vercel_project" "sra_backend" {
-  name      = "sra-backend"  # Actual project name in Vercel
+  name      = "${var.project_name}-backend"
   
   git_repository = {
     type = "github"
-    repo = "Aniket-a14/SRA_backend"  # Actual deployed repo
+    repo = var.github_repo_backend
   }
   
   build_command = "npm run build"
