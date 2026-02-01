@@ -10,6 +10,7 @@ import { AlertTriangle, Loader2, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
+import React from "react"
 
 interface ImprovementDialogProps {
     open: boolean
@@ -33,6 +34,13 @@ export function ImprovementDialog({ open, onOpenChange, analysisId, version }: I
     const [selectedSections, setSelectedSections] = useState<string[]>([])
     const [notes, setNotes] = useState("")
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const pollIntervalRef = React.useRef<NodeJS.Timeout | null>(null)
+
+    React.useEffect(() => {
+        return () => {
+            if (pollIntervalRef.current) clearInterval(pollIntervalRef.current)
+        }
+    }, [])
 
     const handleSectionToggle = (sectionId: string) => {
         setSelectedSections(prev =>
@@ -86,7 +94,9 @@ export function ImprovementDialog({ open, onOpenChange, analysisId, version }: I
     }
 
     const pollJob = async (jobId: string) => {
-        const interval = setInterval(async () => {
+        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current)
+
+        pollIntervalRef.current = setInterval(async () => {
             try {
                 const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/job/${jobId}`, {
                     headers: { Authorization: `Bearer ${token}` }
@@ -94,22 +104,21 @@ export function ImprovementDialog({ open, onOpenChange, analysisId, version }: I
                 const json = await res.json()
                 const jobState = json.data || json
 
-                if (jobState.state === "completed") {
-                    clearInterval(interval)
+                if (jobState.status === "COMPLETED") {
+                    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current)
                     toast.success("New SRS Verified & Generated!")
-                    // result.id is the new analysis ID (assuming worker returns it)
-                    // The worker returns 'result' from performAnalysis. 
-                    // performAnalysis returns the 'analysis' object.
+
                     if (jobState.result && jobState.result.id) {
-                        // Close dialog first
                         onOpenChange(false)
                         router.push(`/analysis/${jobState.result.id}`)
+                    } else if (jobState.id) {
+                        onOpenChange(false)
+                        router.push(`/analysis/${jobState.id}`)
                     } else {
-                        // Fallback
                         window.location.reload()
                     }
-                } else if (jobState.state === "failed") {
-                    clearInterval(interval)
+                } else if (jobState.status === "FAILED") {
+                    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current)
                     setIsSubmitting(false)
                     toast.error("Regeneration failed: " + (jobState.error || "Unknown error"))
                 }
