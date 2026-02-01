@@ -1,0 +1,31 @@
+# Terraform variable values
+# Copy this file to terraform.tfvars and fill in your actual values
+# NEVER commit terraform.tfvars to git!
+
+# Vercel API Token (required)
+vercel_api_token = ""  # Get from: https://vercel.com/account/tokens
+
+# Project Configuration
+project_name = "sra"
+github_repo  = "Aniket-a14/SRA"
+
+# URLs
+backend_url  = "https://sra-backend-six.vercel.app"
+frontend_url = "https://sra-xi.vercel.app"
+
+# Database (Supabase)
+database_url = ""  # PostgreSQL connection string with pooling
+direct_url   = ""  # Direct PostgreSQL connection string
+
+# AI API Keys
+gemini_api_key = ""  # Google Gemini API key
+openai_api_key = ""  # OpenAI API key (optional)
+
+# Queue & Cache
+qstash_token = ""  # Upstash QStash token
+
+# Security Secrets
+jwt_secret              = ""  # JWT secret for authentication
+csrf_secret             = ""  # CSRF secret (min 32 chars)
+encryption_key          = ""  # Field-level encryption key (32 bytes hex)
+backup_encryption_key   = ""  # Backup encryption key (32 bytes hex)

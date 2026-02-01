@@ -1,0 +1,177 @@
+{
+  "version": 4,
+  "terraform_version": "1.14.4",
+  "serial": 4,
+  "lineage": "012919da-336e-8c65-57c8-9e4b23f5d5f7",
+  "outputs": {
+    "backend_project_id": {
+      "value": "prj_MLWxwqJwZbz2PtAhNchEVZxGLge3",
+      "type": "string"
+    },
+    "backend_url": {
+      "value": "https://sra-backend.vercel.app",
+      "type": "string"
+    },
+    "frontend_project_id": {
+      "value": "prj_Dx7gp7FvjBXH9xRCrP43IgYtnUnA",
+      "type": "string"
+    },
+    "frontend_url": {
+      "value": "https://sra-frontend.vercel.app",
+      "type": "string"
+    }
+  },
+  "resources": [
+    {
+      "mode": "managed",
+      "type": "vercel_project",
+      "name": "sra_backend",
+      "provider": "provider[\"registry.terraform.io/vercel/vercel\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "auto_assign_custom_domains": true,
+            "automatically_expose_system_environment_variables": true,
+            "build_command": null,
+            "customer_success_code_visibility": false,
+            "dev_command": null,
+            "directory_listing": false,
+            "environment": null,
+            "framework": "express",
+            "function_failover": false,
+            "git_comments": null,
+            "git_fork_protection": true,
+            "git_lfs": false,
+            "git_repository": {
+              "deploy_hooks": null,
+              "production_branch": "master",
+              "repo": "Aniket-a14/SRA_backend",
+              "type": "github"
+            },
+            "id": "prj_MLWxwqJwZbz2PtAhNchEVZxGLge3",
+            "ignore_command": null,
+            "install_command": null,
+            "name": "sra-backend",
+            "oidc_token_config": {
+              "enabled": true
+            },
+            "options_allowlist": null,
+            "output_directory": null,
+            "password_protection": null,
+            "preview_comments": null,
+            "prioritise_production_builds": true,
+            "protection_bypass_for_automation": null,
+            "protection_bypass_for_automation_secret": null,
+            "public_source": null,
+            "resource_config": {
+              "function_default_cpu_type": null,
+              "function_default_timeout": null
+            },
+            "root_directory": null,
+            "serverless_function_region": "iad1",
+            "skew_protection": null,
+            "team_id": null,
+            "trusted_ips": null,
+            "vercel_authentication": {
+              "deployment_type": "all_except_custom_domains"
+            }
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "vercel_project",
+      "name": "sra_frontend",
+      "provider": "provider[\"registry.terraform.io/vercel/vercel\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "auto_assign_custom_domains": true,
+            "automatically_expose_system_environment_variables": false,
+            "build_command": "npm run build",
+            "customer_success_code_visibility": false,
+            "dev_command": null,
+            "directory_listing": false,
+            "environment": [
+              {
+                "git_branch": null,
+                "id": "09nT9quSbU5MHXoM",
+                "key": "NEXT_PUBLIC_BACKEND_URL",
+                "sensitive": false,
+                "target": [
+                  "development",
+                  "preview",
+                  "production"
+                ],
+                "value": "https://sra-backend-six.vercel.app"
+              },
+              {
+                "git_branch": null,
+                "id": "bKrrf1lwMmPCq88I",
+                "key": "NEXT_PUBLIC_APP_URL",
+                "sensitive": false,
+                "target": [
+                  "production"
+                ],
+                "value": "https://sra-xi.vercel.app"
+              }
+            ],
+            "framework": "nextjs",
+            "function_failover": false,
+            "git_comments": null,
+            "git_fork_protection": true,
+            "git_lfs": false,
+            "git_repository": {
+              "deploy_hooks": null,
+              "production_branch": "main",
+              "repo": "Aniket-a14/SRA",
+              "type": "github"
+            },
+            "id": "prj_Dx7gp7FvjBXH9xRCrP43IgYtnUnA",
+            "ignore_command": null,
+            "install_command": "npm ci",
+            "name": "sra-frontend",
+            "oidc_token_config": {
+              "enabled": false
+            },
+            "options_allowlist": null,
+            "output_directory": ".next",
+            "password_protection": null,
+            "preview_comments": null,
+            "prioritise_production_builds": false,
+            "protection_bypass_for_automation": null,
+            "protection_bypass_for_automation_secret": null,
+            "public_source": null,
+            "resource_config": {
+              "function_default_cpu_type": null,
+              "function_default_timeout": null
+            },
+            "root_directory": "frontend",
+            "serverless_function_region": "iad1",
+            "skew_protection": null,
+            "team_id": null,
+            "trusted_ips": null,
+            "vercel_authentication": {
+              "deployment_type": "standard_protection"
+            }
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "environment"
+              }
+            ]
+          ],
+          "identity_schema_version": 0
+        }
+      ]
+    }
+  ],
+  "check_results": null
+}

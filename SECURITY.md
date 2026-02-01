@@ -49,5 +49,43 @@ Please report vulnerabilities via the following channels:
 ## ⚖️ Bounty Program
 We currently operate a private, invite-only bug bounty program. Exceptional researchers who submit high-quality, actionable reports via our disclosure channels may be invited to the program.
 
+## 🔐 Encryption & Data Protection
+
+### Field-Level Encryption
+SRA implements **AES-256-GCM encryption** for sensitive data at rest, including:
+- OAuth access and refresh tokens
+- User IP addresses and location data
+- Other personally identifiable information (PII)
+
+**Encryption Key Management:**
+- Separate keys for data encryption (`ENCRYPTION_KEY`) and backup encryption (`BACKUP_ENCRYPTION_KEY`)
+- 90-day key rotation policy
+- Secure key storage in environment variables (never committed to version control)
+
+For detailed encryption implementation, see [docs/security/ENCRYPTION.md](docs/security/ENCRYPTION.md).
+
+### Row-Level Security (RLS)
+All database tables are protected with Row-Level Security policies implemented in Supabase, ensuring:
+- Users can only access their own data
+- Database-level enforcement (defense in depth)
+- Protection against SQL injection and unauthorized access
+
+## 🚨 Security Incident Response
+
+We maintain a comprehensive incident response plan covering:
+- **Severity Levels:** P0 (Critical) to P3 (Low)
+- **Response Procedures:** Detection, Containment, Eradication, Recovery, Post-Incident
+- **Communication Templates:** Internal and user-facing notifications
+- **Emergency Contacts:** 24/7 escalation paths
+
+For full incident response procedures, see [docs/security/INCIDENT_RESPONSE.md](docs/security/INCIDENT_RESPONSE.md).
+
+## 📚 Additional Security Documentation
+
+- [ENCRYPTION.md](docs/security/ENCRYPTION.md) - Field-level encryption implementation
+- [INCIDENT_RESPONSE.md](docs/security/INCIDENT_RESPONSE.md) - Security incident procedures
+- [OPERATIONS.md](OPERATIONS.md) - Backup, disaster recovery, and secrets rotation
+- [ARCHITECTURE.md](ARCHITECTURE.md) - System architecture and security design
+
 ---
 *Thank you for helping us keep SRA secure.*

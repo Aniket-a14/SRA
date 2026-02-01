@@ -2,6 +2,49 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.0] - 2026-02-01
+
+### 🏗️ Infrastructure as Code
+- **Added** Complete Terraform configuration for infrastructure management
+- **Added** Terraform setup for Vercel project management (frontend & backend)
+- **Added** Infrastructure versioning and disaster recovery capability
+- **Added** `terraform/` directory with full IaC implementation
+  - `main.tf` - Provider and backend configuration
+  - `variables.tf` - Variable definitions
+  - `vercel.tf` - Vercel project resources
+  - `outputs.tf` - Infrastructure outputs
+  - `terraform.tfvars.example` - Configuration template
+  - `README.md` - Comprehensive Terraform usage guide
+
+### 📚 Documentation
+- **Added** Infrastructure as Code section to main README
+- **Added** Terraform quick start guide
+- **Added** Security documentation in `docs/security/`
+  - `ENCRYPTION.md` - Field-level encryption documentation
+  - `INCIDENT_RESPONSE.md` - Security incident response procedures
+- **Updated** Project structure documentation to include `terraform/` and `docs/`
+- **Updated** ARCHITECTURE.md with comprehensive CDN strategy documentation
+
+### 🔒 Security & Compliance
+- **Documented** Encryption practices (AES-256-GCM)
+- **Documented** Incident response procedures with severity levels (P0-P3)
+- **Documented** CDN caching policies and performance optimization
+- **Confirmed** RLS policies active in Supabase database
+
+### 🛠️ Developer Experience
+- **Added** Helper scripts for Terraform environment setup
+- **Added** Comprehensive implementation guides and walkthroughs
+- **Improved** Infrastructure reproducibility and team collaboration
+- **Improved** Disaster recovery procedures
+
+### 📊 Infrastructure Benefits
+- ✅ Version-controlled infrastructure
+- ✅ One-command disaster recovery
+- ✅ Self-documenting infrastructure code
+- ✅ Complete audit trail for infrastructure changes
+- ✅ Team collaboration via infrastructure PRs
+
+
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
