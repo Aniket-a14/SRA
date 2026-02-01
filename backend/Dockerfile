@@ -4,6 +4,7 @@ RUN apk add --no-cache openssl
 WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
+COPY prisma.config.js ./
 RUN npm ci
 
 # Stage 2: Build
@@ -28,6 +29,7 @@ COPY --from=build --chown=nodejs:nodejs /app/package*.json ./
 COPY --from=build --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=build --chown=nodejs:nodejs /app/src ./src
 COPY --from=build --chown=nodejs:nodejs /app/prisma ./prisma
+COPY --from=build --chown=nodejs:nodejs /app/prisma.config.js ./
 
 USER nodejs
 
