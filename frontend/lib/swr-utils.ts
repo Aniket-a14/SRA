@@ -15,7 +15,10 @@ export const fetcher = async ([url, token, csrfToken]: [string, string | null, s
         headers['x-csrf-token'] = csrfToken;
     }
 
-    const res = await fetch(url, { headers });
+    const res = await fetch(url, {
+        headers,
+        credentials: 'include'
+    });
 
     if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));

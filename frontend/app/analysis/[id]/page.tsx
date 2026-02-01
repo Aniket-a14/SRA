@@ -358,28 +358,44 @@ function AnalysisDetailContent() {
             let activeCsrf = csrfToken;
             if (!activeCsrf) activeCsrf = await fetchCsrf();
 
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, {
-                method: "POST",
-                credentials: "include",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                    ...(activeCsrf && { "x-csrf-token": activeCsrf })
-                },
-                body: JSON.stringify({
-                    projectId: analysis?.projectId,
-                    text: "Generated from Draft",
-                    srsData: draftData,
-                    validationResult: { validation_status: 'PASS', issues: validationIssues },
-                    parentId: id,
-                    draft: false
-                })
-            });
+            const performFetch = async (csrf: string | null) => {
+                return await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, {
+                    method: "POST",
+                    credentials: "include",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                        ...(csrf && { "x-csrf-token": csrf })
+                    } as HeadersInit,
+                    body: JSON.stringify({
+                        projectId: analysis?.projectId,
+                        text: "Generated from Draft",
+                        srsData: draftData,
+                        validationResult: { validation_status: 'PASS', issues: validationIssues },
+                        parentId: id,
+                        draft: false
+                    })
+                });
+            };
+
+            let res = await performFetch(activeCsrf);
+
+            // CSRF Retry Logic
+            if (res.status === 403) {
+                const errorData = await res.json().catch(() => ({}));
+                if (errorData.code === 'EBADCSRFTOKEN' || errorData.message?.includes('csrf')) {
+                    console.log("CSRF Mismatch detected, refreshing token and retrying...");
+                    const newCsrf = await fetchCsrf();
+                    if (newCsrf) {
+                        res = await performFetch(newCsrf);
+                    }
+                }
+            }
 
             if (!res.ok) throw new Error("Failed to start analysis");
             const result = await res.json();
             toast.success("Analysis Generation Started (Layer 3)");
-            router.push(`/analysis/${result.id}`);
+            router.push(`/analysis/${result.data.id}`);
 
         } catch (e) {
             console.error("Failed to proceed to analysis", e);
