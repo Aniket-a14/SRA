@@ -1,6 +1,6 @@
 # SRA Backend: 5-Layer Analysis Engine
 
-![Node.js](https://img.shields.io/badge/Node.js-v18.x-green)
+![Node.js](https://img.shields.io/badge/Node.js-v20.x-green)
 ![Express](https://img.shields.io/badge/Express-v4.x-lightgrey)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue)
 ![Redis](https://img.shields.io/badge/Redis-Upstash-red)
@@ -73,7 +73,7 @@ Shreds finalized analyses into semantic chunks. Implements the "Hash-and-Match" 
 ## 🚀 Setup & Deployment
 
 ### Prerequisites
--   Node.js (v18+) & npm
+-   Node.js (v20+) & npm
 -   PostgreSQL (Database)
 -   Upstash QStash (Serverless Queue)
 -   Gemini API Key
@@ -130,7 +130,7 @@ We use `helmet` to enforce a strict CSP.
 
 **Prisma Connection Error**
 -   **Cause**: Incorrect `DATABASE_URL`.
--   **Fix**: Check your `.env` file and ensure the Supabase connection string is correct and the database is active.
+-   **Fix**: Check your `.env` file and ensure the Supabase connection string is correct. Note that Prisma 7 migration commands require `DIRECT_URL` to be configured in your `.env`.
 
 ## 🔗 Key API Domains
 
