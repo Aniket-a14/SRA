@@ -26,7 +26,7 @@
 |----------|-----|-------------|
 | **Live Application** | [sra-xi.vercel.app](https://sra-xi.vercel.app/) | Production frontend deployment |
 | **Architecture Guide** | [ARCHITECTURE.md](./ARCHITECTURE.md) | System architecture & design |
-| **Operations Manual** | [OPERATIONS.md](./OPERATIONS.md) | Deployment, backup & DR procedures |
+| **Operations Manual** | [OPERATIONS.md](./docs/operations/OPERATIONS.md) | Deployment, backup & DR procedures |
 | **Contributing** | [CONTRIBUTING.md](./CONTRIBUTING.md) | Development setup & guidelines |
 
 ---
