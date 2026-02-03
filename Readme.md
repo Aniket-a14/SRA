@@ -43,7 +43,7 @@ In contemporary software development, **43% of project failures** are attributed
 
 ---
 
-## �️ The 5-Layer Analysis Pipeline
+## 🔄 The 5-Layer Analysis Pipeline
 
 SRA operates on a proprietary 5-layer pipeline that ensures every requirement is processed through a rigid quality-control sequence.
 
@@ -66,12 +66,16 @@ graph TD
     L4 --> L5
 ```
 
-### Layer Breakdown
+<details>
+<summary><strong>📐 Click to Expand Layer Details</strong></summary>
+
 1.  **Strategic Intake**: Translates free-text into a mapped JSON model aligned with IEEE section hierarchies.
 2.  **Logic Validation**: A high-speed reasoning pass (Gatekeeper) that evaluates clarity, consistency, and detail sufficiency.
 3.  **Analysis & Synthesis**: Heavy LLM processing to generate the full document, including User Stories, Acceptance Criteria, and Entity-Relationship maps.
 4.  **Iterative Refinement**: A modular Workspace UI for manual adjustments, version branching, and intelligent diagram repair.
 5.  **Knowledge Persistence**: Finalized requirements are "shredded" and indexed into a Vector Database for cross-project intelligence and RAG.
+
+</details>
 
 ---
 
@@ -105,7 +109,6 @@ SRA is engineered for stability, security, and enterprise-grade performance.
 - **Dependency Pinning**: Strict versioning of core dependencies (e.g., Next.js 16.1.6) to ensure environment parity.
 
 ### 🌐 Network & Content Security
-### 🌐 Network & Content Security
 - **Hardened CSP**: Strict Content Security Policy injected via Next.js and Express security headers.
 - **HSTS & Frame Protection**: Production-grade `Strict-Transport-Security` and `X-Frame-Options` (DENY/SAMEORIGIN) enforcement.
 - **Secure Session Management**: JWT-based authentication with secure cookie handling.
@@ -126,7 +129,7 @@ SRA is engineered for stability, security, and enterprise-grade performance.
 - **Multi-Location Storage**: Backups stored locally, in GitHub Artifacts, and Supabase snapshots.
 - **Integrity Verification**: SHA-256 checksums ensure backup file integrity.
 
-### 🛡️ Security Monitoring & Audit
+### �️ Security Monitoring & Audit
 - **Comprehensive Audit Logging**: Tracks all sensitive operations (create, delete, export) with full metadata.
 - **Threat Detection**: Real-time monitoring for brute force attempts, mass deletions, and unusual access patterns.
 - **Field-Level Encryption**: PII data encrypted at rest using AES-256-GCM.
@@ -157,6 +160,9 @@ SRA leverages professional GitHub Actions for continuous quality assurance and o
 
 ## 💻 Tech Stack & Rationale
 
+<details>
+<summary><strong>🛠️ Click to Expand</strong></summary>
+
 | Component | Technology | Rationale |
 |-----------|------------|-----------|
 | **Frontend** | [Next.js 16.1.6](https://nextjs.org/) | App Router with standalone output for enterprise scalability. |
@@ -166,11 +172,16 @@ SRA leverages professional GitHub Actions for continuous quality assurance and o
 | **Orchestration** | [Upstash QStash](https://upstash.com/) | Serverless job queue for reliable, long-running AI tasks. |
 | **LLM Engine** | [Gemini 2.0 Flash](https://ai.google.dev/) | Advanced reasoning and context window for complex architectural mapping. |
 
+</details>
+
 ---
 
 ## 🏗️ Infrastructure as Code
 
 SRA uses **Terraform** to manage cloud infrastructure declaratively, ensuring reproducibility, disaster recovery, and version-controlled infrastructure changes.
+
+<details>
+<summary><strong>🛠️ Click to Expand Terraform Details</strong></summary>
 
 ### Infrastructure Management
 
@@ -221,9 +232,14 @@ terraform apply
 
 For detailed Terraform usage, see [`terraform/README.md`](./terraform/README.md).
 
+</details>
+
 ---
 
 ## ⚙️ Operational Guide & Deployment
+
+<details>
+<summary><strong>�️ Click to Expand Environment & Deployment</strong></summary>
 
 ### 1. Advanced Environment Configuration
 
@@ -278,9 +294,14 @@ SRA leverages professional GitHub Actions for continuous quality assurance:
 *   **Health Checks**: Hourly automated uptime verification of the entire pipeline.
 *   **Security Scans**: Integrated CodeQL and dependency vulnerability checks.
 
+</details>
+
 ---
 
 ## 📂 Project Structure
+
+<details>
+<summary><strong>📁 Click to Expand Directory Tree</strong></summary>
 
 ```bash
 SRA/
@@ -305,6 +326,8 @@ SRA/
 └── README.md
 ```
 
+</details>
+
 ---
 
 ## 🗺️ Roadmap & Governance
@@ -314,6 +337,7 @@ SRA/
 - [x] **v2.2**: GitHub CI/CD & Agentic Automation.
 - [x] **v3.0**: SWR Data Fetching & Backup Automation.
 - [x] **v3.0**: Enterprise Security Monitoring & Audit Logging.
+- [x] **v3.1**: **Distributed Rate Limiting & Load Balancing**.
 - [ ] **v3.5**: Collaborative Real-time Multi-User Editing.
 - [ ] **v4.0**: Custom Model Fine-tuning (MLOps integration).
 
@@ -328,4 +352,3 @@ To report vulnerabilities, please contact the security team via the repository's
 ## 📄 License
 
 This project is licensed under the **Apache License 2.0**. See the [LICENSE](LICENSE) file for the full legal text.
-
