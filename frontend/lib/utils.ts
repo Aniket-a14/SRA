@@ -19,22 +19,40 @@ export function cleanInputText(text: string): string {
   if (!text) return ""
 
   // Try parsing as JSON first (for srsData structures)
+  // Try parsing as JSON first (for srsData structures)
   try {
     if (text.trim().startsWith('{') || text.trim().startsWith('[')) {
       const parsed = JSON.parse(text);
-      // Case 1: SRS Draft Data style { introduction: { purpose: { content: "..." } } }
       if (typeof parsed === 'object' && parsed !== null) {
-        // Heuristic: breadth-first search for first "content" string or "purpose" string
-        // Or specific known paths
-        if (parsed.introduction?.purpose?.content) return parsed.introduction.purpose.content;
-        if (parsed.srsData?.introduction?.purpose?.content) return parsed.srsData.introduction.purpose.content;
+        // recursive extractor for "content" keys or flat strings
+        const extractStrings = (obj: any): string[] => {
+          if (typeof obj === 'string') return [obj];
+          if (Array.isArray(obj)) return obj.flatMap(extractStrings);
+          if (typeof obj === 'object' && obj !== null) {
+            // Priority: 'content' key (common in our DraftIntake model)
+            if ('content' in obj && typeof obj.content === 'string') return [obj.content];
+            // Otherwise values
+            return Object.values(obj).flatMap(extractStrings);
+          }
+          return [];
+        };
 
-        // General fallback: return values of first level keys joined? 
-        // Better: Just check if it's the specific structure we know.
+        const extracted = extractStrings(parsed);
+        if (extracted.length > 0) return extracted.join(" ").slice(0, 300); // Limit length
       }
     }
   } catch {
     // Not valid JSON, proceed to regex cleanup
+  }
+
+  // Fallback: If it looks like a string array but failed parse (e.g. ['A', 'B'] with single quotes or truncated)
+  if (text.trim().startsWith('[') && text.includes(',')) {
+    // Regex to match "Strings" or 'Strings'
+    const matches = text.match(/(["'])(?:(?=(\\?))\2.)*?\1/g);
+    if (matches && matches.length > 0) {
+      // Remove quotes and join
+      return matches.map(m => m.slice(1, -1)).join(' ');
+    }
   }
 
   return text

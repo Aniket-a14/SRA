@@ -33,6 +33,11 @@ try {
     console.warn("Failed to load swagger.yaml, documentation will be unavailable", e.message);
 }
 
+import { getCSP } from './config/security.js';
+import { auditLogger } from './middleware/auditLogger.js';
+
+// ... imports remain the same
+
 const app = express();
 
 // Trust proxy for Render deployment
@@ -41,23 +46,18 @@ app.set('trust proxy', 1);
 // CORS setup
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3001';
 
+// Dynamic CSP based on environment
+const isDev = process.env.NODE_ENV !== 'production';
 app.use(helmet({
-    contentSecurityPolicy: {
-        directives: {
-            defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://vercel.live", "https://cdn.jsdelivr.net"],
-            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
-            fontSrc: ["'self'", "https://fonts.gstatic.com"],
-            imgSrc: ["'self'", "data:", "https:", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
-            connectSrc: ["'self'", "http://localhost:*", "https://sra-xi.vercel.app", "https://sra-backend-six.vercel.app", "https://generativelanguage.googleapis.com"],
-            frameSrc: ["'self'", "https://vercel.live"],
-            frameAncestors: ["'none'"],
-        },
-    },
+    contentSecurityPolicy: getCSP(isDev),
     crossOriginEmbedderPolicy: false,
 }));
 
+// Rate Limiter
 app.use(apiLimiter);
+
+// Global Audit Logger
+app.use(auditLogger);
 
 app.use(cors({
     origin: FRONTEND_URL,

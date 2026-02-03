@@ -100,8 +100,15 @@ export function HomeClient() {
         setIsAnalyzing(true);
         const loadingToast = toast.loading("Initializing project...");
 
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+        if (!backendUrl) {
+            toast.error("Configuration Error: Backend URL not set.", { id: loadingToast });
+            setIsAnalyzing(false);
+            return;
+        }
+
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, {
+            const response = await fetch(`${backendUrl}/analyze`, {
                 method: "POST",
                 credentials: "include",
                 headers: {

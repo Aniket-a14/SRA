@@ -78,13 +78,24 @@ function AnalysisDetailContent() {
         fetcher,
         {
             ...swrOptions,
-            refreshInterval: (data) => {
-                const status = (data?.status || '').toUpperCase();
-                // Terminal or Draft states don't need polling
-                if (status === 'COMPLETED' || status === 'FAILED' || data?.isFinalized) return 0;
-                // Layer 1/2 Drafts don't need polling
-                if (data?.metadata?.status === 'DRAFT' || data?.metadata?.status === 'VALIDATED') return 0;
-                // Otherwise poll every 3s
+            refreshInterval: (latestData) => {
+                const status = (latestData?.status || '').toUpperCase();
+                const metaStatus = (latestData?.metadata?.status || '').toUpperCase();
+
+                // Stop polling if complete, failed, or finalized
+                if (status === 'COMPLETED' || status === 'FAILED' || latestData?.isFinalized) {
+                    return 0;
+                }
+                // Stop polling for Draft/Validation UI states
+                if (metaStatus === 'DRAFT' || metaStatus === 'VALIDATED' || metaStatus === 'NEEDS_FIX') {
+                    return 0;
+                }
+
+                // If we have results but status strangely says pending (legacy check), stop
+                if (latestData?.resultJson && Object.keys(latestData.resultJson).length > 2 && status !== 'IN_PROGRESS') {
+                    return 0;
+                }
+
                 return 3000;
             }
         }

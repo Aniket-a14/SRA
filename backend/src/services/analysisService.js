@@ -157,36 +157,51 @@ export const getUserAnalyses = async (userId) => {
             let preview = a.inputText;
 
             // Optimized Preview Extraction
-            if (preview && preview.trim().startsWith('[')) {
-                try {
-                    const words = JSON.parse(preview);
-                    if (Array.isArray(words)) {
-                        // Rejoin first 20 words for preview
-                        preview = words.slice(0, 20).join(' ') + "...";
-                    }
-                } catch (e) {
-                    // fall through
+            try {
+                // 1. Strip System Tags first to get to the real content
+                preview = preview
+                    .replace(/\[ORIGINAL_REQUEST_START\][\s\S]*?\[ORIGINAL_REQUEST_END\]/g, "") // If we want inner? No, usually we want the INNER text.
+                    .replace(/\[PREVIOUS_SRS_CONTEXT_START\][\s\S]*?\[PREVIOUS_SRS_CONTEXT_END\]/g, "")
+                    .replace(/\[IMPROVEMENT_INSTRUCTION_START\][\s\S]*?\[IMPROVEMENT_INSTRUCTION_END\]/g, "")
+                    .trim();
+
+                // If stripping left nothing (e.g. only tags were there), try extracting from the Original Request block specifically
+                if (!preview && a.inputText.includes('[ORIGINAL_REQUEST_START]')) {
+                    const match = a.inputText.match(/\[ORIGINAL_REQUEST_START\]([\s\S]*?)\[ORIGINAL_REQUEST_END\]/);
+                    if (match && match[1]) preview = match[1].trim();
                 }
-            } else if (preview && preview.trim().startsWith('Project:')) {
-                // Format: "Project: X\n\nDescription:\nY"
+
+                // 2. JSON Handling
+                if (preview.startsWith('[') || preview.startsWith('{')) {
+                    const parsed = JSON.parse(preview);
+
+                    if (Array.isArray(parsed)) {
+                        // Join array elements (e.g. ["Project:", "Name", ...])
+                        preview = parsed.map(p => typeof p === 'string' ? p : JSON.stringify(p)).join(' ');
+                    } else if (typeof parsed === 'object' && parsed !== null) {
+                        // Extract content from known schema or fallback to values
+                        preview = parsed.introduction?.purpose?.content ||
+                            parsed.introduction?.productScope?.content ||
+                            parsed.projectTitle ||
+                            parsed.details?.projectName?.content ||
+                            // Fallback: values of the object joined
+                            Object.values(parsed).filter(v => typeof v === 'string').join(' ') ||
+                            "Draft analysis";
+                    }
+                }
+            } catch (e) {
+                // Parsing failed, use raw text but cleaned of some chars
+                // console.warn("Preview parsing failed", e);
+            }
+
+            // 3. Fallback for "Project:" style text
+            if (preview.startsWith('Project:')) {
                 const lines = preview.split('\n');
-                // Try to find the description part
                 const descIndex = lines.findIndex(l => l.startsWith('Description:'));
                 if (descIndex !== -1 && lines[descIndex + 1]) {
                     preview = lines[descIndex + 1];
                 } else if (lines[0]) {
                     preview = lines[0].replace('Project: ', '');
-                }
-            } else if (preview && preview.trim().startsWith('{')) {
-                try {
-                    const parsed = JSON.parse(preview);
-                    // Extract purpose or scope for a better preview, otherwise fallback to name
-                    preview = parsed.introduction?.purpose?.content ||
-                        parsed.introduction?.productScope?.content ||
-                        parsed.projectTitle ||
-                        "Draft analysis data";
-                } catch (e) {
-                    // Not valid JSON, fallback to standard truncation
                 }
             }
 
