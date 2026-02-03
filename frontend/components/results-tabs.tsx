@@ -43,7 +43,7 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
 
   useEffect(() => {
     if (data && (!isEditing || analysisId !== lastDataIdRef.current)) {
-      setEditedData(JSON.parse(JSON.stringify(data)))
+      setEditedData(structuredClone(data))
       lastDataIdRef.current = analysisId;
     }
   }, [data, isEditing, analysisId])

@@ -1,4 +1,5 @@
 import { analyzeText } from "./aiService.js";
+import crypto from 'crypto';
 
 const VALIDATION_PROMPT_TEMPLATE = `
 You are operating as Layer 2 of the SRA system.
@@ -217,9 +218,14 @@ export async function validateRequirements(srsData) {
       if (severity === 'warning') severity = 'warning';
       if (severity !== 'critical' && severity !== 'warning') severity = 'info';
 
+      // Deterministic ID generation based on content
+      // Allows React keys to be stable and UI to track diffs correctly between runs
+      const issueContent = `${issue.section_id || 'general'}-${issue.title}-${issue.description.slice(0, 20)}`;
+      const deterministicId = `val-${crypto.createHash('md5').update(issueContent).digest('hex').slice(0, 8)}`;
+
       return {
         ...issue,
-        id: issue.id || `val-issue-${Date.now()}-${idx}`,
+        id: issue.id || deterministicId,
         severity: severity
       };
     });

@@ -95,7 +95,6 @@ export function MermaidRenderer({ chart, title, className, onError, isExport = f
         }
 
         renderDiagram()
-        renderDiagram()
     }, [chart, mermaidInstance, title, isExport, onError])
 
     // EXPORT MODE: Render clean, auto-sized div without Card/Scrollbars

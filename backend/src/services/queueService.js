@@ -14,6 +14,27 @@ export const addAnalysisJob = async (userId, text, projectId, settings, parentId
         throw new Error("BACKEND_URL is not defined");
     }
 
+    // 0. IDEMPOTENCY CHECK
+    // Prevent duplicate submissions while an identical job is PENDING
+    const existingJob = await prisma.analysis.findFirst({
+        where: {
+            userId: userId,
+            projectId: projectId,
+            parentId: parentId, // Strict lineage check
+            status: 'PENDING',
+            // Check text match using a simple hash check on metadata or directly on content?
+            // Since we don't store text hash in a column, we can rely on PENDING + inputs.
+            // But let's verify text content matches too (expensive but safe).
+            inputText: text
+        },
+        select: { id: true }
+    });
+
+    if (existingJob) {
+        log.info({ msg: "Returning existing PENDING job (Idempotency Hit)", analysisId: existingJob.id });
+        return { id: existingJob.id, status: 'PENDING' };
+    }
+
     // 1. Create the Analysis record immediately with PENDING status
     let finalRootId = rootId;
     let version = 1;
