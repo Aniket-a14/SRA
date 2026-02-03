@@ -27,7 +27,13 @@ This directory contains Terraform configuration for managing SRA infrastructure 
 
 ```bash
 # Copy example file
+# Mac/Linux:
 cp terraform.tfvars.example terraform.tfvars
+
+# Windows (PowerShell):
+Copy-Item terraform.tfvars.example -Destination terraform.tfvars
+# OR Windows (CMD):
+copy terraform.tfvars.example terraform.tfvars
 
 # Edit with your values
 # IMPORTANT: Never commit terraform.tfvars to git!
@@ -192,15 +198,19 @@ terraform apply
 
 ## Troubleshooting
 
-### "Error: Invalid provider configuration"
+### "Error: Unable to find api_token"
 
-**Cause:** Missing `VERCEL_API_TOKEN` environment variable
+**Cause:** Missing `api_token` in provider configuration or empty `vercel_api_token` variable.
 
 **Solution:**
-```bash
-export VERCEL_API_TOKEN="your-token"
-# Or add to terraform.tfvars
-```
+
+1. Check that `terraform.tfvars` has the correct token values.
+2. Ensure `main.tf` links the variable:
+   ```hcl
+   provider "vercel" {
+     api_token = var.vercel_api_token
+   }
+   ```
 
 ### "Error: Project already exists"
 
@@ -233,7 +243,11 @@ terraform import vercel_project.sra_frontend <project-id>
 
 ```bash
 # Backup current state
+# Bash/Mac/Linux
 cp terraform.tfstate terraform.tfstate.backup-$(date +%Y%m%d)
+
+# Windows (PowerShell)
+Copy-Item terraform.tfstate -Destination ("terraform.tfstate.backup-" + (Get-Date -Format "yyyyMMdd"))
 
 # Store securely (encrypted)
 ```
