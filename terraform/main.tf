@@ -16,6 +16,5 @@ terraform {
 }
 
 provider "vercel" {
-  # API token is read from VERCEL_API_TOKEN environment variable
-  # No need to specify it here for security
+  api_token = var.vercel_api_token
 }
