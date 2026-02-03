@@ -14,6 +14,7 @@ import { layoutAllDFD } from '../services/dfdLayoutService.js';
 import prisma from '../config/prisma.js';
 import crypto from 'crypto';
 import { successResponse } from '../utils/response.js';
+import { log } from '../middleware/logger.js';
 
 export const analyze = async (req, res, next) => {
     try {
@@ -351,7 +352,7 @@ export const updateAnalysis = async (req, res, next) => {
                     newResultJson.layer3Status = 'ALIGNED';
                 }
             } catch (l3Err) {
-                console.warn("Layer 3 Check Failed (Skipping Block):", l3Err);
+                log.warn({ err: l3Err }, "Layer 3 Check Failed (Skipping Block)");
             }
         }
 
@@ -556,7 +557,7 @@ export const finalizeAnalysis = async (req, res, next) => {
                 embeddingVector = await embedText(analysis.inputText.trim());
             }
         } catch (e) {
-            console.error("Embedding generation failed, proceeding with finalization without vector:", e);
+            log.error({ err: e }, "Embedding generation failed, proceeding with finalization without vector");
             // We proceed, but vectorSignature will be null.
         }
 
@@ -589,7 +590,7 @@ export const finalizeAnalysis = async (req, res, next) => {
                 const vectorString = `[${embeddingVector.join(',')}]`;
                 await prisma.$executeRaw`UPDATE "Analysis" SET "vectorSignature" = ${vectorString}::vector WHERE "id" = ${id}`;
             } catch (rawError) {
-                console.error("Failed to update vectorSignature:", rawError);
+                log.error({ err: rawError }, "Failed to update vectorSignature");
                 // Don't fail the whole request, just log it.
             }
         }
@@ -610,7 +611,7 @@ export const finalizeAnalysis = async (req, res, next) => {
                 try {
                     embedding = process.env.MOCK_AI === 'true' ? Array(768).fill(0.01) : await embedText(chunkText);
                 } catch (err) {
-                    console.warn(`[Finalize] Failed to embed feature chunk: ${feature.name}`);
+                    log.warn({ err }, `[Finalize] Failed to embed feature chunk: ${feature.name}`);
                 }
 
                 chunks.push({
@@ -636,7 +637,7 @@ export const finalizeAnalysis = async (req, res, next) => {
                     try {
                         embedding = process.env.MOCK_AI === 'true' ? Array(768).fill(0.02) : await embedText(chunkText);
                     } catch (err) {
-                        console.warn(`[Finalize] Failed to embed NFR chunk: ${category}`);
+                        log.warn({ err }, `[Finalize] Failed to embed NFR chunk: ${category}`);
                     }
 
                     chunks.push({

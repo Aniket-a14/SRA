@@ -25,14 +25,15 @@ export function cleanInputText(text: string): string {
       const parsed = JSON.parse(text);
       if (typeof parsed === 'object' && parsed !== null) {
         // recursive extractor for "content" keys or flat strings
-        const extractStrings = (obj: any): string[] => {
+        const extractStrings = (obj: unknown): string[] => {
           if (typeof obj === 'string') return [obj];
           if (Array.isArray(obj)) return obj.flatMap(extractStrings);
           if (typeof obj === 'object' && obj !== null) {
             // Priority: 'content' key (common in our DraftIntake model)
-            if ('content' in obj && typeof obj.content === 'string') return [obj.content];
+            const record = obj as Record<string, unknown>;
+            if ('content' in record && typeof record.content === 'string') return [record.content];
             // Otherwise values
-            return Object.values(obj).flatMap(extractStrings);
+            return Object.values(record).flatMap(extractStrings);
           }
           return [];
         };
