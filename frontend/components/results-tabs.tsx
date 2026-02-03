@@ -154,7 +154,7 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
                 <>
                   <Button variant="outline" onClick={() => {
                     setIsEditing(false)
-                    setEditedData(data ? JSON.parse(JSON.stringify(data)) : null)
+                    setEditedData(data ? structuredClone(data) : null)
                   }}>
                     Cancel
                   </Button>

@@ -220,8 +220,8 @@ export async function validateRequirements(srsData) {
 
       // Deterministic ID generation based on content
       // Allows React keys to be stable and UI to track diffs correctly between runs
-      const issueContent = `${issue.section_id || 'general'}-${issue.title}-${issue.description.slice(0, 20)}`;
-      const deterministicId = `val-${crypto.createHash('md5').update(issueContent).digest('hex').slice(0, 8)}`;
+      const issueContent = `${issue.section_id || 'general'}-${issue.title}-${issue.description.slice(0, 50)}`; 
+      const deterministicId = `val-${crypto.createHash('md5').update(issueContent).digest('hex').slice(0, 12)}`;
 
       return {
         ...issue,
