@@ -3,6 +3,9 @@ import { lintRequirements, checkAlignment } from './qualityService.js';
 import { analyzeText, repairDiagram } from './aiService.js';
 import crypto from 'crypto';
 import { retrieveContext, formatRagContext } from './ragService.js';
+import { getRedisClient } from '../config/redis.js';
+
+const CACHE_TTL = 60; // 60 seconds cache for dashboard
 
 export const performAnalysis = async (userId, text, projectId = null, parentId = null, rootId = null, settings = {}, analysisId = null) => {
     let resultJson;
@@ -130,6 +133,21 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
 };
 
 export const getUserAnalyses = async (userId) => {
+    // 0. Cache Check
+    const redis = getRedisClient();
+    const CACHE_KEY = `user:analyses:${userId}`;
+
+    if (redis) {
+        try {
+            const cached = await redis.get(CACHE_KEY);
+            if (cached) {
+                return JSON.parse(cached);
+            }
+        } catch (err) {
+            console.warn("Redis Cache Read Error:", err.message);
+        }
+    }
+
     // Optimized: Get LATEST version for each rootId using PostgreSQL DISTINCT ON
     try {
         const analyses = await prisma.$queryRaw`
@@ -148,19 +166,17 @@ export const getUserAnalyses = async (userId) => {
         `;
 
         // Sort resulting list by createdAt desc (most recent projects first)
-        // Note: Raw query returns objects, we can sort them in JS or wrap the SQL.
-        // Sorting in JS is fine for reasonable page sizes.
         analyses.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
         // Return truncated review with intelligent JSON preview extraction
-        return analyses.map(a => {
+        const result = analyses.map(a => {
             let preview = a.inputText;
 
             // Optimized Preview Extraction
             try {
                 // 1. Strip System Tags first to get to the real content
                 preview = preview
-                    .replace(/\[ORIGINAL_REQUEST_START\][\s\S]*?\[ORIGINAL_REQUEST_END\]/g, "") // If we want inner? No, usually we want the INNER text.
+                    .replace(/\[ORIGINAL_REQUEST_START\][\s\S]*?\[ORIGINAL_REQUEST_END\]/g, "")
                     .replace(/\[PREVIOUS_SRS_CONTEXT_START\][\s\S]*?\[PREVIOUS_SRS_CONTEXT_END\]/g, "")
                     .replace(/\[IMPROVEMENT_INSTRUCTION_START\][\s\S]*?\[IMPROVEMENT_INSTRUCTION_END\]/g, "")
                     .trim();
@@ -191,7 +207,6 @@ export const getUserAnalyses = async (userId) => {
                 }
             } catch (e) {
                 // Parsing failed, use raw text but cleaned of some chars
-                // console.warn("Preview parsing failed", e);
             }
 
             // 3. Fallback for "Project:" style text
@@ -210,6 +225,18 @@ export const getUserAnalyses = async (userId) => {
                 inputPreview: preview.substring(0, 100) + (preview.length > 100 ? '...' : '')
             };
         });
+
+        // 4. Cache Result
+        if (redis) {
+            try {
+                await redis.set(CACHE_KEY, JSON.stringify(result), 'EX', CACHE_TTL);
+            } catch (err) {
+                console.warn("Redis Cache Write Error:", err.message);
+            }
+        }
+
+        return result;
+
     } catch (error) {
         console.error("Error fetching user analyses:", error);
         throw error;

@@ -1,26 +1,35 @@
 services:
+  nginx:
+    image: nginx:alpine
+    container_name: sra-nginx
+    restart: always
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: sra-backend
+    # container_name: sra-backend  <-- Removed to allow scaling
     restart: always
     env_file:
       - ./backend/.env
-    ports:
-      - "3000:3000"
+    # ports: 
+    #   - "3000:3000" # Commented out to force traffic through Nginx (Load Balancer)
     environment:
       - NODE_ENV=development
       - AI_NAME=SRA
     deploy:
+      replicas: 2 # Simulate Load Balancing with 2 instances
       resources:
         limits:
           memory: 512M
     logging:
       driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
     healthcheck:
       test: [ "CMD", "node", "-e", "fetch('http://localhost:3000/api/health').then(r => r.ok ? process.exit(0) : process.exit(1))" ]
       interval: 30s
@@ -40,17 +49,14 @@ services:
       - "3001:3001"
     environment:
       - NODE_ENV=development
-      # Production Overrides (Uncomment to use)
-      # - NEXT_PUBLIC_BACKEND_URL=https://sra-backend-six.vercel.app
+      # Update to point to Nginx Load Balancer!
+      - NEXT_PUBLIC_BACKEND_URL=http://localhost:8080
     deploy:
       resources:
         limits:
           memory: 1G
     logging:
       driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
     depends_on:
       backend:
         condition: service_healthy

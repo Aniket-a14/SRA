@@ -110,6 +110,30 @@ The system utilizes a **Prompt Factory** pattern to maintain consistent AI outpu
 
 ---
 
+## ⚡ Scalability & Distributed Systems
+
+SRA implements advanced engineering patterns to ensure resilience and performance at scale.
+
+### Distributed Rate Limiting
+- **Technology**: Redis (Upstash) + `rate-limit-redis`.
+- **Strategy**: Distributed Sliding Window.
+- **Benefit**: Rate limits are synchronized across all server instances (serverless or containerized), preventing abuse even in scaled environments.
+
+### Caching Strategy
+- **Layer**: Service-Level Caching.
+- **Implementation**: Heavy read operations (e.g., User Dashboard `getUserAnalyses`) are cached in Redis with a 60-second TTL.
+- **Outcome**: significantly reduces database read pressure during high-traffic periods.
+
+### Load Balancing & Reverse Proxy
+- **Local Dev**: Docker Compose runs **Nginx** on port 8080, distributing traffic across 2 Backend replicas using Round-Robin.
+- **Production**: Vercel/Render Edge Networks handle global load balancing and SSL termination.
+
+### CAP Theorem Optimization
+- **Classification**: **CA** (Consistency + Availability).
+- **Rationale**: Requirements engineering demands strict data consistency (ACID transactions via Prisma). Partition tolerance is managed via managed cloud infrastructure (Supabase/Upstash) which handles replication.
+
+---
+
 ## 🗺️ Roadmap & Operational Governance
 
 Detailed governance and contribution models are maintained in the [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md) documents. For technical maintenance, refer to the [Agent Workflows](.agent/workflows/).
@@ -154,13 +178,15 @@ To understand how these components interact, let's walk through a typical requir
 The entire platform is containerized for consistency across development and production environments.
 
 ### Docker Containers
-- **Backend Service**: Node.js container handling API requests, Auth, and AI orchestration.
+- **Reverse Proxy**: Nginx container acting as Load Balancer and Gateway (Port 8080).
+- **Backend Service**: Node.js container handling API requests, Auth, and AI orchestration (Scaled to 2 replicas).
 - **Frontend Service**: Next.js Standalone container serving the UI.
-- **Orchestration**: `docker-compose` manages the lifecycle and networking between these services, ensuring they can communicate securely while isolating them from the host system.
+- **Orchestration**: `docker-compose` manages the lifecycle and networking.
 
 ### External Services (Serverless/Managed)
 - **Database**: Managed Supabase PostgreSQL instance (persists data outside containers).
-- **Redis/Queue**: Managed Upstash instance (serverless job queue).
+- **Redis**: Managed Upstash instance (Distributed Rate Limiting & Dashboard Caching).
+- **Queue**: Managed Upstash QStash (Asynchronous job processing).
 
 ---
 

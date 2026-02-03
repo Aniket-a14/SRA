@@ -105,17 +105,19 @@ SRA is engineered for stability, security, and enterprise-grade performance.
 - **Dependency Pinning**: Strict versioning of core dependencies (e.g., Next.js 16.1.6) to ensure environment parity.
 
 ### 🌐 Network & Content Security
+### 🌐 Network & Content Security
 - **Hardened CSP**: Strict Content Security Policy injected via Next.js and Express security headers.
 - **HSTS & Frame Protection**: Production-grade `Strict-Transport-Security` and `X-Frame-Options` (DENY/SAMEORIGIN) enforcement.
 - **Secure Session Management**: JWT-based authentication with secure cookie handling.
 - **Privacy Sanitization**: Integrated `sanitizer.js` layer to prevent data leakage to LLM providers.
-- **Rate Limiting**: Intelligent API throttling across auth, analysis, and worker endpoints.
+- **Distributed Rate Limiting**: Redis-backed throttling ensures global protection across all server instances.
 
 ### 🔍 Search & Performance Optimization
+- **Redis Caching**: High-traffic endpoints (Dashboard) cached via Upstash for sub-millisecond retrieval.
 - **Automated SEO**: Dynamic `sitemap.xml` and `robots.txt` generation for search engine discoverability.
-- **Graceful Shutdown**: Native handling of `SIGTERM`/`SIGINT` to ensure zero-downtime deployments and safe process termination.
-- **Standalone Mode**: Next.js optimized standalone output for significantly faster boot times in containerized environments.
-- **Smart Data Fetching**: SWR-based caching and background revalidation for optimal user experience.
+- **Graceful Shutdown**: Native handling of `SIGTERM`/`SIGINT` to ensure zero-downtime deployments.
+- **Standalone Mode**: Next.js optimized standalone output.
+- **Smart Data Fetching**: SWR-based caching and background revalidation.
 
 ### 🔐 Backup & Disaster Recovery
 - **Automated Encrypted Backups**: Weekly automated database backups with AES-256-GCM encryption.
