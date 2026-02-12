@@ -73,7 +73,7 @@ function AnalysisDetailContent() {
         return [`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${id}`, token];
     }, [id, token, authLoading]);
 
-    const { data: analysis, error: swrError, mutate, isValidating: swrValidating } = useSWR<Analysis>(
+    const { data: analysis, error: swrError, mutate } = useSWR<Analysis>(
         swrKey,
         fetcher,
         {

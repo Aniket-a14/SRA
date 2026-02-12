@@ -12,6 +12,9 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@blocknote/core": "^0.46.2",
+    "@blocknote/mantine": "^0.46.2",
+    "@blocknote/react": "^0.46.2",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
@@ -58,7 +61,7 @@
     "jszip": "^3.10.1",
     "lucide-react": "^0.454.0",
     "mermaid": "^10.9.5",
-    "motion": "^12.23.24",
+    "motion": "^12.34.0",
     "next": "16.1.6",
     "next-themes": "^0.4.6",
     "react": "19.2.0",
@@ -68,6 +71,7 @@
     "react-resizable-panels": "^2.1.7",
     "recharts": "2.15.4",
     "sonner": "^1.7.4",
+    "streamdown": "^2.2.0",
     "swr": "^2.3.8",
     "tailwind-merge": "^3.4.0",
     "tailwindcss-animate": "^1.0.7",

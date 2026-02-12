@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { KVDisplay } from "@/components/kv-display"
 import { EditableSection } from "@/components/editable-section"
-import { renderMarkdown } from "@/lib/render-markdown"
+import { MarkdownDisplay } from "@/components/markdown-display"
 import { getAcronym } from "@/lib/utils"
 import type { AnalysisResult } from "@/types/analysis"
 
@@ -87,13 +87,13 @@ export const NFRsTab = memo(function NFRsTab({
                                             <Badge variant="outline" className="shrink-0 mt-0.5 text-xs text-muted-foreground bg-muted/20 border-muted-foreground/20">
                                                 {acronym}-OR-{i + 1}
                                             </Badge>
-                                            <span className="text-sm text-muted-foreground leading-relaxed">
+                                            <span className="text-sm text-muted-foreground leading-relaxed w-full">
                                                 {titlePart ? (
                                                     <>
-                                                        <strong className="font-semibold text-foreground">{titlePart}</strong>: {renderMarkdown(descPart)}
+                                                        <strong className="font-semibold text-foreground">{titlePart}</strong>: <MarkdownDisplay content={descPart} className="inline ml-1" />
                                                     </>
                                                 ) : (
-                                                    renderMarkdown(finalItem)
+                                                    <MarkdownDisplay content={finalItem} />
                                                 )}
                                             </span>
                                         </div>

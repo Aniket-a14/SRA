@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { getAcronym } from "@/lib/utils"
 import { Textarea } from "@/components/ui/textarea"
 import { EditableSection } from "@/components/editable-section"
+import { MarkdownDisplay } from "@/components/markdown-display"
 
 interface KVDisplayProps {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -24,17 +25,6 @@ const formatKey = (key: string) => {
         .replace(/^./, (str) => str.toUpperCase())
         .trim()
 }
-
-// Helper to render bold text from markdown
-const renderMarkdown = (text: string) => {
-    if (!text) return null;
-    return text.split(/(\*\*.*?\*\*)/g).map((part, idx) => {
-        if (part.startsWith('**') && part.endsWith('**')) {
-            return <strong key={idx} className="font-semibold text-foreground">{part.slice(2, -2)}</strong>;
-        }
-        return <span key={idx}>{part}</span>;
-    });
-};
 
 const ID_MAPPING: Record<string, string> = {
     performanceRequirements: "PR",
@@ -79,8 +69,8 @@ export function KVDisplay({ data, title, excludeKeys = [], projectTitle = "SRA",
                                             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                             {(value as any[]).map((item, idx) => (
                                                 <div key={idx} className="p-3 bg-secondary/30 rounded-md border border-border/50">
-                                                    <div className="font-semibold text-sm mb-1">{renderMarkdown(item.userClass)}</div>
-                                                    <div className="text-sm text-muted-foreground">{renderMarkdown(item.characteristics)}</div>
+                                                    <div className="font-semibold text-sm mb-1"><MarkdownDisplay content={item.userClass} /></div>
+                                                    <div className="text-sm text-muted-foreground"><MarkdownDisplay content={item.characteristics} /></div>
                                                 </div>
                                             ))}
                                             {isEditing && <p className="text-xs text-muted-foreground italic">Complex object editing not yet supported.</p>}
@@ -97,8 +87,8 @@ export function KVDisplay({ data, title, excludeKeys = [], projectTitle = "SRA",
                                             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                             {(value as any[]).map((item, idx) => (
                                                 <div key={idx} className="p-3 bg-secondary/30 rounded-md border border-border/50">
-                                                    <dt className="font-semibold text-sm mb-1">{renderMarkdown(item.term)}</dt>
-                                                    <dd className="text-sm text-muted-foreground">{renderMarkdown(item.definition)}</dd>
+                                                    <dt className="font-semibold text-sm mb-1"><MarkdownDisplay content={item.term} /></dt>
+                                                    <dd className="text-sm text-muted-foreground"><MarkdownDisplay content={item.definition} /></dd>
                                                 </div>
                                             ))}
                                             {isEditing && <p className="text-xs text-muted-foreground italic">Complex object editing not yet supported.</p>}
@@ -182,13 +172,13 @@ export function KVDisplay({ data, title, excludeKeys = [], projectTitle = "SRA",
                                                     <Badge variant="outline" className="shrink-0 mt-0.5 text-xs text-muted-foreground bg-muted/20 border-muted-foreground/20">
                                                         {acronym}-{idCode}-{idx + 1}
                                                     </Badge>
-                                                    <span className="text-sm text-muted-foreground leading-relaxed">
+                                                    <span className="text-sm text-muted-foreground leading-relaxed w-full">
                                                         {titlePart ? (
                                                             <>
-                                                                <strong className="font-semibold text-foreground">{titlePart}</strong>: {renderMarkdown(descPart)}
+                                                                <strong className="font-semibold text-foreground">{titlePart}</strong>: <MarkdownDisplay content={descPart} className="inline ml-1" />
                                                             </>
                                                         ) : (
-                                                            renderMarkdown(finalItem)
+                                                            <MarkdownDisplay content={finalItem} />
                                                         )}
                                                     </span>
                                                 </div>
@@ -206,7 +196,7 @@ export function KVDisplay({ data, title, excludeKeys = [], projectTitle = "SRA",
                                 <ul className="list-disc list-inside space-y-1">
                                     {value.map((item, idx) => (
                                         <li key={idx} className="text-sm text-muted-foreground pl-2 leading-relaxed">
-                                            <span className="-ml-2 text-foreground/80">{renderMarkdown(String(item))}</span>
+                                            <span className="-ml-2 text-foreground/80"><MarkdownDisplay content={String(item)} className="inline" /></span>
                                         </li>
                                     ))}
                                 </ul>
@@ -237,9 +227,9 @@ export function KVDisplay({ data, title, excludeKeys = [], projectTitle = "SRA",
                                     className="min-h-[100px] text-sm"
                                 />
                             ) : (
-                                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
-                                    {renderMarkdown(String(value))}
-                                </p>
+                                <div className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+                                    <MarkdownDisplay content={String(value)} />
+                                </div>
                             )}
                         </div>
                     )

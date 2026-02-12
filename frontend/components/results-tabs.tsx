@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState, memo } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Bot, Loader2 } from "lucide-react"
+import { Bot } from "lucide-react"
 import type { Analysis, AnalysisResult } from "@/types/analysis"
 import { useParams, useRouter } from "next/navigation"
 import { toast } from "sonner"

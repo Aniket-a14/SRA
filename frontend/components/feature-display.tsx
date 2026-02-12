@@ -3,8 +3,15 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import type { SystemFeature } from "@/types/analysis"
 import { getAcronym } from "@/lib/utils"
-import { renderMarkdown } from "@/lib/render-markdown"
+// REMOVED: import { renderMarkdown } from "@/lib/render-markdown"
+import { MarkdownDisplay } from "@/components/markdown-display"
 import { Input } from "@/components/ui/input"
+// Dynamically import the Editor to reduce initial bundle size
+import dynamic from "next/dynamic"
+const Editor = dynamic(() => import("@/components/editor"), {
+    ssr: false,
+    loading: () => <div className="h-[100px] w-full bg-muted/20 animate-pulse rounded-md border" />
+})
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Plus, Trash2 } from "lucide-react"
@@ -35,11 +42,12 @@ export function FeatureDisplay({ features, projectTitle = "SRA", isEditing, onUp
             const rest = description.substring(prefix.length);
             return (
                 <span>
-                    <span className="font-bold text-foreground">{prefix}</span>{renderMarkdown(rest)}
+                    <span className="font-bold text-foreground">{prefix}</span>
+                    <MarkdownDisplay content={rest} className="inline-block align-top ml-1" />
                 </span>
             );
         }
-        return renderMarkdown(description);
+        return <MarkdownDisplay content={description} />;
     };
 
     const updateFeature = (index: number, updates: Partial<SystemFeature>) => {
@@ -118,15 +126,15 @@ export function FeatureDisplay({ features, projectTitle = "SRA", isEditing, onUp
                         <div>
                             <h4 className="text-sm font-medium mb-2 text-foreground/80">Description</h4>
                             {isEditing ? (
-                                <Textarea
-                                    value={feature.description}
-                                    onChange={(e) => updateFeature(index, { description: e.target.value })}
-                                    className="min-h-[80px]"
+                                <Editor
+                                    initialContent={feature.description}
+                                    onChange={(markdown) => updateFeature(index, { description: markdown })}
+                                    editable={true}
                                 />
                             ) : (
-                                <p className="text-sm text-muted-foreground leading-relaxed">
+                                <div className="text-sm text-muted-foreground leading-relaxed">
                                     {renderDescription(feature.name, feature.description)}
-                                </p>
+                                </div>
                             )}
                         </div>
 
@@ -152,11 +160,11 @@ export function FeatureDisplay({ features, projectTitle = "SRA", isEditing, onUp
                                                         <div className="flex flex-col gap-1">
                                                             <div>
                                                                 <span className="font-bold">Stimulus: </span>
-                                                                {renderMarkdown(stimulus)}
+                                                                <MarkdownDisplay content={stimulus} className="inline" />
                                                             </div>
                                                             <div className="pl-4">
                                                                 <span className="font-bold">Response: </span>
-                                                                {renderMarkdown(response)}
+                                                                <MarkdownDisplay content={response} className="inline" />
                                                             </div>
                                                         </div>
                                                     </li>
@@ -164,7 +172,7 @@ export function FeatureDisplay({ features, projectTitle = "SRA", isEditing, onUp
                                             }
                                             return (
                                                 <li key={idx} className="text-sm text-muted-foreground pl-2">
-                                                    <span className="-ml-2">{renderMarkdown(seq)}</span>
+                                                    <span className="-ml-2"><MarkdownDisplay content={seq} className="inline" /></span>
                                                 </li>
                                             );
                                         })}
@@ -198,7 +206,9 @@ export function FeatureDisplay({ features, projectTitle = "SRA", isEditing, onUp
                                                     <Badge variant="outline" className="shrink-0 mt-0.5 text-xs text-primary bg-primary/5 uppercase">
                                                         {acronym}-FR-{index + 1}.{idx + 1}
                                                     </Badge>
-                                                    <span className="text-sm text-foreground/90">{renderMarkdown(cleanReq)}</span>
+                                                    <div className="text-sm text-foreground/90 w-full">
+                                                        <MarkdownDisplay content={cleanReq} />
+                                                    </div>
                                                 </div>
                                             )
                                         })
