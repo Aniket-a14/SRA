@@ -12,14 +12,16 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 
 // Modular Tab Components
-import { IntroductionTab } from "./analysis/tabs/introduction-tab"
-import { FeaturesTab } from "./analysis/tabs/features-tab"
-import { InterfacesTab } from "./analysis/tabs/interfaces-tab"
-import { NFRsTab } from "./analysis/tabs/nfrs-tab"
-import { AppendicesTab } from "./analysis/tabs/appendices-tab"
-import { CodeAssetsTab } from "./analysis/tabs/code-assets-tab"
-import { QualityAuditTab } from "./analysis/tabs/quality-audit-tab"
-import { KnowledgeGraphTab } from "./analysis/tabs/knowledge-graph-tab"
+import dynamic from "next/dynamic"
+
+const IntroductionTab = dynamic(() => import("./analysis/tabs/introduction-tab").then(mod => mod.IntroductionTab))
+const FeaturesTab = dynamic(() => import("./analysis/tabs/features-tab").then(mod => mod.FeaturesTab))
+const InterfacesTab = dynamic(() => import("./analysis/tabs/interfaces-tab").then(mod => mod.InterfacesTab))
+const NFRsTab = dynamic(() => import("./analysis/tabs/nfrs-tab").then(mod => mod.NFRsTab))
+const AppendicesTab = dynamic(() => import("./analysis/tabs/appendices-tab").then(mod => mod.AppendicesTab))
+const CodeAssetsTab = dynamic(() => import("./analysis/tabs/code-assets-tab").then(mod => mod.CodeAssetsTab))
+const QualityAuditTab = dynamic(() => import("./analysis/tabs/quality-audit-tab").then(mod => mod.QualityAuditTab))
+const KnowledgeGraphTab = dynamic(() => import("./analysis/tabs/knowledge-graph-tab").then(mod => mod.KnowledgeGraphTab))
 import type { CodeViewerProps } from "./code-viewer"
 
 interface ResultsTabsProps {

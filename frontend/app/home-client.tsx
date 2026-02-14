@@ -5,14 +5,24 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { HeroSection } from "@/components/hero-section"
 import { ChatInput } from "@/components/chat-input"
-import { ResultsTabs } from "@/components/results-tabs"
-import { AboutSection } from "@/components/about-section"
-import { FaqSection } from "@/components/faq-section"
-import type { Analysis } from "@/types/analysis"
-import { toast } from "sonner"
 import { fetchProject } from "@/lib/projects-api"
 import { PromptSettings } from "@/types/project";
 import { Folder } from "lucide-react"
+import dynamic from "next/dynamic"
+import type { Analysis } from "@/types/analysis"
+import { toast } from "sonner"
+
+const ResultsTabs = dynamic(() => import("@/components/results-tabs").then(mod => mod.ResultsTabs), {
+    loading: () => <div className="h-[400px] w-full bg-muted/10 animate-pulse rounded-xl" />
+})
+
+const AboutSection = dynamic(() => import("@/components/about-section").then(mod => mod.AboutSection), {
+    loading: () => <div className="h-[300px] w-full bg-muted/5 animate-pulse rounded-xl" />
+})
+
+const FaqSection = dynamic(() => import("@/components/faq-section").then(mod => mod.FaqSection), {
+    loading: () => <div className="h-[200px] w-full bg-muted/5 animate-pulse rounded-xl" />
+})
 
 const defaultAnalysis: Analysis = {
     id: "preview",
