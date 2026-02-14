@@ -19,6 +19,7 @@ import { NFRsTab } from "./analysis/tabs/nfrs-tab"
 import { AppendicesTab } from "./analysis/tabs/appendices-tab"
 import { CodeAssetsTab } from "./analysis/tabs/code-assets-tab"
 import { QualityAuditTab } from "./analysis/tabs/quality-audit-tab"
+import { KnowledgeGraphTab } from "./analysis/tabs/knowledge-graph-tab"
 import type { CodeViewerProps } from "./code-viewer"
 
 interface ResultsTabsProps {
@@ -179,6 +180,7 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
                 <TabsTrigger value="nfrs" className="px-4 py-2">Non-Functional</TabsTrigger>
                 <TabsTrigger value="appendices" className="px-4 py-2">Appendices</TabsTrigger>
                 <TabsTrigger value="code" className="px-4 py-2">Code Assets</TabsTrigger>
+                <TabsTrigger value="graph" className="px-4 py-2">Knowledge Graph</TabsTrigger>
                 <TabsTrigger value="quality" className="px-4 py-2">Quality Audit</TabsTrigger>
               </TabsList>
               <ScrollBar orientation="horizontal" />
@@ -244,6 +246,10 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
 
             <TabsContent value="quality" className="outline-none">
               <QualityAuditTab qualityAudit={currentData.qualityAudit} />
+            </TabsContent>
+
+            <TabsContent value="graph" className="outline-none">
+              <KnowledgeGraphTab projectId={data.projectId || ""} />
             </TabsContent>
           </Tabs>
         </div>

@@ -34,4 +34,4 @@ The following rules must be configured in the GitHub repository settings (`Setti
 
 ## 🏛️ Architectural Gatekeeping
 
-All contributions involving the **Analysis Pipeline** or **AI Prompt Templates** (`backend/src/utils/prompt_templates/`) require explicit sign-off from the Architect persona (Repository Maintainer).
+All contributions involving the **Analysis Pipeline** or **AI Prompt Templates** (`backend/src/utils/versions/` and `backend/src/utils/prompt_templates/`) require explicit sign-off from the Architect persona (Repository Maintainer).

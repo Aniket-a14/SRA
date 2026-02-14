@@ -53,6 +53,176 @@ Your requirements must explicitly address Authentication, Authorization, Data Pr
     creativityInstruction = "STRICTNESS: MEDIUM. Infer standard implicit features (like Login) but do not invent core modules.";
   }
 
+  if (settings.noSchema) {
+    return `
+${diagramAuthority}
+
+${personaInstruction}
+
+DETAIL LEVEL: ${detailLevel}
+${creativityInstruction}
+
+================================================================
+NAME GOVERNANCE (ABSOLUTE)
+================================================================
+
+1. The first project name explicitly provided by the user in the "Project:" field is the PROJECT NAME.
+
+2. The project name is: **${projectName}**
+   - Immutable
+   - Case-sensitive
+   - The single source of truth
+
+3. You MUST use the project name **${projectName}** EXACTLY as provided:
+   - In all headings
+   - In all section titles
+   - In all requirement identifiers
+   - In all diagrams and captions
+   - In all cross-references
+   - In all traceability matrices
+
+4. You MUST NEVER:
+   - Expand the project name (e.g., do NOT add "System", "Platform", or descriptions)
+   - Add descriptive subtitles to the name
+   - Rephrase the name
+   - Generate acronyms from an expanded name
+   - Replace the name with a descriptive variant
+
+INVALID NAME USAGE EXAMPLES (FORBIDDEN):
+- "<ProjectName>: <Description>"
+- "<ProjectName> System"
+- "<ProjectName> Platform"
+
+================================================================
+IDENTIFIER GOVERNANCE (STRICT)
+================================================================
+
+1. All identifiers (requirements, features, use cases, diagrams)
+   MUST be derived ONLY from the canonical project name.
+
+2. You MUST use the stable prefix **${projectPrefix}-** for all identifiers.
+   - Requirement format: **${projectPrefix}-REQ-[NUMBER]** (e.g., ${projectPrefix}-REQ-001)
+   - Use Case format: **${projectPrefix}-UC-[NUMBER]**
+   - Diagram ID format: **${projectPrefix}_[TYPE]**
+
+4. Feature Names (systemFeatures):
+   - You MUST use purely descriptive titles for feature names (e.g., "User Authentication").
+   - You MUST NEVER include identifiers (like ${projectPrefix}-SF-1) in the "name" field.
+   - Identifiers are for internal tracking and requirements, not for navigation titles.
+
+5. SECTION-SPECIFIC IDENTIFIER RULES (CRITICAL):
+   - **Introduction & Overall Description**: Do NOT use IDs (e.g., ${projectPrefix}-DOC-001, ${projectPrefix}-ASS-001). Use pure prose.
+   - **External Interfaces**: Do NOT use IDs. Use pure prose.
+   - **System Features & NFRs**: You MUST use IDs for specific requirements (e.g., ${projectPrefix}-REQ-001).
+   - **TBD List**: You MUST use IDs for items.
+
+3. Once an identifier prefix is established for this session, it MUST NOT be changed.
+
+================================================================
+QUANTITY GOVERNANCE (UPDATED)
+================================================================
+
+1. CONTENT VOLUME IS DYNAMIC: You MUST judge the appropriate quantity of information (paragraphs, points, and detail depth) based on your understanding of the project's complexity. 
+
+2. NO ARBITRARY LIMITS: Do NOT limit yourself to a fixed number of items in JSON arrays (e.g., 2 features) or a fixed number of sentences in paragraphs. 
+
+3. ELABORATE WHERE NECESSARY: For complex systems (e.g., "Enterprise ERP", "Embedded Avionics"), provide deep, exhaustive technical prose and numerous requirements. For simple systems (e.g., "Counter App"), be concise but thorough.
+
+4. PROFESSIONAL STANDARDS: Aim for the level of detail expected in an industry-standard SRS. If a section needs 5 paragraphs to be complete, write 5. If it needs 1, write 1. Use your engineering judgment to decide.
+
+5. QUALITY FIRST: Quality is non-negotiable. Quantity should scale proportionally with project scope.
+
+================================================================
+DESCRIPTION VS NAME SEPARATION (STRICT)
+================================================================
+
+1. Descriptions are allowed ONLY in explanatory sentences.
+2. Descriptions MUST NEVER be merged with the project name.
+
+VALID:
+- "<ProjectName> is a system that manages …"
+
+INVALID:
+- "<ProjectName>: A system that manages …"
+
+*** SYSTEM INSTRUCTION: UNSTRUCTURED RAW INPUT PARSING ***
+You will receive a raw input which serves as the "Layer 2" transmission.
+The input is a **JSON Array of Strings** (e.g., ["Project:", "Name", "...", "Description:", "The", "app", ...]).
+Your primary task is to **Reconstruct, Analyze, and Structure** this sequence of words into a professional IEEE 830-1998 SRS.
+
+**PROCESS:**
+1.  **Reconstruct**: Read the array accurately. The word immediately following "Project:" is the PROJECT NAME.
+2.  **Analyze**: Identify core modules, user roles, constraints, and business goals for **${projectName}** from the reconstructed text.
+3.  **Extract & Categorize**:
+    - **Introduction**: Extract the purpose, scope, and high-level goals.
+    - **Overall Description**: Identify User Classes (Actors), Operating Environment, and Constraints.
+    - **System Features**: Break down the description into distinct logical features.
+    - **Non-Functional Requirements**: Identify or infer performance, security, and quality attributes.
+    - **External Interfaces**: Identify UIs, APIs, or hardware interactions.
+3.  **Generate Missing Artifacts**:
+    - 1.2 Document Conventions
+    - 1.3 Intended Audience
+    - 1.5 References
+    - Appendix A: Glossary
+    - Appendix B: Analysis Models (Generate Mermaid diagrams compliant with DIAGRAM SYNTAX AUTHORITY RULES)
+4.  **Format**: Apply the strict IEEE formatting rules below to the generated content.
+
+*** CRITICAL INSTRUCTION: IEEE SRS FORMATTING & DISCIPLINE ***
+You must adhere to the following strict formatting rules. ANY violation will render the output invalid.
+
+1. PURE ACADEMIC PROSE ONLY
+   - Narrative fields MUST contain pure academic prose.
+   - NO formatting artifacts allowed: No asterisks (*), No hyphens (-), No inline numbering (1., a), (i)), No mixed bullets.
+   - Lists are allowed ONLY in fields explicitly defined as arrays in the JSON schema.
+   - Each paragraph must be 3–6 sentences long and not exceed 120 words.
+   - Each paragraph must cover exactly ONE concept.
+
+2. MANDATORY PARAGRAPH SEGMENTATION
+   - For all narrative sections (Introduction, Overall Description, External Interfaces, Operating Environment), you MUST split long explanations into 2–4 focused paragraphs.
+   - NOT ALLOWED: Single-block paragraphs covering multiple concerns.
+   - Segregate concerns: Client Platforms | Backend | Databases | Integrations | Security.
+
+3. SELECTIVE KEYWORD BOLDING ONLY
+   - You may ONLY use markdown bolding (**word**) for:
+     * System Name (first occurrence per section)
+     * Platform Names (e.g., **iOS**, **Android**, **Web**)
+     * Key Technologies (e.g., **PostgreSQL**, **Redis**, **REST API**)
+     * Role-specific Applications (e.g., **Admin Dashboard**, **Driver App**)
+   - DO NOT BOLD: Entire sentences, paragraphs, or non-technical words.
+   - NO other markdown is allowed.
+
+4. SYSTEM FEATURE STRUCTURE (IEEE Section 4.x)
+   - Each System Feature MUST contain:
+     * Description: Mandatory 2-3 paragraphs explaining:
+       * 🎯 **User Value (DDD)**: How this feature improves the user's life.
+       * ⚙️ **Technical Impact (DDD)**: How this feature affects the system architecture.
+       * Priority: High, Medium, or Low.
+     * Stimulus/Response Sequences: STRICT FORMAT REQUIRED:
+       "Stimulus: <user action> Response: <system behavior>"
+     * Functional Requirements:
+       * Must start with "The system shall ..."
+       * Must be standalone.
+       * Must be sequential (${projectPrefix}-REQ-1, ${projectPrefix}-REQ-2, etc. implied by order, do not put ID in text).
+       * Never combined on one line.
+
+5. DIAGRAMS & CAPTIONS
+   - Output RAW Mermaid syntax only (no code blocks).
+   - For EVERY diagram, providing a "caption" is MANDATORY.
+   - Captions must be concise (4-6 words max) describing the diagram. No bolding.
+
+6. RAW JSON SEMANTIC PURITY
+   - Text fields must contain CONTENT ONLY. No layout logic.
+   - The visual structure (spacing, fonts) is handled by the renderer, not you.
+
+7. OUTPUT DISCIPLINE
+   - Return VALID JSON ONLY.
+   - No markdown wrappers (\`\`\`json).
+   - No explanations.
+
+*** END CRITICAL INSTRUCTION ***
+`;
+  }
+
   return `
 ${diagramAuthority}
 
@@ -116,6 +286,20 @@ IDENTIFIER GOVERNANCE (STRICT)
    - **TBD List**: You MUST use IDs for items.
 
 3. Once an identifier prefix is established for this session, it MUST NOT be changed.
+
+================================================================
+QUANTITY GOVERNANCE (UPDATED)
+================================================================
+
+1. CONTENT VOLUME IS DYNAMIC: You MUST judge the appropriate quantity of information (paragraphs, points, and detail depth) based on your understanding of the project's complexity. 
+
+2. NO ARBITRARY LIMITS: Do NOT limit yourself to a fixed number of items in JSON arrays (e.g., 2 features) or a fixed number of sentences in paragraphs. 
+
+3. ELABORATE WHERE NECESSARY: For complex systems (e.g., "Enterprise ERP", "Embedded Avionics"), provide deep, exhaustive technical prose and numerous requirements. For simple systems (e.g., "Counter App"), be concise but thorough.
+
+4. PROFESSIONAL STANDARDS: Aim for the level of detail expected in an industry-standard SRS. If a section needs 5 paragraphs to be complete, write 5. If it needs 1, write 1. Use your engineering judgment to decide.
+
+5. QUALITY FIRST: Quality is non-negotiable. Quantity should scale proportionally with project scope.
 
 ================================================================
 DESCRIPTION VS NAME SEPARATION (STRICT)
@@ -246,11 +430,11 @@ You MUST return output ONLY in the following exact JSON structure. Do not add ex
     }
   ],
   "nonFunctionalRequirements": {
-    "performanceRequirements": ["State requirement AND rationale explicitly. Focus on system efficiency."],
-    "safetyRequirements": ["Define safeguards AND rationale. Focus on data integrity."],
-    "securityRequirements": ["Specify authentication/privacy AND rationale. Focus on protection."],
-    "softwareQualityAttributes": ["Specify attributes AND rationale (Reliability, Scalability, etc.)."],
-    "businessRules": ["List operating principles and regulatory constraints."]
+    "performanceRequirements": ["State requirements AND rationale. Provide as many independent points as required for a professional spec (usually 3-7)."],
+    "safetyRequirements": ["Define safeguards AND rationale. Provide as many as appropriate for the system's risk profile."],
+    "securityRequirements": ["Specify authentication/privacy AND rationale. Exhaustively list all critical security measures."],
+    "softwareQualityAttributes": ["Specify attributes AND rationale (Reliability, Scalability, etc.). Cover all relevant -ilities."],
+    "businessRules": ["List all operating principles and regulatory constraints that apply."]
   },
   "otherRequirements": ["Define any other requirements not covered elsewhere in the SRS. This might include database requirements, internationalization requirements, legal requirements, reuse objectives for the project, and so on. Add any new sections that are pertinent to the project."],
   "glossary": [

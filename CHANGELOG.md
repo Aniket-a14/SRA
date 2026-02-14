@@ -2,7 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.0] - 2026-02-12
+
+### 🤖 Multi-Agent Orchestration
+- **Implemented** a Multi-Agent System (MAS) featuring specialized AI Personas:
+    - **Product Owner**: ROI-focused scope refinement.
+    - **System Architect**: Scalable technical design with RAG context.
+    - **Lead Developer**: IEEE 830-1998 compliant specification generation.
+- **Unified** prompt governance using the `utils/versions` dynamic registry (v1.1.0 Gold Standard).
+
+### 📊 Industry Benchmarks & QA
+- **Implemented** `evalService.js` for RAGAS-style metrics (Faithfulness, Answer Relevancy).
+- **Added** `CriticAgent.js` for automated **6Cs Quality Auditing** (Clarity, Completeness, Conciseness, Consistency, Correctness, Context).
+- **Integrated** real-time benchmarking into the `analysisService.js` visualization flow.
+- **Created** `verify_benchmarks.js` for automated pipeline validation.
+
+### 🏗️ Requirements Engineering
+- **Enforced** strict IEEE 830-1998 structured output across all generation layers.
+- **Improved** requirement identifier governance with project-prefixed sequential naming.
+
 ## [3.1.1] - 2026-02-01
+
 
 ### 💎 Database & ORM
 - **Upgraded** Prisma ORM to **v7.3.0** (Major architectural upgrade)

@@ -39,7 +39,9 @@ In contemporary software development, **43% of project failures** are attributed
 *   **Zero-Ambiguity Intake**: Standardizes raw stakeholder descriptions into structured architectural models.
 *   **AI-Driven Governance**: Real-time logic checking to identify contradictions, missing logic, and technical gaps.
 *   **High-Fidelity Visuals**: Automated generation of multi-level Data Flow Diagrams (DFD) and system-level Mermaid diagrams.
-*   **Semantic Intelligence**: Leverages vector-based knowledge retrieval (RAG) to ensure consistency across complex project portfolios.
+*   **Semantic Intelligence**: Leverages vector-based knowledge retrieval (RAG) and **Graph-Hybrid Search** to ensure consistency across complex project portfolios.
+*   **Objective Quality Auditing**: Real-time scoring against the **6Cs of Requirements Quality** (Clarity, Completeness, etc.).
+*   **Industry Benchmarking**: Integrated RAG evaluation for **Faithfulness** and **Answer Relevancy**.
 
 ---
 
@@ -51,17 +53,17 @@ SRA operates on a proprietary 5-layer pipeline that ensures every requirement is
 graph TD
     subgraph "The SRA Pipeline"
     L1[<b>Layer 1: Strategic Intake</b><br/>Unstructured Input Mapping]
-    L2[<b>Layer 2: Logic Validation</b><br/>AI-Gatekeeper Verification]
-    L3[<b>Layer 3: Analysis & Synthesis</b><br/>IEEE SRS Generation]
+    L2[<b>Layer 2: Multi-Agent Analysis</b><br/>PO, Architect, & Dev Personas]
+    L3[<b>Layer 3: Objective Review</b><br/>6Cs Audit & RAG Evaluation]
     L4[<b>Layer 4: Iterative Refinement</b><br/>Live Workspace & Diff Tracking]
-    L5[<b>Layer 5: Knowledge Persistence</b><br/>Semantic Indexing & Reuse]
+    L5[<b>Layer 5: Knowledge Persistence</b><br/>Semantic Indexing & Hybrid Search]
     end
 
     Stakeholder((Stakeholder)) -->|Raw Vision| L1
     L1 --> L2
-    L2 -->|FAIL: Ambiguity Detected| L1
-    L2 -->|PASS| L3
-    L3 --> L4
+    L2 --> L3
+    L3 -->|FAIL: Poor Industry Score| L2
+    L3 -->|PASS| L4
     L4 -->|Export| Artifacts[IEEE SRS, PDF, DFD, API Spec]
     L4 --> L5
 ```
@@ -70,10 +72,10 @@ graph TD
 <summary><strong>📐 Click to Expand Layer Details</strong></summary>
 
 1.  **Strategic Intake**: Translates free-text into a mapped JSON model aligned with IEEE section hierarchies.
-2.  **Logic Validation**: A high-speed reasoning pass (Gatekeeper) that evaluates clarity, consistency, and detail sufficiency.
-3.  **Analysis & Synthesis**: Heavy LLM processing to generate the full document, including User Stories, Acceptance Criteria, and Entity-Relationship maps.
+2.  **Multi-Agent Analysis**: Orchestrates specialized AI agents (Product Owner, Architect, Developer) using the **v1.1.0 Gold Standard** prompt registry.
+3.  **Objective Review**: Automated auditing of SRS content against the 6Cs and RAG evaluation for contextual faithfulness.
 4.  **Iterative Refinement**: A modular Workspace UI for manual adjustments, version branching, and intelligent diagram repair.
-5.  **Knowledge Persistence**: Finalized requirements are "shredded" and indexed into a Vector Database for cross-project intelligence and RAG.
+5.  **Knowledge Persistence**: Finalized requirements are "shredded" and indexed into a **PostgreSQL + pgvector** graph for cross-project intelligence.
 
 </details>
 
@@ -82,9 +84,10 @@ graph TD
 ## ✨ Enterprise Feature Modules
 
 ### 📊 Professional Requirements Engineering
-*   **IEEE-830 Compliance**: Automated generation of standard sections (Product Perspective, System Features, NFRs).
+*   **IEEE-830 v1.1.0 Compliance**: Automated generation with strict identifier governance and academic prose discipline.
+*   **6Cs Quality Audit**: Automated scoring for Clarity, Completeness, Conciseness, Consistency, Correctness, and Context.
+*   **RAG Benchmarking**: Real-time evaluation of LLM Faithfulness and Answer Relevancy.
 *   **User Story Evolution**: Generates "Jira-Ready" user stories with granular acceptance criteria.
-*   **Entity Mapping**: Automated identification of core data entities, system actors, and external interfaces.
 
 ### 🎨 Advanced Architectural Visualization
 *   **Multi-Level DFDs**: Generates Level 0 (Context) and Level 1 (Functional Decomposition) Gane-Sarson diagrams.
@@ -338,6 +341,7 @@ SRA/
 - [x] **v3.0**: SWR Data Fetching & Backup Automation.
 - [x] **v3.0**: Enterprise Security Monitoring & Audit Logging.
 - [x] **v3.1**: **Distributed Rate Limiting & Load Balancing**.
+- [x] **v3.2**: **Industry Benchmarking & MAS Refinement**.
 - [ ] **v3.5**: Collaborative Real-time Multi-User Editing.
 - [ ] **v4.0**: Custom Model Fine-tuning (MLOps integration).
 

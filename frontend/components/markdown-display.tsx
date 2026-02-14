@@ -11,11 +11,14 @@ interface MarkdownDisplayProps {
 export const MarkdownDisplay = memo(function MarkdownDisplay({ content, className }: MarkdownDisplayProps) {
     if (!content) return null;
 
+    const isInline = className?.includes('inline');
+    const Component = isInline ? 'span' : 'div';
+
     return (
-        <div className={`prose prose-sm dark:prose-invert max-w-none ${className || ''}`}>
+        <Component className={`prose prose-sm dark:prose-invert max-w-none ${isInline ? '!inline [&_*]:!inline [&_*]:!m-0 [&_*]:!p-0' : ''} ${className || ''}`}>
             <Streamdown>
                 {content}
             </Streamdown>
-        </div>
+        </Component>
     );
 });

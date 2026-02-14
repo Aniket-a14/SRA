@@ -1,146 +1,160 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
+  provider        = "prisma-client-js"
+  output          = "../src/generated/prisma"
   previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider  = "postgresql"
-  extensions = [vector]
+  provider   = "postgresql"
+  extensions = [uuid_ossp(map: "uuid-ossp", schema: "extensions"), vector]
 }
 
 model User {
-  id        String    @id @default(uuid())
-  email     String    @unique
+  id        String     @id @default(uuid())
+  email     String     @unique
   name      String?
-  password  String?   // Nullable for OAuth users
+  password  String?
   image     String?
-  createdAt DateTime  @default(now())
-  
-  analyses  Analysis[]
-
+  createdAt DateTime   @default(now())
   accounts  Account[]
-  sessions  Session[]
+  analyses  Analysis[]
   projects  Project[]
+  sessions  Session[]
 }
 
 model Session {
-  id           String   @id @default(uuid())
-  userId       String
-  token        String   @unique
-  userAgent    String?
-  ipAddress    String?
-  location     String?
-  expiresAt    DateTime
-  createdAt    DateTime @default(now())
-  lastUsedAt   DateTime @default(now())
-  revoked      Boolean  @default(false)
-  
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id         String   @id @default(uuid())
+  userId     String
+  token      String   @unique
+  userAgent  String?
+  ipAddress  String?
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+  revoked    Boolean  @default(false)
+  location   String?
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
 }
 
 model ChatMessage {
-  id        String   @id @default(uuid())
+  id         String   @id @default(uuid())
   analysisId String
-  role      String
-  content   String
-  createdAt DateTime @default(now())
-  
-  analysis  Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
-  
+  role       String
+  content    String
+  createdAt  DateTime @default(now())
+  analysis   Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
   @@index([analysisId])
 }
 
 model Analysis {
-  id          String   @id @default(uuid())
-  userId      String
-  inputText   String
-  resultJson  Json
-  version     Int      @default(1)
-  title       String?
-  generatedCode Json?
-  metadata    Json?    // Stores trigger, source, promptSettings
-  createdAt   DateTime @default(now())
-
-  isFinalized Boolean @default(false)
-  status      String  @default("COMPLETED") // PENDING, COMPLETED, FAILED
-  
-  // Use Unsupported type for pgvector column
-  vectorSignature Unsupported("vector(768)")? 
-
-  // Versioning Relations
-  rootId      String?
-  root        Analysis? @relation("AnalysisRoot", fields: [rootId], references: [id])
-  descendants Analysis[] @relation("AnalysisRoot")
-
-  parentId    String?
-  parent      Analysis? @relation("AnalysisHistory", fields: [parentId], references: [id])
-  children    Analysis[] @relation("AnalysisHistory")
-
-  user        User     @relation(fields: [userId], references: [id])
-  
-  projectId   String?
-  project     Project? @relation(fields: [projectId], references: [id])
-
-  messages    ChatMessage[]
+  id              String                 @id @default(uuid())
+  userId          String
+  inputText       String
+  resultJson      Json
+  createdAt       DateTime               @default(now())
+  generatedCode   Json?
+  parentId        String?
+  rootId          String?
+  title           String?
+  version         Int                    @default(1)
+  projectId       String?
+  isFinalized     Boolean                @default(false)
+  metadata        Json?
+  vectorSignature Unsupported("vector")?
+  status          String                 @default("COMPLETED")
+  parent          Analysis?              @relation("AnalysisHistory", fields: [parentId], references: [id])
+  children        Analysis[]             @relation("AnalysisHistory")
+  project         Project?               @relation(fields: [projectId], references: [id])
+  root            Analysis?              @relation("AnalysisRoot", fields: [rootId], references: [id])
+  descendants     Analysis[]             @relation("AnalysisRoot")
+  user            User                   @relation(fields: [userId], references: [id])
+  messages        ChatMessage[]
   knowledgeChunks KnowledgeChunk[]
-  
+
   @@index([userId])
   @@index([rootId])
   @@index([parentId])
   @@index([projectId])
-  @@index([resultJson], type: Gin)
-  @@index([generatedCode], type: Gin)
 }
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  provider           String
-  providerAccountId  String
-  access_token       String?
-  refresh_token      String?
-  
-  user               User    @relation(fields: [userId], references: [id])
+  id                String  @id @default(cuid())
+  userId            String
+  provider          String
+  providerAccountId String
+  access_token      String?
+  refresh_token     String?
+  user              User    @relation(fields: [userId], references: [id])
 
   @@unique([provider, providerAccountId])
   @@index([userId])
 }
 
 model Project {
-  id          String   @id @default(uuid())
+  id          String     @id @default(uuid())
   name        String
   description String?
-  settings    Json?     // Stores prompt profile settings
   userId      String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  settings    Json?
   analyses    Analysis[]
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nodes       GraphNode[]
 
   @@index([userId])
 }
 
 model KnowledgeChunk {
-  id          String   @id @default(uuid())
-  type        String   // FEATURE, NFR_PERFORMANCE, NFR_SECURITY, INTRO, etc.
-  content     Json     // The actual reusable data (e.g. a single feature object)
-  hash        String   // Content hash for exact dedup
-  tags        String[] // Keywords for search
-  
-  // Use Unsupported type for pgvector column
-  embedding  Unsupported("vector(768)")?
-
+  id               String   @id @default(uuid())
+  type             String
+  content          Json
+  hash             String
+  tags             String[]
   sourceAnalysisId String
+  embedding        Unsupported("vector(768)")?
+  createdAt        DateTime @default(now())
   sourceAnalysis   Analysis @relation(fields: [sourceAnalysisId], references: [id])
-  
-  createdAt   DateTime @default(now())
 
   @@index([type])
   @@index([hash])
   @@index([sourceAnalysisId])
   @@index([tags], type: Gin)
+}
+
+model GraphNode {
+  id        String @id @default(uuid())
+  projectId String
+  name      String
+  type      String
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  outgoingEdges GraphEdge[] @relation("SourceNode")
+  incomingEdges GraphEdge[] @relation("TargetNode")
+
+  @@unique([projectId, name, type])
+  @@index([projectId])
+  @@index([type])
+}
+
+model GraphEdge {
+  id       String @id @default(uuid())
+  sourceId String
+  targetId String
+  relation String
+  metadata Json?
+  createdAt DateTime @default(now())
+
+  source GraphNode @relation("SourceNode", fields: [sourceId], references: [id], onDelete: Cascade)
+  target GraphNode @relation("TargetNode", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@index([sourceId])
+  @@index([targetId])
+  @@index([relation])
 }

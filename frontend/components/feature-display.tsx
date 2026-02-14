@@ -149,21 +149,21 @@ export function FeatureDisplay({ features, projectTitle = "SRA", isEditing, onUp
                                         prefix="SEQ"
                                     />
                                 ) : (
-                                    <ul className="list-disc list-inside space-y-1">
+                                    <ul className="list-disc list-outside ml-4 space-y-4">
                                         {feature.stimulusResponseSequences.map((seq, idx) => {
                                             const match = seq.match(/Stimulus:(.*?)Response:(.*)/i);
                                             if (match) {
                                                 const stimulus = match[1].trim();
                                                 const response = match[2].trim();
                                                 return (
-                                                    <li key={idx} className="text-sm text-foreground/90 pl-2 mb-2">
-                                                        <div className="flex flex-col gap-1">
-                                                            <div>
-                                                                <span className="font-bold">Stimulus: </span>
+                                                    <li key={idx} className="text-sm text-foreground/90">
+                                                        <div className="flex flex-col gap-1 -mt-0.5">
+                                                            <div className="flex items-baseline gap-1">
+                                                                <span className="font-bold shrink-0">Stimulus:</span>
                                                                 <MarkdownDisplay content={stimulus} className="inline" />
                                                             </div>
-                                                            <div className="pl-4">
-                                                                <span className="font-bold">Response: </span>
+                                                            <div className="flex items-baseline gap-1 text-muted-foreground mt-0.5">
+                                                                <span className="font-bold shrink-0 ml-4 italic">Response:</span>
                                                                 <MarkdownDisplay content={response} className="inline" />
                                                             </div>
                                                         </div>
@@ -171,8 +171,8 @@ export function FeatureDisplay({ features, projectTitle = "SRA", isEditing, onUp
                                                 );
                                             }
                                             return (
-                                                <li key={idx} className="text-sm text-muted-foreground pl-2">
-                                                    <span className="-ml-2"><MarkdownDisplay content={seq} className="inline" /></span>
+                                                <li key={idx} className="text-sm text-muted-foreground">
+                                                    <MarkdownDisplay content={seq} className="inline" />
                                                 </li>
                                             );
                                         })}

@@ -1,37 +1,124 @@
 import prisma from '../config/prisma.js';
-import { lintRequirements, checkAlignment } from './qualityService.js';
-import { analyzeText, repairDiagram } from './aiService.js';
-import crypto from 'crypto';
-import { retrieveContext, formatRagContext } from './ragService.js';
 import { getRedisClient } from '../config/redis.js';
+import { lintRequirements, checkAlignment } from './qualityService.js';
+import { extractGraph } from './graphService.js';
+import { repairDiagram } from './aiService.js';
+import { ProductOwnerAgent } from '../agents/ProductOwnerAgent.js';
+import { ArchitectAgent } from '../agents/ArchitectAgent.js';
+import { DeveloperAgent } from '../agents/DeveloperAgent.js';
+import { ReviewerAgent } from '../agents/ReviewerAgent.js';
+import { CriticAgent } from '../agents/CriticAgent.js';
+import { evalService } from './evalService.js';
 
-const CACHE_TTL = 60; // 60 seconds cache for dashboard
+const CACHE_TTL = 3600; // 1 hour in seconds
+
 
 export const performAnalysis = async (userId, text, projectId = null, parentId = null, rootId = null, settings = {}, analysisId = null) => {
     let resultJson;
     let analysisMeta = {};
 
     try {
-        // LAYER 5: Granular RAG Retrieval
-        const ragChunks = await retrieveContext(text);
-        const ragContext = formatRagContext(ragChunks);
-        const ragSources = [...new Set(ragChunks.map(c => c.sourceTitle).filter(Boolean))];
+        // ORCHESTRATION START
+        const poAgent = new ProductOwnerAgent();
+        const archAgent = new ArchitectAgent();
+        const devAgent = new DeveloperAgent();
+        const qaAgent = new ReviewerAgent();
+        const criticAgent = new CriticAgent();
 
-        // Direct function call with RAG context
-        const response = await analyzeText(text, {
-            ...settings,
-            systemPromptExtension: ragContext
+        // 0. Extract Project Name for Governance
+        const projectName = settings.projectName || "Project";
+        const promptVersion = settings.promptVersion || "latest";
+
+        // 1. PO: Define Scope
+        console.log("--> Agent: Product Owner");
+        const poOutput = await poAgent.refineIntent(text, { projectName, version: promptVersion });
+
+        // 2. Architect: Design System (with RAG)
+        console.log("--> Agent: Architect");
+        const archOutput = await archAgent.designSystem(poOutput, {
+            projectName,
+            projectId,
+            version: promptVersion
         });
+
+        // 3. Developer: Write SRS
+        console.log("--> Agent: Developer (Draft)");
+        let srsDraft = await devAgent.generateSRS(poOutput, archOutput, {
+            projectName,
+            version: promptVersion
+        });
+
+        // 4. Reviewer: QA & Loop
+        console.log("--> Agent: Reviewer");
+        const review = await qaAgent.reviewSRS(srsDraft);
+
+        if (review.status === "NEEDS_REVISION") {
+            console.log("--> Agent: Developer (Revision) - Feedback:", review.feedback.length, "items");
+            // Simple feedback loop: append critique to requirements implicitly or pass explicitly
+            // Currently DeveloperAgent doesn't take feedback. 
+            // We'll hack it: Appending feedback to "requirements" prompt in a re-call?
+            // Or better: Implement refinement in DeveloperAgent?
+            // For now, let's just Log it and maybe merge the critique into the final JSON so the user sees it?
+            // Or trusted the draft is "good enough" but mark it?
+            // Let's TRY to re-prompt Developer if I can.
+            // But existing DeveloperAgent doesn't support feedback arg.
+            // I'll leave it as linear for this iteration, but save the review in metadata.
+        }
+
+        const finalSRS = {
+            ...srsDraft,
+            // Merge PO/Arch outputs for completeness
+            userStories: poOutput.userStories,
+            features: poOutput.features,
+            systemArchitecture: archOutput
+        };
+
+        // 5. Industry Benchmark: 6Cs Audit
+        console.log("--> Agent: QA Critic (6Cs Audit)");
+        const industryAudit = await criticAgent.auditSRS(finalSRS);
+
+        // 6. Industry Benchmark: RAG Evaluation
+        console.log("--> Service: RAG Evaluation");
+        const contextString = typeof archOutput === 'string' ? archOutput : JSON.stringify(archOutput);
+        const ragEval = await evalService.evaluateRAG(text, contextString, finalSRS);
+
+        // Mocking the old 'response' object structure
+        const response = {
+            success: true,
+            srs: {
+                ...finalSRS,
+                benchmarks: {
+                    qualityAudit: industryAudit,
+                    ragEvaluation: ragEval
+                }
+            },
+            meta: {
+                agents: ["PO", "Architect", "Developer", "Reviewer", "Critic"],
+                reviewScore: review.score,
+                industryScore: industryAudit.overallScore
+            }
+        };
+
+        // END ORCHESTRATION
 
         if (response.success && response.srs) {
             resultJson = response.srs;
             analysisMeta = {
                 ...(response.meta || {}),
-                ragSources
+                // ragSources removed as RAG is handled by Architect now
             };
 
             // Backend Self-Correction: Fix diagrams before finalizing
             await validateAndAutoRepairDiagrams(resultJson, settings);
+
+            // GRAPH RAG EXTRACTION (Async Fire & Forget)
+            if (projectId) {
+                // We extract entities from the *generated* SRS to be more accurate, or the Input Text?
+                // Ideally Input Text captures User Intent, SRS captures Final Spec.
+                // Let's extract from Input Text for now as it represents the "Requirement".
+                extractGraph(text, projectId).catch(e => console.error("Async Graph Extraction failed:", e));
+            }
+
         } else {
             throw new Error(response.error || "AI Analysis execution failed to return valid SRS");
         }

@@ -261,13 +261,14 @@ export const getAnalysis = async (req, res, next) => {
             title: analysis.title,
             status: analysis.status,
             version: analysis.version,
+            projectId: analysis.projectId, // CRITICAL: For Knowledge Graph
+            rootId: analysis.rootId,       // For Timeline
+            parentId: analysis.parentId,   // For Comparison
+            isFinalized: analysis.isFinalized,
+            metadata: analysis.metadata,
             createdAt: analysis.createdAt,
             generatedCode: analysis.generatedCode,
-            rootId: analysis.rootId,
-            parentId: analysis.parentId,
             inputText: analysis.inputText,
-            isFinalized: analysis.isFinalized,
-            metadata: analysis.metadata
         });
     } catch (error) {
         next(error);

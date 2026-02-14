@@ -16,18 +16,17 @@ async function checkModels() {
             console.log(`Found ${data.models.length} models.`);
             console.log("First 3 models:", JSON.stringify(data.models.slice(0, 3), null, 2));
 
-            console.log("\nSearching for embedding models:");
-            const embeddingModels = data.models.filter(m =>
-                m.name.includes("embed") ||
-                (m.supportedGenerationMethods && m.supportedGenerationMethods.some(method => method.includes("embed")))
+            console.log("\nSearching for generative models:");
+            const genModels = data.models.filter(m =>
+                m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent")
             );
 
-            if (embeddingModels.length > 0) {
-                embeddingModels.forEach(m => {
+            if (genModels.length > 0) {
+                genModels.forEach(m => {
                     console.log(`- ${m.name} [${m.supportedGenerationMethods?.join(", ")}]`);
                 });
             } else {
-                console.log("No embedding models found matching criteria.");
+                console.log("No generative models found.");
             }
         } else {
             console.log("No models found or error:", data);

@@ -16,10 +16,19 @@ const pinoLogger = pino({
 export const logger = pinoHttp({
     logger: pinoLogger,
     autoLogging: true,
+    // Streamline: Don't log the full req/res objects which clutter the terminal
+    serializers: {
+        req: () => undefined,
+        res: () => undefined,
+    },
     genReqId: (req) => req.id || req.headers['x-request-id'] || uuidv4(),
+    customSuccessMessage: (req, res, responseTime) => {
+        return `${req.method} ${req.url} ${res.statusCode} - ${responseTime}ms`;
+    },
+    customErrorMessage: (req, res, err) => {
+        return `${req.method} ${req.url} ${res.statusCode} - ${err.message}`;
+    },
     customProps: (req, res) => ({
-        method: req.method,
-        url: req.url,
         userId: req.user?.userId,
         requestId: req.id
     })

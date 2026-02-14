@@ -5,17 +5,23 @@ import { embedText } from './embeddingService.js';
  * Retrieves granular knowledge chunks based on semantic similarity and keywords.
  * This is the core of Layer 5 "Granular RAG".
  */
-export const retrieveContext = async (queryText, limit = 5) => {
+import { traverseGraph } from './graphService.js';
+
+/**
+ * Retrieves granular knowledge chunks based on semantic similarity and keywords.
+ * This is the core of Layer 5 "Granular RAG".
+ * NOW ENHANCED WITH GRAPH RAG (Phase 1).
+ */
+export const retrieveContext = async (queryText, projectId = null, limit = 5) => {
     try {
         if (process.env.MOCK_AI === 'true') {
             return [];
         }
 
+        // 1. Vector Search (Standard RAG)
         const embedding = await embedText(queryText);
         const vectorStr = `[${embedding.join(',')}]`;
 
-        // Hybrid Search: Vector Similarity + Tag Matching
-        // Join with Analysis/Project to get tracing metadata
         const matches = await prisma.$queryRaw`
             SELECT 
                 kc.id, 
@@ -32,13 +38,37 @@ export const retrieveContext = async (queryText, limit = 5) => {
             LIMIT ${limit};
         `;
 
-        return matches.map(m => ({
+        const vectorResults = matches.map(m => ({
             type: m.type,
             content: m.content,
             similarity: m.similarity,
             tags: m.tags,
             sourceTitle: m.source_title
         }));
+
+        // 2. Graph Retrieval (If Project Context exists)
+        if (projectId) {
+            // Named Entity Heuristic: Extract capitalized words and filter common stop-words
+            const stopWords = new Set(['The', 'And', 'For', 'This', 'That', 'With', 'From', 'Moreover', 'However', 'Furthermore']);
+            const matches = queryText.match(/[A-Z][a-zA-Z0-9]+/g) || [];
+            const potentialEntities = matches.filter(word => !stopWords.has(word));
+
+            if (potentialEntities.length > 0) {
+                const graphContext = await traverseGraph(potentialEntities, projectId);
+                if (graphContext) {
+                    // We append Graph Context as a special "System Knowledge" chunk
+                    vectorResults.push({
+                        type: 'GRAPH_RELATIONSHIPS',
+                        content: graphContext,
+                        similarity: 1.0, // High priority
+                        sourceTitle: 'System Knowledge Graph'
+                    });
+                }
+            }
+        }
+
+        return vectorResults;
+
     } catch (error) {
         console.error("[RAG Service] Retrieval failed:", error);
         return [];

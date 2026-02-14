@@ -27,16 +27,18 @@ graph TD
     subgraph "Analysis Engine (Async Pipelines)"
         QStash -->|Event Trigger| Worker["Serverless Worker"]
         Worker --> P1["L1: Intake Mapping"]
-        P1 --> P2["L2: Logic Gatekeeper"]
-        P2 --> P3["L3: SRS Constructor"]
+        P1 --> P2["L2: Multi-Agent Analysis"]
+        P2 --> P3["L3: Objective Review"]
         P3 --> P4["L4: Refinement Hub"]
         P4 --> P5["L5: Knowledge Indexer"]
     end
 
-    subgraph "AI Core & Intelligence"
-        P1 & P2 & P3 & P4 & P5 -->|Unified Call| AIService["AI Service Layer"]
-        AIService -->|Model: Gemini 2.0 Flash| GenAI["Google Generative AI"]
-        P5 -->|Embeddings| DB
+    subgraph "AI Core: MAS Orchestration"
+        P2 --> PO["Product Owner Agent"]
+        P2 --> Arch["Architect Agent"]
+        P2 --> Dev["Developer Agent (IEEE)"]
+        P3 --> Critic["Critic Agent (6Cs Audit)"]
+        P3 --> Eval["RAG Eval (Faithfulness)"]
     end
 ```
 
@@ -50,15 +52,18 @@ The core innovation of SRA is its rigid, automated pipeline that ensures require
 *   **Purpose**: Translates unstructured stakeholder vision into a standardized JSON intake model.
 *   **Logic**: Uses semantic mapping to categorize input into draft IEEE sections (Scope, Perspective, etc.).
 
-### Layer 2: Verification Gatekeeper (Quality Gate)
-*   **Purpose**: Acts as an automated "Requirement Reviewer".
-*   **Action**: Analyzes the intake model for ambiguity, contradictions (e.g., conflicting performance vs. safety requirements), and detail sufficiency.
-*   **Outcome**: Yields a `PASS/FAIL/WARN` status. Fails trigger an interactive feedback loop for the user.
+### Layer 2: Multi-Agent Analysis (MAS)
+*   **Purpose**: Parallelize technical and business reasoning.
+*   **Implementation**: A Multi-Agent System using the **v1.1.0 Gold Standard** prompt registry.
+    *   **PO Agent**: Business value and scope refinement.
+    *   **Architect Agent**: Technical stack and schema design with RAG context.
+    *   **Developer Agent**: IEEE 830-1998 document synthesis.
 
-### Layer 3: High-Fidelity SRS Constructor
-*   **Purpose**: The primary formalization stage.
-*   **Output**: Generates full IEEE-830 compliant markdown, JIRA-ready user stories, and Mermaid.js diagrams.
-*   **Technique**: Prompt-chaining with distinct personas (Architect, Business Analyst, QA Lead).
+### Layer 3: Objective Review & Benchmarking
+*   **Purpose**: Automated quality assurance.
+*   **Action**: 
+    *   **6Cs Audit**: Scores SRS against Clarity, Completeness, Conciseness, Consistency, Correctness, and Context.
+    *   **RAG Evaluation**: LLM-as-a-judge scoring of **Faithfulness** (context grounding) and **Relevancy**.
 
 ### Layer 4: Interactive Refinement Hub
 *   **Purpose**: Enables "Human-in-the-loop" iterations.
@@ -104,9 +109,9 @@ SRA implements a **Recursive Versioning Tree**, ensuring that every change is no
 
 The system utilizes a **Prompt Factory** pattern to maintain consistent AI outputs across multiple versions.
 
-1.  **Strict JSON Schemas**: AI outputs are validated against Zod schemas before being committed to the database.
-2.  **Context Injection**: Dynamic injection of project history and architectural constraints into LLM prompts.
-3.  **Cost Optimization**: Leveraging Gemini 2.0 Flash for high-speed, high-context reasoning at scale.
+1.  **Unified Prompt Factory**: Uses a versioned registry (`utils/versions`) to ensure consistent persona behavior and IEEE output.
+2.  **Strict JSON Schemas**: AI outputs are validated against **Zod** schemas before being committed.
+3.  **Benchmark Loops**: Each analysis calculates an `industryScore` based on the 6Cs audit, enabling data-driven refinement.
 
 ---
 
