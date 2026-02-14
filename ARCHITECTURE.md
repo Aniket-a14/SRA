@@ -14,7 +14,8 @@ The system follows a modern **Manager-Worker** pattern, utilizing serverless orc
 graph TD
     subgraph "Application Layer (Frontend)"
         UI["Next.js 16 UI"] -->|REST / JWT| Gateway["API Gateway"]
-        UI -->|State Management| ReactFlow["@xyflow/react Engine"]
+        UI -->|Lazy Load| DynamicTabs["Dynamic Tab Engine"]
+        DynamicTabs -->|Render| ReactFlow["@xyflow/react Engine"]
     end
 
     subgraph "Orchestration Layer (Backend)"
@@ -27,7 +28,7 @@ graph TD
     subgraph "Analysis Engine (Async Pipelines)"
         QStash -->|Event Trigger| Worker["Serverless Worker"]
         Worker --> P1["L1: Intake Mapping"]
-        P1 --> P2["L2: Multi-Agent Analysis"]
+        P1 -->|BaseAgent Reliability| P2["L2: Multi-Agent Analysis"]
         P2 --> P3["L3: Objective Review"]
         P3 --> P4["L4: Refinement Hub"]
         P4 --> P5["L5: Knowledge Indexer"]
@@ -39,6 +40,10 @@ graph TD
         P2 --> Dev["Developer Agent (IEEE)"]
         P3 --> Critic["Critic Agent (6Cs Audit)"]
         P3 --> Eval["RAG Eval (Faithfulness)"]
+        
+        subgraph "Reliability Layer"
+            PO & Arch & Dev & Critic & Eval -.->|Timeout / Retry| LLM[Gemini 2.5 Flash]
+        end
     end
 ```
 
@@ -112,6 +117,7 @@ The system utilizes a **Prompt Factory** pattern to maintain consistent AI outpu
 1.  **Unified Prompt Factory**: Uses a versioned registry (`utils/versions`) to ensure consistent persona behavior and IEEE output.
 2.  **Strict JSON Schemas**: AI outputs are validated against **Zod** schemas before being committed.
 3.  **Benchmark Loops**: Each analysis calculates an `industryScore` based on the 6Cs audit, enabling data-driven refinement.
+4.  **AI Reliability Layer**: Implemented central timeout (360s) and retry policies in `BaseAgent` to handle network jitter and AI service rate-limits gracefully.
 
 ---
 
@@ -159,7 +165,7 @@ To understand how these components interact, let's walk through a typical requir
 ### 3. Exploring Results (Layer 3)
 - **Scenario**: Analyzing the generated IEEE-830 specification.
 - **Architectural Flow**:
-    -   **Modular Workspace Tabs**: The frontend renders the complex JSON structure into 7 specialized, memoized tab components (Introduction, Features, Interfaces, NFRs, Appendices, Code Assets, Quality Audit) to ensure high performance and maintainability.
+    -   **Modular Workspace Tabs**: The frontend renders the complex JSON structure into 7 specialized, memoized tab components (Introduction, Features, Interfaces, NFRs, Appendices, Code Assets, Quality Audit). These are **dynamically imported** (`next/dynamic`) to ensure sub-second initial load times by only fetching the active tab's code.
     -   **Diagram Syntax Authority**:
         -   The **MermaidRenderer** component enforces strict syntax.
         -   Users can click "View Syntax Explanation" to see the AI's justification, ensuring the diagram matches the formal specification.

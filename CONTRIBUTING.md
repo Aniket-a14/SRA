@@ -44,7 +44,7 @@ Ensure you have the following installed or set up:
 -   **npm** (comes with Node.js)
 -   **Supabase Project** (PostgreSQL + pgvector)
 -   **Upstash Account** (Redis + QStash)
--   A **Google Gemini 2.0 Flash API Key** (Get one [here](https://aistudio.google.com/app/apikey))
+-   A **Google Gemini 2.5 Flash API Key** (Get one [here](https://aistudio.google.com/app/apikey))
 
 ### Docker Setup (Preferred)
 1.  **Configure Environment**: Ensure you have `.env` files in both `backend/` and `frontend/` directories.

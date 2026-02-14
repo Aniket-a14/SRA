@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.1] - 2026-02-14
+
+### 🔍 AI Reliability & Quality
+- **Implemented** a 6-minute (360s) timeout and jittered retry logic in `BaseAgent` for robust long-form document generation.
+- **Added** full raw response logging in `BaseAgent` on JSON parsing failures to accelerate debugging.
+- **Improved** standard prompts (v1.1.0) with a `noSchema` option, resolving architectural mapping conflicts for specialized agents.
+- **Standardized** all core analysis agents to use **Google Gemini 2.5 Flash**.
+
+### ⚡ Frontend Performance
+- **Implemented** Next.js Dynamic Imports in `HomeClient.tsx` to reduce the initial JS bundle size.
+- **Added** Tab-level Code Splitting in `ResultsTabs.tsx`, ensuring that heavy components are only loaded on demand.
+- **Achieved** perfect lint scores and optimized lighthouse-ready production builds.
+
 ## [3.2.0] - 2026-02-12
 
 ### 🤖 Multi-Agent Orchestration

@@ -57,6 +57,9 @@ graph TD
     L3[<b>Layer 3: Objective Review</b><br/>6Cs Audit & RAG Evaluation]
     L4[<b>Layer 4: Iterative Refinement</b><br/>Live Workspace & Diff Tracking]
     L5[<b>Layer 5: Knowledge Persistence</b><br/>Semantic Indexing & Hybrid Search]
+    
+    Reliability[(<b>Reliability Layer</b><br/>360s Timeout & Jittered Retries)]
+    L2 & L3 -.-> Reliability
     end
 
     Stakeholder((Stakeholder)) -->|Raw Vision| L1
@@ -118,7 +121,9 @@ SRA is engineered for stability, security, and enterprise-grade performance.
 - **Privacy Sanitization**: Integrated `sanitizer.js` layer to prevent data leakage to LLM providers.
 - **Distributed Rate Limiting**: Redis-backed throttling ensures global protection across all server instances.
 
-### 🔍 Search & Performance Optimization
+### 🔍 AI Reliability & Performance optimization
+- **AI Reliability Layer**: Implemented a standardized `BaseAgent` with a 6-minute timeout, jittered retries, and high-fidelity JSON parsing logs for stable long-form document generation.
+- **Frontend Code Splitting**: Transitioned to an "Archive-First" dynamic loading strategy using `next/dynamic`. Components like `ResultsTabs` and their individual sub-tabs are lazy-loaded to minimize initial JS payload and improve TBT.
 - **Redis Caching**: High-traffic endpoints (Dashboard) cached via Upstash for sub-millisecond retrieval.
 - **Automated SEO**: Dynamic `sitemap.xml` and `robots.txt` generation for search engine discoverability.
 - **Graceful Shutdown**: Native handling of `SIGTERM`/`SIGINT` to ensure zero-downtime deployments.
@@ -173,7 +178,7 @@ SRA leverages professional GitHub Actions for continuous quality assurance and o
 | **Backend** | [Node.js 20](https://nodejs.org/) / [Prisma 7](https://www.prisma.io/) | Type-safe ORM for robust asynchronous data orchestration. |
 | **Database** | [PostgreSQL 16+](https://www.postgresql.org/) | High-concurrency persistence with `pgvector` RAG support. |
 | **Orchestration** | [Upstash QStash](https://upstash.com/) | Serverless job queue for reliable, long-running AI tasks. |
-| **LLM Engine** | [Gemini 2.0 Flash](https://ai.google.dev/) | Advanced reasoning and context window for complex architectural mapping. |
+| **LLM Engine** | [Gemini 2.5 Flash](https://ai.google.dev/) | Advanced reasoning and context window for complex architectural mapping. |
 
 </details>
 
@@ -253,7 +258,7 @@ Ensure the following variables are defined in your infrastructure (see `.env.exa
 | **Database** | `DATABASE_URL` | Yes | Postgres connection string with pooling. |
 | **Database** | `DIRECT_URL` | Yes | Direct connection string for Prisma migrations. |
 | **Database** | `REDIS_URL` | Optional | Redis connection string for rate limiting/caching. |
-| **AI (Gemini)** | `GEMINI_API_KEY` | Yes | API key for Google Gemini 2.0 Flash (Primary). |
+| **AI (Gemini)** | `GEMINI_API_KEY` | Yes | API key for Google Gemini 2.5 Flash (Primary). |
 | **AI (OpenAI)**| `OPENAI_API_KEY` | Optional | API key for OpenAI (Secondary/Internal). |
 | **Async** | `QSTASH_TOKEN` | Yes | Bearer token for Upstash QStash job publishing. |
 | **Async** | `QSTASH_SIGNING_KEYS` | Yes | Signing keys for verifying QStash webhooks. |
