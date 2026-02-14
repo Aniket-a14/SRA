@@ -13,7 +13,9 @@ import {
     ReactFlowProvider,
     useReactFlow,
     Panel,
-    Handle
+    Handle,
+    Node,
+    Edge
 } from "@xyflow/react"
 import "@xyflow/react/dist/style.css"
 import dagre from "@dagrejs/dagre"
@@ -26,7 +28,14 @@ import { toast } from "sonner"
 
 // --- Custom Nodes ---
 
-const BaseNode = ({ children, title, icon: Icon, colorClass, type }: any) => (
+interface BaseNodeProps {
+    title: string;
+    icon: React.ElementType;
+    colorClass: string;
+    type: string;
+}
+
+const BaseNode = ({ title, icon: Icon, colorClass, type }: BaseNodeProps) => (
     <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -48,19 +57,19 @@ const BaseNode = ({ children, title, icon: Icon, colorClass, type }: any) => (
 )
 
 const ActorNode = ({ data }: NodeProps) => (
-    <BaseNode title={data.label} icon={User} colorClass="border-emerald-500" type="Actor" />
+    <BaseNode title={data.label as string} icon={User} colorClass="border-emerald-500" type="Actor" />
 )
 
 const SystemNode = ({ data }: NodeProps) => (
-    <BaseNode title={data.label} icon={Server} colorClass="border-blue-500" type="System" />
+    <BaseNode title={data.label as string} icon={Server} colorClass="border-blue-500" type="System" />
 )
 
 const FeatureNode = ({ data }: NodeProps) => (
-    <BaseNode title={data.label} icon={Star} colorClass="border-purple-500" type="Feature" />
+    <BaseNode title={data.label as string} icon={Star} colorClass="border-purple-500" type="Feature" />
 )
 
 const DataEntityNode = ({ data }: NodeProps) => (
-    <BaseNode title={data.label} icon={Database} colorClass="border-orange-500" type="Data" />
+    <BaseNode title={data.label as string} icon={Database} colorClass="border-orange-500" type="Data" />
 )
 
 const nodeTypes = {
@@ -72,7 +81,26 @@ const nodeTypes = {
 
 // --- Layout Logic ---
 
-const getLayoutedElements = (nodes: any[], edges: any[], direction = "TB") => {
+interface RFNode {
+    id: string;
+    type: string;
+    data: { label: string };
+    position: { x: number; y: number };
+}
+
+interface RFEdge {
+    id: string;
+    source: string;
+    target: string;
+    label?: string;
+    type?: string;
+    markerEnd?: { type: MarkerType; color?: string } | string;
+    style?: React.CSSProperties;
+    labelStyle?: React.CSSProperties;
+    animated?: boolean;
+}
+
+const getLayoutedElements = (nodes: RFNode[], edges: RFEdge[], direction = "TB") => {
     const dagreGraph = new dagre.graphlib.Graph()
     dagreGraph.setDefaultEdgeLabel(() => ({}))
     dagreGraph.setGraph({ rankdir: direction, nodesep: 70, ranksep: 100 })
@@ -116,8 +144,8 @@ interface GraphEdge {
 }
 
 const KnowledgeGraphCanvas = ({ projectId }: { projectId: string }) => {
-    const [nodes, setNodes, onNodesChange] = useNodesState<import("@xyflow/react").Node>([])
-    const [edges, setEdges, onEdgesChange] = useEdgesState<import("@xyflow/react").Edge>([])
+    const [nodes, setNodes, onNodesChange] = useNodesState<Node>([])
+    const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
     const [loading, setLoading] = useState(true)
     const { fitView } = useReactFlow()
     const authFetch = useAuthFetch()

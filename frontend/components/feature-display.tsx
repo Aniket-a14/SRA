@@ -12,7 +12,6 @@ const Editor = dynamic(() => import("@/components/editor"), {
     ssr: false,
     loading: () => <div className="h-[100px] w-full bg-muted/20 animate-pulse rounded-md border" />
 })
-import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Plus, Trash2 } from "lucide-react"
 import { EditableSection } from "@/components/editable-section"

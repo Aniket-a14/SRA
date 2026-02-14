@@ -28,7 +28,7 @@ export default function AnalysisPage() {
         return [`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, token];
     }, [token, authLoading]);
 
-    const { data: historyData, error, isValidating } = useSWR<AnalysisHistoryItem[]>(
+    const { data: historyData, error } = useSWR<AnalysisHistoryItem[]>(
         swrKey,
         fetcher,
         swrOptions

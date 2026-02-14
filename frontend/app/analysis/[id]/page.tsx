@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback, useRef, useMemo } from "react"
+import { useEffect, useState, useCallback, useMemo } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import useSWR from "swr";
@@ -102,7 +102,6 @@ function AnalysisDetailContent() {
     );
 
     const [isLoading, setIsLoading] = useState(true)
-    const [loadingMessage, setLoadingMessage] = useState("Loading analysis details...")
     const [error, setError] = useState("")
     const [isDiagramEditing, setIsDiagramEditing] = useState(false)
     const [isImproveDialogOpen, setIsImproveDialogOpen] = useState(false)
@@ -112,7 +111,6 @@ function AnalysisDetailContent() {
     const [isFixing, setIsFixing] = useState<string | null>(null);
     const [,] = useTransition()
     const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([]);
-    const lastIdRef = useRef<string | null>(null);
 
     // Draft State
     const [draftData, setDraftData] = useState<SRSIntakeModel | null>(null)
@@ -132,23 +130,6 @@ function AnalysisDetailContent() {
             return;
         }
 
-        // Handle Polling Messaging
-        if (currentStatus === 'PENDING' || currentStatus === 'IN_PROGRESS' || currentStatus === 'QUEUED') {
-            const msg = currentStatus === 'IN_PROGRESS'
-                ? "AI is analyzing requirements (Layer 3)..."
-                : "Queueing analysis job...";
-            setLoadingMessage(msg);
-            setIsLoading(true);
-            return;
-        }
-
-        // Terminal logic (COMPLETED or results exist)
-        const hasResults = analysis.resultJson && Object.keys(analysis.resultJson).length > 2;
-        if (currentStatus === 'COMPLETED' && !hasResults) {
-            setLoadingMessage("Finalizing results...");
-            setIsLoading(true);
-            return;
-        }
 
         // Successfully loaded data
         setIsLoading(false);
@@ -205,9 +186,6 @@ function AnalysisDetailContent() {
         }
     }, [user, token, id, authLoading, router])
 
-    const handleRefresh = () => {
-        mutate()
-    }
 
     useEffect(() => {
         if (analysis) {
