@@ -114,6 +114,8 @@ model KnowledgeChunk {
   content          Json
   hash             String
   tags             String[]
+  qualityScore     Float?
+  metadata         Json?
   sourceAnalysisId String
   embedding        Unsupported("vector(768)")?
   createdAt        DateTime @default(now())

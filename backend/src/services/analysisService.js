@@ -9,6 +9,7 @@ import { DeveloperAgent } from '../agents/DeveloperAgent.js';
 import { ReviewerAgent } from '../agents/ReviewerAgent.js';
 import { CriticAgent } from '../agents/CriticAgent.js';
 import { evalService } from './evalService.js';
+import { retrieveContext, formatRagContext } from './ragService.js';
 
 const CACHE_TTL = 3600; // 1 hour in seconds
 
@@ -41,61 +42,91 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
             version: promptVersion
         });
 
-        // 3. Developer: Write SRS
-        console.log("--> Agent: Developer (Draft)");
+        // 2.5 Pillar 2: Requirement Recycling (RAG for Developer)
+        console.log("--> Pillar 2: Retrieving Recyclable Requirements");
+        const features = (poOutput?.systemFeatures || poOutput?.features || []);
+        const query = features.length > 0 ? features[0].name : text.substring(0, 100);
+        const recyclableChunks = await retrieveContext(query, projectId, 5);
+        const ragContext = formatRagContext(recyclableChunks);
+
+        // 3. Developer: Write initial draft
+        console.log("--> Agent: Developer (Initial Draft)");
         let srsDraft = await devAgent.generateSRS(poOutput, archOutput, {
             projectName,
-            version: promptVersion
+            version: promptVersion,
+            ragContext
         });
 
-        // 4. Reviewer: QA & Loop
-        console.log("--> Agent: Reviewer");
-        const review = await qaAgent.reviewSRS(srsDraft);
+        // 4. Pillar 1: Reflection Loop (Max 2 refinement passes)
+        let loopCount = 0;
+        const MAX_LOOPS = 2;
+        const QUALITY_THRESHOLD = 8.5;
+        let reflectionFeedback = [];
+        let finalIndustryAudit = null;
 
-        if (review.status === "NEEDS_REVISION") {
-            console.log("--> Agent: Developer (Revision) - Feedback:", review.feedback.length, "items");
-            // Simple feedback loop: append critique to requirements implicitly or pass explicitly
-            // Currently DeveloperAgent doesn't take feedback. 
-            // We'll hack it: Appending feedback to "requirements" prompt in a re-call?
-            // Or better: Implement refinement in DeveloperAgent?
-            // For now, let's just Log it and maybe merge the critique into the final JSON so the user sees it?
-            // Or trusted the draft is "good enough" but mark it?
-            // Let's TRY to re-prompt Developer if I can.
-            // But existing DeveloperAgent doesn't support feedback arg.
-            // I'll leave it as linear for this iteration, but save the review in metadata.
+        while (loopCount < MAX_LOOPS) {
+            console.log(`--> Pillar 1: Reflection Pass ${loopCount + 1}`);
+
+            // A. Reviewer Audit (Security/Consistency)
+            const review = await qaAgent.reviewSRS(srsDraft);
+
+            // B. Critic Audit (6Cs Quality)
+            const audit = await criticAgent.auditSRS(srsDraft);
+            finalIndustryAudit = audit; // Keep track of the latest audit
+
+            console.log(`    Review Status: ${review.status}, Quality Score: ${audit.overallScore}`);
+
+            // C. Check if we meet the quality bar
+            if (review.status === "APPROVED" && audit.overallScore >= QUALITY_THRESHOLD) {
+                console.log("    [OK] Quality threshold met. Exiting reflection loop.");
+                break;
+            }
+
+            // D. Threshold not met: Refine
+            loopCount++;
+            console.log(`    [Refine] Score ${audit.overallScore} < ${QUALITY_THRESHOLD}. Refining...`);
+
+            reflectionFeedback = [
+                ...review.feedback,
+                ...(audit.criticalIssues || []).map(issue => ({ severity: "MAJOR", category: "Quality", issue })),
+                ...(audit.suggestions || []).map(suggestion => ({ severity: "MINOR", category: "Quality", issue: suggestion }))
+            ];
+
+            srsDraft = await devAgent.refineSRS(
+                poOutput,
+                archOutput,
+                srsDraft,
+                reflectionFeedback,
+                { projectName }
+            );
         }
 
         const finalSRS = {
             ...srsDraft,
-            // Merge PO/Arch outputs for completeness
             userStories: poOutput.userStories,
             features: poOutput.features,
             systemArchitecture: archOutput
         };
 
-        // 5. Industry Benchmark: 6Cs Audit
-        console.log("--> Agent: QA Critic (6Cs Audit)");
-        const industryAudit = await criticAgent.auditSRS(finalSRS);
-
-        // 6. Industry Benchmark: RAG Evaluation
+        // 5. Final Evaluation (RAG)
         console.log("--> Service: RAG Evaluation");
         const contextString = typeof archOutput === 'string' ? archOutput : JSON.stringify(archOutput);
         const ragEval = await evalService.evaluateRAG(text, contextString, finalSRS);
 
-        // Mocking the old 'response' object structure
         const response = {
             success: true,
             srs: {
                 ...finalSRS,
                 benchmarks: {
-                    qualityAudit: industryAudit,
-                    ragEvaluation: ragEval
+                    qualityAudit: finalIndustryAudit,
+                    ragEvaluation: ragEval,
+                    reflectionPasses: loopCount
                 }
             },
             meta: {
                 agents: ["PO", "Architect", "Developer", "Reviewer", "Critic"],
-                reviewScore: review.score,
-                industryScore: industryAudit.overallScore
+                reflectionCount: loopCount,
+                industryScore: finalIndustryAudit.overallScore
             }
         };
 

@@ -595,6 +595,11 @@ export const finalizeAnalysis = async (req, res, next) => {
         const chunks = [];
         const result = analysis.resultJson;
 
+        // Pillar 2: Quality-Aware Recycling
+        // Extract overall quality score from the Pillar 1 Industry Audit
+        const overallScore = result.benchmarks?.qualityAudit?.overallScore ||
+            (result.qualityAudit?.score ? result.qualityAudit.score / 10 : null);
+
         // A. Features
         if (result.systemFeatures && Array.isArray(result.systemFeatures)) {
             for (const feature of result.systemFeatures) {
@@ -615,7 +620,8 @@ export const finalizeAnalysis = async (req, res, next) => {
                     hash: crypto.createHash('md5').update(contentStr).digest('hex'),
                     tags: [feature.name, ...(feature.functionalRequirements?.map(f => f.slice(0, 20)) || [])],
                     sourceAnalysisId: id,
-                    embedding: embedding
+                    embedding: embedding,
+                    qualityScore: overallScore
                 });
             }
         }
@@ -641,7 +647,8 @@ export const finalizeAnalysis = async (req, res, next) => {
                         hash: crypto.createHash('md5').update(contentStr).digest('hex'),
                         tags: [category],
                         sourceAnalysisId: id,
-                        embedding: embedding
+                        embedding: embedding,
+                        qualityScore: overallScore
                     });
                 }
             }
@@ -659,6 +666,7 @@ export const finalizeAnalysis = async (req, res, next) => {
                             content: chunk.content,
                             hash: chunk.hash,
                             tags: chunk.tags,
+                            qualityScore: chunk.qualityScore,
                             sourceAnalysisId: chunk.sourceAnalysisId
                         }
                     });

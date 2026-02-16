@@ -28,13 +28,15 @@ export const retrieveContext = async (queryText, projectId = null, limit = 5) =>
                 kc.type, 
                 kc.content, 
                 kc.tags,
+                kc."qualityScore",
                 1 - (kc.embedding <=> ${vectorStr}::vector) as similarity,
                 COALESCE(p.name, a.title, 'Historical Project') as source_title
             FROM "KnowledgeChunk" kc
             JOIN "Analysis" a ON kc."sourceAnalysisId" = a.id
             LEFT JOIN "Project" p ON a."projectId" = p.id
             WHERE kc.embedding IS NOT NULL
-            ORDER BY kc.embedding <=> ${vectorStr}::vector ASC
+            -- Prioritize Gold Standard (High Quality) then Similarity
+            ORDER BY kc."qualityScore" DESC NULLS LAST, kc.embedding <=> ${vectorStr}::vector ASC
             LIMIT ${limit};
         `;
 
@@ -42,6 +44,7 @@ export const retrieveContext = async (queryText, projectId = null, limit = 5) =>
             type: m.type,
             content: m.content,
             similarity: m.similarity,
+            qualityScore: m.qualityScore,
             tags: m.tags,
             sourceTitle: m.source_title
         }));
@@ -86,7 +89,8 @@ export const formatRagContext = (chunks) => {
 
     chunks.forEach((chunk, i) => {
         const sourceInfo = chunk.sourceTitle ? ` (from ${chunk.sourceTitle})` : "";
-        context += `--- REFERENCE ${i + 1} (${chunk.type}${sourceInfo}) ---\n`;
+        const qualityLabel = (chunk.qualityScore && chunk.qualityScore >= 0.85) ? " [GOLD STANDARD]" : "";
+        context += `--- REFERENCE ${i + 1} (${chunk.type}${sourceInfo})${qualityLabel} ---\n`;
         context += JSON.stringify(chunk.content, null, 2);
         context += "\n\n";
     });
