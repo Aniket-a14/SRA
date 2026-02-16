@@ -87,7 +87,7 @@ describe('Contract Test: POST /api/analyze', () => {
         // You might check the error message too
     });
 
-    it('should auto-create project if missing', async () => {
+    it('should NOT auto-create project synchronously (deferred)', async () => {
         mockPrisma.project.findFirst.mockResolvedValue(null);
         mockPrisma.project.create.mockResolvedValue({ id: 'auto-created-id' });
 
@@ -95,6 +95,7 @@ describe('Contract Test: POST /api/analyze', () => {
             .post('/api/analyze')
             .send({ text: 'New Project Requirement' });
 
-        expect(mockPrisma.project.create).toHaveBeenCalled();
+        // Project creation is now deferred to the worker
+        expect(mockPrisma.project.create).not.toHaveBeenCalled();
     });
 });
