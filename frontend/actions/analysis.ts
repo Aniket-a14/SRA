@@ -64,10 +64,28 @@ export async function createAnalysisAction(
             body: JSON.stringify({
                 text: requirements,
                 srsData: {
-                    introduction: {
-                        projectName: { content: projectName },
-                        purpose: { content: requirements },
-                    },
+                    details: {
+                        projectName: {
+                            content: projectName,
+                            metadata: {
+                                section_id: "1",
+                                subsection_id: "1.1",
+                                domain_type: "web",
+                                is_required: true,
+                                completion_status: "complete"
+                            }
+                        },
+                        fullDescription: {
+                            content: requirements,
+                            metadata: {
+                                section_id: "1",
+                                subsection_id: "1.2",
+                                domain_type: "web",
+                                is_required: true,
+                                completion_status: "complete"
+                            }
+                        }
+                    }
                 },
                 projectId: projectId || undefined,
                 settings: settings || undefined,

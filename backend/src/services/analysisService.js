@@ -111,14 +111,6 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
             // Backend Self-Correction: Fix diagrams before finalizing
             await validateAndAutoRepairDiagrams(resultJson, settings);
 
-            // GRAPH RAG EXTRACTION (Async Fire & Forget)
-            if (projectId) {
-                // We extract entities from the *generated* SRS to be more accurate, or the Input Text?
-                // Ideally Input Text captures User Intent, SRS captures Final Spec.
-                // Let's extract from Input Text for now as it represents the "Requirement".
-                extractGraph(text, projectId).catch(e => console.error("Async Graph Extraction failed:", e));
-            }
-
         } else {
             throw new Error(response.error || "AI Analysis execution failed to return valid SRS");
         }
@@ -196,7 +188,9 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
             const newProject = await tx.project.create({
                 data: {
                     name: resultJson.projectTitle,
-                    description: resultJson.introduction?.purpose?.content?.slice(0, 100) || "Auto-created from analysis",
+                    description: (typeof resultJson.introduction?.purpose === 'string'
+                        ? resultJson.introduction.purpose
+                        : (resultJson.introduction?.purpose?.content || "Auto-created from analysis")).slice(0, 100),
                     userId: userId
                 }
             });
@@ -225,7 +219,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
             // We still need to calculate title if missing
             const title = resultJson.projectTitle || `Version ${existing.version}`;
 
-            return await tx.analysis.update({
+            const result = await tx.analysis.update({
                 where: { id: analysisId },
                 data: {
                     resultJson,
@@ -240,6 +234,14 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                     }
                 }
             });
+
+            // Synchronize Knowledge Graph (Async)
+            if (finalProjectId) {
+                console.log(`[Analysis Service] Triggering Graph Extraction for Project: ${finalProjectId}`);
+                extractGraph(text, finalProjectId).catch(e => console.error("Async Graph Extraction failed:", e));
+            }
+
+            return result;
         }
 
         // --- LEGACY / DIRECT SYNC FLOW ---

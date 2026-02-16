@@ -15,7 +15,7 @@ export const QualityAuditTab = memo(function QualityAuditTab({
 }: QualityAuditTabProps) {
     if (!qualityAudit) {
         return (
-            <div className="text-center p-8 text-muted-foreground animate-fade-in">
+            <div className="text-center p-8 text-muted-foreground">
                 No quality audit data available for this analysis.
             </div>
         )
@@ -34,7 +34,7 @@ export const QualityAuditTab = memo(function QualityAuditTab({
     }
 
     return (
-        <div className="animate-fade-in outline-none">
+        <div className="outline-none">
             <Card className="bg-card border-border">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-lg">

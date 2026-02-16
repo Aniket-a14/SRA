@@ -16,7 +16,7 @@ export const InterfacesTab = memo(function InterfacesTab({
     onUpdate,
 }: InterfacesTabProps) {
     return (
-        <div className="space-y-6 animate-fade-in outline-none">
+        <div className="space-y-6 outline-none">
             <KVDisplay
                 title="External Interface Requirements"
                 data={externalInterfaceRequirements as unknown as Record<string, unknown>}

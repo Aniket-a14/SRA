@@ -13,14 +13,14 @@ import { Button } from "@/components/ui/button"
 
 // Modular Tab Components
 import dynamic from "next/dynamic"
+import { IntroductionTab } from "./analysis/tabs/introduction-tab"
+import { FeaturesTab } from "./analysis/tabs/features-tab"
+import { InterfacesTab } from "./analysis/tabs/interfaces-tab"
+import { NFRsTab } from "./analysis/tabs/nfrs-tab"
+import { AppendicesTab } from "./analysis/tabs/appendices-tab"
+import { QualityAuditTab } from "./analysis/tabs/quality-audit-tab"
 
-const IntroductionTab = dynamic(() => import("./analysis/tabs/introduction-tab").then(mod => mod.IntroductionTab))
-const FeaturesTab = dynamic(() => import("./analysis/tabs/features-tab").then(mod => mod.FeaturesTab))
-const InterfacesTab = dynamic(() => import("./analysis/tabs/interfaces-tab").then(mod => mod.InterfacesTab))
-const NFRsTab = dynamic(() => import("./analysis/tabs/nfrs-tab").then(mod => mod.NFRsTab))
-const AppendicesTab = dynamic(() => import("./analysis/tabs/appendices-tab").then(mod => mod.AppendicesTab))
 const CodeAssetsTab = dynamic(() => import("./analysis/tabs/code-assets-tab").then(mod => mod.CodeAssetsTab))
-const QualityAuditTab = dynamic(() => import("./analysis/tabs/quality-audit-tab").then(mod => mod.QualityAuditTab))
 const KnowledgeGraphTab = dynamic(() => import("./analysis/tabs/knowledge-graph-tab").then(mod => mod.KnowledgeGraphTab))
 import type { CodeViewerProps } from "./code-viewer"
 
@@ -109,26 +109,7 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
     setEditedData(prev => prev ? ({ ...prev, [section]: value }) : null)
   }
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("animate-fade-up")
-            if (entry.target instanceof HTMLElement) {
-              entry.target.style.opacity = "1";
-            }
-          }
-        })
-      },
-      { threshold: 0.05 },
-    )
-
-    const elements = sectionRef.current?.querySelectorAll(".animate-on-scroll")
-    elements?.forEach((el) => observer.observe(el))
-
-    return () => observer.disconnect()
-  }, [])
+  // Intersection observer removed for better tab performance
 
   if (!data) return null
 
@@ -139,7 +120,7 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
       <div className="container mx-auto px-4 sm:px-6">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <div className="flex items-center justify-between mb-8 animate-on-scroll opacity-0">
+          <div className="flex items-center justify-between mb-8">
             <div className="flex items-start gap-4">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary animate-pulse-glow shadow-lg shadow-primary/20">
                 <Bot className="h-5 w-5 text-primary-foreground" aria-hidden="true" />
@@ -173,7 +154,7 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
             </div>
           </div>
 
-          <Tabs defaultValue="intro" className="w-full animate-on-scroll opacity-0 delay-200">
+          <Tabs defaultValue="intro" className="w-full">
             <ScrollArea className="w-full mb-8">
               <TabsList className="inline-flex w-max bg-secondary p-1">
                 <TabsTrigger value="intro" className="px-4 py-2">Introduction</TabsTrigger>

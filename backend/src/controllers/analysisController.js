@@ -18,7 +18,7 @@ import { log } from '../middleware/logger.js';
 
 export const analyze = async (req, res, next) => {
     try {
-        let { text, srsData, validationResult } = req.body;
+        let { text, srsData, validationResult, parentId, rootId } = req.body;
 
 
 
@@ -80,6 +80,7 @@ export const analyze = async (req, res, next) => {
                         version: 1,
                         title: (srsData.details?.projectName?.content || "Draft Analysis") + " (Draft)",
                         projectId: req.body.projectId,
+                        status: "DRAFT", // Explicit model status
                         metadata: {
                             trigger: 'initial',
                             source: 'user',
@@ -161,7 +162,7 @@ export const analyze = async (req, res, next) => {
             ...req.body.settings,
             projectName, // Force extraction/propagation
             reuseMetadata // Pass tiered reuse info to worker
-        });
+        }, req.body.parentId, req.body.rootId);
 
         // Auto-delete Draft if converting - DEFERRED to Worker Service (performAnalysis)
         // We only delete the draft if the analysis SUCCEEDS.

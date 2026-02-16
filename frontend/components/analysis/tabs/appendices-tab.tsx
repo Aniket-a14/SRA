@@ -75,7 +75,7 @@ export const AppendicesTab = memo(function AppendicesTab({
     }
 
     return (
-        <div className="space-y-8 animate-fade-in outline-none">
+        <div className="space-y-8 outline-none">
             {/* Diagrams */}
             <div className="space-y-4">
                 <h3 className="text-lg font-semibold border-l-4 border-primary pl-3">Analysis Models</h3>

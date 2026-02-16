@@ -46,7 +46,7 @@ export const CodeAssetsTab = memo(function CodeAssetsTab({
     }
 
     return (
-        <div className="animate-fade-in outline-none">
+        <div className="outline-none">
             {!generatedCode && !isGeneratingCode ? (
                 <div className="flex flex-col items-center justify-center p-12 text-center space-y-4 border rounded-lg bg-card border-dashed">
                     <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center">

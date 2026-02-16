@@ -237,7 +237,7 @@ export const KnowledgeGraphTab = memo(function KnowledgeGraphTab({ projectId }: 
     if (!projectId) return <div className="p-12 text-center text-slate-400 italic">No project associated with this analysis.</div>
 
     return (
-        <div className="space-y-6 animate-fade-in outline-none">
+        <div className="space-y-6 outline-none">
             <Card className="border-none shadow-none bg-transparent">
                 <CardHeader className="px-0">
                     <CardTitle className="text-xl font-semibold flex items-center gap-2">

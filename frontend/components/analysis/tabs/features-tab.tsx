@@ -18,7 +18,7 @@ export const FeaturesTab = memo(function FeaturesTab({
     onUpdate,
 }: FeaturesTabProps) {
     return (
-        <div className="space-y-6 animate-fade-in outline-none">
+        <div className="space-y-6 outline-none">
             <div className="flex items-center justify-between mb-2">
                 <h3 className="text-xl font-semibold">3. System Features</h3>
             </div>

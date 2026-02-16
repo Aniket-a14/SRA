@@ -7,6 +7,7 @@ export const validate = (schema) => (req, res, next) => {
         });
         next();
     } catch (error) {
+        console.error("[Validation Middleware] Error:", JSON.stringify(error.errors, null, 2));
         return res.status(400).json({
             error: 'Validation Error',
             details: error.errors,

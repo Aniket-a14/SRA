@@ -27,7 +27,7 @@ export const NFRsTab = memo(function NFRsTab({
     const acronym = getAcronym(projectTitle || "SRA");
 
     return (
-        <div className="space-y-6 animate-fade-in outline-none">
+        <div className="space-y-6 outline-none">
             <KVDisplay
                 title="Non-Functional Requirements"
                 data={nonFunctionalRequirements as unknown as Record<string, unknown>}
