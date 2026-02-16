@@ -100,6 +100,8 @@ Monitoring is performed hourly via GitHub Actions (`health-check.yml`).
 - **Critical Components:**
   - Prisma Connectivity
   - AI Provider API Status
+  - **MAS Orchestration Status** (PO, Architect, Developer)
+  - **Evaluation Service Readiness** (Critic & RAG Eval)
   - QStash Worker Readiness
 
 ---

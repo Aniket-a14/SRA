@@ -17,28 +17,30 @@ graph TD
     Q -->|Webhook| W[Serverless Worker Services]
 
     subgraph "The Analysis Pipeline"
-        W --> L1[IntakeService<br/>Structural Mapping]
-        L1 --> L2[ValidationService<br/>Quality Gate]
-        L2 -->|PASS| L3[AnalysisService<br/>IEEE SRS Gen]
-        L3 --> L4[RefinementService<br/>Context Patching]
-        L4 --> L5[KnowledgeBaseService<br/>Shred & Reuse]
+        W --> L1[IntakeService<br/>Technical Mapping]
+        L1 --> L2[Multi-Agent System<br/>PO, Arch & Dev]
+        L2 --> L3[Objective Quality Loop<br/>6Cs Audit & RAG Eval]
+        L3 -->|PASS| L4[RefinementHub<br/>Diff & Patch Engine]
+        L4 --> L5[Knowledge persistence<br/>Vector & Graph Shredder]
     end
 ```
 
-### 1. **IntakeService** (Structural Mapping)
-Translates unstructured text into the `SRSIntakeModel`. This ensures that even early-stage inputs occupy a structured schema before complex AI analysis begins.
+### 1. **IntakeService** (Technical Mapping)
+Translates unstructured text into the `SRSIntakeModel` with strict schema validation.
 
-### 2. **ValidationService** (The Gatekeeper)
-Runs a dedicated "Quality Audit" on the Intake model. It scores requirements for ambiguity and completeness. Only high-confidence models proceed to Layer 3.
+### 2. **Multi-Agent System** (MAS Analysis)
+Orchestrates specialized AI roles (Product Owner, Architect, Lead Developer) using the **v1.1.0 Gold Standard** prompt registry for consistent IEEE-830 output.
 
-### 3. **AnalysisService** (IEEE Construction)
-The heavy-lifter. Consumes validated intake data to generate a complete SRS including user stories, acceptance criteria, and Mermaid diagrams.
+### 3. **Objective Quality Loop** (Audit & Benchmarking)
+Gates output via automated auditing:
+- **Critic Agent**: Real-time scoring against the **6Cs** of Requirements Quality.
+- **Evaluation Service**: Benchmarking **Faithfulness** and **Relevancy** via RAGAS-style metrics.
 
-### 4. **RefinementService** (Context Patching)
-Handles iterative improvements via chat. It uses a "context-injection" strategy to inform the AI of existing project state while applying new user directives.
+### 4. **RefinementHub** (Contextual Patching)
+Handles incremental updates via the Workspace UI, injecting existing project state into refinement prompts.
 
-### 5. **KnowledgeBaseService** (KB Shredder)
-Shreds finalized analyses into semantic chunks. Implements the "Hash-and-Match" strategy for Layer 5 reuse, enabling sub-second response times for identical project descriptions.
+### 5. **KnowledgeBaseService** (Persistence & Graph)
+Shreds finalized requirements into **PostgreSQL + pgvector** and extracts semantic relationships into the **Knowledge Graph**.
 
 ## 🛠️ Performance & Reliability
 

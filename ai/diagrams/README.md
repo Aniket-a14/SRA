@@ -6,7 +6,8 @@ This directory is the single source of truth for the Smart Requirements Analyzer
 - [System Architecture Overview](architecture/arch-system-overview.md) - End-to-end data flow and AI pipeline.
 
 ## Feature Diagrams
-- [Coming Soon] DFD Logic flow.
+- [Requirement Flow](architecture/arch-system-overview.md) - Detail on MAS and Quality Loop.
+- [Data Flow Diagram (DFD)] (Interactive) - Available via the frontend dashboard.
 
 ## Methodology
 All diagrams follow **Diagram Driven Development (DDD)** principles, connecting user value (Front-Stage) to technical implementation (Back-Stage).

@@ -1,7 +1,7 @@
 # System Architecture Overview
 
 **Type:** Architecture Diagram
-**Last Updated:** 2026-01-30
+**Last Updated:** 2026-02-16
 **Related Files:**
 - `backend/src/services/aiService.js`
 - `frontend/app/page.tsx`
@@ -18,22 +18,25 @@ graph TD
     User(["User Input (Idea)"]) -->|Form Submission| FE[Frontend Dashboard]
     FE -->|API Request| AC[Analysis Controller]
     
-    subgraph "SRA Agentic Pipeline (Back-Stage)"
-        AC -->|Orchestrate| AIS[AI Service]
-        AIS -->|V1.0.0/V1.1.0| PR[Prompt Registry]
-        AIS -->|Gemini API| LLM[LLM Engine]
-        LLM -->|JSON Schema| VC["Validation & Cleaning (aiService.js)"]
-        VC -->|Structured Data| DB[(Supabase/Prisma)]
+    subgraph "SRA Multi-Agent Pipeline (Back-Stage)"
+        AC -->|Orchestrate| MAS[MAS Orchestrator]
+        MAS --> PO["Product Owner Agent (Scope)"]
+        MAS --> Arch["Architect Agent (Tech Stack + RAG)"]
+        MAS --> Dev["Lead Developer Agent (IEEE-830)"]
+        
+        subgraph "Objective Quality Loop"
+            Dev --> Critic["Critic Agent (6Cs Audit)"]
+            Dev --> Eval["Evaluation Service (RAGAS)"]
+        end
+        
+        Critic -->|Scores/Issues| MAS
+        Eval -->|Faithfulness| MAS
     end
     
-    VC -->|IEEE-830 Result| FE
+    MAS -->|Verified SRS JSON| FE
     FE -->|Interactive View| DFD[DFD Viewer]
     FE -->|Document View| SRS[SRS Document]
-    
-    %% Impact Annotations
-    classDef impact fill:#f9f,stroke:#333,stroke-width:2px;
-    Note1["Impact: Industry-standard specs in seconds"]:::impact
-    VC -.-> Note1
+    FE -->|Benchmark View| BV[Quality Benchmarks]
 ```
 
 ## Key Insights
@@ -45,3 +48,4 @@ graph TD
 ## Change History
 
 - **2026-01-30:** Initial architectural map created during codebase elevation.
+- **2026-02-16:** Upgraded to Multi-Agent System (MAS) architecture with objective quality and RAG evaluation layers.

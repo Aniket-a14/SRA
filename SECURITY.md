@@ -18,7 +18,8 @@ We provide security updates for the following versions:
 
 | Version | Lifecycle Stage | Security Support |
 | :--- | :--- | :---: |
-| **3.1.x** | **Current Release** | :white_check_mark: |
+| **3.2.x** | **Current Release (MAS/Audit)** | :white_check_mark: |
+| 3.1.x | Legacy Production | :white_check_mark: |
 | 2.2.x | Active Maintenance | :white_check_mark: |
 | 2.0.x | Legacy Stable | :warning: |
 | < 2.0.0 | Deprecated | :x: |

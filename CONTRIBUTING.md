@@ -15,8 +15,10 @@ The backend is built with **Node.js** and designed for **Vercel Serverless**, or
 -   **`api/`**: Vercel Serverless Function entry points.
 -   **`src/routes/`**: API route definitions.
 -   **`src/controllers/`**: Logic for handling API requests.
--   **`src/services/`**: Business logic and AI integration (Layer 1-3).
--   **`src/utils/prompt_templates/`**: **CRITICAL**. Contains the system prompts for standard and strict persona validation, including the **Diagram Syntax Authority**.
+-   **`src/services/`**: Business logic and orchestrators.
+-   **`src/agents/`**: **NEW**. Multi-Agent System (MAS) implementations (PO, Architect, Developer, Critic).
+-   **`src/utils/versions/`**: **CRITICAL**. Versioned "Gold Standard" prompt generators (IEEE-830 v1.1.0).
+-   **`src/utils/prompt_templates/`**: Supplemental templates and the **Diagram Syntax Authority**.
 -   **`src/workers/`**: Background workers for handling async tasks triggered by QStash (Layer 5 knowledge shredding).
 -   **`src/middleware/`**: Middleware for auth, validation, and error handling.
 -   **`.env`**: Stores environment variables like your API key and database URL. **Do not commit this file.**
@@ -99,7 +101,11 @@ Ensure you have the following installed or set up:
 
 #### Name Governance
 -   **Consistency**: Ensure consistent naming across the "Introduction" section of the SRS.
--   **Semantic Anchor**: Respect the "Introduction as Semantic Anchor" rule when modifying validation logic.
+-   **Sequential Identifiers**: All requirements must follow project-prefixed sequential naming (e.g., `PROJ-REQ-001`).
+
+#### AI Quality Gating (MAS)
+-   **6Cs Audit**: All AI generations must be compatible with the **Critic Agent** audit loop.
+-   **RAG Faithfulness**: Requirements must be objectively grounded in retrieved context (verified via **Evaluation Service**).
 
 ### Adding New Features
 -   **Backend Logic**:
