@@ -98,7 +98,9 @@ export const analyze = async (req, res, next) => {
             // 1. Validation Logic
             if (validationResult) {
                 if (validationResult.validation_status === 'FAIL') {
-                    const error = new Error('Analysis blocked: Input failed validation.');
+                    const feasibilityIssue = validationResult.issues?.find(i => i.issue_type === 'NOT_FEASIBLE');
+                    const errorMsg = feasibilityIssue ? `Rejection: ${feasibilityIssue.title} - ${feasibilityIssue.description}` : 'Analysis blocked: Input failed validation.';
+                    const error = new Error(errorMsg);
                     error.statusCode = 400;
                     error.details = validationResult.issues;
                     throw error;
