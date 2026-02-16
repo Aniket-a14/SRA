@@ -186,16 +186,44 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
 
     // Atomic Creation with Transaction
     return await prisma.$transaction(async (tx) => {
-        // If analysisId is provided, we update the existing record
+        // 1. Defer Project Creation if missing and successful
+        let finalProjectId = projectId;
+        if (!finalProjectId && resultJson.projectTitle) {
+            // Check if one exists with same name to avoid dups?
+            // Or just create new. Let's create new to be safe, or reuse if name matches EXACTLY for this user?
+            // "ensureProjectExists" logic but inside transaction?
+            // Let's keep it simple: Create New Project if none provided.
+            const newProject = await tx.project.create({
+                data: {
+                    name: resultJson.projectTitle,
+                    description: resultJson.introduction?.purpose?.content?.slice(0, 100) || "Auto-created from analysis",
+                    userId: userId
+                }
+            });
+            finalProjectId = newProject.id;
+            console.log(`[Analysis Service] Auto-created Deferred Project: ${finalProjectId}`);
+        }
+
+        // 2. Cleanup Draft if converting (moved from Controller)
+        if (parentId) {
+            try {
+                const parent = await tx.analysis.findUnique({ where: { id: parentId } });
+                if (parent && (parent.status === 'DRAFT' || parent.metadata?.status === 'DRAFT')) {
+                    console.log(`[Analysis Service] Cleaning up successful draft: ${parentId}`);
+                    await tx.analysis.delete({ where: { id: parentId } });
+                }
+            } catch (cleanupErr) {
+                console.warn("[Analysis Service] Failed to cleanup draft (non-fatal):", cleanupErr.message);
+            }
+        }
+
+        // If analysisId is provided (Standard Flow via queueService), we update the existing record
         if (analysisId) {
             const existing = await tx.analysis.findUnique({ where: { id: analysisId } });
             if (!existing) throw new Error("Analysis ID not found during processing");
 
             // We still need to calculate title if missing
             const title = resultJson.projectTitle || `Version ${existing.version}`;
-
-            // Retrieve existing method metadata if needed, but here we usually overwrite or merge.
-            // Since we are completing the job, we want to finalize metadata.
 
             return await tx.analysis.update({
                 where: { id: analysisId },
@@ -204,6 +232,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                     title,
                     status: 'COMPLETED',
                     isFinalized: false, // default
+                    projectId: finalProjectId, // Link to the (potentially new) project
                     metadata: {
                         ...(existing.metadata || {}),
                         ...analysisMeta, // Contains promptVersion
@@ -249,6 +278,7 @@ export const getUserAnalyses = async (userId) => {
                 metadata
             FROM "Analysis"
             WHERE "userId" = ${userId}
+            AND NOT (status = 'FAILED' AND "projectId" IS NULL)
             ORDER BY "rootId", version DESC
         `;
 

@@ -24,7 +24,8 @@ export const analyze = async (req, res, next) => {
 
         // Auto-Create Project if missing
         // Auto-Create Project if missing
-        req.body.projectId = await ensureProjectExists(req.user.userId, req.body.projectId, srsData, text);
+        // Auto-Create Project if missing - DEFERRED to Worker Service (performAnalysis)
+        // req.body.projectId = await ensureProjectExists(req.user.userId, req.body.projectId, srsData, text);
 
         let projectName = "Project";
 
@@ -162,19 +163,8 @@ export const analyze = async (req, res, next) => {
             reuseMetadata // Pass tiered reuse info to worker
         });
 
-        // Auto-delete Draft if converting
-        if (req.body.parentId) {
-            try {
-                const parent = await prisma.analysis.findUnique({ where: { id: req.body.parentId } });
-                // Robust check: Status is DRAFT or it's implicitly a draft via title/metadata
-                if (parent && (parent.status === 'DRAFT' || parent.metadata?.status === 'DRAFT')) {
-                    console.log(`Deleting converted draft: ${parent.id}`);
-                    await prisma.analysis.delete({ where: { id: parent.id } });
-                }
-            } catch (cleanupErr) {
-                console.warn("Failed to cleanup draft:", cleanupErr.message);
-            }
-        }
+        // Auto-delete Draft if converting - DEFERRED to Worker Service (performAnalysis)
+        // We only delete the draft if the analysis SUCCEEDS.
 
         return successResponse(res, {
             jobId: job.id,
