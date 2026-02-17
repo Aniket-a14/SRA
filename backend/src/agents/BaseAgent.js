@@ -67,7 +67,7 @@ export class BaseAgent {
                     model: this.modelName,
                     generationConfig: {
                         temperature,
-                        maxOutputTokens: 65536,
+                        maxOutputTokens: 65535,
                         responseMimeType: jsonMode ? "application/json" : "text/plain"
                     }
                 });
