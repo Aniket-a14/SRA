@@ -126,7 +126,8 @@ export class BaseAgent {
             // 3. Basic Repair: Remove trailing commas before closing braces/brackets
             // This is a common hallucination in large LLM-generated JSON objects.
             const repairedText = cleanText
-                .replace(/,\s*([\}\]])/g, '$1') // Remove trailing commas
+                .replace(/,\s*([}\]])/g, '$1') // Remove trailing commas
+                // eslint-disable-next-line no-control-regex
                 .replace(/[\u0000-\u001F]+/g, ' '); // Remove accidental control characters
 
             return JSON.parse(repairedText);
