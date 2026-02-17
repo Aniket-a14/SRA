@@ -33,7 +33,7 @@ export class BaseAgent {
                         security: ["Secure"]
                     },
                     // Reviewer / Critic specific fields
-                    score: 85,
+                    score: 0.85,
                     status: "PASS",
                     feedback: [],
                     overallScore: 0.9,

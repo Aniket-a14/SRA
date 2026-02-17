@@ -10,7 +10,7 @@ Draft SRS:
 Review the document and output a JSON critique:
 {
   "status": "APPROVED" | "NEEDS_REVISION",
-  "score": 0-100,
+  "score": 0.0-1.0,
   "feedback": [
     {
         "severity": "CRITICAL" | "MAJOR" | "MINOR",
