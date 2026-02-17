@@ -366,6 +366,8 @@ sequenceDiagram
 6. **Number messages** - Use autonumber for complex flows
 7. **Show error paths** - Document failure scenarios with alt/else
 8. **Indicate async operations** - Use open arrows for fire-and-forget messages
+9. **Balance Activations** - CRITICAL: Every `activate` must have a matching `deactivate` (or `->>+` / `-->>-` pair).
+10. **Quote Participant Names** - If using spaces (e.g., `participant "User Service"`).
 
 ## Common Use Cases
 

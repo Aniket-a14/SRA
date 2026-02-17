@@ -101,13 +101,13 @@ sequenceDiagram
 ### Flowchart (User Journey)
 ```mermaid
 flowchart TD
-    Start([User visits site]) --> Auth{Authenticated?}
-    Auth -->|No| Login[Show login page]
-    Auth -->|Yes| Dashboard[Show dashboard]
-    Login --> Creds[Enter credentials]
-    Creds --> Validate{Valid?}
+    Start(["User visits site"]) --> Auth{"Authenticated?"}
+    Auth -->|No| Login["Show login page"]
+    Auth -->|Yes| Dashboard["Show dashboard"]
+    Login --> Creds["Enter credentials"]
+    Creds --> Validate{"Valid?"}
     Validate -->|Yes| Dashboard
-    Validate -->|No| Error[Show error]
+    Validate -->|No| Error["Show error"]
     Error --> Login
 ```
 
@@ -120,7 +120,7 @@ erDiagram
     
     USER {
         int id PK
-        string email UK
+        string email
         string name
         datetime created_at
     }
@@ -214,3 +214,22 @@ flowchart LR
 - Visualize data flows and system interactions
 - Plan before coding
 - Create living documentation that evolves with code
+
+## Critical Syntax Rules (STRICT COMPLIANCE)
+
+**ALL Diagrams:**
+1. **Quote Labels**: ALWAYS quote labels with spaces or symbols. `id["Label Text"]`.
+2. **Avoid Reserved Words**: NEVER use `end`, `subgraph`, or `class` as a Node ID. Use `EndNode` or `EndProcess`.
+
+**Flowcharts:**
+1. **Node IDs**: Use alphanumeric IDs (`A1`, `ProcessStart`). Avoid special chars in IDs.
+2. **Direction**: Always specify direction (`TD` or `LR`) at the top.
+
+**Sequence Diagrams:**
+1. **Activation Balance**: Every `activate` MUST have a `deactivate`. Or use `->>+` / `-->>-` pairs.
+2. **Participant Names**: Use simple IDs (`User`, `API`) and aliases (`participant U as User`) if needed.
+
+**ER Diagrams (ERD):**
+1. **Attribute Keys**: ONLY use `PK`, `FK`, and `UK`. **FORBIDDEN**: `NN` (Not Null), `NOT NULL`.
+2. **Relationship Labels**: `ENTITY1 ||--o{ ENTITY2 : "label"`. Label MUST be strictly quoted.
+

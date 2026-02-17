@@ -470,6 +470,11 @@ async function validateAndAutoRepairDiagrams(srs, settings) {
                     needsRepair = true;
                     heuristicError = "ERD labels with spaces must be double-quoted.";
                 }
+                // Rule: Forbid invalid keys (UK, NN, etc.) and multiple keys (FK UK)
+                if (/\b(UK|NN)\b/.test(code) || /\b(PK|FK)\s+(PK|FK|UK|NN)\b/.test(code)) {
+                    needsRepair = true;
+                    heuristicError = "ERD uses invalid or multiple attribute keys (UK, NN, or FK UK detected).";
+                }
             }
 
             if (needsRepair) {

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { MermaidRenderer } from "@/components/mermaid-renderer"
-import { Edit2, Save, ExternalLink, Loader2 } from "lucide-react"
+import { Edit2, Save, ExternalLink, Loader2, Sparkles, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 import { useAuth } from "@/lib/auth-context"
 import { throttle } from "@/lib/utils"
@@ -125,14 +125,17 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
         }
     }, 3000), [code, lastError, token, onSave, syntaxExplanation])
 
-    // Automatic Repair Trigger
+    // Optimized Automatic Repair: Only attempt if code hasn't been manually modified yet (initial load error)
     useEffect(() => {
-        if (lastError && !isRepairing && !failedCodes.has(code)) {
+        // If it's the initial code and it has an error, try to fix it automatically ONCE.
+        if (lastError && !isRepairing && code === initialCode && !failedCodes.has(code)) {
+            console.log("Auto-repairing initial diagram error...")
             repairWithAI()
         } else if (lastError && failedCodes.has(code)) {
-            console.warn("Already attempted repair for this code, skipping to avoid loop.")
+            // Standard loop prevention logging
+            // console.warn("Skipping repair for failed code.")
         }
-    }, [lastError, code, isRepairing, failedCodes, repairWithAI])
+    }, [lastError, code, initialCode, isRepairing, failedCodes, repairWithAI])
 
     return (
         <div className="space-y-4 h-full flex flex-col">
@@ -179,16 +182,42 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
                                             />
                                         </div>
                                         <div className="h-full flex flex-col gap-2">
-                                            <h4 className="font-medium text-sm">Live Preview</h4>
-                                            <div className="h-full border rounded-md overflow-hidden bg-white/50 dark:bg-black/20 p-4 relative flex-1">
-                                                <div className="absolute inset-0 overflow-auto flex items-center justify-center p-4">
+                                            <div className="flex items-center justify-between">
+                                                <h4 className="font-medium text-sm">Live Preview</h4>
+                                                {lastError && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => repairWithAI()}
+                                                        disabled={isRepairing}
+                                                        className="h-6 text-xs text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                                                    >
+                                                        {isRepairing ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Sparkles className="h-3 w-3 mr-1" />}
+                                                        Auto-Fix with AI
+                                                    </Button>
+                                                )}
+                                            </div>
+                                            <div className="h-full border rounded-md overflow-hidden bg-white/50 dark:bg-black/20 p-4 relative flex-1 flex flex-col">
+                                                <div className="flex-1 overflow-auto flex items-center justify-center p-4 min-h-0">
                                                     <MermaidRenderer
                                                         chart={code}
                                                         title={`${title} (Preview)`}
-                                                        className="h-full"
+                                                        className="h-full shadow-none border-0"
                                                         onError={(err) => setLastError(err)}
                                                     />
                                                 </div>
+
+                                                {/* Explicit Error Display */}
+                                                {lastError && (
+                                                    <div className="mt-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900 rounded text-xs text-red-600 dark:text-red-400 font-mono overflow-auto max-h-[100px] flex gap-2">
+                                                        <AlertTriangle className="h-4 w-4 shrink-0" />
+                                                        <div className="flex-1">
+                                                            <p className="font-bold mb-1">Syntax Error:</p>
+                                                            {lastError}
+                                                        </div>
+                                                    </div>
+                                                )}
+
                                                 {isRepairing && (
                                                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-card/80 z-20 backdrop-blur-sm transition-all duration-300">
                                                         <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />

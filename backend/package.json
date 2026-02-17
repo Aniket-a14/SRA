@@ -37,6 +37,7 @@
     "helmet": "^8.1.0",
     "ioredis": "^5.8.2",
     "js-yaml": "^4.1.1",
+    "jsonrepair": "^3.13.2",
     "jsonwebtoken": "^9.0.3",
     "nodemon": "^3.1.11",
     "openai": "^6.10.0",

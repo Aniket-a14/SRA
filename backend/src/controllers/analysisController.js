@@ -796,6 +796,12 @@ export const repairDiagram = async (req, res, next) => {
         const repairedCode = await aiRepairDiagram(code, error, settings || {}, req.body.syntaxExplanation || "");
         return successResponse(res, { code: repairedCode });
     } catch (error) {
+        if (error.message.includes("429") || error.status === 429) {
+            return res.status(503).json({
+                success: false,
+                error: "AI Service is currently busy (Rate Limit). Please try again in a few moments."
+            });
+        }
         next(error);
     }
 };

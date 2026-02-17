@@ -123,7 +123,7 @@ export function FeatureDisplay({ features, projectTitle = "SRA", isEditing, onUp
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <div>
-                            <h4 className="text-sm font-medium mb-2 text-foreground/80">Description</h4>
+                            <h4 className="text-sm font-medium mb-2 text-foreground/80">4.{index + 1}.1 Description and Priority</h4>
                             {isEditing ? (
                                 <Editor
                                     initialContent={feature.description}
@@ -139,7 +139,7 @@ export function FeatureDisplay({ features, projectTitle = "SRA", isEditing, onUp
 
                         {(isEditing || (feature.stimulusResponseSequences && feature.stimulusResponseSequences.length > 0)) && (
                             <div>
-                                <h4 className="text-sm font-medium mb-2 text-foreground/80">Stimulus/Response Sequences</h4>
+                                <h4 className="text-sm font-medium mb-2 text-foreground/80">4.{index + 1}.2 Stimulus/Response Sequences</h4>
                                 {isEditing ? (
                                     <EditableSection
                                         items={feature.stimulusResponseSequences || []}
@@ -183,7 +183,7 @@ export function FeatureDisplay({ features, projectTitle = "SRA", isEditing, onUp
                         <Separator className="bg-border/50" />
 
                         <div>
-                            <h4 className="text-sm font-medium mb-3 text-foreground/80">Functional Requirements</h4>
+                            <h4 className="text-sm font-medium mb-3 text-foreground/80">4.{index + 1}.3 Functional Requirements</h4>
                             {isEditing ? (
                                 <EditableSection
                                     items={feature.functionalRequirements || []}

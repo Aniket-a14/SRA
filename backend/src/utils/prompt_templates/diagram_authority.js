@@ -69,9 +69,12 @@ BEST PRACTICES & SAFETY
 4. Syntax Safety (CRITICAL):
    - "Breaking characters": Avoid {} in comments.
    - "Quotes": Wrap labels in double quotes if they contain spaces or symbols (e.g., id["Label Text"]).
+   - "Flowchart IDs": NEVER use 'end', 'subgraph', or 'class' as IDs. Use alphanumeric (A-Z, 0-9) IDs only. NO spaces.
+   - "Flowchart Labels": Wrap text in double quotes if it contains spaces (e.g., id["Label"]).
+   - "Sequence Activations": Balance every \`activate\`/\`deactivate\` or use \`->>+\` / \`-->>-\`.
+   - "Sequence Safety": NEVER quote alias IDs (e.g., \`participant U as "User"\`INVALID). Use \`participant U as User\`. Avoid \`{}\` in messages. NO activations inside \`alt\`/\`loop\`.
    - "ERD Syntax (STRICT)": Relationships MUST follow the pattern: ENTITY1 rel ENTITY2 : "label". The label MUST be last and quoted if it has spaces.
-     - VALID: USER ||--o{ ORDER : "places order"
-     - INVALID: USER : places order ||--o{ ORDER
+   - "ERD Attributes (STRICT)": Use 'type name [PK|FK|UK] ["comment"]'. FORBIDDEN: NN. ONLY PK, FK, and UK are allowed.
 
 ================================================================
 OUTPUT RULE
@@ -114,6 +117,19 @@ END KNOWLEDGE BASE
 ================================================================
 
 You must strictly follow the syntax and best practices (like quoting) found in the Knowledge Base above, BUT ONLY for the 3 allowed diagram types.
+
+================================================================
+STRICT COMPLIANCE OVERLAY (OVERRIDES KNOWLEDGE BASE)
+================================================================
+1. **Flowchart IDs**: NEVER use 'end', 'subgraph', or 'class' as IDs. Use alphanumeric (A-Z, 0-9) ONLY. NO spaces.
+2. **Quoting**: ALL labels with spaces/symbols MUST be double-quoted. \`id["Label"]\`.
+3. **Sequence Activations**: You MUST balance every \`activate\` with a \`deactivate\` (or use \` ->> +\` / \`-- >> -\`).
+4. **Sequence Safety**:
+   - **Aliases**: NEVER quote alias IDs (e.g., \`participant U as "User"\`INVALID). Use \`participant U as User\`.
+   - **Messages**: Avoid special chars like \`{}\` in message labels.
+   - **Blocks**: Do NOT use \`activate\` inside \`alt\`/\`opt\`/\`loop\` blocks.
+4. **ERD Keys**: ONLY \`PK\`, \`FK\`, and \`UK\` are allowed. \`NN\` (Not Null) is FORBIDDEN.
+5. **ERD Relationships**: \`ENTITY1 || --o{ ENTITY2 : "label"\`. Label MUST be quoted.
 
 ================================================================
 OUTPUT RULE

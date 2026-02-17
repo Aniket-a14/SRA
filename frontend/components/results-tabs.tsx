@@ -173,6 +173,7 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
               <IntroductionTab
                 introduction={currentData.introduction}
                 overallDescription={currentData.overallDescription}
+                revisionHistory={currentData.revisionHistory}
                 missingLogic={currentData.missingLogic}
                 contradictions={currentData.contradictions}
                 isEditing={isEditing}

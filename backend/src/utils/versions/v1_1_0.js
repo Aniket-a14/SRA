@@ -402,7 +402,10 @@ You MUST return output ONLY in the following exact JSON structure. Do not add ex
     "documentConventions": "Strictly 1 concise paragraph explaining standards used.",
     "intendedAudience": "Strictly 1 concise paragraph defining who the document is for.",
     "productScope": "Strictly 1 concise paragraph summarizing the technical boundaries.",
-    "references": ["List any other documents or Web addresses. Include title, author, version, date, and source."]
+    "references": [
+      "IEEE 830-1998 IEEE Recommended Practice for Software Requirements Specifications.",
+      "ISO/IEC/IEEE 29148:2018 Systems and software engineering — Life cycle processes — Requirements engineering."
+    ]
   },
   "overallDescription": {
     "productPerspective": "Describe the context and origin of the product being specified in this SRS. For example, state whether this product is a follow-on member of a product family, a replacement for certain existing systems, or a new, self-contained product. If the SRS defines a component of a larger system, relate the requirements of the larger system to the functionality of this software and identify interfaces between the two. A simple diagram that shows the major components of the overall system, subsystem interconnections, and external interfaces can be helpful. Split into paragraphs.",
@@ -423,22 +426,22 @@ You MUST return output ONLY in the following exact JSON structure. Do not add ex
   },
   "systemFeatures": [
     {
-      "name": "Feature Name (State the feature name in just a few words)",
-      "description": "Provide a short description of the feature and indicate whether it is of High, Medium, or Low priority. You could also include specific priority component ratings, such as benefit, penalty, cost, and risk (each rated on a relative scale from a low of 1 to a high of 9). 1-2 paragraphs explaining business value and user value. Be more concise if there are more than 10 features.",
-      "stimulusResponseSequences": ["Stimulus: <user action> Response: <system behavior>. List the sequences of user actions and system responses that stimulate the behavior defined for this feature. These will correspond to the dialog elements associated with use cases."],
-      "functionalRequirements": ["Itemize the detailed functional requirements associated with this feature. These are the software capabilities that must be present in order for the user to carry out the services provided by the feature, or to execute the use case. Include how the product should respond to anticipated error conditions or invalid inputs. Requirements should be concise, complete, unambiguous, verifiable, and necessary."]
+      "name": "Feature Name (Concise)",
+      "description": "4.x.1 Description and Priority: Provide a professional description (1-2 paragraphs) explaining business and user value. Include a Priority rating (High, Medium, or Low) and rationale.",
+      "stimulusResponseSequences": ["4.x.2 Stimulus/Response Sequences: List sequences as 'Stimulus: <action> Response: <behavior>'. These must map to specific use case dialogs."],
+      "functionalRequirements": ["4.x.3 Functional Requirements: Itemize as atomic 'The system shall...' statements. Use 'TBD' if details are pending, and ensure these are mirrored in Appendix C."]
     }
   ],
   "nonFunctionalRequirements": {
-    "performanceRequirements": ["State requirements AND rationale. Provide as many independent points as required for a professional spec (usually 3-7)."],
-    "safetyRequirements": ["Define safeguards AND rationale. Provide as many as appropriate for the system's risk profile."],
-    "securityRequirements": ["Specify authentication/privacy AND rationale. Exhaustively list all critical security measures."],
-    "softwareQualityAttributes": ["Specify attributes AND rationale (Reliability, Scalability, etc.). Cover all relevant -ilities."],
-    "businessRules": ["List all operating principles and regulatory constraints that apply."]
+    "performanceRequirements": ["State requirements AND rationale. (IEEE-830 Section 5.1)"],
+    "safetyRequirements": ["Define safeguards AND rationale. (IEEE-830 Section 5.2)"],
+    "securityRequirements": ["Specify authentication/privacy AND rationale. (IEEE-830 Section 5.3)"],
+    "softwareQualityAttributes": ["IEEE-830 Section 5.4: Specify attributes AND rationale (Adaptability, Availability, Correctness, Flexibility, Interoperability, Maintainability, Portability, Reliability, Reusability, Robustness, Testability, Usability)."],
+    "businessRules": ["List all operating principles and regulatory constraints. (IEEE-830 Section 5.5)"]
   },
-  "otherRequirements": ["Define any other requirements not covered elsewhere in the SRS. This might include database requirements, internationalization requirements, legal requirements, reuse objectives for the project, and so on. Add any new sections that are pertinent to the project."],
+  "otherRequirements": ["Define any other requirements not covered elsewhere. (IEEE-830 Section 6)"],
   "glossary": [
-    { "term": "Term", "definition": "Define all the terms necessary to properly interpret the SRS, including acronyms and abbreviations." }
+    { "term": "Term", "definition": "Define terms, acronyms, and abbreviations." }
   ],
   "appendices": {
     "analysisModels": {
@@ -458,8 +461,7 @@ You MUST return output ONLY in the following exact JSON structure. Do not add ex
           "caption": "Entity relationship diagram with attributes." 
       }
     },
-    "tbdList": ["Collect a numbered list of the TBD (to be determined) references that remain in the SRS so they
-can be tracked to closure."]
+    "tbdList": ["Appendix C: Provide a numbered list of all TBD (to be determined) items found in this document. If none, provide an empty array."]
   },
   "promptSettingsUsed": {
       "profile": "${profile}",
@@ -474,6 +476,15 @@ STRICT RULES:
 3. System Features must follow specific structure defined above or output is INVALID.
 4. Output MUST be valid JSON only.
 5. ERD SPECIAL RULE: Relationships MUST be 'ENTITY1 rel ENTITY2 : "label"'. NO COLONS BEFORE LABELS.
+6. ERD ATTRIBUTE RULE: Attributes MUST follow 'type name [PK|FK|UK] ["comment"]'.
+   - FORBIDDEN: \`NN\` or any other constraint. ONLY \`PK\`, \`FK\`, and \`UK\` are allowed.
+   - **Safety**: Attribute names MUST be alphanumeric (e.g., \`user_id\`). NO spaces, NO quotes. Entity names with spaces MUST be quoted.
+7. FLOWCHART RULE: NEVER use 'end', 'subgraph', or 'class' as node IDs. IDs must be alphanumeric and have NO spaces.
+   - **Labels**: If text has spaces, it MUST be quoted: \`id["My Label"]\`.
+8. SEQUENCE RULE: Balance every \`activate\` with \`deactivate\`. Use \`->>+\` / \`-->>-\` shorthand if possible.
+   - **Safety**: NEVER quote alias IDs. Avoid \`{}\` in messages. NO activations inside \`alt\`/\`opt\`/\`loop\` blocks.
+   - If multiple keys are needed, use ONLY PK or FK (whichever is more critical).
+   - NEVER combine keys (e.g., NO 'FK UK').
 
 User Input (Raw Description):
 `;

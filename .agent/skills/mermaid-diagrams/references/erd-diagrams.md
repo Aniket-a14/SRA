@@ -26,7 +26,7 @@ Define columns with type and constraints:
 erDiagram
     CUSTOMER {
         int id PK
-        string email UK
+        string email
         string name
         string phone
         datetime created_at
@@ -38,8 +38,6 @@ erDiagram
 **Common constraints:**
 - `PK` - Primary Key
 - `FK` - Foreign Key
-- `UK` - Unique Key
-- `NN` - Not Null
 
 ## Relationships
 
@@ -112,7 +110,7 @@ erDiagram
     
     CUSTOMER {
         uuid id PK
-        varchar email UK "NOT NULL"
+        varchar email "NOT NULL"
         varchar name "NOT NULL"
         varchar phone
         timestamp created_at "DEFAULT NOW()"
@@ -151,7 +149,7 @@ erDiagram
     
     PRODUCT {
         uuid id PK
-        varchar sku UK "NOT NULL"
+        varchar sku "NOT NULL"
         varchar name "NOT NULL"
         text description
         decimal price "NOT NULL"
@@ -162,7 +160,7 @@ erDiagram
     
     CATEGORY {
         uuid id PK
-        varchar name UK "NOT NULL"
+        varchar name "NOT NULL"
         text description
         uuid parent_category_id FK
     }
@@ -190,7 +188,7 @@ erDiagram
         varchar payment_method "NOT NULL"
         decimal amount "NOT NULL"
         varchar status "NOT NULL"
-        varchar transaction_id UK
+        varchar transaction_id
         timestamp processed_at
     }
     
@@ -222,8 +220,8 @@ erDiagram
     
     USER {
         bigint id PK "AUTO_INCREMENT"
-        varchar email UK "NOT NULL"
-        varchar username UK "NOT NULL"
+        varchar email "NOT NULL"
+        varchar username "NOT NULL"
         varchar password_hash "NOT NULL"
         varchar display_name
         text bio
@@ -237,7 +235,7 @@ erDiagram
         bigint user_id FK "NOT NULL"
         bigint category_id FK
         varchar title "NOT NULL"
-        varchar slug UK "NOT NULL"
+        varchar slug "NOT NULL"
         text content "NOT NULL"
         text excerpt
         varchar featured_image_url
@@ -260,16 +258,16 @@ erDiagram
     
     CATEGORY {
         bigint id PK "AUTO_INCREMENT"
-        varchar name UK "NOT NULL"
-        varchar slug UK "NOT NULL"
+        varchar name "NOT NULL"
+        varchar slug "NOT NULL"
         text description
         bigint parent_id FK
     }
     
     TAG {
         bigint id PK "AUTO_INCREMENT"
-        varchar name UK "NOT NULL"
-        varchar slug UK "NOT NULL"
+        varchar name "NOT NULL"
+        varchar slug "NOT NULL"
     }
     
     POST_TAG {
@@ -305,8 +303,8 @@ erDiagram
     
     USER {
         uuid id PK
-        varchar username UK "NOT NULL"
-        varchar email UK "NOT NULL"
+        varchar username "NOT NULL"
+        varchar email "NOT NULL"
         varchar password_hash "NOT NULL"
         varchar full_name
         text bio
@@ -471,7 +469,7 @@ erDiagram
 erDiagram
     USER {
         uuid id PK
-        varchar email UK
+        varchar email
         varchar name
         timestamp deleted_at "NULLABLE"
     }

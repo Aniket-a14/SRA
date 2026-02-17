@@ -1,4 +1,5 @@
 import { genAI } from '../config/gemini.js';
+import { jsonrepair } from 'jsonrepair';
 
 export class BaseAgent {
     constructor(name, modelName = "gemini-2.5-flash") {
@@ -123,14 +124,10 @@ export class BaseAgent {
                 cleanText = cleanText.substring(firstBrace, lastBrace + 1);
             }
 
-            // 3. Basic Repair: Remove trailing commas before closing braces/brackets
-            // This is a common hallucination in large LLM-generated JSON objects.
-            const repairedText = cleanText
-                .replace(/,\s*([}\]])/g, '$1') // Remove trailing commas
-                // eslint-disable-next-line no-control-regex
-                .replace(/[\u0000-\u001F]+/g, ' '); // Remove accidental control characters
-
-            return JSON.parse(repairedText);
+            // 3. Use professional jsonrepair library for fault-tolerant parsing
+            // This handles trailing commas, missing quotes, unclosed brackets, etc.
+            const repaired = jsonrepair(cleanText);
+            return JSON.parse(repaired);
         } catch (error) {
             console.error(`[${this.name}] JSON Parsing Failed:`, error.message);
 

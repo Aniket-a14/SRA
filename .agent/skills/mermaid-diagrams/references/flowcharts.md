@@ -20,69 +20,69 @@ flowchart TD
 ### Rectangle (default)
 ```mermaid
 flowchart LR
-    A[Process step]
+    A["Process step"]
 ```
 
 ### Rounded Rectangle
 ```mermaid
 flowchart LR
-    B([Rounded process])
+    B(["Rounded process"])
 ```
 
 ### Stadium/Pill Shape
 ```mermaid
 flowchart LR
-    C(Start or End)
+    C("Start or End")
 ```
 
 ### Subroutine (Double Border)
 ```mermaid
 flowchart LR
-    D[[Subroutine]]
+    D[["Subroutine"]]
 ```
 
 ### Cylindrical (Database)
 ```mermaid
 flowchart LR
-    E[(Database)]
+    E[("Database")]
 ```
 
 ### Circle
 ```mermaid
 flowchart LR
-    F((Circle node))
+    F(("Circle node"))
 ```
 
 ### Asymmetric/Flag
 ```mermaid
 flowchart LR
-    G>Flag node]
+    G>"Flag node"]
 ```
 
 ### Rhombus (Decision)
 ```mermaid
 flowchart LR
-    H{Decision?}
+    H{"Decision?"}
 ```
 
 ### Hexagon
 ```mermaid
 flowchart LR
-    I{{Hexagon}}
+    I{{"Hexagon"}}
 ```
 
 ### Parallelogram (Input/Output)
 ```mermaid
 flowchart LR
-    J[/Input or Output/]
-    K[\Alternative IO\]
+    J[/"Input or Output"/]
+    K[\"Alternative IO"\]
 ```
 
 ### Trapezoid
 ```mermaid
 flowchart LR
-    L[/Trapezoid\]
-    M[\Alt trapezoid/]
+    L[/"Trapezoid"\]
+    M[\"Alt trapezoid"/]
 ```
 
 ## Connections
@@ -217,9 +217,9 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    Start([User visits registration page]) --> Form[Show registration form]
+    Start(["User visits registration page"]) --> Form["Show registration form"]
     Form --> Input[User enters details]
-    Input --> Validate{Valid input?}
+    Input --> Validate{"Valid input?"}
     
     Validate -->|No| ShowError[Show validation errors]
     ShowError --> Form
@@ -247,14 +247,14 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    Start([Start Binary Search]) --> Init[Set low = 0, high = array.length - 1]
+    Start(["Start Binary Search"]) --> Init["Set low = 0, high = array.length - 1"]
     Init --> Check{low <= high?}
     
     Check -->|No| NotFound[Return -1: Not found]
     NotFound --> End([End])
     
     Check -->|Yes| CalcMid[mid = low + (high - low) / 2]
-    CalcMid --> Compare{array[mid] == target?}
+    CalcMid --> Compare{"array[mid] == target?"}
     
     Compare -->|Yes| Found[Return mid: Found]
     Found --> End

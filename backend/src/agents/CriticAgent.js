@@ -14,12 +14,13 @@ You are a Senior Requirements Auditor. Your goal is to audit a Software Requirem
 ### GENERATED SRS DRAFT:
 {srs}
 
-### AUDIT CRITERIA (INDUSTRY PERSPECTIVE):
+### AUDIT CRITERIA (IEEE INDUSTRIAL PERSPECTIVE):
 1. **Faithful Translation**: Does the SRS accurately map the User Input into an IEEE-830 pattern?
-2. **Structural Connection**: Do the features and requirements logically support the project's core purpose?
-3. **Clarity & Patterns**: Is the document organization professional, even if some technical quantifiers are left for the dev team?
-4. **Verifiability**: Are the requirements clear enough to be tested, given the level of detail in the input?
-5. **Avoid Pedantry**: Do NOT penalize for "missing metrics" (e.g., exact RTO/RPO) if they were not in the input. Judge the quality of the translation and the soundness of the SRS pattern.
+2. **Structural Integrity (Section 4.x)**: Does every system feature contain the required 4.x.1 (Description/Priority), 4.x.2 (Stimulus), and 4.x.3 (Functional) sub-sections?
+3. **Quality Attribute Coverage (Section 5.4)**: Does the SRS explicitly address applicable attributes like Adaptability, Portability, and Maintainability?
+4. **Logical Consistency**: Are there technical contradictions? (e.g., "Requires 2FA" vs "Only basic email login allowed").
+5. **No Pedantry**: Do NOT penalize for missing metrics if they were not in the Original requirements. Judge based on faithful mapping.
+6. **Appendix C (TBD Management)**: If "TBD" or "placeholder" strings are found in the body, are they accurately summarized in Appendix C?
 
 Return ONLY JSON. All scores MUST be integers between 0 and 100:
 {

@@ -265,7 +265,29 @@ Return ONLY the corrected code.
 `;
 
   const model = genAI.getGenerativeModel({ model: modelName });
-  const result = await model.generateContent(finalPrompt);
+
+  // Retry Logic for 429 (Rate Limit)
+  const MAX_RETRIES = 3;
+  let attempt = 0;
+  let result;
+
+  while (attempt < MAX_RETRIES) {
+    try {
+      result = await model.generateContent(finalPrompt);
+      break; // Success
+    } catch (error) {
+      if (error.message.includes("429") || error.status === 429) {
+        attempt++;
+        if (attempt >= MAX_RETRIES) throw error; // Give up after max retries
+
+        const delay = Math.pow(2, attempt) * 2000; // Exponential backoff: 2s, 4s, 8s
+        console.warn(`[AI Service] Rate limit hit (429). Retrying in ${delay}ms... (Attempt ${attempt}/${MAX_RETRIES})`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        throw error; // Non-retryable error
+      }
+    }
+  }
 
   let output = "";
   if (result && result.response && typeof result.response.text === "function") {
