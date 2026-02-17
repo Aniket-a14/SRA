@@ -193,7 +193,7 @@ You must adhere to the following strict formatting rules. ANY violation will ren
 
 4. SYSTEM FEATURE STRUCTURE (IEEE Section 4.x)
    - Each System Feature MUST contain:
-     * Description: Mandatory 2-3 paragraphs explaining:
+     * Description: Mandatory 1-3 paragraphs explaining:
        * 🎯 **User Value (DDD)**: How this feature improves the user's life.
        * ⚙️ **Technical Impact (DDD)**: How this feature affects the system architecture.
        * Priority: High, Medium, or Low.
@@ -362,7 +362,7 @@ You must adhere to the following strict formatting rules. ANY violation will ren
 
 4. SYSTEM FEATURE STRUCTURE (IEEE Section 4.x)
    - Each System Feature MUST contain:
-     * Description: Mandatory 2-3 paragraphs explaining:
+     * Description: Strictly 1 concise paragraph explaining:
        * 🎯 **User Value (DDD)**: How this feature improves the user's life.
        * ⚙️ **Technical Impact (DDD)**: How this feature affects the system architecture.
        * Priority: High, Medium, or Low.
@@ -398,10 +398,10 @@ You MUST return output ONLY in the following exact JSON structure. Do not add ex
     { "version": "1.0", "date": "YYYY-MM-DD", "description": "Initial Release", "author": "SRA System" }
   ],
   "introduction": {
-    "purpose": "Identify the product whose software requirements are specified in this document, including the revision or release number. Describe the scope of the product that is covered by this SRS, particularly if this SRS describes only part of the system or a single subsystem. Minimum 1-2 solid paragraphs.",
-    "documentConventions": "Describe any standards or typographical conventions that were followed when writing this SRS, such as fonts or highlighting that have special significance. For example, state whether priorities for higher-level requirements are assumed to be inherited by detailed requirements, or whether every requirement statement is to have its own priority.",
-    "intendedAudience": "Describe the different types of reader that the document is intended for, such as developers, project managers, marketing staff, users, testers, and documentation writers. Describe what the rest of this SRS contains and how it is organized. Suggest a sequence for reading the document, beginning with the overview sections and proceeding through the sections that are most pertinent to each reader type. Minimum 1-2 solid paragraphs.",
-    "productScope": "Provide a short description of the software being specified and its purpose, including relevant benefits, objectives, and goals. Relate the software to corporate goals or business strategies. If a separate vision and scope document is available, refer to it rather than duplicating its contents here. Minimum 1-2 solid paragraphs.",
+    "purpose": "Strictly 1 concise paragraph explaining the goal and scope.",
+    "documentConventions": "Strictly 1 concise paragraph explaining standards used.",
+    "intendedAudience": "Strictly 1 concise paragraph defining who the document is for.",
+    "productScope": "Strictly 1 concise paragraph summarizing the technical boundaries.",
     "references": ["List any other documents or Web addresses. Include title, author, version, date, and source."]
   },
   "overallDescription": {
@@ -424,7 +424,7 @@ You MUST return output ONLY in the following exact JSON structure. Do not add ex
   "systemFeatures": [
     {
       "name": "Feature Name (State the feature name in just a few words)",
-      "description": "Provide a short description of the feature and indicate whether it is of High, Medium, or Low priority. You could also include specific priority component ratings, such as benefit, penalty, cost, and risk (each rated on a relative scale from a low of 1 to a high of 9). 2 paragraphs explaining business value and user value.",
+      "description": "Provide a short description of the feature and indicate whether it is of High, Medium, or Low priority. You could also include specific priority component ratings, such as benefit, penalty, cost, and risk (each rated on a relative scale from a low of 1 to a high of 9). 1-2 paragraphs explaining business value and user value. Be more concise if there are more than 10 features.",
       "stimulusResponseSequences": ["Stimulus: <user action> Response: <system behavior>. List the sequences of user actions and system responses that stimulate the behavior defined for this feature. These will correspond to the dialog elements associated with use cases."],
       "functionalRequirements": ["Itemize the detailed functional requirements associated with this feature. These are the software capabilities that must be present in order for the user to carry out the services provided by the feature, or to execute the use case. Include how the product should respond to anticipated error conditions or invalid inputs. Requirements should be concise, complete, unambiguous, verifiable, and necessary."]
     }

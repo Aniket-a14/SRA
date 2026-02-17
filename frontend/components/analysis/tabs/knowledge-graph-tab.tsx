@@ -157,8 +157,9 @@ const KnowledgeGraphCanvas = ({ projectId }: { projectId: string }) => {
             if (!res.ok) throw new Error("Failed to fetch graph data")
             const data = { nodes: [] as GraphNode[], edges: [] as GraphEdge[] }
             const result = await res.json()
-            data.nodes = result.nodes || []
-            data.edges = result.edges || []
+            const graphData = result.data || result; // Handle both direct and enveloped responses
+            data.nodes = graphData.nodes || []
+            data.edges = graphData.edges || []
 
             const rfNodes = data.nodes.map((n: GraphNode) => ({
                 id: n.id,

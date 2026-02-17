@@ -2,18 +2,19 @@ import express from 'express';
 import { authenticate } from '../middleware/authMiddleware.js';
 import { createProject, getProjects, getProject, updateProject, deleteProject } from '../controllers/projectController.js';
 import { getFullProjectGraph } from '../services/graphService.js';
+import { successResponse } from '../utils/response.js';
 
 const router = express.Router();
 
 router.use(authenticate);
 
 // Get the full Knowledge Graph for a project
-router.get('/:id/graph', async (req, res) => {
+router.get('/:id/graph', async (req, res, next) => {
     try {
         const graph = await getFullProjectGraph(req.params.id);
-        res.json(graph);
+        return successResponse(res, graph, 'Knowledge Graph retrieved successfully');
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 });
 

@@ -1,12 +1,27 @@
+import { ALIGNMENT_CHECK_PROMPT } from '../utils/prompts.js';
+import { analyzeText } from './aiService.js';
 
 /**
  * Lints requirements to calculate a quality score and identify issues.
- * @param {Object} analysis - The JSON output from the AI analysis.
- * @returns {Object} { score: number, issues: string[] }
+ * @param {Object} semanticAudit - Optional semantic audit result from Pillar 4 Critic.
+ * @returns {Object} { score: number, issues: string[], ieeeCompliance: object }
  */
-export const lintRequirements = (analysis) => {
+export const lintRequirements = (analysis, semanticAudit = null) => {
     let score = 100;
     const issues = [];
+
+    if (semanticAudit) {
+        // Use Semantic Audit scores (0.0 - 1.0) scaled to 100
+        score = Math.round(semanticAudit.overallScore * 100);
+        if (semanticAudit.criticalIssues) {
+            issues.push(...semanticAudit.criticalIssues.map(i => `[CRITICAL] ${i}`));
+        }
+        return {
+            score,
+            issues,
+            ieeeCompliance: semanticAudit.ieeeCompliance || { status: "UNKNOWN" }
+        };
+    }
 
     // Config: Deduction points
     const POINTS_AMBIGUITY = 5;
@@ -110,16 +125,6 @@ export const lintRequirements = (analysis) => {
 
 };
 
-import { ALIGNMENT_CHECK_PROMPT } from '../utils/prompts.js';
-import { analyzeText } from './aiService.js';
-
-/**
- * Layer 3: Semantic Alignment & Mismatch Detection
- * @param {Object} originalInput - Layer 1 Input (Project Name + Raw Text)
- * @param {Object} validationContext - Layer 2 Context (Validated Domain + Purpose)
- * @param {Object} srsOutput - The generated SRS JSON
- * @returns {Promise<Object>} { status: 'ALIGNED'|'MISMATCH_DETECTED', mismatches: [] }
- */
 export const checkAlignment = async (originalInput, validationContext, srsOutput) => {
     // Construct task-specific prompt (system prompt)
     let systemPrompt = ALIGNMENT_CHECK_PROMPT
@@ -146,4 +151,14 @@ export const checkAlignment = async (originalInput, validationContext, srsOutput
     }
 
     return response.srs;
+};
+
+/**
+ * Pillar 4: Semantic LLM-Judge Audit
+ * Integrates the CriticAgent's deep audit into the quality scoring system.
+ */
+export const runSemanticAudit = async (srsContent) => {
+    const { CriticAgent } = await import('../agents/CriticAgent.js');
+    const critic = new CriticAgent();
+    return await critic.auditSRS(srsContent);
 };

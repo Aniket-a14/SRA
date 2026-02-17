@@ -36,7 +36,7 @@ export class BaseAgent {
                     score: 85,
                     status: "PASS",
                     feedback: [],
-                    overallScore: 90,
+                    overallScore: 0.9,
                     criticalIssues: [],
                     suggestions: [],
                     scores: {
@@ -67,6 +67,7 @@ export class BaseAgent {
                     model: this.modelName,
                     generationConfig: {
                         temperature,
+                        maxOutputTokens: 65536,
                         responseMimeType: jsonMode ? "application/json" : "text/plain"
                     }
                 });

@@ -17,6 +17,7 @@ const CACHE_TTL = 3600; // 1 hour in seconds
 export const performAnalysis = async (userId, text, projectId = null, parentId = null, rootId = null, settings = {}, analysisId = null) => {
     let resultJson;
     let analysisMeta = {};
+    let finalIndustryAudit = null;
 
     try {
         // ORCHESTRATION START
@@ -60,9 +61,8 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         // 4. Pillar 1: Reflection Loop (Max 2 refinement passes)
         let loopCount = 0;
         const MAX_LOOPS = 2;
-        const QUALITY_THRESHOLD = 8.5;
+        const QUALITY_THRESHOLD = 0.85;
         let reflectionFeedback = [];
-        let finalIndustryAudit = null;
 
         while (loopCount < MAX_LOOPS) {
             console.log(`--> Pillar 1: Reflection Pass ${loopCount + 1}`);
@@ -158,7 +158,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
     }
 
     // Run Quality Check (Linting)
-    const qualityAudit = lintRequirements(resultJson);
+    const qualityAudit = lintRequirements(resultJson, finalIndustryAudit);
     resultJson = {
         ...resultJson,
         qualityAudit,

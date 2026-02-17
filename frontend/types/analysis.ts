@@ -112,6 +112,11 @@ export interface AnalysisResult {
     qualityAudit?: {
         score: number
         issues: string[]
+        ieeeCompliance?: {
+            status: string;
+            missingSections?: string[];
+            standardAdherence?: string;
+        }
     }
     generatedCode?: Record<string, unknown> | null
 }

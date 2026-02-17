@@ -88,10 +88,29 @@ Historical Context (RAG):
 ${ragContext || "No historical context available."}
 
 ### OUTPUT SCHEMA (STRICTLY v1.1.0 COMPATIBLE):
-Return a JSON object with:
-- "techStack": { "frontend", "backend", "database" }
-- "databaseSchema": [ { "table", "columns", "relationships" } ]
-- "designDecisions": [ "List all critical design choices made and their technical justification. Judge the appropriate number of items based on the project complexity." ]
+Return a JSON object only. NO markdown blocks.
+{
+  "techStack": { 
+    "frontend": "string (e.g. Next.js, Tailwind)", 
+    "backend": "string (e.g. Node.js, Express)", 
+    "database": "string (e.g. PostgreSQL, Redis)" 
+  },
+  "databaseSchema": [ 
+    { 
+      "table": "string", 
+      "columns": ["string (type)"], 
+      "relationships": ["string"] 
+    } 
+  ],
+  "designDecisions": [ 
+    "A single string starting with a Title: and followed by a justification. DO NOT use an object here. Use a flat array of strings." 
+  ]
+}
+
+### FINAL RULES:
+1. "designDecisions" MUST be an ARRAY of strings, not an object.
+2. Ensure the JSON is complete and all arrays are closed. 
+3. Do not include any text before or after the JSON.
 `;
 
     return this.callLLM(prompt, 0.4, true);

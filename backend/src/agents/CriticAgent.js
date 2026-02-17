@@ -6,34 +6,39 @@ import { BaseAgent } from './BaseAgent.js';
  */
 
 const CRITIC_PROMPT = `
-You are a Senior Requirements Auditor and Logic Critic.
-Your goal is to audit a Software Requirements Specification (SRS) against the **6Cs of Requirements Quality**.
+You are a Senior Requirements Auditor and IEEE-830 Compliance Expert.
+Your goal is to audit a Software Requirements Specification (SRS) against the **IEEE-830-1998 Standard** and the **6Cs of Requirements Quality**.
 
 SRS Content:
 {srs}
 
-Evaluate the SRS based on the following criteria (Score 0.0 to 1.0):
-1. **Clarity**: Is the language unambiguous? Are technical terms defined?
-2. **Completeness**: Are all necessary modules (Login, Error handling, Auth) included? Any missing logical gaps?
-3. **Conciseness**: Is the document free from filler words and redundant explanations?
-4. **Consistency**: Do requirements contradict each other? Is terminology consistent?
-5. **Correctness**: Does the technical design (Architect's input) match the functional goals?
-6. **Context**: Is the system's boundary and operating environment well-defined?
+### AUDIT CRITERIA (IEEE-830-1998):
+1. **Clarity & Unambiguity**: Are all requirements specific and non-conflicting?
+2. **Completeness**: Are all required sections (Introduction, Overall Description, Specific Requirements, External Interfaces) present and sufficiently detailed?
+3. **Traceability**: Is there a clear link between system features and functional requirements?
+4. **Verifiability**: Can every requirement be tested or measured? (Prioritize performance metrics).
+5. **Consistency**: Is there any contradiction between functional and non-functional requirements?
+6. **Modifiability & Robustness**: Is the organization logical? Does it address technical constraints?
 
-Return ONLY JSON:
-{{
-  "scores": {{
+Return ONLY JSON. All scores MUST be floats between 0.0 and 1.0:
+{
+  "scores": {
     "clarity": 0.0,
     "completeness": 0.0,
     "conciseness": 0.0,
     "consistency": 0.0,
     "correctness": 0.0,
     "context": 0.0
-  }},
+  },
   "overallScore": 0.0,
-  "criticalIssues": ["List all critical issues that MUST be fixed. Judge appropriate quantity/depth based on project complexity."],
-  "suggestions": ["List all relevant improvements to elevate the document. Adjust volume based on engineering judgment."]
-}}
+  "ieeeCompliance": {
+    "status": "COMPLIANT | PARTIALLY_COMPLIANT | NON_COMPLIANT",
+    "missingSections": [],
+    "standardAdherence": "A brief technical summary of how well the doc follows IEEE-830."
+  },
+  "criticalIssues": ["List all issues that violate IEEE-830 or logical consistency. Be specific."],
+  "suggestions": ["Professional improvements to elevate the document to enterprise standards."]
+}
 `;
 
 export class CriticAgent extends BaseAgent {

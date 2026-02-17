@@ -75,6 +75,36 @@ export const QualityAuditTab = memo(function QualityAuditTab({
                             </div>
                         )}
                     </div>
+
+                    {qualityAudit.ieeeCompliance && (
+                        <div className="pt-4 border-t border-border/50 space-y-4">
+                            <h4 className="font-semibold text-sm flex items-center gap-2">
+                                <ShieldCheck className="h-4 w-4 text-primary" />
+                                IEEE-830-1998 Compliance Report
+                            </h4>
+                            <div className={`text-xs font-mono p-3 rounded border border-border/50 ${qualityAudit.ieeeCompliance.status === 'COMPLIANT' ? 'bg-green-500/5 text-green-500' :
+                                    qualityAudit.ieeeCompliance.status === 'PARTIALLY_COMPLIANT' ? 'bg-amber-500/5 text-amber-500' :
+                                        'bg-destructive/5 text-destructive'
+                                }`}>
+                                <div className="font-bold mb-1">Status: {qualityAudit.ieeeCompliance.status}</div>
+                                {qualityAudit.ieeeCompliance.standardAdherence && (
+                                    <div className="opacity-80">{qualityAudit.ieeeCompliance.standardAdherence}</div>
+                                )}
+                            </div>
+                            {qualityAudit.ieeeCompliance.missingSections && qualityAudit.ieeeCompliance.missingSections.length > 0 && (
+                                <div className="space-y-2">
+                                    <p className="text-xs font-semibold text-muted-foreground">Missing Standard Sections:</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {qualityAudit.ieeeCompliance.missingSections.map((section, sIdx) => (
+                                            <span key={sIdx} className="text-[10px] px-2 py-1 bg-muted rounded-full">
+                                                {section}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>
