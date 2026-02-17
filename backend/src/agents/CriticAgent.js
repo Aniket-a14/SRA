@@ -6,38 +6,39 @@ import { BaseAgent } from './BaseAgent.js';
  */
 
 const CRITIC_PROMPT = `
-You are a Senior Requirements Auditor and IEEE-830 Compliance Expert.
-Your goal is to audit a Software Requirements Specification (SRS) against the **IEEE-830-1998 Standard** and the **6Cs of Requirements Quality**.
+You are a Senior Requirements Auditor. Your goal is to audit a Software Requirements Specification (SRS) against the **Original User Requirements** to ensure it creates a professional and faithful technical bridge.
 
-SRS Content:
+### ORIGINAL USER REQUIREMENTS:
+{originalRequirements}
+
+### GENERATED SRS DRAFT:
 {srs}
 
-### AUDIT CRITERIA (IEEE-830-1998):
-1. **Clarity & Unambiguity**: Are all requirements specific and non-conflicting?
-2. **Completeness**: Are all required sections (Introduction, Overall Description, Specific Requirements, External Interfaces) present and sufficiently detailed?
-3. **Traceability**: Is there a clear link between system features and functional requirements?
-4. **Verifiability**: Can every requirement be tested or measured? (Prioritize performance metrics).
-5. **Consistency**: Is there any contradiction between functional and non-functional requirements?
-6. **Modifiability & Robustness**: Is the organization logical? Does it address technical constraints?
+### AUDIT CRITERIA (INDUSTRY PERSPECTIVE):
+1. **Faithful Translation**: Does the SRS accurately map the User Input into an IEEE-830 pattern?
+2. **Structural Connection**: Do the features and requirements logically support the project's core purpose?
+3. **Clarity & Patterns**: Is the document organization professional, even if some technical quantifiers are left for the dev team?
+4. **Verifiability**: Are the requirements clear enough to be tested, given the level of detail in the input?
+5. **Avoid Pedantry**: Do NOT penalize for "missing metrics" (e.g., exact RTO/RPO) if they were not in the input. Judge the quality of the translation and the soundness of the SRS pattern.
 
-Return ONLY JSON. All scores MUST be floats between 0.0 and 1.0:
+Return ONLY JSON. All scores MUST be integers between 0 and 100:
 {
   "scores": {
-    "clarity": 0.0,
-    "completeness": 0.0,
-    "conciseness": 0.0,
-    "consistency": 0.0,
-    "correctness": 0.0,
-    "context": 0.0
+    "clarity": 0,
+    "completeness": 0,
+    "conciseness": 0,
+    "consistency": 0,
+    "correctness": 0,
+    "context": 0
   },
-  "overallScore": 0.0,
+  "overallScore": 0,
   "ieeeCompliance": {
     "status": "COMPLIANT | PARTIALLY_COMPLIANT | NON_COMPLIANT",
     "missingSections": [],
-    "standardAdherence": "A brief technical summary of how well the doc follows IEEE-830."
+    "standardAdherence": "Summary of how well the doc follows the SRS pattern."
   },
-  "criticalIssues": ["List all issues that violate IEEE-830 or logical consistency. Be specific."],
-  "suggestions": ["Professional improvements to elevate the document to enterprise standards."]
+  "criticalIssues": ["Issues where the SRS severely diverges from or ignores the input. Be specific."],
+  "suggestions": ["Improvements to the mapping or professional tone."]
 }
 `;
 
@@ -46,8 +47,10 @@ export class CriticAgent extends BaseAgent {
         super("Senior QA Critic");
     }
 
-    async auditSRS(srsContent) {
-        const prompt = CRITIC_PROMPT.replace("{srs}", JSON.stringify(srsContent, null, 2));
+    async auditSRS(originalRequirements, srsContent) {
+        const prompt = CRITIC_PROMPT
+            .replace("{originalRequirements}", JSON.stringify(originalRequirements, null, 2))
+            .replace("{srs}", JSON.stringify(srsContent, null, 2));
 
         try {
             const auditResult = await this.callLLM(prompt, 0.3, true);

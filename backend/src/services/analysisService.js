@@ -61,17 +61,17 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         // 4. Pillar 1: Reflection Loop (Max 2 refinement passes)
         let loopCount = 0;
         const MAX_LOOPS = 2;
-        const QUALITY_THRESHOLD = 0.85;
+        const QUALITY_THRESHOLD = 85;
         let reflectionFeedback = [];
 
         while (loopCount < MAX_LOOPS) {
             console.log(`--> Pillar 1: Reflection Pass ${loopCount + 1}`);
 
             // A. Reviewer Audit (Security/Consistency)
-            const review = await qaAgent.reviewSRS(srsDraft);
+            const review = await qaAgent.reviewSRS(poOutput, srsDraft);
 
             // B. Critic Audit (6Cs Quality)
-            const audit = await criticAgent.auditSRS(srsDraft);
+            const audit = await criticAgent.auditSRS(poOutput, srsDraft);
             finalIndustryAudit = audit; // Keep track of the latest audit
 
             console.log(`    Review Status: ${review.status}, Quality Score: ${audit.overallScore}`);
@@ -84,7 +84,19 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
 
             // D. Threshold not met: Refine
             loopCount++;
-            console.log(`    [Refine] Score ${audit.overallScore} < ${QUALITY_THRESHOLD}. Refining...`);
+            const reason = review.status !== "APPROVED"
+                ? `QA Status: ${review.status}`
+                : `Quality Score: ${audit.overallScore} < ${QUALITY_THRESHOLD}`;
+
+            console.log(`    [Refine] ${reason}. Refining initial draft...`);
+
+            // Log specific issues for transparency
+            if (review.feedback?.length > 0) {
+                console.log(`    [QA Issues]: ${review.feedback.map(f => f.issue).join(' | ')}`);
+            }
+            if (audit.criticalIssues?.length > 0) {
+                console.log(`    [Critic Issues]: ${audit.criticalIssues.join(' | ')}`);
+            }
 
             reflectionFeedback = [
                 ...review.feedback,

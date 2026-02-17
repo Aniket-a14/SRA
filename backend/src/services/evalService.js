@@ -16,16 +16,16 @@ Context:
 Generated Response:
 {response}
 
-Evaluate based on these metrics (Score 0.0 to 1.0):
-1. **Faithfulness**: Is the response factually grounded ONLY in the retrieved context? (1.0 = Highly Faithful, 0.0 = Hallucinated)
-2. **Context Precision**: How much of the retrieved context was relevant to the user's intent? (1.0 = Highly Precise, 0.0 = Noise)
-3. **Answer Relevancy**: Does the response directly and exhaustively address the user's core request? (1.0 = Highly Relevant, 0.0 = Off-topic)
+Evaluate based on these metrics (Score 0 to 100):
+1. **Faithfulness**: Is the response factually grounded ONLY in the retrieved context? (100 = Highly Faithful, 0 = Hallucinated)
+2. **Context Precision**: How much of the retrieved context was relevant to the user's intent? (100 = Highly Precise, 0 = Noise)
+3. **Answer Relevancy**: Does the response directly and exhaustively address the user's core request? (100 = Highly Relevant, 0 = Off-topic)
 
 Return ONLY JSON:
 {{
-  "faithfulness": 0.0,
-  "contextPrecision": 0.0,
-  "answerRelevancy": 0.0,
+  "faithfulness": 0,
+  "contextPrecision": 0,
+  "answerRelevancy": 0,
   "reasoning": "Brief explanation for the scores."
 }}
 `;

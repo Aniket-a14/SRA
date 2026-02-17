@@ -33,19 +33,19 @@ export class BaseAgent {
                         security: ["Secure"]
                     },
                     // Reviewer / Critic specific fields
-                    score: 0.85,
-                    status: "PASS",
+                    score: 85,
+                    status: "APPROVED",
                     feedback: [],
-                    overallScore: 0.9,
+                    overallScore: 90,
                     criticalIssues: [],
                     suggestions: [],
                     scores: {
-                        clarity: 0.9, completeness: 0.8, conciseness: 0.9, consistency: 0.8, correctness: 0.9, context: 0.8
+                        clarity: 90, completeness: 80, conciseness: 90, consistency: 80, correctness: 90, context: 80
                     },
                     // Eval Service (RAG) specific fields
-                    faithfulness: 0.9,
-                    contextPrecision: 0.8,
-                    answerRelevancy: 0.9,
+                    faithfulness: 90,
+                    contextPrecision: 80,
+                    answerRelevancy: 90,
                     reasoning: "Mocked reasoning"
                 };
             }
@@ -110,14 +110,42 @@ export class BaseAgent {
     }
 
     parseJSON(text) {
+        let cleanText = text;
         try {
-            // Remove markdown code blocks if present (common with Gemini)
-            const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-            return JSON.parse(cleanText);
+            // 1. Remove markdown code blocks if present
+            cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+
+            // 2. Robust Extraction: Find the first '{' and the last '}'
+            const firstBrace = cleanText.indexOf('{');
+            const lastBrace = cleanText.lastIndexOf('}');
+
+            if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+                cleanText = cleanText.substring(firstBrace, lastBrace + 1);
+            }
+
+            // 3. Basic Repair: Remove trailing commas before closing braces/brackets
+            // This is a common hallucination in large LLM-generated JSON objects.
+            const repairedText = cleanText
+                .replace(/,\s*([\}\]])/g, '$1') // Remove trailing commas
+                .replace(/[\u0000-\u001F]+/g, ' '); // Remove accidental control characters
+
+            return JSON.parse(repairedText);
         } catch (error) {
-            console.error(`[${this.name}] JSON Parsing Failed. Full response follows:`);
-            console.error(text);
-            throw new Error(`${this.name} failed to parse JSON output. Check terminal logs for the full snippet.`);
+            console.error(`[${this.name}] JSON Parsing Failed:`, error.message);
+
+            // Helpful debugging: show where it failed if possible
+            if (error.message.includes('at position')) {
+                const posStr = error.message.match(/at position (\d+)/);
+                if (posStr) {
+                    const pos = parseInt(posStr[1]);
+                    const start = Math.max(0, pos - 50);
+                    const end = Math.min(cleanText.length, pos + 50);
+                    console.error('Context near error:');
+                    console.error('...' + cleanText.substring(start, pos) + ' >>> ' + (cleanText[pos] || '') + ' <<< ' + cleanText.substring(pos + 1, end) + '...');
+                }
+            }
+
+            throw new Error(`${this.name} failed to parse JSON output. See console for error position.`);
         }
     }
 }
