@@ -124,8 +124,14 @@ export class BaseAgent {
                 cleanText = cleanText.substring(firstBrace, lastBrace + 1);
             }
 
-            // 3. Use professional jsonrepair library for fault-tolerant parsing
-            // This handles trailing commas, missing quotes, unclosed brackets, etc.
+            // 3. Pre-fix common LLM JSON hallucinations before repair
+            // a) Remove accidentally doubled close braces or brackets followed by a comma
+            cleanText = cleanText.replace(/\}\s*\}\s*,\s*\{/g, '}, {');
+            cleanText = cleanText.replace(/\]\s*\]\s*,\s*\[/g, '], [');
+            // b) Remove trailing commas before a closing brace/bracket
+            cleanText = cleanText.replace(/,\s*\}/g, '}').replace(/,\s*\]/g, ']');
+
+            // 4. Use professional jsonrepair library for fault-tolerant parsing
             const repaired = jsonrepair(cleanText);
             return JSON.parse(repaired);
         } catch (error) {

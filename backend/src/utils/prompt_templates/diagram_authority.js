@@ -74,7 +74,7 @@ BEST PRACTICES & SAFETY
    - "Sequence Activations": Balance every \`activate\`/\`deactivate\` or use \`->>+\` / \`-->>-\`.
    - "Sequence Safety": NEVER quote alias IDs (e.g., \`participant U as "User"\`INVALID). Use \`participant U as User\`. Avoid \`{}\` in messages. NO activations inside \`alt\`/\`loop\`.
    - "ERD Syntax (STRICT)": Relationships MUST follow the pattern: ENTITY1 rel ENTITY2 : "label". The label MUST be last and quoted if it has spaces.
-   - "ERD Attributes (STRICT)": Use 'type name [PK|FK|UK] ["comment"]'. FORBIDDEN: NN. ONLY PK, FK, and UK are allowed.
+   - "ERD Attributes (STRICT)": Use 'type name [PK|FK|UK] ["comment"]'. Multiple keys (e.g. PK, FK) MUST be comma-separated. FORBIDDEN: NN.
 
 ================================================================
 OUTPUT RULE
@@ -128,7 +128,7 @@ STRICT COMPLIANCE OVERLAY (OVERRIDES KNOWLEDGE BASE)
    - **Aliases**: NEVER quote alias IDs (e.g., \`participant U as "User"\`INVALID). Use \`participant U as User\`.
    - **Messages**: Avoid special chars like \`{}\` in message labels.
    - **Blocks**: Do NOT use \`activate\` inside \`alt\`/\`opt\`/\`loop\` blocks.
-4. **ERD Keys**: ONLY \`PK\`, \`FK\`, and \`UK\` are allowed. \`NN\` (Not Null) is FORBIDDEN.
+4. **ERD Keys**: ONLY \`PK\`, \`FK\`, and \`UK\` are allowed. Multiple keys MUST be comma-separated (e.g., \`PK, FK\`). \`NN\` (Not Null) is FORBIDDEN.
 5. **ERD Relationships**: \`ENTITY1 || --o{ ENTITY2 : "label"\`. Label MUST be quoted.
 
 ================================================================

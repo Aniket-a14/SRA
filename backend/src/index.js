@@ -4,6 +4,7 @@ import analyzeRoute from "./routes/analyze.js";
 import cors from "cors";
 import { errorHandler } from "./middleware/errorMiddleware.js";
 import { logger } from "./middleware/logger.js";
+import reuseRoutes from "./routes/reuseRoutes.js";
 
 dotenv.config();
 
@@ -13,6 +14,7 @@ app.use(cors());
 app.use(logger);
 
 app.use("/analyze", analyzeRoute);
+app.use("/reuse", reuseRoutes);
 
 app.use(errorHandler);
 

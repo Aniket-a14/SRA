@@ -7,7 +7,7 @@ import useSWR from "swr";
 import { fetcher, swrOptions } from "@/lib/swr-utils";
 
 import { Button } from "@/components/ui/button"
-import { Loader2, ArrowLeft, Calendar, Download, Sparkles, Database, Save } from "lucide-react"
+import { Loader2, ArrowLeft, Calendar, Download, Sparkles, Database, Save, Zap } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
@@ -52,6 +52,7 @@ const VersionTimeline = dynamic(() => import("@/components/version-timeline").th
 const ImprovementDialog = dynamic(() => import("@/components/improvement-dialog").then(mod => mod.ImprovementDialog))
 const AccordionInput = dynamic(() => import("@/components/analysis/accordion-input").then(mod => mod.AccordionInput))
 const ValidationReport = dynamic(() => import("@/components/analysis/validation-report").then(mod => mod.ValidationReport))
+const RecyclingPanel = dynamic(() => import("@/components/analysis/recycling-panel").then(mod => mod.RecyclingPanel))
 
 
 
@@ -615,6 +616,34 @@ function AnalysisDetailContent() {
 
                                 {/* Action Toolbar (Layers 4 & 5) */}
                                 <div className="flex items-center gap-2 pl-12 md:pl-0">
+                                    {/* Pillar 2: Requirement Recycling */}
+                                    <Sheet>
+                                        <SheetTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                className="gap-2 border-primary/20 hover:bg-primary/5 hover:text-primary"
+                                                disabled={analysis?.isFinalized}
+                                            >
+                                                <Zap className="h-4 w-4 text-amber-500" />
+                                                Recycling
+                                            </Button>
+                                        </SheetTrigger>
+                                        <SheetContent className="w-[400px] sm:w-[500px] p-6">
+                                            <SheetHeader className="mb-6">
+                                                <SheetTitle>Knowledge Recycling</SheetTitle>
+                                            </SheetHeader>
+                                            <RecyclingPanel
+                                                onApply={(content) => {
+                                                    toast.info("Manual recycling initiated. Use 'Improve SRS' or the AI Chat to merge this specific fragment into your current version.");
+                                                    // For now, we copy to clipboard to help the user. 
+                                                    // In a future update, we could inject directly into the MAS refinement loop.
+                                                    navigator.clipboard.writeText(JSON.stringify(content, null, 2));
+                                                    toast.success("Requirement fragment copied to clipboard for reuse!");
+                                                }}
+                                            />
+                                        </SheetContent>
+                                    </Sheet>
+
                                     {/* Layer 4: Improve */}
                                     <Button
                                         onClick={() => setIsImproveDialogOpen(true)}

@@ -41,6 +41,7 @@ In contemporary software development, **43% of project failures** are attributed
 *   **AI-Driven Governance**: Real-time logic checking to identify contradictions, missing logic, and technical gaps.
 *   **High-Fidelity Visuals**: Automated generation of multi-level Data Flow Diagrams (DFD) and system-level Mermaid diagrams.
 *   **Semantic Intelligence**: Leverages vector-based knowledge retrieval (RAG) and **Graph-Hybrid Search** to ensure consistency across complex project portfolios.
+*   **Intelligent Requirement Recycling**: Proactively suggests high-quality requirement fragments from past "Gold Standard" projects to accelerate new SRS drafting.
 *   **Objective Quality Auditing**: Real-time scoring against the **6Cs of Requirements Quality** (Clarity, Completeness, etc.).
 *   **Industry Benchmarking**: Integrated RAG evaluation for **Faithfulness** and **Answer Relevancy**.
 

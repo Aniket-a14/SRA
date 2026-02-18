@@ -18,9 +18,9 @@ model User {
   createdAt DateTime   @default(now())
   accounts  Account[]
   analyses  Analysis[]
+  apiKeys   ApiKey[]
   projects  Project[]
   sessions  Session[]
-  apiKeys   ApiKey[]
 }
 
 model Session {
@@ -95,32 +95,32 @@ model Account {
 }
 
 model Project {
-  id          String     @id @default(uuid())
+  id          String      @id @default(uuid())
   name        String
   description String?
   userId      String
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
   settings    Json?
   analyses    Analysis[]
-  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   nodes       GraphNode[]
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
 
 model KnowledgeChunk {
-  id               String   @id @default(uuid())
+  id               String                 @id @default(uuid())
   type             String
   content          Json
   hash             String
   tags             String[]
-  qualityScore     Float?
-  metadata         Json?
   sourceAnalysisId String
-  embedding        Unsupported("vector(768)")?
-  createdAt        DateTime @default(now())
-  sourceAnalysis   Analysis @relation(fields: [sourceAnalysisId], references: [id])
+  createdAt        DateTime               @default(now())
+  embedding        Unsupported("vector")?
+  metadata         Json?
+  qualityScore     Float?
+  sourceAnalysis   Analysis               @relation(fields: [sourceAnalysisId], references: [id])
 
   @@index([type])
   @@index([hash])
@@ -129,17 +129,16 @@ model KnowledgeChunk {
 }
 
 model GraphNode {
-  id        String @id @default(uuid())
-  projectId String
-  name      String
-  type      String
-  metadata  Json?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id            String      @id @default(uuid())
+  projectId     String
+  name          String
+  type          String
+  metadata      Json?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
   outgoingEdges GraphEdge[] @relation("SourceNode")
   incomingEdges GraphEdge[] @relation("TargetNode")
+  project       Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, name, type])
   @@index([projectId])
@@ -147,15 +146,14 @@ model GraphNode {
 }
 
 model GraphEdge {
-  id       String @id @default(uuid())
-  sourceId String
-  targetId String
-  relation String
-  metadata Json?
-  createdAt DateTime @default(now())
-
-  source GraphNode @relation("SourceNode", fields: [sourceId], references: [id], onDelete: Cascade)
-  target GraphNode @relation("TargetNode", fields: [targetId], references: [id], onDelete: Cascade)
+  id        String    @id @default(uuid())
+  sourceId  String
+  targetId  String
+  relation  String
+  metadata  Json?
+  createdAt DateTime  @default(now())
+  source    GraphNode @relation("SourceNode", fields: [sourceId], references: [id], onDelete: Cascade)
+  target    GraphNode @relation("TargetNode", fields: [targetId], references: [id], onDelete: Cascade)
 
   @@index([sourceId])
   @@index([targetId])
@@ -163,15 +161,14 @@ model GraphEdge {
 }
 
 model ApiKey {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   userId    String
   name      String
-  key       String   @unique
-  lastUsed  DateTime @default(now())
-  createdAt DateTime @default(now())
+  key       String    @unique
+  lastUsed  DateTime  @default(now())
+  createdAt DateTime  @default(now())
   expiresAt DateTime?
-
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([key])

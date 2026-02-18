@@ -20,6 +20,7 @@ router.put('/:id', updateAnalysis);
 router.post('/:id/code', generateCode);
 router.post('/:id/regenerate', regenerate);
 router.post('/:id/validate', validateAnalysis);
+router.post('/:id/finalize', finalizeAnalysis);
 router.post('/:id/auto-fix', autoFixValidationIssue);
 router.post('/:id/chat', chat);
 router.get('/:id/chat', getChatHistory);

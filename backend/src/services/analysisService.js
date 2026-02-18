@@ -43,12 +43,26 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
             version: promptVersion
         });
 
-        // 2.5 Pillar 2: Requirement Recycling (RAG for Developer)
-        console.log("--> Pillar 2: Retrieving Recyclable Requirements");
-        const features = (poOutput?.systemFeatures || poOutput?.features || []);
-        const query = features.length > 0 ? features[0].name : text.substring(0, 100);
-        const recyclableChunks = await retrieveContext(query, projectId, 5);
-        const ragContext = formatRagContext(recyclableChunks);
+        // 2.5 Pillar 2: Multi-Query RAG (Intelligent Recycling)
+        console.log("--> Pillar 2: Active Requirement Recycling (Multi-Query RAG)");
+        const featureList = (poOutput?.systemFeatures || poOutput?.features || []);
+        let allRecyclableChunks = [];
+
+        // Surgical RAG: Search for EACH identified feature
+        if (featureList.length > 0) {
+            for (const feature of featureList.slice(0, 5)) { // Cap to 5 to avoid latency
+                const chunks = await retrieveContext(feature.name, projectId, 2);
+                allRecyclableChunks = [...allRecyclableChunks, ...chunks];
+            }
+        } else {
+            // Fallback to general context
+            const chunks = await retrieveContext(text.substring(0, 100), projectId, 5);
+            allRecyclableChunks = chunks;
+        }
+
+        // De-duplicate by content hash if possible, otherwise by ID
+        const uniqueChunks = Array.from(new Map(allRecyclableChunks.map(c => [c.id || JSON.stringify(c.content), c])).values());
+        const ragContext = formatRagContext(uniqueChunks);
 
         // 3. Developer: Write initial draft
         console.log("--> Agent: Developer (Initial Draft)");
@@ -470,10 +484,11 @@ async function validateAndAutoRepairDiagrams(srs, settings) {
                     needsRepair = true;
                     heuristicError = "ERD labels with spaces must be double-quoted.";
                 }
-                // Rule: Forbid invalid keys (UK, NN, etc.) and multiple keys (FK UK)
-                if (/\b(UK|NN)\b/.test(code) || /\b(PK|FK)\s+(PK|FK|UK|NN)\b/.test(code)) {
+                // Rule: Forbid invalid keys (NN) and space-separated multiple keys (e.g. PK FK)
+                // UK is supported. Multiple keys MUST be comma-separated.
+                if (/\b(NN)\b/.test(code) || /\b(PK|FK|UK)\s+(PK|FK|UK)\b/.test(code)) {
                     needsRepair = true;
-                    heuristicError = "ERD uses invalid or multiple attribute keys (UK, NN, or FK UK detected).";
+                    heuristicError = "ERD uses invalid key (NN forbidden) or incorrectly formatted multiple keys (must be comma-separated, e.g., PK, FK).";
                 }
             }
 

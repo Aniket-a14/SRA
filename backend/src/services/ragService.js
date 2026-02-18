@@ -1,3 +1,4 @@
+import { Prisma } from '../generated/prisma/index.js';
 import prisma from '../config/prisma.js';
 import { embedText } from './embeddingService.js';
 
@@ -35,8 +36,10 @@ export const retrieveContext = async (queryText, projectId = null, limit = 5) =>
             JOIN "Analysis" a ON kc."sourceAnalysisId" = a.id
             LEFT JOIN "Project" p ON a."projectId" = p.id
             WHERE kc.embedding IS NOT NULL
-            -- Prioritize Gold Standard (High Quality) then Similarity
-            ORDER BY kc."qualityScore" DESC NULLS LAST, kc.embedding <=> ${vectorStr}::vector ASC
+            -- PILLAR 2: Aggressive Prioritization of High-Quality (Gold Standard) fragments
+            ORDER BY 
+                CASE WHEN kc."qualityScore" >= 0.85 THEN 1 ELSE 0 END DESC,
+                kc.embedding <=> ${vectorStr}::vector ASC
             LIMIT ${limit};
         `;
 
@@ -91,10 +94,50 @@ export const formatRagContext = (chunks) => {
         const sourceInfo = chunk.sourceTitle ? ` (from ${chunk.sourceTitle})` : "";
         const qualityLabel = (chunk.qualityScore && chunk.qualityScore >= 0.85) ? " [GOLD STANDARD]" : "";
         context += `--- REFERENCE ${i + 1} (${chunk.type}${sourceInfo})${qualityLabel} ---\n`;
-        context += JSON.stringify(chunk.content, null, 2);
+
+        let contentStr = JSON.stringify(chunk.content, null, 2);
+        // Truncate individual chunk content if it's excessively large (e.g. > 1500 chars)
+        if (contentStr.length > 1500) {
+            contentStr = contentStr.substring(0, 1500) + "\n... [TRUNCATED FOR BREVITY] ...";
+        }
+
+        context += contentStr;
         context += "\n\n";
     });
 
     context += "[RELEVANT_KNOWLEDGE_BASE_CONTEXT_END]\n";
+
+    // Final safety cap: Ensure total context doesn't exceed 8000 characters
+    if (context.length > 8000) {
+        context = context.substring(0, 8000) + "\n\n... [ADDITIONAL CONTEXT OMITTED TO PRESERVE MODEL FOCUS] ...\n[RELEVANT_KNOWLEDGE_BASE_CONTEXT_END]";
+    }
+
     return context;
+};
+
+/**
+ * Explicitly searches for high-quality requirement fragments for manual reuse.
+ * Pillar 2 specialized search.
+ */
+export const searchGoldStandardFragments = async (query, type = null) => {
+    try {
+        const embedding = await embedText(query);
+        const vectorStr = `[${embedding.join(',')}]`;
+
+        const matches = await prisma.$queryRaw`
+            SELECT 
+                id, type, content, tags, "qualityScore"
+            FROM "KnowledgeChunk"
+            WHERE embedding IS NOT NULL
+            ${type ? Prisma.sql`AND type = ${type}` : Prisma.empty}
+            AND "qualityScore" >= 0.70
+            ORDER BY embedding <=> ${vectorStr}::vector ASC
+            LIMIT 5;
+        `;
+
+        return matches;
+    } catch (error) {
+        console.error("[RAG Service] Gold Standard search failed:", error);
+        return [];
+    }
 };

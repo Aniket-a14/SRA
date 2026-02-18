@@ -20,6 +20,7 @@ import validationRoutes from './routes/validationRoutes.js';
 import aiEndpoint from './routes/aiEndpoint.js';
 import healthRoutes from './routes/healthRoutes.js';
 import workerRoutes from './routes/workerRoutes.js';
+import reuseRoutes from './routes/reuseRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,7 +37,6 @@ try {
 import { getCSP } from './config/security.js';
 import { auditLogger } from './middleware/auditLogger.js';
 
-// ... imports remain the same
 
 const app = express();
 
@@ -118,6 +118,7 @@ app.use(['/analyze', '/api/analyze'], aiLimiter, analysisRoutes);
 app.use(['/projects', '/api/projects'], projectRoutes);
 app.use(['/validation', '/api/validation'], validationRoutes);
 app.use(['/worker', '/api/worker'], workerRoutes);
+app.use(['/reuse', '/api/reuse'], reuseRoutes);
 
 
 // Error Handler
