@@ -2,6 +2,7 @@
 
 import { Navbar } from "@/components/navbar"
 import { SecuritySettings } from "@/components/security-settings"
+import { ApiKeyManager } from "@/components/api-key-manager"
 import { useAuth } from "@/lib/auth-context"
 import { redirect } from "next/navigation"
 
@@ -24,6 +25,11 @@ export default function SettingsPage() {
                     <div className="space-y-4">
                         <h2 className="text-xl font-semibold">Account Security</h2>
                         <SecuritySettings />
+                    </div>
+
+                    <div className="space-y-4">
+                        <h2 className="text-xl font-semibold">API Access</h2>
+                        <ApiKeyManager />
                     </div>
                 </div>
             </main>

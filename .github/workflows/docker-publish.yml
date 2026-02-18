@@ -10,6 +10,7 @@ env:
   REGISTRY: ghcr.io
   BACKEND_IMAGE_NAME: ${{ github.repository }}-backend
   FRONTEND_IMAGE_NAME: ${{ github.repository }}-frontend
+  CLI_IMAGE_NAME: ${{ github.repository }}-cli
 
 jobs:
   build-and-push:
@@ -56,3 +57,17 @@ jobs:
           push: true
           tags: ${{ steps.meta-frontend.outputs.tags }}
           labels: ${{ steps.meta-frontend.outputs.labels }}
+
+      - name: Extract metadata (tags, labels) for CLI
+        id: meta-cli
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.CLI_IMAGE_NAME }}
+
+      - name: Build and push CLI image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./cli
+          push: true
+          tags: ${{ steps.meta-cli.outputs.tags }}
+          labels: ${{ steps.meta-cli.outputs.labels }}

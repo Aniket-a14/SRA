@@ -956,6 +956,47 @@ export const generateSRS = async (data: AnalysisResult, title: string, diagramIm
 
             addSubHeader(`${featNum}.3`, "Functional Requirements");
             addRequirementList(feature.functionalRequirements, 'functional', projectAcronym);
+
+            // Audit Trail: Verification Metadata
+            if (feature.status || (feature.verification_files && feature.verification_files.length > 0)) {
+                yPos += 2;
+                checkPageBreak(15);
+
+                // Status Line
+                if (feature.status) {
+                    doc.setFont("times", "bold");
+                    doc.text("Implementation Status: ", margins.left + 5, yPos);
+                    const statusX = margins.left + 5 + doc.getTextWidth("Implementation Status: ");
+
+                    const status = feature.status.toUpperCase();
+                    if (status === 'VERIFIED') doc.setTextColor(0, 128, 0); // Green
+                    else if (status === 'FAILED') doc.setTextColor(200, 0, 0); // Red
+                    else doc.setTextColor(100, 100, 100); // Gray
+
+                    doc.text(status, statusX, yPos);
+                    doc.setTextColor(0, 0, 0); // Reset
+                    yPos += 6;
+                }
+
+                // Files List
+                if (feature.verification_files && feature.verification_files.length > 0) {
+                    doc.setFont("times", "bold");
+                    doc.text("Associated Implementation Files:", margins.left + 5, yPos);
+                    yPos += 5;
+                    doc.setFont("courier", "normal");
+                    doc.setFontSize(10);
+
+                    feature.verification_files.forEach(file => {
+                        checkPageBreak(5);
+                        doc.text(`- ${file}`, margins.left + 10, yPos);
+                        yPos += 5;
+                    });
+
+                    doc.setFontSize(12);
+                    doc.setFont("times", "normal");
+                    yPos += 4;
+                }
+            }
         });
     }
 

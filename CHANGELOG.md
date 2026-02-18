@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.0.0] - 2026-02-18
+
+### 🚀 SRA CLI Toolkit (Major Release)
+- **Launched** the official SRA CLI ecosystem (`@aniket_a14/sra-cli`).
+- **Implemented** full Spec-to-Code traceability loop.
+- **Added** commands: `init`, `sync`, `check`, `push`, `reverse`, and `doctor`.
+- **Refactored** CLI to an Enterprise-grade modular architecture (`src/` layered pattern).
+- **Established** professional API client with resilience interceptors and multi-stage config management.
+
+### 🏛️ Backend & Data Integrity
+- **Hardened** `analysisController.js` with advanced data-merging logic to synchronize CLI verification data with cloud updates without data loss.
+- **Implemented** secure spread operations for project metadata preservation.
+
+### 📊 Frontend & Export Polish
+- **Updated** `FeatureDisplay` to reflect real-time local verification status synced from the CLI.
+- **Enhanced** `export-utils.ts` to include a full **Audit Trail** in PDF reports, listing implementation files for every requirement.
+
+---
+
 ## [3.2.1] - 2026-02-14
 
 ### 🔍 AI Reliability & Quality

@@ -1,6 +1,6 @@
 {
   "name": "backend",
-  "version": "3.2.1",
+  "version": "4.0.0",
   "description": "",
   "main": "index.js",
   "engines": {
@@ -19,6 +19,7 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@aniket_a14/sra-cli": "^1.2.1",
     "@dagrejs/dagre": "^2.0.3",
     "@google/generative-ai": "^0.24.1",
     "@prisma/adapter-pg": "^7.3.0",

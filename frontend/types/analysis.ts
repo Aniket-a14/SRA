@@ -45,10 +45,14 @@ export interface ExternalInterfaceRequirements {
 }
 
 export interface SystemFeature {
+    id?: string;
     name: string;
     description: string;
     stimulusResponseSequences: string[];
     functionalRequirements: string[];
+    // CLI Verification Fields
+    status?: 'pending' | 'verified' | 'failed';
+    verification_files?: string[];
 }
 
 export interface NonFunctionalRequirements {

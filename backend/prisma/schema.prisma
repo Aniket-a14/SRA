@@ -20,6 +20,7 @@ model User {
   analyses  Analysis[]
   projects  Project[]
   sessions  Session[]
+  apiKeys   ApiKey[]
 }
 
 model Session {
@@ -159,4 +160,19 @@ model GraphEdge {
   @@index([sourceId])
   @@index([targetId])
   @@index([relation])
+}
+
+model ApiKey {
+  id        String   @id @default(uuid())
+  userId    String
+  name      String
+  key       String   @unique
+  lastUsed  DateTime @default(now())
+  createdAt DateTime @default(now())
+  expiresAt DateTime?
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([key])
 }

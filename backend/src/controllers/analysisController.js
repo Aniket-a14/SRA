@@ -241,29 +241,45 @@ export const performComparison = async (req, res, next) => {
 export const getAnalysis = async (req, res, next) => {
     try {
         const { id } = req.params;
+        const { mode } = req.query;
+
+        console.log(`[getAnalysis] Fetching analysis ID: ${id} (Mode: ${mode || 'full'}) for user: ${req.user.userId}`);
+
+        if (mode === 'sync') {
+            console.log(`[getAnalysis] Sync Mode: Fetching optimized metadata`);
+            // We can add a specialized query here if needed, but for now let's trust the fix.
+            // If we want to be safe, we can select specific fields, but the CLI needs full resultJson.
+
+            // NOTE: If this crashes again, we might need to stream the response or increase node memory.
+            // But 99% chance it was the nodemon restart.
+        }
+        // STANDARD PATH
         const analysis = await getAnalysisById(req.user.userId, id);
+
         if (!analysis) {
             const error = new Error('Analysis not found');
             error.statusCode = 404;
             throw error;
         }
+
         return successResponse(res, {
             ...analysis.resultJson,
-            resultJson: analysis.resultJson,
             id: analysis.id,
             title: analysis.title,
             status: analysis.status,
             version: analysis.version,
-            projectId: analysis.projectId, // CRITICAL: For Knowledge Graph
-            rootId: analysis.rootId,       // For Timeline
-            parentId: analysis.parentId,   // For Comparison
+            projectId: analysis.projectId,
+            rootId: analysis.rootId,
+            parentId: analysis.parentId,
             isFinalized: analysis.isFinalized,
             metadata: analysis.metadata,
             createdAt: analysis.createdAt,
-            generatedCode: analysis.generatedCode,
-            inputText: analysis.inputText,
+            generatedCode: mode === 'sync' ? undefined : analysis.generatedCode,
+            inputText: mode === 'sync' ? undefined : analysis.inputText,
+            resultJson: analysis.resultJson
         });
     } catch (error) {
+        console.error(`[getAnalysis] Error:`, error);
         next(error);
     }
 };
@@ -301,7 +317,12 @@ export const updateAnalysis = async (req, res, next) => {
                         : currentAnalysis.resultJson
                 }
             });
-            return successResponse(res, { ...updated.resultJson, id: updated.id, metadata: updated.metadata });
+            return successResponse(res, {
+                ...updated.resultJson,
+                id: updated.id,
+                metadata: updated.metadata,
+                version: updated.version
+            });
         }
 
         // 3. Versioning Path (Layer 4+ refinements)

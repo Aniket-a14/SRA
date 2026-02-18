@@ -20,7 +20,7 @@ const createStore = (prefix) => {
 // Strict limiter for authentication routes (login, signup, etc.)
 export const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    limit: 10, // Limit each IP to 10 requests per window
+    limit: 100, // Limit each IP to 100 requests per window (Relaxed for API Key management)
     standardHeaders: true,
     legacyHeaders: false,
     store: createStore('rl:auth:'), // Unique store with prefix

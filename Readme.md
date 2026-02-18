@@ -103,6 +103,13 @@ graph TD
 *   **Revision History**: Complete versioning system with visual diff tracking between requirement updates.
 *   **Audit-Ready Exports**: One-click professional PDF generation with table of contents and revision logs.
 
+### 🛠️ SRA CLI Toolkit (v4.0)
+*   **Spec-to-Code Traceability**: Direct link between cloud requirements and local source code implementations.
+*   **Local Compliance Engine**: Run `sra check` locally to verify that your code matches the official specification.
+*   **Automated Sync**: One-command synchronization of requirements into your developer workspace.
+*   **System Diagnostics**: Professional `sra doctor` utility for environment validation and connectivity troubleshooting.
+*   **Reverse Engineering**: Beta support for generating requirements directly from existing codebases.
+
 ---
 
 ## 🛡️ Production Hardening
@@ -285,6 +292,13 @@ docker-compose up --build -d
 *   **Application UI**: `http://localhost:3001` (Next.js Standalone Build)
 *   **Registry**: `ghcr.io/aniket-a14/sra-backend:latest`
 
+#### 🛠️ CLI Toolkit (Production Ready)
+The SRA CLI is the heart of the v4.0 workflow. Install it globally to sync your code with your specs:
+```bash
+npm install -g @aniket_a14/sra-cli
+sra init
+```
+
 #### ⚒️ Manual Infrastructure Setup
 For local development or specialized environments:
 ```bash
@@ -347,8 +361,9 @@ SRA/
 - [x] **v3.0**: Enterprise Security Monitoring & Audit Logging.
 - [x] **v3.1**: **Distributed Rate Limiting & Load Balancing**.
 - [x] **v3.2**: **Industry Benchmarking & MAS Refinement**.
-- [ ] **v3.5**: Collaborative Real-time Multi-User Editing.
-- [ ] **v4.0**: Custom Model Fine-tuning (MLOps integration).
+- [x] **v4.0**: **Full CLI Toolkit & Spec-to-Code Traceability**.
+- [ ] **v4.5**: Collaborative Real-time Multi-User Editing.
+- [ ] **v5.0**: Custom Model Fine-tuning (MLOps integration).
 
 ### Contributing
 We welcome contributions from the community. Please review our [Contribution Guidelines](CONTRIBUTING.md) and [Governance Policy](GOVERNANCE.md) for architectural context and coding standards.

@@ -107,6 +107,12 @@ if (swaggerDocument) {
 app.use('/internal/analyze', aiEndpoint);
 
 // Public/Protected Routes
+// Public/Protected Routes
+app.use((req, res, next) => {
+    // console.log(`[RAW REQUEST] ${req.method} ${req.url}`);
+    next();
+});
+
 app.use(['/auth', '/api/auth'], authLimiter, authRoutes);
 app.use(['/analyze', '/api/analyze'], aiLimiter, analysisRoutes);
 app.use(['/projects', '/api/projects'], projectRoutes);

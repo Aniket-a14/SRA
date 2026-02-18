@@ -45,6 +45,13 @@ graph TD
             PO & Arch & Dev & Critic & Eval -.->|Timeout / Retry| LLM[Gemini 2.5 Flash]
         end
     end
+
+    subgraph "Local Execution Layer (CLI Toolkit)"
+        CLI["SRA CLI (@aniket_a14/sra-cli)"] -->|Auth/Sync| Gateway
+        CLI -->|Verify| Code[(Local Source Code)]
+        Code -->|Verification Data| CLI
+        CLI -->|Push Audit Trail| Gateway
+    end
 ```
 
 ---
@@ -78,6 +85,19 @@ The core innovation of SRA is its rigid, automated pipeline that ensures require
 *   **Purpose**: Enterprise-scale requirement reuse.
 *   **persistence**: Shreds finalized requirements into semantic fragments and indexes them via `pgvector`.
 *   **Result**: Sub-second context retrieval for project-level consistency.
+
+---
+
+## 🛠️ The Traceability Loop (Local Execution)
+
+SRA v4.0 introduces the **Local Execution Layer**, bridging the gap between cloud-based requirements and local engineering efforts.
+
+### SRA CLI Toolkit
+The CLI acts as the "Compliance Officer" in the developer's workspace:
+1. **Intake & Sync**: Polls finalized SRS data and generates `sra.spec.json`.
+2. **Implementation Verification**: Scans the source code to ensure every functional requirement is backed by a code implementation.
+3. **Audit Trail Synchronization**: Pushes local verification statuses (Verified, Failed, Pending) back to the SRA Platform.
+4. **Professional Reporting**: Enables the generation of "Spec-to-Code" audit trails in the finalized PDF exports.
 
 ---
 

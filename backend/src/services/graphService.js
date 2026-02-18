@@ -1,5 +1,4 @@
 import prisma from '../config/prisma.js';
-import { genAI } from '../config/gemini.js';
 import { BaseAgent } from '../agents/BaseAgent.js';
 
 // Graph Extraction Prompt
@@ -112,7 +111,7 @@ export const storeGraph = async (graphData, projectId, prismaClient = prisma) =>
                     }
                 }
             }
-        });
+        }, { timeout: 15000 });
         console.log(`[GraphService] Stored ${graphData.nodes.length} nodes and ${graphData.edges.length} edges for Project ${projectId}`);
 
     } catch (error) {
@@ -124,7 +123,7 @@ export const storeGraph = async (graphData, projectId, prismaClient = prisma) =>
  * Traverses the graph to find connected entities.
  * Returns a text summary of neighbors for RAG context.
  */
-export const traverseGraph = async (nodeNames, projectId, depth = 1, prismaClient = prisma) => {
+export const traverseGraph = async (nodeNames, projectId, depth, prismaClient = prisma) => {
     if (!nodeNames || nodeNames.length === 0) return "";
 
     try {

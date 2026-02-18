@@ -1,8 +1,11 @@
 import { getLatestVersion } from "../utils/promptRegistry.js";
 import { constructMasterPrompt, DIAGRAM_REPAIR_PROMPT } from "../utils/prompts.js";
 import { genAI } from "../config/gemini.js";
+import { openai } from "../config/openai.js";
 import { AnalysisResultSchema } from "../utils/schemas.js";
 import { sanitizePII } from "../utils/sanitizer.js";
+
+import { retrieveContext, formatRagContext } from "./ragService.js";
 
 export async function analyzeText(text, settings = {}) {
   // PII REDACTION for production safety
@@ -12,6 +15,7 @@ export async function analyzeText(text, settings = {}) {
     modelName = "gemini-2.5-flash",
     promptVersion = getLatestVersion(),
     systemPrompt = null,
+    projectId = null, // Extract projectId if available
     ...promptSettings
   } = settings;
 
@@ -59,7 +63,29 @@ REMINDER: Return ONLY a valid JSON object.
 
     if (!projectName) projectName = "Project";
 
+    // --- INTELLIGENT RECYCLING (RAG INJECTION) ---
+    // Retrieve context from similar past projects to guide generation
+    let ragContextString = "";
+    try {
+      // Use text as query, and current projectId for graph context
+      const ragResults = await retrieveContext(text, projectId);
+      ragContextString = formatRagContext(ragResults);
+
+      if (ragContextString) {
+        console.log(`[AI Service] Injected RAG Context (${ragResults.length} chunks) for project: ${projectName}`);
+      }
+    } catch (ragError) {
+      console.warn("[AI Service] RAG Injection warning:", ragError.message);
+      // Continue without RAG if it fails (fallback to base model)
+    }
+    // ---------------------------------------------
+
     masterPrompt = await constructMasterPrompt({ ...promptSettings, projectName }, promptVersion);
+
+    // Inject RAG Context into the System Prompt
+    if (ragContextString) {
+      masterPrompt += `\n\n${ragContextString}`;
+    }
 
     if (settings.systemPromptExtension) {
       masterPrompt += `\n\n${settings.systemPromptExtension}`;
@@ -114,6 +140,9 @@ ${text}
       const targetSchema = settings.zodSchema === null ? null : (settings.zodSchema || AnalysisResultSchema);
 
       if (modelProvider === "openai") {
+        if (!openai) {
+          throw new Error("OpenAI API Key is missing. Please configure OPENAI_API_KEY in .env.");
+        }
         const completion = await callWithTimeout(openai.chat.completions.create({
           messages: [{ role: "system", content: masterPrompt }, { role: "user", content: text }],
           model: modelName,

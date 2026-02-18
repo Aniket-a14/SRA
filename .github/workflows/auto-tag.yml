@@ -1,4 +1,4 @@
-name: Auto Tag Backend Version
+name: Auto Tag Project Version
 
 on:
   workflow_dispatch:
@@ -7,6 +7,8 @@ on:
       - main
     paths:
       - 'backend/package.json'
+      - 'frontend/package.json'
+      - 'cli/package.json'
 
 permissions:
   contents: write

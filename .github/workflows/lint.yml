@@ -37,4 +37,20 @@ jobs:
           cache: 'npm'
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
-      # - run: npm run lint # Assuming there's a lint script in backend package.json
+      - run: npm run lint
+
+  lint-cli:
+    name: Lint CLI
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cli
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: cli/package-lock.json
+      - run: npm ci
+      # - run: npm run lint # Add lint script to cli/package.json if needed

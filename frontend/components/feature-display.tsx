@@ -119,6 +119,15 @@ export function FeatureDisplay({ features, projectTitle = "SRA", isEditing, onUp
                                     </div>
                                 );
                             })()}
+                            {/* Verification Status Badge */}
+                            {!isEditing && feature.status && (
+                                <Badge
+                                    variant={feature.status === 'verified' ? 'default' : feature.status === 'failed' ? 'destructive' : 'secondary'}
+                                    className={`uppercase text-[10px] tracking-wider ${feature.status === 'verified' ? 'bg-green-600 hover:bg-green-700' : ''}`}
+                                >
+                                    {feature.status}
+                                </Badge>
+                            )}
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-6">
@@ -217,6 +226,27 @@ export function FeatureDisplay({ features, projectTitle = "SRA", isEditing, onUp
                                 </div>
                             )}
                         </div>
+                        {/* Verification Files Section */}
+                        {!isEditing && feature.verification_files && feature.verification_files.length > 0 && (
+                            <div>
+                                <h4 className="text-sm font-medium mb-2 text-foreground/80 flex items-center gap-2">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                                    Verified Implementation
+                                </h4>
+                                <div className="bg-muted/30 rounded-md border border-border/40 p-3">
+                                    <ul className="space-y-1">
+                                        {feature.verification_files.map((file, fIdx) => (
+                                            <li key={fIdx} className="text-xs font-mono text-muted-foreground flex items-center gap-2">
+                                                <svg className="w-3 h-3 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                {file}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             ))

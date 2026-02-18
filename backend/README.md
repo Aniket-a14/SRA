@@ -42,6 +42,13 @@ Handles incremental updates via the Workspace UI, injecting existing project sta
 ### 5. **KnowledgeBaseService** (Persistence & Graph)
 Shreds finalized requirements into **PostgreSQL + pgvector** and extracts semantic relationships into the **Knowledge Graph**.
 
+---
+
+## 🛠️ CLI & Local Environment Sync (v4.0)
+The backend now supports bi-directional synchronization with the **SRA CLI**:
+- **Verification Metadata**: Handlers in `analysisController` specifically manage `verification_files` and `status` updates pushed from the CLI.
+- **Data Integrity Layer**: Robust merge logic ensures that local implementation audits do not overwrite requirement refinements.
+
 ## 🛠️ Performance & Reliability
 
 ### Background Processing

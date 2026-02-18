@@ -23,6 +23,7 @@ services:
     environment:
       - NODE_ENV=development
       - AI_NAME=SRA
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
     deploy:
       replicas: 2 # Simulate Load Balancing with 2 instances
       resources:
@@ -66,3 +67,14 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+
+  cli:
+    build:
+      context: ./cli
+      dockerfile: Dockerfile
+    container_name: sra-cli
+    volumes:
+      - .:/app/workspace # Mount the root to allow CLI to scan the whole project
+    environment:
+      - SRA_API_KEY=${SRA_API_KEY}
+    profiles: [ "tools" ] # Prevent it from starting by default during up

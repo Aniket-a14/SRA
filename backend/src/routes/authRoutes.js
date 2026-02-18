@@ -16,4 +16,10 @@ router.post('/logout', logout);
 router.get('/sessions', authenticate, getSessions);
 router.delete('/sessions/:sessionId', authenticate, revokeSessionEndpoint);
 
+import { createKey, listKeys, revokeKey } from '../controllers/apiKeyController.js';
+
+router.post('/keys', authenticate, createKey);
+router.get('/keys', authenticate, listKeys);
+router.delete('/keys/:id', authenticate, revokeKey);
+
 export default router;

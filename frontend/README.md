@@ -33,6 +33,11 @@ Integrated directly into the workspace, providing real-time Feedback on:
 -   Technical completeness.
 -   Architectural consistency.
 
+### 🛠️ Traceability & Audit (v4.0)
+-   **Verification Badges**: Automated display of `VERIFIED`, `FAILED`, or `PENDING` statuses on feature cards.
+-   **Implementation Mappings**: Direct links to local source files (synced via CLI) are visible in the Features tab.
+-   **Enhanced PDF Export**: PDF reports now include an "Audit Trail" section for professional compliance.
+
 ## 🚀 Tech Stack
 
 -   **Framework**: [Next.js 16 (App Router)](https://nextjs.org/)

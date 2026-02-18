@@ -1,4 +1,3 @@
-import { genAI } from '../config/gemini.js';
 import { BaseAgent } from '../agents/BaseAgent.js';
 
 /**
