@@ -51,7 +51,7 @@ export function RecyclingPanel({ onApply }: RecyclingPanelProps) {
             if (!res.ok) throw new Error("Search failed");
             const data = await res.json();
             setResults(data.data.suggestions || []);
-        } catch (error) {
+        } catch {
             toast.error("Failed to find recycling candidates");
         } finally {
             setIsSearching(false);
