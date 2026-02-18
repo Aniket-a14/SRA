@@ -1,9 +1,13 @@
-
 node_modules
 .env
+.npmrc
+.git
 .DS_Store
 tests
-src
+coverage
 *.log
 sra.config.json
 sra.spec.json
+eslint.config.js
+Dockerfile
+package-lock.json
