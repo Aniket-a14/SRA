@@ -25,7 +25,7 @@ console.log(
 program
     .name('sra')
     .description('SRA CLI - Bridging Requirements and Code')
-    .version('1.2.1');
+    .version('4.0.1');
 
 program
     .command('init')

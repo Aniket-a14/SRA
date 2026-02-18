@@ -1,4 +1,5 @@
 # SRA CLI 🚀
+[![Socket Badge](https://badge.socket.dev/npm/package/@aniket_a14/sra-cli/4.0.1)](https://badge.socket.dev/npm/package/@aniket_a14/sra-cli/4.0.1)
 > **Bridging Requirements and Code through Spec-Driven Development.**
 
 SRA CLI is a professional-grade command-line tool designed to keep your software implementation in perfect sync with your Software Requirements Specification (SRS). It enables automated compliance checking, specification syncing, and verification traceability.

@@ -1,6 +1,6 @@
 {
     "name": "@aniket_a14/sra-cli",
-    "version": "4.0.0",
+    "version": "4.0.1",
     "description": "SRA CLI Tool",
     "main": "bin/sra.js",
     "type": "module",
