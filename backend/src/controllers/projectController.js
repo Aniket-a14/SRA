@@ -34,7 +34,7 @@ export const getProjects = async (req, res, next) => {
             return res.status(401).json({ error: "User context missing" });
         }
 
-        console.log("getProjects: Fetching for user", req.user.userId);
+        console.log("getProjects: Fetching projects for authenticated user");
 
         if (!prisma) {
             console.error("getProjects: Prisma instance is null!");
