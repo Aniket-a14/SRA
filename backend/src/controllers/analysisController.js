@@ -243,7 +243,7 @@ export const getAnalysis = async (req, res, next) => {
         const { id } = req.params;
         const { mode } = req.query;
 
-        console.log(`[getAnalysis] Fetching analysis ID: ${id} (Mode: ${mode || 'full'}) for user: ${req.user.userId}`);
+        log.info(`[getAnalysis] Fetching analysis ID: ${id} (Mode: ${mode || 'full'})`);
 
         if (mode === 'sync') {
             console.log(`[getAnalysis] Sync Mode: Fetching optimized metadata`);
