@@ -52,21 +52,28 @@ SRA operates on a proprietary 5-layer pipeline that ensures every requirement is
 
 ```mermaid
 graph TD
-    subgraph "The SRA Pipeline"
-    L1[<b>Layer 1: Strategic Intake</b><br/>Unstructured Input Mapping]
-    L2[<b>Layer 2: Multi-Agent Analysis</b><br/>PO, Architect, & Dev Personas]
-    L3[<b>Layer 3: Objective Review</b><br/>6Cs Audit & RAG Evaluation]
-    L4[<b>Layer 4: Iterative Refinement</b><br/>Live Workspace & Diff Tracking]
-    L5[<b>Layer 5: Knowledge Persistence</b><br/>Semantic Indexing & Hybrid Search]
-    
-    Reliability[(<b>Reliability Layer</b><br/>360s Timeout & Jittered Retries)]
-    L2 & L3 -.-> Reliability
+    subgraph "Cloud Analysis Layer (SRA Platform)"
+        L1[<b>Layer 1: Strategic Intake</b><br/>Unstructured Input Mapping]
+        L2[<b>Layer 2: MAS Analysis</b><br/>PO, Architect, & Dev Agents]
+        L3[<b>Layer 3: Objective Review</b><br/>6Cs Audit & RAG Evaluation]
+        L4[<b>Layer 4: Refinement Hub</b><br/>Live Workspace & Diff Tracking]
+        L5[<b>Layer 5: Knowledge Persistence</b><br/>Semantic Indexing & Hybrid Search]
+        
+        Reliability[(<b>Reliability Layer</b><br/>360s Timeout & Jittered Retries)]
+        L2 & L3 -.-> Reliability
+    end
+
+    subgraph "Local Execution Layer (CLI Toolkit)"
+        CLI["SRA CLI (@aniket_a14/sra-cli)"] -->|Auth/Sync| L1
+        CLI -->|Verify| Code[(Local Source Code)]
+        Code -->|Verification Data| CLI
+        CLI -->|Push Audit Trail| L4
     end
 
     Stakeholder((Stakeholder)) -->|Raw Vision| L1
     L1 --> L2
     L2 --> L3
-    L3 -->|FAIL: Poor Industry Score| L2
+    L3 -->|FAIL: Poor Score| L2
     L3 -->|PASS| L4
     L4 -->|Export| Artifacts[IEEE SRS, PDF, DFD, API Spec]
     L4 --> L5
