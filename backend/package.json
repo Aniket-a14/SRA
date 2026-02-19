@@ -19,7 +19,7 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "@aniket_a14/sra-cli": "^1.2.1",
+    "@sra-srs/sra-cli": "^4.0.2",
     "@dagrejs/dagre": "^2.0.3",
     "@google/generative-ai": "^0.24.1",
     "@prisma/adapter-pg": "^7.3.0",
