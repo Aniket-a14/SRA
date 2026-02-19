@@ -19,6 +19,7 @@
     "@hookform/resolvers": "^3.10.0",
     "@mantine/core": "^8.3.15",
     "@mantine/hooks": "^8.3.15",
+    "@mantine/utils": "^6.0.22",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
     "@radix-ui/react-aspect-ratio": "1.1.1",
