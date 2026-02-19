@@ -9,7 +9,7 @@ const ALGORITHM = 'aes-256-gcm';
 const KEY_LENGTH = 32;
 const IV_LENGTH = 16;
 const AUTH_TAG_LENGTH = 16;
-const SALT = 'sra-encryption-salt-v1'; // In production, use unique salt per environment
+const SALT = process.env.ENCRYPTION_SALT;
 
 /**
  * Derive encryption key from master secret

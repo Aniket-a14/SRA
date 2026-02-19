@@ -17,6 +17,7 @@ class BackupService {
         this.backupDir = process.env.BACKUP_DIR || './backups';
         this.encryptionKey = process.env.BACKUP_ENCRYPTION_KEY;
         this.retentionDays = parseInt(process.env.BACKUP_RETENTION_DAYS || '30');
+        this.salt = process.env.BACKUP_ENCRYPTION_SALT; // Used for key derivation
     }
 
     /**
@@ -123,7 +124,7 @@ class BackupService {
         const iv = crypto.randomBytes(16);
 
         // Create cipher
-        const key = crypto.scryptSync(this.encryptionKey, 'salt', 32);
+        const key = crypto.scryptSync(this.encryptionKey, this.salt, 32);
         const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
 
         // Encrypt data
@@ -154,7 +155,7 @@ class BackupService {
         const encrypted = encryptedData.slice(32);
 
         // Create decipher
-        const key = crypto.scryptSync(this.encryptionKey, 'salt', 32);
+        const key = crypto.scryptSync(this.encryptionKey, this.salt, 32);
         const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
         decipher.setAuthTag(authTag);
 

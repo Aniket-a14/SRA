@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_dev_only';
+const JWT_SECRET = process.env.JWT_SECRET;
 const EXPIRES_IN = '7d';
 
 export const signToken = (payload) => {

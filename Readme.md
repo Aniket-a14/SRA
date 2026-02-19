@@ -283,6 +283,8 @@ Ensure the following variables are defined in your infrastructure (see `.env.exa
 | **Security** | `JWT_SECRET` | Yes | Secret key for JWT signing. |
 | **Backup** | `BACKUP_ENCRYPTION_KEY` | Yes | AES-256 key for encrypting database backups. |
 | **Backup** | `ENCRYPTION_KEY` | Yes | Master key for field-level data encryption. |
+| **Backup** | `ENCRYPTION_SALT` | Yes | Unique salt string for field-level encryption. |
+| **Backup** | `BACKUP_ENCRYPTION_SALT` | Yes | Unique salt string for backup encryption. |
 | **Backup** | `BACKUP_DIR` | Optional | Directory for backup storage (default: `./backups`). |
 | **Backup** | `BACKUP_RETENTION_DAYS` | Optional | Backup retention period in days (default: 30). |
 | **Social Auth** | `GOOGLE_CLIENT_ID` | Optional | Google OAuth 2.0 Client ID. |
