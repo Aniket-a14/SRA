@@ -1,5 +1,6 @@
 import prisma from '../config/prisma.js';
 import { getRedisClient } from '../config/redis.js';
+import logger from '../config/logger.js';
 import { lintRequirements, checkAlignment } from './qualityService.js';
 import { extractGraph } from './graphService.js';
 import { repairDiagram } from './aiService.js';
@@ -32,11 +33,11 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         const promptVersion = settings.promptVersion || "latest";
 
         // 1. PO: Define Scope
-        console.log("--> Agent: Product Owner");
+        logger.info("--> Agent: Product Owner");
         const poOutput = await poAgent.refineIntent(text, { projectName, version: promptVersion });
 
         // 2. Architect: Design System (with RAG)
-        console.log("--> Agent: Architect");
+        logger.info("--> Agent: Architect");
         const archOutput = await archAgent.designSystem(poOutput, {
             projectName,
             projectId,
@@ -44,7 +45,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         });
 
         // 2.5 Pillar 2: Multi-Query RAG (Intelligent Recycling)
-        console.log("--> Pillar 2: Active Requirement Recycling (Multi-Query RAG)");
+        logger.info("--> Pillar 2: Active Requirement Recycling (Multi-Query RAG)");
         const featureList = (poOutput?.systemFeatures || poOutput?.features || []);
         let allRecyclableChunks = [];
 
@@ -65,7 +66,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         const ragContext = formatRagContext(uniqueChunks);
 
         // 3. Developer: Write initial draft
-        console.log("--> Agent: Developer (Initial Draft)");
+        logger.info("--> Agent: Developer (Initial Draft)");
         let srsDraft = await devAgent.generateSRS(poOutput, archOutput, {
             projectName,
             version: promptVersion,
@@ -79,7 +80,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         let reflectionFeedback = [];
 
         while (loopCount < MAX_LOOPS) {
-            console.log(`--> Pillar 1: Reflection Pass ${loopCount + 1}`);
+            logger.info(`--> Pillar 1: Reflection Pass ${loopCount + 1}`);
 
             // A. Reviewer Audit (Security/Consistency)
             const review = await qaAgent.reviewSRS(poOutput, srsDraft);
@@ -88,11 +89,11 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
             const audit = await criticAgent.auditSRS(poOutput, srsDraft);
             finalIndustryAudit = audit; // Keep track of the latest audit
 
-            console.log(`    Review Status: ${review.status}, Quality Score: ${audit.overallScore}`);
+            logger.info(`    Review Status: ${review.status}, Quality Score: ${audit.overallScore}`);
 
             // C. Check if we meet the quality bar
             if (review.status === "APPROVED" && audit.overallScore >= QUALITY_THRESHOLD) {
-                console.log("    [OK] Quality threshold met. Exiting reflection loop.");
+                logger.info("    [OK] Quality threshold met. Exiting reflection loop.");
                 break;
             }
 
@@ -102,14 +103,14 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                 ? `QA Status: ${review.status}`
                 : `Quality Score: ${audit.overallScore} < ${QUALITY_THRESHOLD}`;
 
-            console.log(`    [Refine] ${reason}. Refining initial draft...`);
+            logger.info(`    [Refine] ${reason}. Refining initial draft...`);
 
             // Log specific issues for transparency
             if (review.feedback?.length > 0) {
-                console.log(`    [QA Issues]: ${review.feedback.map(f => f.issue).join(' | ')}`);
+                logger.debug(`    [QA Issues]: ${review.feedback.map(f => f.issue).join(' | ')}`);
             }
             if (audit.criticalIssues?.length > 0) {
-                console.log(`    [Critic Issues]: ${audit.criticalIssues.join(' | ')}`);
+                logger.debug(`    [Critic Issues]: ${audit.criticalIssues.join(' | ')}`);
             }
 
             reflectionFeedback = [
@@ -135,7 +136,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         };
 
         // 5. Final Evaluation (RAG)
-        console.log("--> Service: RAG Evaluation");
+        logger.info("--> Service: RAG Evaluation");
         const contextString = typeof archOutput === 'string' ? archOutput : JSON.stringify(archOutput);
         const ragEval = await evalService.evaluateRAG(text, contextString, finalSRS);
 
@@ -172,7 +173,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
             throw new Error(response.error || "AI Analysis execution failed to return valid SRS");
         }
     } catch (error) {
-        console.error("AI Analysis execution failed:", error.message);
+        logger.error({ msg: "AI Analysis execution failed", error: error.message });
         // If we have an ID, we should fail it
         if (analysisId) {
             await prisma.analysis.update({
@@ -229,7 +230,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                 }
             }
         } catch (l3Error) {
-            console.warn("Layer 3 Check (Initial) Failed:", l3Error);
+            logger.warn({ msg: "Layer 3 Check (Initial) Failed", error: l3Error });
         }
     }
 
@@ -252,7 +253,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                 }
             });
             finalProjectId = newProject.id;
-            console.log(`[Analysis Service] Auto-created Deferred Project: ${finalProjectId}`);
+            logger.info(`[Analysis Service] Auto-created Deferred Project: ${finalProjectId}`);
         }
 
         // 2. Cleanup Draft if converting (moved from Controller)
@@ -260,11 +261,11 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
             try {
                 const parent = await tx.analysis.findUnique({ where: { id: parentId } });
                 if (parent && (parent.status === 'DRAFT' || parent.metadata?.status === 'DRAFT')) {
-                    console.log(`[Analysis Service] Cleaning up successful draft: ${parentId}`);
+                    logger.info(`[Analysis Service] Cleaning up successful draft: ${parentId}`);
                     await tx.analysis.delete({ where: { id: parentId } });
                 }
             } catch (cleanupErr) {
-                console.warn("[Analysis Service] Failed to cleanup draft (non-fatal):", cleanupErr.message);
+                logger.warn({ msg: "[Analysis Service] Failed to cleanup draft (non-fatal)", error: cleanupErr.message });
             }
         }
 
@@ -294,8 +295,8 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
 
             // Synchronize Knowledge Graph (Async)
             if (finalProjectId) {
-                console.log(`[Analysis Service] Triggering Graph Extraction for Project: ${finalProjectId}`);
-                extractGraph(text, finalProjectId).catch(e => console.error("Async Graph Extraction failed:", e));
+                logger.info(`[Analysis Service] Triggering Graph Extraction for Project: ${finalProjectId}`);
+                extractGraph(text, finalProjectId).catch(e => logger.error({ msg: "Async Graph Extraction failed", error: e }));
             }
 
             return result;
@@ -319,7 +320,7 @@ export const getUserAnalyses = async (userId) => {
                 return JSON.parse(cached);
             }
         } catch (err) {
-            console.warn("Redis Cache Read Error:", err.message);
+            logger.warn({ msg: "Redis Cache Read Error", error: err.message });
         }
     }
 
@@ -414,7 +415,7 @@ export const getUserAnalyses = async (userId) => {
         return result;
 
     } catch (error) {
-        console.error("Error fetching user analyses:", error);
+        logger.error({ msg: "Error fetching user analyses", error: error });
         throw error;
     }
 };
@@ -449,6 +450,13 @@ export const getAnalysisById = async (userId, analysisId) => {
     }
 
     return analysis;
+};
+
+export const getLatestAnalysisByProjectId = async (projectId) => {
+    return await prisma.analysis.findFirst({
+        where: { projectId },
+        orderBy: { version: 'desc' }
+    });
 };
 
 /**
@@ -493,7 +501,7 @@ async function validateAndAutoRepairDiagrams(srs, settings) {
             }
 
             if (needsRepair) {
-                console.log(`[Analysis Service] Auto-repairing ${name} due to: ${heuristicError}`);
+                logger.info(`[Analysis Service] Auto-repairing ${name} due to: ${heuristicError}`);
                 try {
                     const repaired = await repairDiagram(
                         diagram.code,
@@ -503,10 +511,10 @@ async function validateAndAutoRepairDiagrams(srs, settings) {
                     );
                     if (repaired && repaired !== diagram.code) {
                         diagram.code = repaired;
-                        console.log(`[Analysis Service] Successful auto-repair for ${name}`);
+                        logger.info(`[Analysis Service] Successful auto-repair for ${name}`);
                     }
                 } catch (err) {
-                    console.warn(`[Analysis Service] Auto-repair failed for ${name}:`, err.message);
+                    logger.warn({ msg: `[Analysis Service] Auto-repair failed for ${name}`, error: err.message });
                 }
             }
         }

@@ -1,5 +1,6 @@
 import { genAI } from '../config/gemini.js';
 import { jsonrepair } from 'jsonrepair';
+import logger from '../config/logger.js';
 
 export class BaseAgent {
     constructor(name, modelName = "gemini-2.5-flash") {
@@ -9,10 +10,10 @@ export class BaseAgent {
     }
 
     async callLLM(prompt, temperature = 0.7, jsonMode = true, retries = 3, initialDelay = 5000) {
-        console.log(`[${this.name}] Calling LLM (${this.modelName})...`);
+        logger.debug({ msg: `[${this.name}] Calling LLM`, model: this.modelName });
 
         if (process.env.MOCK_AI === 'true') {
-            console.log(`[${this.name}] MOCK MODE ACTIVE. Returning dummy response.`);
+            logger.warn(`[${this.name}] MOCK MODE ACTIVE. Returning dummy response.`);
             await new Promise(resolve => setTimeout(resolve, 100));
             if (jsonMode) {
                 // Return a generic valid JSON structure that hopefully satisfies most agents
@@ -89,20 +90,26 @@ export class BaseAgent {
                 const isTimeout = error.message === "AI Request Timeout";
 
                 if ((isRateLimit || isServerError || isTimeout) && attempt < retries) {
-                    // Add Jitter: +/- 20% of the delay
                     const jitter = delay * 0.2 * (Math.random() * 2 - 1);
                     const finalDelay = Math.max(1000, delay + jitter);
 
-                    console.warn(`[${this.name}] ${isTimeout ? 'Timeout' : (isRateLimit ? 'Rate Limit' : 'Server Error')} hit (${status || 'TIMEOUT'}). Retrying in ${Math.round(finalDelay)}ms... (Attempt ${attempt + 1}/${retries})`);
+                    logger.warn({
+                        msg: `[${this.name}] LLM Retry`,
+                        reason: isTimeout ? 'Timeout' : (isRateLimit ? 'Rate Limit' : 'Server Error'),
+                        status: status || 'TIMEOUT',
+                        attempt: attempt + 1,
+                        retries,
+                        nextRetryIn: Math.round(finalDelay)
+                    });
 
                     await new Promise(resolve => setTimeout(resolve, finalDelay));
                     delay *= 2;
                     attempt++;
                 } else {
                     const isFetchFailed = error.message?.includes("fetch failed");
-                    console.error(`[${this.name}] LLM Call Failed:`, error.message);
+                    logger.error({ msg: `[${this.name}] LLM Call Failed`, error: error.message });
                     if (isFetchFailed) {
-                        console.error(`[${this.name}] FATAL: Unable to reach Google AI servers. Check your internet connection or proxy settings.`);
+                        logger.fatal(`[${this.name}] FATAL: Unable to reach Google AI servers. Check network/proxy.`);
                     }
                     throw new Error(`${this.name} failed to generate content: ${error.message}`);
                 }
@@ -135,7 +142,7 @@ export class BaseAgent {
             const repaired = jsonrepair(cleanText);
             return JSON.parse(repaired);
         } catch (error) {
-            console.error(`[${this.name}] JSON Parsing Failed:`, error.message);
+            logger.error({ msg: `[${this.name}] JSON Parsing Failed`, error: error.message });
 
             // Helpful debugging: show where it failed if possible
             if (error.message.includes('at position')) {
@@ -144,8 +151,7 @@ export class BaseAgent {
                     const pos = parseInt(posStr[1]);
                     const start = Math.max(0, pos - 50);
                     const end = Math.min(cleanText.length, pos + 50);
-                    console.error('Context near error:');
-                    console.error('...' + cleanText.substring(start, pos) + ' >>> ' + (cleanText[pos] || '') + ' <<< ' + cleanText.substring(pos + 1, end) + '...');
+                    logger.debug({ msg: 'JSON Parse Context', context: '...' + cleanText.substring(start, pos) + ' >>> ' + (cleanText[pos] || '') + ' <<< ' + cleanText.substring(pos + 1, end) + '...' });
                 }
             }
 

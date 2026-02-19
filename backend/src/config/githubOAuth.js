@@ -1,4 +1,5 @@
 import axios from 'axios';
+import logger from './logger.js';
 
 const CLIENT_ID = process.env.GITHUB_CLIENT_ID;
 const CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET;
@@ -33,7 +34,7 @@ export const getGithubTokens = async (code) => {
         });
         return res.data;
     } catch (error) {
-        console.error('Failed to fetch GitHub tokens', error.response?.data || error.message);
+        logger.error({ msg: 'Failed to fetch GitHub tokens', error: error.response?.data || error.message });
         throw new Error(error.response?.data?.error_description || 'Failed to fetch GitHub tokens');
     }
 };
@@ -62,7 +63,7 @@ export const getGithubUser = async (accessToken) => {
 
         return { ...userRes.data, email };
     } catch (error) {
-        console.error('Failed to fetch GitHub user', error.response?.data || error.message);
+        logger.error({ msg: 'Failed to fetch GitHub user', error: error.response?.data || error.message });
         throw new Error('Failed to fetch GitHub user info');
     }
 };

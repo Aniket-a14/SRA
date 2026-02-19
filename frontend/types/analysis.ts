@@ -44,12 +44,22 @@ export interface ExternalInterfaceRequirements {
     communicationsInterfaces: string;
 }
 
+export interface Requirement {
+    id: string;
+    description: string;
+    metadata?: {
+        verification_status?: 'DRAFT_AI' | 'APPROVED_HUMAN' | 'REJECTED_HUMAN';
+        verifiedBy?: string;
+        verifiedAt?: string;
+    };
+}
+
 export interface SystemFeature {
     id?: string;
     name: string;
     description: string;
     stimulusResponseSequences: string[];
-    functionalRequirements: string[];
+    functionalRequirements: (string | Requirement)[];
     // CLI Verification Fields
     status?: 'pending' | 'verified' | 'failed';
     verification_files?: string[];
@@ -154,4 +164,59 @@ export interface Analysis extends AnalysisResult {
     reusedFrom?: string
     promptSettings?: Record<string, unknown> | null
     status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'DRAFT' | 'VALIDATING' | 'VALIDATED' | 'NEEDS_FIX'
+}
+
+export interface StartAnalysisInput {
+    text: string;
+    projectId?: string | null;
+    parentId?: string;
+    rootId?: string;
+    settings?: {
+        profile?: string;
+        depth?: number;
+        strictness?: number;
+        modelProvider?: string;
+        modelName?: string;
+    }
+    srsData?: {
+        details?: {
+            projectName?: { content?: string };
+            fullDescription?: { content?: string };
+        };
+        metadata?: Record<string, unknown>;
+    };
+    draft?: boolean;
+    validationResult?: {
+        validation_status: string;
+        issues?: ValidationIssue[];
+        clarification_questions?: string[];
+    };
+}
+
+export interface UpdateAnalysisInput {
+    revisionHistory?: RevisionHistoryItem[];
+    introduction?: Introduction;
+    overallDescription?: OverallDescription;
+    externalInterfaceRequirements?: ExternalInterfaceRequirements;
+    systemFeatures?: SystemFeature[];
+    nonFunctionalRequirements?: NonFunctionalRequirements;
+    otherRequirements?: string[];
+    glossary?: GlossaryItem[];
+    appendices?: Appendices;
+    missingLogic?: string[];
+    contradictions?: string[];
+    qualityAudit?: {
+        score: number
+        issues: string[]
+        ieeeCompliance?: {
+            status: string;
+            missingSections?: string[];
+            standardAdherence?: string;
+        }
+    }
+    generatedCode?: Record<string, unknown> | null;
+    metadata?: Record<string, unknown>;
+    inPlace?: boolean;
+    skipAlignment?: boolean;
+
 }

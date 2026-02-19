@@ -14,7 +14,7 @@ import { layoutAllDFD } from '../services/dfdLayoutService.js';
 import prisma from '../config/prisma.js';
 import crypto from 'crypto';
 import { successResponse } from '../utils/response.js';
-import { log } from '../middleware/logger.js';
+import logger from '../config/logger.js';
 
 export const analyze = async (req, res, next) => {
     try {
@@ -243,10 +243,10 @@ export const getAnalysis = async (req, res, next) => {
         const { id } = req.params;
         const { mode } = req.query;
 
-        log.info(`[getAnalysis] Fetching analysis ID: ${id} (Mode: ${mode || 'full'})`);
+        logger.info(`[getAnalysis] Fetching analysis ID: ${id} (Mode: ${mode || 'full'})`);
 
         if (mode === 'sync') {
-            console.log(`[getAnalysis] Sync Mode: Fetching optimized metadata`);
+            logger.info(`[getAnalysis] Sync Mode: Fetching optimized metadata`);
             // We can add a specialized query here if needed, but for now let's trust the fix.
             // If we want to be safe, we can select specific fields, but the CLI needs full resultJson.
 
@@ -279,7 +279,7 @@ export const getAnalysis = async (req, res, next) => {
             resultJson: analysis.resultJson
         });
     } catch (error) {
-        console.error(`[getAnalysis] Error:`, error);
+        logger.error({ msg: `[getAnalysis] Error`, error: error.message });
         next(error);
     }
 };
@@ -367,7 +367,7 @@ export const updateAnalysis = async (req, res, next) => {
                     newResultJson.layer3Status = 'ALIGNED';
                 }
             } catch (l3Err) {
-                log.warn({ err: l3Err }, "Layer 3 Check Failed (Skipping Block)");
+                logger.warn({ err: l3Err }, "Layer 3 Check Failed (Skipping Block)");
             }
         }
 
@@ -572,7 +572,7 @@ export const finalizeAnalysis = async (req, res, next) => {
                 embeddingVector = await embedText(analysis.inputText.trim());
             }
         } catch (e) {
-            log.error({ err: e }, "Embedding generation failed, proceeding with finalization without vector");
+            logger.error({ err: e }, "Embedding generation failed, proceeding with finalization without vector");
             // We proceed, but vectorSignature will be null.
         }
 
@@ -605,7 +605,7 @@ export const finalizeAnalysis = async (req, res, next) => {
                 const vectorString = `[${embeddingVector.join(',')}]`;
                 await prisma.$executeRaw`UPDATE "Analysis" SET "vectorSignature" = ${vectorString}::vector WHERE "id" = ${id}`;
             } catch (rawError) {
-                log.error({ err: rawError }, "Failed to update vectorSignature");
+                logger.error({ err: rawError }, "Failed to update vectorSignature");
                 // Don't fail the whole request, just log it.
             }
         }
@@ -631,7 +631,7 @@ export const finalizeAnalysis = async (req, res, next) => {
                 try {
                     embedding = process.env.MOCK_AI === 'true' ? Array(768).fill(0.01) : await embedText(chunkText);
                 } catch (err) {
-                    log.warn({ err }, `[Finalize] Failed to embed feature chunk: ${feature.name}`);
+                    logger.warn({ err }, `[Finalize] Failed to embed feature chunk: ${feature.name}`);
                 }
 
                 chunks.push({
@@ -658,7 +658,7 @@ export const finalizeAnalysis = async (req, res, next) => {
                     try {
                         embedding = process.env.MOCK_AI === 'true' ? Array(768).fill(0.02) : await embedText(chunkText);
                     } catch (err) {
-                        log.warn({ err }, `[Finalize] Failed to embed NFR chunk: ${category}`);
+                        logger.warn({ err }, `[Finalize] Failed to embed NFR chunk: ${category}`);
                     }
 
                     chunks.push({
@@ -727,7 +727,7 @@ export const validateAnalysis = async (req, res, next) => {
             // but validateRequirements handles the raw structure mostly.
             validationResult = await validateRequirements(draftData);
         } catch (validationErr) {
-            console.error("AI Validation Failed:", validationErr);
+            logger.error({ msg: "AI Validation Failed", error: validationErr.message });
             // Fallback to basic error if AI service is down
             let friendlyMessage = validationErr.message;
             let friendlyTitle = 'AI Validation Service Unavailable';
@@ -807,6 +807,7 @@ export const expandFeature = async (req, res, next) => {
 export const repairDiagram = async (req, res, next) => {
     try {
         const { code, error, settings } = req.body;
+        logger.info(`[AnalysisController] Repairing Diagram. Error length: ${error?.length}`);
 
         if (!code || !error) {
             const err = new Error('Code and error message are required');

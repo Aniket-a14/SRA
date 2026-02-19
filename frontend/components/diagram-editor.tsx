@@ -125,17 +125,25 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
         }
     }, 3000), [code, lastError, token, onSave, syntaxExplanation])
 
-    // Optimized Automatic Repair: Only attempt if code hasn't been manually modified yet (initial load error)
+    const [repairAttempts, setRepairAttempts] = useState(0)
+
+    // Reset attempts when a new diagram is loaded
     useEffect(() => {
-        // If it's the initial code and it has an error, try to fix it automatically ONCE.
-        if (lastError && !isRepairing && code === initialCode && !failedCodes.has(code)) {
-            console.log("Auto-repairing initial diagram error...")
+        setRepairAttempts(0)
+        setFailedCodes(new Set())
+    }, [initialCode])
+
+    // Optimized Automatic Repair: Attempt to fix errors up to 3 times
+    useEffect(() => {
+        if (lastError && !isRepairing && !failedCodes.has(code) && repairAttempts < 3) {
+            console.log(`Auto-repairing diagram error (Attempt ${repairAttempts + 1}/3)...`)
+            setRepairAttempts(prev => prev + 1)
             repairWithAI()
         } else if (lastError && failedCodes.has(code)) {
             // Standard loop prevention logging
-            // console.warn("Skipping repair for failed code.")
+            console.warn("Skipping repair for failed code.")
         }
-    }, [lastError, code, initialCode, isRepairing, failedCodes, repairWithAI])
+    }, [lastError, code, isRepairing, failedCodes, repairWithAI, repairAttempts])
 
     return (
         <div className="space-y-4 h-full flex flex-col">

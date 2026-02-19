@@ -4,6 +4,7 @@ import { genAI } from "../config/gemini.js";
 import { openai } from "../config/openai.js";
 import { AnalysisResultSchema } from "../utils/schemas.js";
 import { sanitizePII } from "../utils/sanitizer.js";
+import logger from "../config/logger.js";
 
 import { retrieveContext, formatRagContext } from "./ragService.js";
 
@@ -72,10 +73,10 @@ REMINDER: Return ONLY a valid JSON object.
       ragContextString = formatRagContext(ragResults);
 
       if (ragContextString) {
-        console.log(`[AI Service] Injected RAG Context (${ragResults.length} chunks) for project: ${projectName}`);
+        logger.info(`[AI Service] Injected RAG Context (${ragResults.length} chunks) for project: ${projectName}`);
       }
     } catch (ragError) {
-      console.warn("[AI Service] RAG Injection warning:", ragError.message);
+      logger.warn({ msg: "[AI Service] RAG Injection warning", error: ragError.message });
       // Continue without RAG if it fails (fallback to base model)
     }
     // ---------------------------------------------
@@ -113,7 +114,7 @@ ${text}
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       if (process.env.MOCK_AI === 'true') {
-        console.log("[AI Service] MOCK MODE ACTIVE. Returning dummy response.");
+        logger.warn("[AI Service] MOCK MODE ACTIVE. Returning dummy response.");
         await sleep(500);
         output = JSON.stringify({
           // ... Mock Data ...
@@ -135,7 +136,7 @@ ${text}
         };
       }
 
-      console.log(`[AI Service] Using Provider: ${modelProvider}, Model: ${modelName} (Attempt ${attempt}/${maxAttempts})`);
+      logger.info(`[AI Service] Using Provider: ${modelProvider}, Model: ${modelName} (Attempt ${attempt}/${maxAttempts})`);
 
       const targetSchema = settings.zodSchema === null ? null : (settings.zodSchema || AnalysisResultSchema);
 
@@ -198,7 +199,7 @@ ${text}
 
   // Handle explicit abort messages from Diagram Authority (it might ignore JSON wraps)
   if (output.includes("DIAGRAM GENERATION ABORTED")) {
-    console.warn("[AI Service] Model issued a safety/syntax abort:", output);
+    logger.warn({ msg: "[AI Service] Model issued a safety/syntax abort", output });
     return {
       success: false,
       error: "The AI was unable to generate safe system diagrams for this input. Please refine your description.",
@@ -213,11 +214,11 @@ ${text}
     try {
       parsedSRS = JSON.parse(output);
     } catch (primaryError) {
-      console.warn("[AI Service] Native JSON parse failed, attempting secondary fix for bad escapes...");
+      logger.warn("[AI Service] Native JSON parse failed, attempting secondary fix for bad escapes...");
       // Secondary Fix: Handle unescaped backslashes that aren't valid JSON escapes
       let fixedOutput = output.replace(/\\(?!(["\\/bfnrt]|u[0-9a-fA-F]{4}))/g, "\\\\");
       parsedSRS = JSON.parse(fixedOutput);
-      console.log("[AI Service] Secondary parse SUCCESS after manual escaping.");
+      logger.info("[AI Service] Secondary parse SUCCESS after manual escaping.");
     }
 
     // 5. Type-Safe Validation (Zod)
@@ -229,21 +230,21 @@ ${text}
       const validation = targetSchema.safeParse(parsedSRS);
       if (!validation.success) {
         if (isFullSRS) {
-          console.warn("[AI Service] Zod Validation Issues found. Keys present in parsed object:", Object.keys(parsedSRS));
-          console.warn("[AI Service] Full Validation Errors:", JSON.stringify(validation.error.format(), null, 2));
+          logger.warn({ msg: "[AI Service] Zod Validation Issues", keys: Object.keys(parsedSRS) });
+          // logger.warn({ msg: "[AI Service] Full Validation Errors", errors: JSON.stringify(validation.error.format(), null, 2) });
         }
 
         // Attempt to look for a nested 'srs' or 'result' field if the AI wrapped it
         if (parsedSRS.srs && typeof parsedSRS.srs === 'object') {
           const nestedValidation = targetSchema.safeParse(parsedSRS.srs);
           if (nestedValidation.success) {
-            console.log("[AI Service] SUCCESS: Found valid object nested inside 'srs' key.");
+            logger.info("[AI Service] SUCCESS: Found valid object nested inside 'srs' key.");
             parsedSRS = parsedSRS.srs;
           }
         } else if (parsedSRS.result && typeof parsedSRS.result === 'object') {
           const nestedValidation = targetSchema.safeParse(parsedSRS.result);
           if (nestedValidation.success) {
-            console.log("[AI Service] SUCCESS: Found valid object nested inside 'result' key.");
+            logger.info("[AI Service] SUCCESS: Found valid object nested inside 'result' key.");
             parsedSRS = parsedSRS.result;
           }
         }
@@ -262,8 +263,8 @@ ${text}
       }
     };
   } catch (parseError) {
-    console.error("[AI Service] JSON Final Parse Error:", parseError.message);
-    console.error("[AI Service] Raw Output Snippet:", output.substring(0, 500));
+    logger.error({ msg: "[AI Service] JSON Final Parse Error", error: parseError.message });
+    logger.debug({ msg: "[AI Service] Raw Output Snippet", snippet: output.substring(0, 500) });
     return {
       success: false,
       error: `Invalid JSON from model (Error: ${parseError.message}).`,
@@ -290,30 +291,32 @@ ${error}
 
 ${customInstruction ? `DIAGRAM TYPE SPECIFIC RULES:\n${customInstruction}` : ""}
 
+SPECIFIC ERROR GUIDANCE:
+${error.includes("Trying to inactivate an inactive participant") ? "CRITICAL: The error 'Trying to inactivate an inactive participant' means you have a 'deactivate Actor' line without a preceding 'activate Actor'. FIX: Remove the offending 'deactivate' line completely. do NOT try to add an activate line unless you are sure." : ""}
+
 Return ONLY the corrected code.
 `;
 
   const model = genAI.getGenerativeModel({ model: modelName });
 
-  // Retry Logic for 429 (Rate Limit)
-  const MAX_RETRIES = 3;
+  // Optimize for speed: Frontend handles high-level retries.
+  // Backend should fail fast so UI can show "Retrying..." state.
+  const MAX_RETRIES = 1;
   let attempt = 0;
   let result;
 
   while (attempt < MAX_RETRIES) {
     try {
       result = await model.generateContent(finalPrompt);
-      break; // Success
+      break;
     } catch (error) {
       if (error.message.includes("429") || error.status === 429) {
         attempt++;
-        if (attempt >= MAX_RETRIES) throw error; // Give up after max retries
-
-        const delay = Math.pow(2, attempt) * 2000; // Exponential backoff: 2s, 4s, 8s
-        console.warn(`[AI Service] Rate limit hit (429). Retrying in ${delay}ms... (Attempt ${attempt}/${MAX_RETRIES})`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        if (attempt >= MAX_RETRIES) throw error;
+        // Short delay only if we have retries left (which we don't for n=1)
+        await new Promise(resolve => setTimeout(resolve, 1000));
       } else {
-        throw error; // Non-retryable error
+        throw error;
       }
     }
   }
@@ -325,8 +328,13 @@ Return ONLY the corrected code.
     output = result.candidates[0].content || result.candidates[0].output || JSON.stringify(result.candidates[0]);
   }
 
-  // Sanitization: Remove any markdown backticks if the model ignores instructions
-  output = output.replace(/```mermaid/g, "").replace(/```/g, "").trim();
+  // Sanitization: Extract code block if present, otherwise clean markdown
+  const codeBlockMatch = output.match(/```(?:mermaid)?\n([\s\S]*?)\n```/);
+  if (codeBlockMatch) {
+    output = codeBlockMatch[1];
+  } else {
+    output = output.replace(/```mermaid/g, "").replace(/```/g, "").trim();
+  }
 
   return output;
 }

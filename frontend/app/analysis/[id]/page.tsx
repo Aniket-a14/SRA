@@ -23,6 +23,7 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { generateSRS, generateAPI, downloadBundle } from "@/lib/export-utils"
+import { updateAnalysis, runValidation, autoFixIssue, startAnalysis, finalizeAnalysis } from "@/lib/analysis-api"
 import type { Analysis, ValidationIssue } from "@/types/analysis"
 import { SRSIntakeModel } from "@/types/srs-intake"
 import { cn } from "@/lib/utils"
@@ -220,21 +221,12 @@ function AnalysisDetailContent() {
         if (!id || !draftData) return;
         const loadingToast = toast.loading("Saving draft to cloud...");
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${id}`, {
-                method: "PUT",
-                credentials: "include",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    metadata: { ...analysis?.metadata, draftData, status: 'DRAFT' }
-                })
+            await updateAnalysis(id, token!, {
+                metadata: { ...analysis?.metadata, draftData, status: 'DRAFT' }
             });
-            if (!res.ok) throw new Error("Save failed");
             toast.success("Draft saved", { id: loadingToast });
         } catch (error: unknown) {
-            const errorMessage = error instanceof Error ? error.message : "Failed to initialize project";
+            const errorMessage = error instanceof Error ? error.message : "Failed to save draft";
             toast.error(errorMessage, { id: loadingToast });
         }
     }
@@ -243,28 +235,11 @@ function AnalysisDetailContent() {
         setIsValidating(true);
         try {
             // First Save current draft to ensure validation uses latest data
-            await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${id}`, {
-                method: "PUT",
-                credentials: "include",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    metadata: { ...analysis?.metadata, draftData, status: 'DRAFT' }
-                })
+            await updateAnalysis(id, token!, {
+                metadata: { ...analysis?.metadata, draftData, status: 'DRAFT' }
             });
 
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${id}/validate`, {
-                method: "POST",
-                credentials: "include",
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
-            if (!res.ok) throw new Error("Validation failed");
-
-            const result = await res.json();
+            const result = await runValidation(id, token!);
             setValidationIssues(result.issues || []);
             mutate();
             toast.success("Validation Complete");
@@ -285,19 +260,7 @@ function AnalysisDetailContent() {
         const loadingToast = toast.loading("AI is repairing your requirement...");
 
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${id}/auto-fix`, {
-                method: "POST",
-                credentials: "include",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
-                },
-                body: JSON.stringify({ issueId })
-            });
-
-            if (!res.ok) throw new Error("Auto-fix failed");
-
-            const { fixedText } = await res.json();
+            const { fixedText } = await autoFixIssue(id, token, issueId);
 
             // Find the issue to know WHICH section it belongs to
             const issues: ValidationIssue[] = analysis?.metadata?.validationResult?.issues || [];
@@ -327,30 +290,20 @@ function AnalysisDetailContent() {
         } finally {
             setIsFixing(null);
         }
-    };
+    }
 
     const handleProceedToAnalysis = async () => {
         setIsProceeding(true);
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, {
-                method: "POST",
-                credentials: "include",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    projectId: analysis?.projectId,
-                    text: "Generated from Draft",
-                    srsData: draftData,
-                    validationResult: { validation_status: 'PASS', issues: validationIssues },
-                    parentId: id,
-                    draft: false
-                })
+            const result = await startAnalysis(token!, {
+                projectId: analysis?.projectId,
+                text: "Generated from Draft",
+                srsData: draftData,
+                validationResult: { validation_status: 'PASS', issues: validationIssues },
+                parentId: id,
+                draft: false
             });
 
-            if (!res.ok) throw new Error("Failed to start analysis");
-            const result = await res.json();
             toast.success("Analysis Generation Started (Layer 3)");
             router.push(`/analysis/${result.data.id}`);
 
@@ -363,16 +316,8 @@ function AnalysisDetailContent() {
 
     const handleBackToEdit = async () => {
         try {
-            await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${id}`, {
-                method: "PUT",
-                credentials: "include",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    metadata: { ...analysis?.metadata, status: 'DRAFT' } // Explicit status reset
-                })
+            await updateAnalysis(id, token!, {
+                metadata: { ...analysis?.metadata, status: 'DRAFT' } // Explicit status reset
             });
             mutate();
         } catch (e) {
@@ -384,27 +329,17 @@ function AnalysisDetailContent() {
         if (!id) return;
         setIsFinalizing(true);
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${id}/finalize`, {
-                method: "POST",
-                credentials: "include",
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
-            if (res.ok) {
-                toast.success("SRS Finalized & Added to Knowledge Base");
-                setIsFinalized(true);
-                mutate();
-            } else {
-                throw new Error("Failed to finalize");
-            }
+            await finalizeAnalysis(id, token!);
+            toast.success("SRS Finalized & Added to Knowledge Base");
+            setIsFinalized(true);
+            mutate();
         } catch (err) {
             console.error("Could not finalize SRS", err);
             toast.error("Could not finalize SRS");
         } finally {
             setIsFinalizing(false);
         }
-    };
+    }
 
     // Loading State Handling (Priority)
     const currentStatus = (analysis?.status || '').toUpperCase();
@@ -633,12 +568,32 @@ function AnalysisDetailContent() {
                                                 <SheetTitle>Knowledge Recycling</SheetTitle>
                                             </SheetHeader>
                                             <RecyclingPanel
-                                                onApply={(content) => {
-                                                    toast.info("Manual recycling initiated. Use 'Improve SRS' or the AI Chat to merge this specific fragment into your current version.");
-                                                    // For now, we copy to clipboard to help the user. 
-                                                    // In a future update, we could inject directly into the MAS refinement loop.
-                                                    navigator.clipboard.writeText(JSON.stringify(content, null, 2));
-                                                    toast.success("Requirement fragment copied to clipboard for reuse!");
+                                                onApply={async (content) => {
+                                                    const loadingToast = toast.loading("Applying recycled requirement...");
+                                                    try {
+                                                        // 1. Determine if it's a Feature or just a Requirement fragment
+                                                        const newFeature = typeof content === 'string'
+                                                            ? { name: "Recycled Feature", description: content, functionalRequirements: [] }
+                                                            : content;
+
+                                                        // 2. Optimistic Update (optional, but let's stick to safe API pattern first)
+                                                        const updatedFeatures = [...(analysis?.systemFeatures || []), newFeature];
+
+                                                        // 3. API Call
+                                                        const updatedData = await updateAnalysis(id, token!, {
+                                                            systemFeatures: updatedFeatures,
+                                                            skipAlignment: true, // Keep speed optimization
+                                                            // inPlace: false // Default behavior creates new version
+                                                        });
+
+                                                        // 4. Navigate to New Version
+                                                        // Since we created a new version, we must navigate to it to see changes.
+                                                        toast.success("Requirement applied! Switching to new version...", { id: loadingToast });
+                                                        router.push(`/analysis/${updatedData.data.id}`);
+                                                    } catch (e) {
+                                                        console.error(e);
+                                                        toast.error("Failed to apply requirement", { id: loadingToast });
+                                                    }
                                                 }}
                                             />
                                         </SheetContent>

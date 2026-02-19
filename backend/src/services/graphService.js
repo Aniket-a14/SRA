@@ -1,5 +1,6 @@
 import prisma from '../config/prisma.js';
 import { BaseAgent } from '../agents/BaseAgent.js';
+import logger from '../config/logger.js';
 
 // Graph Extraction Prompt
 const GRAPH_EXTRACTION_PROMPT = `
@@ -36,7 +37,7 @@ Output strictly JSON in this format:
 export const extractGraph = async (text, projectId, prismaClient = prisma) => {
     try {
         if (!process.env.GEMINI_API_KEY) {
-            console.warn("Skipping Graph Extraction: No API Key.");
+            logger.warn("Skipping Graph Extraction: No API Key.");
             return;
         }
 
@@ -50,7 +51,7 @@ export const extractGraph = async (text, projectId, prismaClient = prisma) => {
         }
 
     } catch (error) {
-        console.error("Graph Extraction Failed:", error);
+        logger.error({ msg: "Graph Extraction Failed", error: error.message });
     }
 };
 
@@ -112,10 +113,10 @@ export const storeGraph = async (graphData, projectId, prismaClient = prisma) =>
                 }
             }
         }, { timeout: 15000 });
-        console.log(`[GraphService] Stored ${graphData.nodes.length} nodes and ${graphData.edges.length} edges for Project ${projectId}`);
+        logger.info(`[GraphService] Stored ${graphData.nodes.length} nodes and ${graphData.edges.length} edges for Project ${projectId}`);
 
     } catch (error) {
-        console.error("Graph Storage Failed:", error);
+        logger.error({ msg: "Graph Storage Failed", error: error.message });
     }
 };
 
@@ -163,7 +164,7 @@ export const traverseGraph = async (nodeNames, projectId, depth, prismaClient = 
 
         return context;
     } catch (error) {
-        console.error("Graph Traversal Failed:", error);
+        logger.error({ msg: "Graph Traversal Failed", error: error.message });
         return "";
     }
 }
@@ -188,7 +189,7 @@ export const getFullProjectGraph = async (projectId) => {
 
         return { nodes, edges };
     } catch (error) {
-        console.error("Error fetching project graph:", error);
+        logger.error({ msg: "Error fetching project graph", error: error.message });
         throw error;
     }
 };

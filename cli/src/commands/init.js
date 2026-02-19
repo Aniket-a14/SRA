@@ -69,8 +69,7 @@ export async function init() {
     try {
         await configManager.save({
             backendUrl,
-            projectId,
-            token: apiKey
+            projectId
         });
         logger.success('Connected! Configuration saved to sra.config.json');
         logger.debug('Tip: Add sra.config.json to .gitignore');

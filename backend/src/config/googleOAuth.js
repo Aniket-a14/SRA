@@ -1,4 +1,5 @@
 import axios from 'axios';
+import logger from './logger.js';
 
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
@@ -40,7 +41,7 @@ export const getGoogleTokens = async (code) => {
         });
         return res.data;
     } catch (error) {
-        console.error('Failed to fetch Google tokens', error.response?.data || error.message);
+        logger.error({ msg: 'Failed to fetch Google tokens', error: error.response?.data || error.message });
         throw new Error(error.response?.data?.error_description || 'Failed to fetch Google tokens');
     }
 };
@@ -54,7 +55,7 @@ export const getGoogleUser = async (id_token, access_token) => {
         });
         return res.data;
     } catch (error) {
-        console.error('Failed to fetch Google user', error.response?.data || error.message);
+        logger.error({ msg: 'Failed to fetch Google user', error: error.response?.data || error.message });
         throw new Error('Failed to fetch Google user info');
     }
 };

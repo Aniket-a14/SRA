@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import logger from '../config/logger.js';
 
 /**
  * Data Encryption Utilities
@@ -58,7 +59,7 @@ export function encryptData(plaintext, masterSecret = process.env.ENCRYPTION_KEY
         // Return as base64
         return combined.toString('base64');
     } catch (error) {
-        console.error('Encryption failed:', error);
+        logger.error({ msg: 'Encryption failed', error: error.message });
         throw new Error('Failed to encrypt data');
     }
 }
@@ -102,7 +103,7 @@ export function decryptData(encryptedData, masterSecret = process.env.ENCRYPTION
 
         return decrypted.toString('utf8');
     } catch (error) {
-        console.error('Decryption failed:', error);
+        logger.error({ msg: 'Decryption failed', error: error.message });
         throw new Error('Failed to decrypt data');
     }
 }
@@ -168,7 +169,7 @@ export function decryptObjectFields(obj, fields) {
             try {
                 decrypted[field] = decryptData(decrypted[field]);
             } catch (error) {
-                console.error(`Failed to decrypt field ${field}:`, error);
+                logger.error({ msg: `Failed to decrypt field ${field}`, error: error.message });
                 // Keep encrypted value if decryption fails
             }
         }

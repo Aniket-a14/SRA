@@ -20,8 +20,11 @@ class ConfigManager {
             // Local config might not exist yet
         }
 
-        this.memoryConfig = localConfig;
-        return localConfig;
+        this.memoryConfig = {
+            ...localConfig,
+            token: process.env.SRA_TOKEN || process.env.SRA_API_KEY || localConfig.token
+        };
+        return this.memoryConfig;
     }
 
     async save(config) {

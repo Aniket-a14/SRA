@@ -19,7 +19,6 @@ export function cleanInputText(text: string): string {
   if (!text) return ""
 
   // Try parsing as JSON first (for srsData structures)
-  // Try parsing as JSON first (for srsData structures)
   try {
     if (text.trim().startsWith('{') || text.trim().startsWith('[')) {
       const parsed = JSON.parse(text);

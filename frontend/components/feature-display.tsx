@@ -13,7 +13,7 @@ const Editor = dynamic(() => import("@/components/editor"), {
     loading: () => <div className="h-[100px] w-full bg-muted/20 animate-pulse rounded-md border" />
 })
 import { Button } from "@/components/ui/button"
-import { Plus, Trash2 } from "lucide-react"
+import { Bot, CheckCircle2, Plus, Trash2 } from "lucide-react"
 import { EditableSection } from "@/components/editable-section"
 
 interface FeatureDisplayProps {
@@ -195,25 +195,68 @@ export function FeatureDisplay({ features, projectTitle = "SRA", isEditing, onUp
                             <h4 className="text-sm font-medium mb-3 text-foreground/80">4.{index + 1}.3 Functional Requirements</h4>
                             {isEditing ? (
                                 <EditableSection
-                                    items={feature.functionalRequirements || []}
+                                    items={feature.functionalRequirements.map(r => typeof r === 'string' ? r : r.description)}
                                     isEditing={true}
-                                    onUpdate={(items) => updateFeature(index, { functionalRequirements: items })}
+                                    onUpdate={(items) => updateFeature(index, {
+                                        functionalRequirements: items.map((desc, i) => {
+                                            const existing = feature.functionalRequirements[i];
+                                            if (typeof existing === 'object') {
+                                                return { ...existing, description: desc };
+                                            }
+                                            return desc;
+                                        })
+                                    })}
                                     prefix={`${acronym}-FR-${index + 1}`}
                                 />
                             ) : (
                                 <div className="grid gap-2">
                                     {feature.functionalRequirements && feature.functionalRequirements.length > 0 ? (
                                         feature.functionalRequirements.map((req, idx) => {
-                                            // Strip existing ID if present to avoid double labeling
-                                            const cleanReq = req.replace(/^[A-Z]+-[A-Z]+-\d+\s*:?\s*/, '').trim();
+                                            let content = "";
+                                            let reqId = `${acronym}-FR-${index + 1}.${idx + 1}`;
+                                            let status: string | undefined = undefined;
+
+                                            if (typeof req === 'string') {
+                                                content = req;
+                                                // Try to extract ID from string if present
+                                                const match = content.match(/^([A-Z]+-[A-Z]+-\d+(\.\d+)?)\s*:?\s*/);
+                                                if (match) reqId = match[1];
+                                            } else {
+                                                content = req.description;
+                                                reqId = req.id || reqId;
+                                                status = req.metadata?.verification_status;
+                                            }
+
+                                            // Strip existing ID from content to avoid double labeling
+                                            const cleanReq = content.replace(/^[A-Z]+-[A-Z]+-\d+(\.\d+)?\s*:?\s*/, '').trim();
+
                                             return (
                                                 <div
                                                     key={idx}
-                                                    className="flex items-start gap-3 p-3 rounded-md bg-secondary/50 border border-border/50 transition-colors hover:bg-secondary/80"
+                                                    className={`flex items-start gap-3 p-3 rounded-md border transition-colors ${status === 'APPROVED_HUMAN'
+                                                        ? 'bg-green-500/10 border-green-500/20 hover:bg-green-500/20'
+                                                        : 'bg-secondary/50 border-border/50 hover:bg-secondary/80'
+                                                        }`}
                                                 >
-                                                    <Badge variant="outline" className="shrink-0 mt-0.5 text-xs text-primary bg-primary/5 uppercase">
-                                                        {acronym}-FR-{index + 1}.{idx + 1}
-                                                    </Badge>
+                                                    <div className="flex flex-col items-center gap-1 shrink-0 mt-0.5">
+                                                        <Badge variant="outline" className="text-xs text-primary bg-primary/5 uppercase">
+                                                            {reqId}
+                                                        </Badge>
+                                                        {/* Status Icon */}
+                                                        {status === 'APPROVED_HUMAN' && (
+                                                            <div className="flex items-center gap-0.5 text-[10px] text-green-600 font-medium">
+                                                                <CheckCircle2 className="w-3 h-3" />
+                                                                <span>VERIFIED</span>
+                                                            </div>
+                                                        )}
+                                                        {(!status || status === 'DRAFT_AI' || typeof req === 'string') && (
+                                                            <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground font-medium" title="AI Generated">
+                                                                <Bot className="w-3 h-3" />
+                                                                <span>AI</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
                                                     <div className="text-sm text-foreground/90 w-full">
                                                         <MarkdownDisplay content={cleanReq} />
                                                     </div>

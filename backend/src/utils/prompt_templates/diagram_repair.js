@@ -33,6 +33,13 @@ COMMON PITFALLS TO FIX
    - FIX: If an attribute name has multiple words (e.g. 'Definition JSON'), join them with underscores (e.g. 'Definition_JSON') or remove the extra word.
    - FIX: Ensure type is provided (default to 'string' if missing).
    - FIX: Attributes MUST NOT contain JSON-like braces or commas inside the entity block.
+
+7. Sequence Diagram Logic:
+   - "Trying to inactivate an inactive participant":
+   - FIX: Check for 'deactivate [Participant]' without a preceding 'activate [Participant]'.
+   - FIX: The safest fix is to REMOVE the 'deactivate' line entirely.
+   - FIX: Do NOT try to add 'activate'. Just delete the 'deactivate'.
+   - FIX: Mermaid does not require explicit deactivation for simple flows.
 ================================================================
 INSTRUCTIONS
 ================================================================

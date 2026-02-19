@@ -30,3 +30,33 @@ export const analyzeSchema = z.object({
         }).passthrough().optional()
     })
 });
+
+export const signupSchema = z.object({
+    body: z.object({
+        email: z.string().email("Invalid email format"),
+        password: z.string().min(6, "Password must be at least 6 characters"),
+        name: z.string().min(2, "Name must be at least 2 characters").optional()
+    })
+});
+
+export const loginSchema = z.object({
+    body: z.object({
+        email: z.string().email("Invalid email format"),
+        password: z.string().min(1, "Password is required")
+    })
+});
+
+export const projectCreateSchema = z.object({
+    body: z.object({
+        name: z.string().min(1, "Project name is required").max(100),
+        description: z.string().optional()
+    })
+});
+
+export const projectUpdateSchema = z.object({
+    body: z.object({
+        name: z.string().min(1, "Project name is required").max(100).optional(),
+        description: z.string().optional(),
+        settings: z.record(z.any()).optional()
+    })
+});

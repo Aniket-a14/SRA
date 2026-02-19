@@ -1,6 +1,7 @@
 import { BaseAgent } from './BaseAgent.js';
 import { retrieveContext, formatRagContext } from '../services/ragService.js';
 import { constructMasterPrompt } from '../utils/prompts.js';
+import logger from '../config/logger.js';
 
 const QUERY_EXPANSION_PROMPT = `
 You are an expert technical researcher.
@@ -36,11 +37,11 @@ export class ArchitectAgent extends BaseAgent {
     const features = (poOutput?.systemFeatures || poOutput?.features || []);
 
     if (features.length === 0) {
-      console.warn("[Architect] No features found in PO output.");
+      logger.warn("[Architect] No features found in PO output.");
     }
 
     // 1. Advanced RAG: Query Expansion (Fire and Forget)
-    console.log(`[Architect] Generating search queries...`);
+    logger.info(`[Architect] Generating search queries...`);
     const queries = await this.generateQueries(features);
 
     // 2. Parallel Retrieval
@@ -50,7 +51,7 @@ export class ArchitectAgent extends BaseAgent {
       const results = await Promise.all(retrievalPromises);
       allChunks = results.flat();
     } catch (e) {
-      console.warn("[Architect] RAG retrieval failed.", e);
+      logger.warn({ msg: "[Architect] RAG retrieval failed", error: e });
     }
 
     const uniqueChunks = [];

@@ -1,3 +1,5 @@
+import logger from '../config/logger.js';
+
 export const validate = (schema) => (req, res, next) => {
     try {
         schema.parse({
@@ -7,7 +9,7 @@ export const validate = (schema) => (req, res, next) => {
         });
         next();
     } catch (error) {
-        console.error("[Validation Middleware] Error:", JSON.stringify(error.errors, null, 2));
+        logger.error({ msg: 'Validation Error', errors: error.errors });
         return res.status(400).json({
             error: 'Validation Error',
             details: error.errors,

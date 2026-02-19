@@ -1,9 +1,10 @@
 import prisma from '../config/prisma.js';
+import logger from '../config/logger.js';
 
 export const ensureProjectExists = async (userId, projectId, srsData, text) => {
     if (projectId) return projectId;
 
-    console.log("Analysis started without Project ID. Auto-creating...");
+    logger.info("Analysis started without Project ID. Auto-creating...");
     let projectName = "New Project";
 
     // Try to extract a meaningful name
@@ -28,7 +29,7 @@ export const ensureProjectExists = async (userId, projectId, srsData, text) => {
     });
 
     if (existingProject) {
-        console.log("Reusing existing project:", existingProject.id);
+        logger.info({ msg: "Reusing existing project", projectId: existingProject.id });
         return existingProject.id;
     } else {
         const newProject = await prisma.project.create({
@@ -38,7 +39,7 @@ export const ensureProjectExists = async (userId, projectId, srsData, text) => {
                 userId: userId
             }
         });
-        console.log("Auto-created project:", newProject.id);
+        logger.info({ msg: "Auto-created project", projectId: newProject.id });
         return newProject.id;
     }
 };

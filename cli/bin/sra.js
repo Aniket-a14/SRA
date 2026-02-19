@@ -15,6 +15,7 @@ import { check } from '../src/commands/check.js';
 import { reverse } from '../src/commands/reverse.js';
 import { push } from '../src/commands/push.js';
 import { doctor } from '../src/commands/doctor.js';
+import { review } from '../src/commands/review.js';
 
 console.log(
     chalk.blue(
@@ -56,5 +57,10 @@ program
     .command('doctor')
     .description('Run diagnostics to check SRA setup and connectivity')
     .action(doctor);
+
+program
+    .command('review')
+    .description('Interactively review and approve AI-generated requirements')
+    .action(review);
 
 program.parse();

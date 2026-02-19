@@ -87,6 +87,7 @@ export const AppendicesTab = memo(function AppendicesTab({
                             : appendices?.analysisModels?.flowchartDiagram?.code || ""}
                         onSave={(newCode, options) => handleDiagramSave('flowchartDiagram', newCode, options)}
                         onOpenChange={onDiagramEditChange}
+                        syntaxExplanation={typeof appendices?.analysisModels?.flowchartDiagram === 'object' && appendices.analysisModels.flowchartDiagram !== null ? (appendices.analysisModels.flowchartDiagram as Diagram).syntaxExplanation : undefined}
                     />
                     <DiagramEditor
                         title="Sequence Diagram"
@@ -95,6 +96,7 @@ export const AppendicesTab = memo(function AppendicesTab({
                             : appendices?.analysisModels?.sequenceDiagram?.code || ""}
                         onSave={(newCode, options) => handleDiagramSave('sequenceDiagram', newCode, options)}
                         onOpenChange={onDiagramEditChange}
+                        syntaxExplanation={typeof appendices?.analysisModels?.sequenceDiagram === 'object' && appendices.analysisModels.sequenceDiagram !== null ? (appendices.analysisModels.sequenceDiagram as Diagram).syntaxExplanation : undefined}
                     />
                 </div>
 

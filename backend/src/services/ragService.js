@@ -1,11 +1,7 @@
 import { Prisma } from '../generated/prisma/index.js';
 import prisma from '../config/prisma.js';
 import { embedText } from './embeddingService.js';
-
-/**
- * Retrieves granular knowledge chunks based on semantic similarity and keywords.
- * This is the core of Layer 5 "Granular RAG".
- */
+import logger from '../config/logger.js';
 import { traverseGraph } from './graphService.js';
 
 /**
@@ -76,7 +72,7 @@ export const retrieveContext = async (queryText, projectId = null, limit = 5) =>
         return vectorResults;
 
     } catch (error) {
-        console.error("[RAG Service] Retrieval failed:", error);
+        logger.error({ msg: "[RAG Service] Retrieval failed", error: error.message });
         return [];
     }
 };
@@ -137,7 +133,7 @@ export const searchGoldStandardFragments = async (query, type = null) => {
 
         return matches;
     } catch (error) {
-        console.error("[RAG Service] Gold Standard search failed:", error);
+        logger.error({ msg: "[RAG Service] Gold Standard search failed", error: error.message });
         return [];
     }
 };

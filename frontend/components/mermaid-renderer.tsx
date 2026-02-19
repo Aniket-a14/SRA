@@ -72,18 +72,34 @@ export function MermaidRenderer({ chart, title, className, onError, isExport = f
                 if (ref.current) ref.current.innerHTML = ""
 
                 const id = "diagram-" + Math.random().toString(36).substring(7)
-                const { svg } = await mermaidInstance.render(id, formatted)
+                // Auto-Fix: Retry logic for common LLM sequence diagram errors
+                try {
+                    const { svg } = await mermaidInstance.render(id, formatted)
+                    renderSvg(svg)
+                } catch (renderError) {
+                    const errString = String(renderError)
+                    if (errString.includes("Trying to inactivate an inactive participant")) {
+                        console.warn("Mermaid Error Detected: Inactive Participant. Applying auto-fix (removing deactivations).")
+                        const fixedCode = formatted.replace(/^\s*deactivate\s+.*$/gim, "%% Fixed: deactivated removed");
+                        const { svg } = await mermaidInstance.render(id, fixedCode)
+                        renderSvg(svg)
+                    } else {
+                        throw renderError
+                    }
+                }
 
-                if (ref.current) {
-                    ref.current.innerHTML = svg
-                    // Force SVG to be 100% width/height if export
-                    if (isExport) {
-                        const svgEl = ref.current.querySelector('svg');
-                        if (svgEl) {
-                            svgEl.removeAttribute('height'); // Allow scaling
-                            svgEl.removeAttribute('width');
-                            svgEl.style.width = '100%';
-                            svgEl.style.height = 'auto';
+                function renderSvg(svg: string) {
+                    if (ref.current) {
+                        ref.current.innerHTML = svg
+                        // Force SVG to be 100% width/height if export
+                        if (isExport) {
+                            const svgEl = ref.current.querySelector('svg');
+                            if (svgEl) {
+                                svgEl.removeAttribute('height'); // Allow scaling
+                                svgEl.removeAttribute('width');
+                                svgEl.style.width = '100%';
+                                svgEl.style.height = 'auto';
+                            }
                         }
                     }
                 }

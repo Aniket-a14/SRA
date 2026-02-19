@@ -71,10 +71,14 @@ BEST PRACTICES & SAFETY
    - "Quotes": Wrap labels in double quotes if they contain spaces or symbols (e.g., id["Label Text"]).
    - "Flowchart IDs": NEVER use 'end', 'subgraph', or 'class' as IDs. Use alphanumeric (A-Z, 0-9) IDs only. NO spaces.
    - "Flowchart Labels": Wrap text in double quotes if it contains spaces (e.g., id["Label"]).
-   - "Sequence Activations": Balance every \`activate\`/\`deactivate\` or use \`->>+\` / \`-->>-\`.
+   - "Sequence Activations": AVOID explicit 'activate'/'deactivate' unless absolutely critical. Use '->>+' / '-->>-' notation if needed, but prefer simple arrows '->>' for stability.
    - "Sequence Safety": NEVER quote alias IDs (e.g., \`participant U as "User"\`INVALID). Use \`participant U as User\`. Avoid \`{}\` in messages. NO activations inside \`alt\`/\`loop\`.
    - "ERD Syntax (STRICT)": Relationships MUST follow the pattern: ENTITY1 rel ENTITY2 : "label". The label MUST be last and quoted if it has spaces.
    - "ERD Attributes (STRICT)": Use 'type name [PK|FK|UK] ["comment"]'. Multiple keys (e.g. PK, FK) MUST be comma-separated. FORBIDDEN: NN.
+   - "ERD Logic (STRICT)":
+     - If Entity A has a Foreign Key (FK) to Entity B, the relationship MUST be Many-to-One (Entity A }|--|| Entity B).
+     - Do NOT use Many-to-Many (}|--|{) unless there is an explicit junction table.
+     - Ensure logical direction: 'Parent ||--o{ Child' (One Parent has Many Children).
 
 ================================================================
 OUTPUT RULE
@@ -123,13 +127,16 @@ STRICT COMPLIANCE OVERLAY (OVERRIDES KNOWLEDGE BASE)
 ================================================================
 1. **Flowchart IDs**: NEVER use 'end', 'subgraph', or 'class' as IDs. Use alphanumeric (A-Z, 0-9) ONLY. NO spaces.
 2. **Quoting**: ALL labels with spaces/symbols MUST be double-quoted. \`id["Label"]\`.
-3. **Sequence Activations**: You MUST balance every \`activate\` with a \`deactivate\` (or use \` ->> +\` / \`-- >> -\`).
+3. **Sequence Activations**: RESTRICTED. Do NOT use 'activate'/'deactivate' unless you are simulating a complex recursive call. Prefer standard arrows. If you MUST use them, they MUST be balanced.
 4. **Sequence Safety**:
-   - **Aliases**: NEVER quote alias IDs (e.g., \`participant U as "User"\`INVALID). Use \`participant U as User\`.
-   - **Messages**: Avoid special chars like \`{}\` in message labels.
-   - **Blocks**: Do NOT use \`activate\` inside \`alt\`/\`opt\`/\`loop\` blocks.
-4. **ERD Keys**: ONLY \`PK\`, \`FK\`, and \`UK\` are allowed. Multiple keys MUST be comma-separated (e.g., \`PK, FK\`). \`NN\` (Not Null) is FORBIDDEN.
-5. **ERD Relationships**: \`ENTITY1 || --o{ ENTITY2 : "label"\`. Label MUST be quoted.
+   - **Aliases**: NEVER quote alias IDs (e.g., 'participant U as "User"' INVALID). Use 'participant U as User'.
+   - **Messages**: Avoid special chars like '{}' in message labels.
+   - **Blocks**: Do NOT use 'activate' inside 'alt'/'opt'/'loop' blocks.
+4. **ERD Keys**: ONLY 'PK', 'FK', and 'UK' are allowed. Multiple keys MUST be comma-separated (e.g., 'PK, FK'). 'NN' (Not Null) is FORBIDDEN.
+5. **ERD Relationships**: 'ENTITY1 || --o{ ENTITY2 : "label"'. Label MUST be quoted.
+6. **ERD Logic**: 
+   - **FK implies Many-to-One**: If Entity A has a Foreign Key to Entity B, use 'Entity A }|--|| Entity B'. 
+   - **No Hidden M2M**: Never use Many-to-Many ('}|--|{') without a junction table.
 
 ================================================================
 OUTPUT RULE

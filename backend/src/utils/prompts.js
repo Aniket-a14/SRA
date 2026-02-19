@@ -1,5 +1,6 @@
 // DYNAMIC PROMPT GENERATOR
 import { registerPromptVersion, getPromptByVersion, getLatestVersion } from './promptRegistry.js';
+import logger from '../config/logger.js';
 import * as v1 from './versions/v1_0_0.js';
 import * as v1_1 from './versions/v1_1_0.js';
 
@@ -21,7 +22,7 @@ registerPromptVersion('1.1.0', v1_1.generate);
 export const constructMasterPrompt = async (settings = {}, version = 'latest') => {
   const v = version === 'latest' ? getLatestVersion() : version;
   if (version !== 'latest') {
-    console.log(`[Governance] Using explicit prompt version: ${v}`);
+    logger.info(`[Governance] Using explicit prompt version: ${v}`);
   }
   const generator = getPromptByVersion(v);
   return await generator(settings);
