@@ -15,7 +15,7 @@
 [![Dependabot](https://img.shields.io/badge/Dependabot-enabled-success)](https://github.com/Aniket-a14/SRA/blob/main/.github/dependabot.yml)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/Aniket-a14/SRA/graphs/commit-activity)
 [![Frontend Deploy](https://img.shields.io/badge/Frontend-Live-brightgreen?logo=vercel)](https://sra-xi.vercel.app/)
-[![Socket Badge](https://badge.socket.dev/npm/package/@aniket_a14/sra-cli/4.0.1)](https://badge.socket.dev/npm/package/@aniket_a14/sra-cli/4.0.1)
+[![Socket Badge](https://badge.socket.dev/npm/package/@sra-srs/sra-cli/4.0.2)](https://badge.socket.dev/npm/package/@sra-srs/sra-cli/4.0.2)
 
 **SRA** is an enterprise-grade, AI-orchestrated ecosystem designed to formalize the software requirements engineering lifecycle. By combining Large Language Model (LLM) reasoning with rigorous architectural standards, SRA transforms fragmented project visions into high-fidelity, production-ready technical specifications (IEEE-830).
 
@@ -65,7 +65,7 @@ graph TD
     end
 
     subgraph "Local Execution Layer (CLI Toolkit)"
-        CLI["SRA CLI (@aniket_a14/sra-cli)"] -->|Auth/Sync| L1
+        CLI["SRA CLI (@sra-srs/sra-cli)"] -->|Auth/Sync| L1
         CLI -->|Verify| Code[(Local Source Code)]
         Code -->|Verification Data| CLI
         CLI -->|Push Audit Trail| L4
@@ -303,10 +303,9 @@ docker-compose up --build -d
 *   **Application UI**: `http://localhost:3001` (Next.js Standalone Build)
 *   **Registry**: `ghcr.io/aniket-a14/sra-backend:latest`
 
-#### 🛠️ CLI Toolkit (Production Ready)
-The SRA CLI is the heart of the v4.0 workflow. Install it globally to sync your code with your specs:
+### �️ CLI
 ```bash
-npm install -g @aniket_a14/sra-cli
+npm install -g @sra-srs/sra-cli
 sra init
 ```
 
