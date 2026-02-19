@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { generateSRS, generateAPI, downloadBundle } from "@/lib/export-utils"
 import { updateAnalysis, runValidation, autoFixIssue, startAnalysis, finalizeAnalysis } from "@/lib/analysis-api"
-import type { Analysis, ValidationIssue } from "@/types/analysis"
+import type { Analysis, ValidationIssue, StartAnalysisInput, SystemFeature } from "@/types/analysis"
 import { SRSIntakeModel } from "@/types/srs-intake"
 import { cn } from "@/lib/utils"
 
@@ -298,7 +298,7 @@ function AnalysisDetailContent() {
             const result = await startAnalysis(token!, {
                 projectId: analysis?.projectId,
                 text: "Generated from Draft",
-                srsData: draftData,
+                srsData: draftData as unknown as StartAnalysisInput['srsData'],
                 validationResult: { validation_status: 'PASS', issues: validationIssues },
                 parentId: id,
                 draft: false
@@ -572,12 +572,12 @@ function AnalysisDetailContent() {
                                                     const loadingToast = toast.loading("Applying recycled requirement...");
                                                     try {
                                                         // 1. Determine if it's a Feature or just a Requirement fragment
-                                                        const newFeature = typeof content === 'string'
+                                                        const newFeature = (typeof content === 'string'
                                                             ? { name: "Recycled Feature", description: content, functionalRequirements: [] }
-                                                            : content;
+                                                            : content) as unknown as SystemFeature;
 
                                                         // 2. Optimistic Update (optional, but let's stick to safe API pattern first)
-                                                        const updatedFeatures = [...(analysis?.systemFeatures || []), newFeature];
+                                                        const updatedFeatures: SystemFeature[] = [...(analysis?.systemFeatures || []), newFeature];
 
                                                         // 3. API Call
                                                         const updatedData = await updateAnalysis(id, token!, {

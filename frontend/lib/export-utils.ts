@@ -1,5 +1,5 @@
 import { getAcronym } from '@/lib/utils';
-import type { AnalysisResult, Diagram } from '@/types/analysis';
+import type { AnalysisResult, Diagram, Requirement } from '@/types/analysis';
 
 // Helper: Convert SVG string to PNG Blob (kept from original)
 const svgToPng = (svgStr: string): Promise<Blob | null> => {
@@ -599,13 +599,14 @@ export const generateSRS = async (data: AnalysisResult, title: string, diagramIm
     };
 
     // Requirement Lists
-    const addRequirementList = (items: string[], type: 'bullet' | 'functional' | 'performance' | 'safety' | 'security' | 'quality' | 'business' | 'other' | 'stimulus' = 'bullet', acronym: string = "SRA") => {
+    const addRequirementList = (items: (string | Requirement)[], type: 'bullet' | 'functional' | 'performance' | 'safety' | 'security' | 'quality' | 'business' | 'other' | 'stimulus' = 'bullet', acronym: string = "SRA") => {
         if (!items || items.length === 0) return;
         doc.setFont("times", "normal");
         doc.setFontSize(12);
 
         items.forEach(item => {
-            const contentText = normalizeText(clean(item));
+            const textContent = typeof item === 'string' ? item : item.description;
+            const contentText = normalizeText(clean(textContent));
             let idLabel = "";
 
             if (type === 'functional') {
