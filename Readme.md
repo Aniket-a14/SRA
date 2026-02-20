@@ -15,7 +15,7 @@
 [![Dependabot](https://img.shields.io/badge/Dependabot-enabled-success)](https://github.com/Aniket-a14/SRA/blob/main/.github/dependabot.yml)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/Aniket-a14/SRA/graphs/commit-activity)
 [![Frontend Deploy](https://img.shields.io/badge/Frontend-Live-brightgreen?logo=vercel)](https://sra-xi.vercel.app/)
-[![Socket Badge](https://badge.socket.dev/npm/package/@sra-srs/sra-cli/4.0.2)](https://badge.socket.dev/npm/package/@sra-srs/sra-cli/4.0.2)
+[![Socket Badge](https://badge.socket.dev/npm/package/@sra-srs/sra-cli/4.0.3)](https://badge.socket.dev/npm/package/@sra-srs/sra-cli/4.0.3)
 
 **SRA** is an enterprise-grade, AI-orchestrated ecosystem designed to formalize the software requirements engineering lifecycle. By combining Large Language Model (LLM) reasoning with rigorous architectural standards, SRA transforms fragmented project visions into high-fidelity, production-ready technical specifications (IEEE-830).
 
