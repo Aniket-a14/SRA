@@ -13,14 +13,10 @@
  */
 
 import 'dotenv/config';
-import { validateEnv } from '../src/config/env.js';
 import backupService from '../src/services/backupService.js';
 import { program } from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
-
-// Validate environment variables early
-validateEnv();
 
 program
     .name('backup-cli')
