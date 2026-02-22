@@ -47,6 +47,7 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+          BACKUP_ENCRYPTION_SALT: ${{ secrets.BACKUP_ENCRYPTION_SALT }}
           BACKUP_DIR: ./backups
         run: |
           node scripts/backup-cli.js create
@@ -61,6 +62,8 @@ jobs:
       - name: Verify backup integrity
         working-directory: ./backend
         env:
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+          BACKUP_ENCRYPTION_SALT: ${{ secrets.BACKUP_ENCRYPTION_SALT }}
           BACKUP_DIR: ./backups
         run: |
           LATEST_BACKUP=$(ls -t backups/*.enc | head -1)
@@ -69,6 +72,8 @@ jobs:
       - name: Cleanup old backups
         working-directory: ./backend
         env:
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+          BACKUP_ENCRYPTION_SALT: ${{ secrets.BACKUP_ENCRYPTION_SALT }}
           BACKUP_DIR: ./backups
           BACKUP_RETENTION_DAYS: 30
         run: |
