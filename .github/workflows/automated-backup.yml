@@ -53,7 +53,7 @@ jobs:
           node scripts/backup-cli.js create
 
       - name: Upload backup to artifact storage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: database-backup-${{ github.run_number }}
           path: backend/backups/*.enc
