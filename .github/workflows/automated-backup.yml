@@ -20,7 +20,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install PostgreSQL 17 client
         run: |
@@ -34,8 +34,8 @@ jobs:
           pg_dump --version
 
       - name: Install dependencies
-        working-directory: ./backend
         run: npm ci
+        working-directory: .
 
       - name: Install PostgreSQL client
         run: |
