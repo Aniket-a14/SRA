@@ -97,9 +97,6 @@
     "baseline-browser-mapping": "2.9.19",
     "eslint": "^8.57.0",
     "eslint-config-next": "^14.2.8",
-    "postcss": "^8.5",
-    "tailwindcss": "^4.1.9",
-    "tw-animate-css": "1.3.3",
     "typescript": "^5"
   }
 }
