@@ -13,9 +13,6 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./backend
 
     steps:
     - uses: actions/checkout@v6
@@ -33,12 +30,15 @@ jobs:
 
     - name: Run Lint
       run: npm run lint
+      working-directory: ./backend
 
     - name: Security Scan
       run: npm audit --audit-level=high || true
+      working-directory: ./backend
 
     - name: Run Tests with Coverage
       run: npm test -- --coverage
+      working-directory: ./backend
       env:
         CI: true
 

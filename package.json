@@ -6,7 +6,8 @@
   "workspaces": [
     "frontend",
     "backend",
-    "cli"
+    "cli",
+    "model"
   ],
   "scripts": {
     "dev": "npm run dev --workspace=frontend",

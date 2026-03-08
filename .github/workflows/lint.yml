@@ -10,9 +10,6 @@ jobs:
   lint-frontend:
     name: Lint Frontend
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -23,13 +20,11 @@ jobs:
       - run: npm ci
         working-directory: .
       - run: npm run lint
+        working-directory: frontend
 
   lint-backend:
     name: Lint Backend
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -40,13 +35,11 @@ jobs:
       - run: npm ci
         working-directory: .
       - run: npm run lint
+        working-directory: backend
 
   lint-cli:
     name: Lint CLI
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: cli
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -57,3 +50,4 @@ jobs:
       - run: npm ci
         working-directory: .
       # - run: npm run lint # Add lint script to cli/package.json if needed
+      #   working-directory: cli

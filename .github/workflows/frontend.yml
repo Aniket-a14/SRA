@@ -13,9 +13,6 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./frontend
 
     steps:
     - uses: actions/checkout@v6
@@ -33,12 +30,16 @@ jobs:
 
     - name: Run Lint
       run: npm run lint
+      working-directory: ./frontend
 
     - name: Type Check
       run: npx tsc --noEmit
+      working-directory: ./frontend
 
     - name: Security Scan
       run: npm audit --audit-level=high || true
+      working-directory: ./frontend
 
     - name: Run Build
       run: npm run build
+      working-directory: ./frontend

@@ -13,9 +13,6 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./cli
 
     steps:
     - uses: actions/checkout@v6
@@ -32,6 +29,7 @@ jobs:
       working-directory: .
 
     - name: Run Lint
+      working-directory: ./cli
       run: |
         if npm run lint --if-present; then
           echo "Linting passed or no lint script found"
