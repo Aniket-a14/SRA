@@ -55,7 +55,7 @@
     "clsx": "^2.1.1",
     "cmdk": "1.0.4",
     "date-fns": "^4.1.0",
-    "embla-carousel-react": "8.5.1",
+    "embla-carousel-react": "8.6.0",
     "file-saver": "^2.0.5",
     "framer-motion": "^12.23.24",
     "html-to-image": "^1.11.13",
