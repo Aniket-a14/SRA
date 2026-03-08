@@ -296,32 +296,35 @@ Ensure the following variables are defined in your infrastructure (see `.env.exa
 SRA is fully containerized for cloud-agnostic deployment. Our CI pipeline automatically publishes production-ready images to **GitHub Container Registry (GHCR)**.
 
 ```bash
-# Pull and run the latest images
-docker-compose up --build -d
+# Pull and run the latest images via Compose
+docker compose up --build -d
 ```
 *   **API Service**: `http://localhost:3000` (Optimized Multi-stage Build)
 *   **Application UI**: `http://localhost:3001` (Next.js Standalone Build)
-*   **Registry**: `ghcr.io/aniket-a14/sra-backend:latest`
 
-### �️ CLI
+### ⌨️ CLI (v4.0.3)
+The SRA toolkit operates cross-workspace for unified project control.
 ```bash
 npm install -g @sra-srs/sra-cli
 sra init
 ```
 
-#### ⚒️ Manual Infrastructure Setup
-For local development or specialized environments:
+#### ⚒️ Local Infrastructure Setup
+SRA uses standard **npm workspaces** for monorepo management.
 ```bash
-# Initialize Identity & Data
-cd backend && npm install && npx prisma migrate dev
+# Install dependencies across all workspaces
+npm install
 
-# Initialize Application Layer
-cd ../frontend && npm install && npm run dev
+# Initialize Identity & Data
+npm run dev:backend
+
+# Or run everything concurrently
+npm run dev:all
 ```
 
 #### 🤖 Agentic & CI Workflows
 SRA leverages professional GitHub Actions for continuous quality assurance:
-*   **Publish Docker**: Automated image pushes to [GHCR](https://github.com/Aniket-a14/SRA/pkgs/container/sra-frontend).
+*   **Publish Docker**: Automated image pushes to GHCR.
 *   **Bundle Size**: Continuous monitoring of Next.js JS payloads on every branch.
 *   **Health Checks**: Hourly automated uptime verification of the entire pipeline.
 *   **Security Scans**: Integrated CodeQL and dependency vulnerability checks.
@@ -338,24 +341,20 @@ SRA leverages professional GitHub Actions for continuous quality assurance:
 ```bash
 SRA/
 ├── .github/                # CI/CD Workflows (Lint, CodeQL, Stale)
-├── .agent/                 # Agentic Workflows (Setup, Test, Deploy)
-├── backend/                # API Engine & AI Orchestration
+├── .agent/                 # Agent workflows and skill definitions
+├── backend/                # API Engine & Node.js orchestration workspace
 │   ├── prisma/             # Schema & Migrations
-│   ├── src/
-│   │   ├── services/       # AI logic, QStash workers, & business rules
-│   │   └── controllers/    # API request handlers
-├── frontend/               # Next.js 16 Application Layer
+│   ├── src/                # Services, controllers, and core AI logic
+├── frontend/               # Next.js 16 Application workspace
 │   ├── app/                # Server-driven App Router
 │   ├── components/         # High-fidelity React components
-│   └── lib/                # Shared utilities & API clients
-├── terraform/              # Infrastructure as Code (Terraform)
-│   ├── main.tf             # Provider configuration
-│   ├── vercel.tf           # Vercel project resources
-│   └── README.md           # Terraform usage guide
-├── docs/                   # Documentation
-│   ├── security/           # Security policies & procedures
-│   └── operations/         # Operational procedures
-└── README.md
+├── cli/                    # SRA Toolkit npm workspace
+├── model/                  # AI Model and testing workspace
+├── terraform/              # Infrastructure as Code (Platform config)
+├── docs/                   # Documentation & Security policies
+└── package.json            # Root monorepo workspace definition
+```
+
 ```
 
 </details>

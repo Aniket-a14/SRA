@@ -12,7 +12,14 @@
  *   node backup-cli.js verify <file>    - Verify backup integrity
  */
 
-import 'dotenv/config';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+// Execute dotenv config relative to this script's location (backend directory)
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.join(__dirname, '../.env') });
+
 import backupService from '../src/services/backupService.js';
 import { program } from 'commander';
 import chalk from 'chalk';

@@ -12,7 +12,12 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "prisma:generate": "prisma generate",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "backup:create": "node scripts/backup-cli.js create",
+    "backup:list": "node scripts/backup-cli.js list",
+    "backup:restore": "node scripts/backup-cli.js restore",
+    "backup:verify": "node scripts/backup-cli.js verify",
+    "backup:cleanup": "node scripts/backup-cli.js cleanup"
   },
   "keywords": [],
   "author": "",

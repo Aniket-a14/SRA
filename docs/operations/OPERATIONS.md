@@ -32,21 +32,22 @@ This document outlines the operational procedures, backup strategies, and disast
 
 #### Manual Backup Commands
 ```bash
+# Run backup commands from the monorepo root via workspace
+
 # Create encrypted backup
-cd backend
-node scripts/backup-cli.js create
+npm run backup:create --workspace=backend
 
 # List all backups
-node scripts/backup-cli.js list
+npm run backup:list --workspace=backend
 
 # Restore from backup
-node scripts/backup-cli.js restore <filename> --yes
+npm run backup:restore --workspace=backend -- <filename> --yes
 
 # Verify backup integrity
-node scripts/backup-cli.js verify <filename>
+npm run backup:verify --workspace=backend -- <filename>
 
 # Cleanup old backups
-node scripts/backup-cli.js cleanup
+npm run backup:cleanup --workspace=backend
 ```
 
 #### Required Environment Variables
