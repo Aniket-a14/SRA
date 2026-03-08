@@ -17,10 +17,11 @@ RUN npm ci --workspace=backend --include-workspace-root
 
 # Stage 2: Build
 FROM node:20-alpine AS build
+RUN apk add --no-cache openssl
 WORKDIR /app
 COPY --from=deps /app ./
 COPY . .
-RUN npx prisma generate --schema=./backend/prisma/schema.prisma
+RUN ./node_modules/.bin/prisma generate --schema=./backend/prisma/schema.prisma
 
 # Stage 3: Runner
 FROM node:20-alpine AS runner
