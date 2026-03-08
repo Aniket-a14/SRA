@@ -11,16 +11,10 @@ variable "project_name" {
   default     = "sra"
 }
 
-variable "github_repo_frontend" {
-  description = "GitHub repository for frontend deployment"
+variable "github_repo" {
+  description = "GitHub repository for deployment"
   type        = string
-  default     = "Aniket-a14/SRA_frontend"
-}
-
-variable "github_repo_backend" {
-  description = "GitHub repository for backend deployment"
-  type        = string
-  default     = "Aniket-a14/SRA_backend"
+  default     = "Aniket-a14/SRA"
 }
 
 variable "backend_url" {

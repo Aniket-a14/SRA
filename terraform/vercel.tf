@@ -2,32 +2,34 @@
 resource "vercel_project" "sra_frontend" {
   name      = var.project_name
   framework = "nextjs"
-  
+
   git_repository = {
     type = "github"
-    repo = var.github_repo_frontend
+    repo = var.github_repo
   }
-  
-  build_command = "npm run build"
+
+  root_directory   = "frontend"
+  build_command    = "npm run build"
   output_directory = ".next"
-  install_command = "npm ci"
-  
+  install_command  = "npm ci"
+
   # Note: Environment variables are managed directly in Vercel dashboard
   # to avoid storing secrets in Terraform state
 }
 
 # Backend Project
 resource "vercel_project" "sra_backend" {
-  name      = "${var.project_name}-backend"
-  
+  name = "${var.project_name}-backend"
+
   git_repository = {
     type = "github"
-    repo = var.github_repo_backend
+    repo = var.github_repo
   }
-  
-  framework = null
+
+  root_directory  = "backend"
+  framework       = null
   install_command = "npm ci"
-  
+
   # Note: Environment variables are managed directly in Vercel dashboard
   # to avoid storing secrets in Terraform state
 }

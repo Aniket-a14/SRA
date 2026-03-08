@@ -1,0 +1,26 @@
+{
+  "name": "sra-monorepo",
+  "version": "4.0.3",
+  "private": true,
+  "description": "SRA Monorepo - Frontend, Backend, and CLI",
+  "workspaces": [
+    "frontend",
+    "backend",
+    "cli"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=frontend",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:all": "npm run dev --workspaces --if-present",
+    "install:all": "npm install",
+    "build:frontend": "npm run build --workspace=frontend",
+    "test:backend": "npm test --workspace=backend",
+    "lint:all": "npm run lint --workspaces"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "author": "SRA Team",
+  "license": "ISC"
+}
