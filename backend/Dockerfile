@@ -21,7 +21,8 @@ RUN apk add --no-cache openssl
 WORKDIR /app
 COPY --from=deps /app ./
 COPY . .
-RUN ./node_modules/.bin/prisma generate --schema=./backend/prisma/schema.prisma
+RUN npm install -g prisma
+RUN prisma generate --schema=./backend/prisma/schema.prisma
 
 # Stage 3: Runner
 FROM node:20-alpine AS runner
