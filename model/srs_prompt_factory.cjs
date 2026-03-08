@@ -1,55 +1,126 @@
 /**
- * SRS PROMPT FACTORY
- * Generates structured prompts for each SRS section.
- * Supports context chaining by taking previously generated sections as input.
+ * SRA-PRO PROMPT FACTORY (Industry-Grade)
+ * 
+ * Generates system and user prompts for section-wise SRS generation.
+ * 
+ * Architecture:
+ *   System Prompt = Standard-specific persona + rules + forbidden terms
+ *   User Prompt   = SECTION INSTRUCTION + SCHEMA + CONTEXT + ACTION
+ * 
+ * Mirrors the backend's Layer 1 (ProductOwnerAgent) prompt architecture.
  */
 
-const SECTION_DESCRIPTIONS = {
-    introduction: "Define the purpose, scope, and audience of the software.",
-    overallDescription: "Describe the perspective, functions, environment, and constraints of the product.",
-    externalInterfaceRequirements: "Detail the user, hardware, software, and communication interfaces.",
-    systemFeatures: "Provide a list of high-level features with functional requirements.",
-    nonFunctionalRequirements: "Specify performance, safety, and security requirements with measurable metrics.",
-    appendices: "Include analysis models (Mermaid diagrams) and a TBD list."
-};
+const { TEMPLATES, FORBIDDEN_TERMS } = require('./srs_templates.cjs');
 
 /**
- * Creates a system prompt for a specific SRS section.
- * @param {string} sectionName 
- * @returns {string}
+ * Generates the system prompt for a given section and template.
+ * This is the LLM's "persona" — it defines WHO the model is.
  */
-function getSystemPrompt(sectionName) {
-    return `You are a professional software architect writing an IEEE 830-1998 compliant SRS.
-Task: Generate the "${sectionName}" section.
-Section Description: ${SECTION_DESCRIPTIONS[sectionName]}
+function getSystemPrompt(section, templateId) {
+    const template = TEMPLATES[templateId];
+    if (!template) throw new Error(`Unknown template: ${templateId}`);
 
-STRICT RULES:
-1. Return ONLY a valid JSON object matching the requested schema.
-2. NO conversational text, NO preamble, NO markdown blocks. Just the raw JSON.
-3. QUALITY RULE: Every functional requirement MUST start with "The system shall".
-4. ANTI-AMBIGUITY: Do NOT use vague terms like "easy", "robust", "fast", "user-friendly", "efficient". Use quantitative metrics where applicable.
-5. CONTINUITY: Ensure clinical consistency with any context provided from previous sections.
-6. DATA TYPE: Ensure all fields have the correct data type (strings, arrays, objects) as per the schema.`;
+    const forbiddenList = (template.rules.forbiddenTerms || FORBIDDEN_TERMS).join(', ');
+
+    return `${template.systemPromptDirective}
+
+STANDARD: ${template.name}
+
+CRITICAL RULES:
+1. Return ONLY valid JSON matching the provided schema. No markdown, no commentary, no code fences.
+2. All requirements must use the prefix: "${template.rules.requirementPrefix}".
+3. FORBIDDEN TERMS — Do not use any of these vague terms: ${forbiddenList}. Replace them with quantified metrics or specific descriptions.
+4. CONSISTENCY — Do not contradict any data in the "PREVIOUSLY GENERATED SECTIONS" context.
+5. COMPLETENESS — Fill every field in the schema. If information is not available from the project description, state "TBD" rather than leaving empty.
+6. TESTABILITY — Every requirement must be verifiable. If it cannot be tested, rewrite it until it can be.`;
 }
 
 /**
- * Creates a user prompt for a specific SRS section with contextual context.
- * @param {string} sectionName 
- * @param {string} projectName 
- * @param {string} projectDescription 
- * @param {object} previousSections - JSON object containing already generated sections
- * @returns {string}
+ * Generates the user prompt for a given section and template.
+ * This is the "task" — it tells the model WHAT to do.
+ * 
+ * Structure:
+ *   SECTION INSTRUCTION  — Official guidance text from the standard
+ *   SCHEMA               — Exact JSON structure to fill
+ *   CONTEXT              — Previously generated sections (chained)
+ *   ACTION               — What to do
  */
-function getUserPrompt(sectionName, projectName, projectDescription, previousSections = {}) {
-    let contextSnippet = "";
-    if (Object.keys(previousSections).length > 0) {
-        contextSnippet = `\nPREVIOUSLY GENERATED SECTIONS (for consistency):\n${JSON.stringify(previousSections, null, 2)}\n`;
+function getUserPrompt(section, projectName, projectDescription, previousSections, templateId) {
+    const template = TEMPLATES[templateId];
+    if (!template) throw new Error(`Unknown template: ${templateId}`);
+
+    // 1. Build section instruction
+    const instructionBlock = buildSectionInstruction(section, template);
+
+    // 2. Build schema block
+    const sectionSkeleton = template.skeleton[section];
+    const schemaBlock = JSON.stringify(sectionSkeleton, null, 2);
+
+    // 3. Build context block
+    const contextBlock = buildContextBlock(previousSections);
+
+    // 4. Assemble the prompt
+    return `PROJECT: ${projectName}
+DESCRIPTION: ${projectDescription}
+
+---
+SECTION INSTRUCTION (from ${template.name}):
+${instructionBlock}
+---
+EXPECTED JSON SCHEMA (fill this structure):
+${schemaBlock}
+---
+${contextBlock}---
+ACTION: Generate the "${section}" section for the project described above. Return ONLY the JSON object matching the schema. Do not wrap in code fences or add any text outside the JSON.`;
+}
+
+/**
+ * Builds the section instruction text from the template's sectionInstructions.
+ * Includes both the top-level instruction and per-field instructions.
+ */
+function buildSectionInstruction(section, template) {
+    const instructions = template.sectionInstructions[section];
+    if (!instructions) {
+        return `Generate the "${section}" section according to ${template.name} standard guidelines.`;
     }
 
-    return `Project Name: ${projectName}
-Project Description: ${projectDescription}
-${contextSnippet}
-ACTION: Generate the JSON for the "${sectionName}" section based on the above description and context.`;
+    const lines = [];
+
+    // Top-level section instruction
+    if (instructions._self) {
+        lines.push(instructions._self);
+        lines.push('');
+    }
+
+    // Per-field instructions
+    for (const [field, instruction] of Object.entries(instructions)) {
+        if (field === '_self') continue;
+        lines.push(`• ${field}: ${instruction}`);
+    }
+
+    return lines.join('\n');
+}
+
+/**
+ * Builds the chained context block from previously generated sections.
+ */
+function buildContextBlock(previousSections) {
+    if (!previousSections || Object.keys(previousSections).length === 0) {
+        return '';
+    }
+
+    let context = 'PREVIOUSLY GENERATED SECTIONS (for consistency — do not contradict):\n';
+
+    for (const [sectionName, sectionContent] of Object.entries(previousSections)) {
+        let contentStr = JSON.stringify(sectionContent, null, 2);
+        // Cap individual section context to prevent token overflow
+        if (contentStr.length > 2000) {
+            contentStr = contentStr.substring(0, 2000) + '\n... [TRUNCATED]';
+        }
+        context += `\n[${sectionName}]:\n${contentStr}\n`;
+    }
+
+    return context + '\n';
 }
 
 module.exports = { getSystemPrompt, getUserPrompt };

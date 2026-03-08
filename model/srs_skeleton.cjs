@@ -1,75 +1,42 @@
 /**
- * FIXED IEEE 830 JSON SKELETON
- * This structure is immutable.
- * The model only fills the predefined fields.
+ * SRA-PRO SKELETON CONFIGURATION
+ * 
+ * Dynamic template configuration loader.
+ * Returns the skeleton, sections, sectionInstructions, and rules
+ * for the requested template ID.
  */
 
-const SRS_SKELETON = {
-    projectTitle: "",
-    revisionHistory: [
-        {
-            version: "1.0",
-            date: new Date().toISOString().split('T')[0],
-            description: "Initial generation by SRA-Pro Pipeline",
-            author: "SRA-Pro Autonomous Orchestrator"
-        }
-    ],
-    introduction: {
-        purpose: "",
-        documentConventions: "",
-        intendedAudience: "",
-        productScope: "",
-        references: []
-    },
-    overallDescription: {
-        productPerspective: "",
-        productFunctions: [],
-        userClassesAndCharacteristics: [],
-        operatingEnvironment: "",
-        designAndImplementationConstraints: [],
-        userDocumentation: [],
-        assumptionsAndDependencies: []
-    },
-    externalInterfaceRequirements: {
-        userInterfaces: "",
-        hardwareInterfaces: "",
-        softwareInterfaces: "",
-        communicationsInterfaces: ""
-    },
-    systemFeatures: [
-        {
-            name: "",
-            description: "",
-            stimulusResponseSequences: [],
-            functionalRequirements: []
-        }
-    ],
-    nonFunctionalRequirements: {
-        performanceRequirements: [],
-        safetyRequirements: [],
-        securityRequirements: [],
-        softwareQualityAttributes: [],
-        businessRules: []
-    },
-    otherRequirements: [],
-    glossary: [],
-    appendices: {
-        analysisModels: {
-            flowchartDiagram: { code: "", caption: "", syntaxExplanation: "" },
-            sequenceDiagram: { code: "", caption: "", syntaxExplanation: "" },
-            entityRelationshipDiagram: { code: "", caption: "", syntaxExplanation: "" }
-        },
-        tbdList: []
+const { TEMPLATES } = require('./srs_templates.cjs');
+
+/**
+ * @param {string} templateId - One of: IEEE_830, ISO_29148, AGILE_USER_STORIES, VOLERE
+ * @returns {{ skeleton: object, sections: string[], sectionInstructions: object, rules: object, name: string }}
+ */
+function getTemplateConfig(templateId) {
+    const template = TEMPLATES[templateId];
+    if (!template) {
+        const available = Object.keys(TEMPLATES).join(', ');
+        throw new Error(`Unknown template "${templateId}". Available: ${available}`);
     }
-};
 
-const SRS_SECTIONS = [
-    "introduction",
-    "overallDescription",
-    "externalInterfaceRequirements",
-    "systemFeatures",
-    "nonFunctionalRequirements",
-    "appendices"
-];
+    return {
+        name: template.name,
+        sections: template.sections,
+        skeleton: JSON.parse(JSON.stringify(template.skeleton)), // Deep clone
+        sectionInstructions: template.sectionInstructions,
+        rules: template.rules
+    };
+}
 
-module.exports = { SRS_SKELETON, SRS_SECTIONS };
+/**
+ * Returns all available template IDs.
+ */
+function getAvailableTemplates() {
+    return Object.keys(TEMPLATES).map(id => ({
+        id,
+        name: TEMPLATES[id].name,
+        description: TEMPLATES[id].description
+    }));
+}
+
+module.exports = { getTemplateConfig, getAvailableTemplates };
