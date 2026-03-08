@@ -23,5 +23,9 @@
     "node": ">=20.19.0"
   },
   "author": "SRA Team",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "pdf-parse": "^2.4.5",
+    "pdfjs-dist": "^5.5.207"
+  }
 }
