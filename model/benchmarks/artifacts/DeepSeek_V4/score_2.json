@@ -1,0 +1,84 @@
+{
+  "total": 38,
+  "grade": "F",
+  "pillars": {
+    "structural": {
+      "score": 3,
+      "filled": 1,
+      "total": 35,
+      "details": [
+        "EMPTY: Introduction.Purpose",
+        "EMPTY: Introduction.DocumentConventions",
+        "EMPTY: Introduction.IntendedAudienceAndReadingSuggestions",
+        "EMPTY: Introduction.ProductScope",
+        "EMPTY array: Introduction.References",
+        "EMPTY: OverallDescription.ProductPerspective",
+        "EMPTY array: OverallDescription.ProductFunctions",
+        "EMPTY array: OverallDescription.UserClassesAndCharacteristics",
+        "EMPTY: OverallDescription.OperatingEnvironment",
+        "EMPTY array: OverallDescription.DesignAndImplementationConstraints",
+        "EMPTY array: OverallDescription.UserDocumentation",
+        "EMPTY array: OverallDescription.AssumptionsAndDependencies",
+        "EMPTY: ExternalInterfaceRequirements.UserInterfaces",
+        "EMPTY: ExternalInterfaceRequirements.HardwareInterfaces",
+        "EMPTY: ExternalInterfaceRequirements.SoftwareInterfaces",
+        "EMPTY: ExternalInterfaceRequirements.CommunicationsInterfaces",
+        "EMPTY array: OtherNonfunctionalRequirements.PerformanceRequirements",
+        "EMPTY array: OtherNonfunctionalRequirements.SafetyRequirements",
+        "EMPTY array: OtherNonfunctionalRequirements.SecurityRequirements",
+        "EMPTY: OtherNonfunctionalRequirements.SoftwareQualityAttributes.reliability",
+        "EMPTY: OtherNonfunctionalRequirements.SoftwareQualityAttributes.availability",
+        "EMPTY: OtherNonfunctionalRequirements.SoftwareQualityAttributes.security",
+        "EMPTY: OtherNonfunctionalRequirements.SoftwareQualityAttributes.maintainability",
+        "EMPTY: OtherNonfunctionalRequirements.SoftwareQualityAttributes.portability",
+        "EMPTY array: OtherNonfunctionalRequirements.BusinessRules",
+        "EMPTY array: OtherRequirements",
+        "EMPTY array: Appendices.Glossary",
+        "EMPTY: Appendices.AnalysisModels.flowchartDiagram.code",
+        "EMPTY: Appendices.AnalysisModels.flowchartDiagram.caption",
+        "EMPTY: Appendices.AnalysisModels.sequenceDiagram.code",
+        "EMPTY: Appendices.AnalysisModels.sequenceDiagram.caption",
+        "EMPTY: Appendices.AnalysisModels.entityRelationshipDiagram.code",
+        "EMPTY: Appendices.AnalysisModels.entityRelationshipDiagram.caption",
+        "EMPTY array: Appendices.ToBeDeterminedList"
+      ]
+    },
+    "quality": {
+      "score": 65,
+      "prefixCount": 0,
+      "forbiddenTermsFound": [],
+      "details": [
+        "No \"The system shall\" prefix found anywhere in the document.",
+        "1 SystemFeatures incomplete (missing featureName, priority, or requirements)."
+      ]
+    },
+    "quantification": {
+      "score": 10,
+      "quantifiedCount": 0,
+      "density": 0,
+      "wordCount": 6,
+      "details": [
+        "0 quantified values found (0 with units, 0 with comparisons)",
+        "Density: 0.0 per 1000 words (word count: 6)",
+        "LOW: Very few quantified metrics. Requirements may not be verifiable."
+      ]
+    },
+    "consistency": {
+      "score": 80,
+      "projectNameOccurrences": 1,
+      "descriptionOverlap": 11,
+      "details": [
+        "Project name \"Tele-Health Post-Op Recovery Platform\" appears only 1 time(s) — may lack contextual consistency.",
+        "Low terminology overlap with project description (11%). Content may not align with the original scope."
+      ]
+    }
+  },
+  "weights": {
+    "structural": 0.3,
+    "quality": 0.3,
+    "quantification": 0.2,
+    "consistency": 0.2
+  },
+  "templateId": "IEEE_830",
+  "projectName": "Tele-Health Post-Op Recovery Platform"
+}

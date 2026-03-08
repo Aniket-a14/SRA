@@ -201,7 +201,6 @@ REQ-2:
             "Limitations",
             "AssumptionsAndDependencies",
             "ApportioningOfRequirements",
-            "SpecificRequirements",
             "ExternalInterfaces",
             "Functions",
             "UsabilityRequirements",
@@ -307,6 +306,7 @@ d) Outputs: Resulting data.`
                 Title: "",
                 Date: "",
                 Version: "",
+                IssuingOrganization: "",
                 Status: ""
             },
             FrontMatter: {
@@ -413,7 +413,7 @@ d) Outputs: Resulting data.`
         },
 
         skeleton: {
-            Identification: { Title: "", Date: "", Version: "", Status: "" },
+            Identification: { Title: "", Date: "", Version: "", IssuingOrganization: "", Status: "" },
             FrontMatter: { TableOfContents: true },
             Definitions: [], References: [], AcronymsAndAbbreviations: [],
             BusinessPurpose: "", BusinessScope: "", BusinessOverview: "",
@@ -474,7 +474,7 @@ d) Outputs: Resulting data.`
         },
 
         skeleton: {
-            Identification: { Title: "", Date: "", Version: "" },
+            Identification: { Title: "", Date: "", Version: "", IssuingOrganization: "" },
             FrontMatter: {}, Definitions: [], References: [], AcronymsAndAbbreviations: [],
             SystemPurpose: "", SystemScope: "", SystemOverview: "",
             FunctionalRequirements: [], UsabilityRequirements: [], PerformanceRequirements: [],
@@ -598,115 +598,121 @@ Key Shell Components:
 Focus on the distinction between the Scope of the Work (business) and the Scope of the Product (software). Ensure traceability to stakeholders and business goals.`,
 
         sections: [
-            "ProjectDrivers",
-            "ProjectConstraints",
-            "FunctionalRequirements",
-            "NonFunctionalRequirements",
-            "ProjectIssues"
+            "Section1_PurposeOfProject",
+            "Section2_Stakeholders",
+            "Section3_MandatedConstraints",
+            "Section4_NamingConventions",
+            "Section5_FactsAndAssumptions",
+            "Section6_ScopeOfWork",
+            "Section7_BusinessDataModel",
+            "Section8_ScopeOfProduct",
+            "Section9_FunctionalRequirements",
+            "Section10_LookAndFeel",
+            "Section11_Usability",
+            "Section12_Performance",
+            "Section13_Operational",
+            "Section14_Maintainability",
+            "Section15_Security",
+            "Section16_Cultural",
+            "Section17_Legal",
+            "Section18_OpenIssues",
+            "Section19_OffTheShelf",
+            "Section20_NewProblems",
+            "Section21_Tasks",
+            "Section22_Migration",
+            "Section23_Risks",
+            "Section24_Costs",
+            "Section25_Documentation",
+            "Section26_WaitingRoom",
+            "Section27_IdeasForSolutions"
         ],
 
         sectionInstructions: {
-            ProjectDrivers: {
-                _self: "Establish WHY the project exists and WHO has a stake in it.",
-                Section1_PurposeOfProject: "1. The Purpose of the Project: Describe the user business problem or background of the project effort. State the measurable, quantified goals of the project.",
-                Section2_Stakeholders: "2. The Stakeholders: Identify the Client (who pays), Customer (who decides), and Hands-on Users. Include personas and other interested parties."
-            },
-            ProjectConstraints: {
-                _self: "Define the boundaries and givens that restrict the solution.",
-                Section3_MandatedConstraints: "3. Mandated Constraints: Describe solution restrictions, environmental constraints, partner systems, and budget/schedule limits.",
-                Section4_NamingConventions: "4. Naming Conventions and Terminology: Project glossary defining all terms, acronyms, and abbreviations used by stakeholders.",
-                Section5_FactsAndAssumptions: "5. Relevant Facts and Assumptions: External factors influencing the product and developer assumptions."
-            },
-            FunctionalRequirements: {
-                _self: "Define WHAT the product must do. Use the Atomic Requirement Shell for all requirement statements.",
-                Section6_ScopeOfWork: "6. The Scope of the Work: Define the business area context. Include a Context Diagram and Work Partitioning table (Business Events and Data Flows).",
-                Section7_BusinessDataModel: "7. Business Data Model & Data Dictionary: Specify essential business objects (ERD) and define each data element formally.",
-                Section8_ScopeOfProduct: "8. The Scope of the Product: Define the software boundaries using a Product Use Case Diagram and Use Case Table.",
-                Section9_FunctionalRequirements: "9. Functional Requirements: List each capability using the Atomic Requirement Shell: {id, description, rationale, fitCriterion, originator, satisfaction, dissatisfaction, priority}."
-            },
-            NonFunctionalRequirements: {
-                _self: "Define HOW the product should behave. Every NFR must have a measurable Fit Criterion.",
-                Section10_LookAndFeel: "10. Look and Feel Requirements: Appearance, style, and branding.",
-                Section11_Usability: "11. Usability and Humanity Requirements: Ease of use, learning, accessibility, and personalization.",
-                Section12_Performance: "12. Performance Requirements: Speed, safety, reliability, availability, and capacity.",
-                Section13_Operational: "13. Operational and Environmental Requirements: Physical environment and interface constraints.",
-                Section14_Maintainability: "14. Maintainability and Support Requirements: Ease of change and support levels.",
-                Section15_Security: "15. Security Requirements: Access control, data integrity, privacy, and audit requirements.",
-                Section16_Cultural: "16. Cultural Requirements: Cultural suitability and behavioral expectations.",
-                Section17_Legal: "17. Legal Requirements: Compliance with laws, standards, and IP rights."
-            },
-            ProjectIssues: {
-                _self: "Track unresolved items, risks, and future considerations.",
-                Section18_OpenIssues: "18. Open Issues: Unresolved requirements gathering questions.",
-                Section19_OffTheShelf: "19. Off-the-Shelf Solutions: Ready-made software or reusable components to be used.",
-                Section20_NewProblems: "20. New Problems: Potential side effects or problems introducted by the new product.",
-                Section21_Tasks: "21. Tasks: High-level development and implementation steps.",
-                Section22_Migration: "22. Migration to the New Product: Data translation and cut-over requirements.",
-                Section23_Risks: "23. Risks: Assessment of project risks with probability and impact.",
-                Section24_Costs: "24. Costs: Monetary and time estimates.",
-                Section25_Documentation: "25. User Documentation and Training: Required manuals and training deliverables.",
-                Section26_WaitingRoom: "26. Waiting Room: Requirements postponed to future releases.",
-                Section27_IdeasForSolutions: "27. Ideas for Solutions: Design or implementation ideas that are not requirements."
-            }
+            Section1_PurposeOfProject: "1. The Purpose of the Project: Describe the user business problem or background of the project effort. State the measurable, quantified goals of the project.",
+            Section2_Stakeholders: "2. The Stakeholders: Identify the Client (who pays), Customer (who decides), and Hands-on Users. Include personas and other interested parties.",
+            Section3_MandatedConstraints: "3. Mandated Constraints: Describe solution restrictions, environmental constraints, partner systems, and budget/schedule limits.",
+            Section4_NamingConventions: "4. Naming Conventions and Terminology: Project glossary defining all terms, acronyms, and abbreviations used by stakeholders.",
+            Section5_FactsAndAssumptions: "5. Relevant Facts and Assumptions: External factors influencing the product and developer assumptions.",
+            Section6_ScopeOfWork: "6. The Scope of the Work: Define the business area context. Include a Context Diagram and Work Partitioning table (Business Events and Data Flows).",
+            Section7_BusinessDataModel: "7. Business Data Model & Data Dictionary: Specify essential business objects (ERD) and define each data element formally.",
+            Section8_ScopeOfProduct: "8. The Scope of the Product: Define the software boundaries using a Product Use Case Diagram and Use Case Table.",
+            Section9_FunctionalRequirements: "9. Functional Requirements: List each capability using the Atomic Requirement Shell: {requirementId, description, rationale, fitCriterion, originator, customerSatisfaction, customerDissatisfaction, priority, conflicts, history}.",
+            Section10_LookAndFeel: "10. Look and Feel Requirements: Appearance, style, and branding metrics.",
+            Section11_Usability: "11. Usability and Humanity Requirements: Ease of use, learning, accessibility, and personalization.",
+            Section12_Performance: "12. Performance Requirements: Speed, safety, reliability, availability, and capacity.",
+            Section13_Operational: "13. Operational and Environmental Requirements: Physical environment and interface constraints.",
+            Section14_Maintainability: "14. Maintainability and Support Requirements: Ease of change and support levels.",
+            Section15_Security: "15. Security Requirements: Access control, data integrity, privacy, and audit requirements.",
+            Section16_Cultural: "16. Cultural Requirements: Cultural suitability and behavioral expectations.",
+            Section17_Legal: "17. Legal Requirements: Compliance with laws, standards, and IP rights.",
+            Section18_OpenIssues: "18. Open Issues: Unresolved requirements gathering questions.",
+            Section19_OffTheShelf: "19. Off-the-Shelf Solutions: Ready-made software or reusable components to be used.",
+            Section20_NewProblems: "20. New Problems: Potential side effects or problems introducted by the new product.",
+            Section21_Tasks: "21. Tasks: High-level development and implementation steps.",
+            Section22_Migration: "22. Migration to the New Product: Data translation and cut-over requirements.",
+            Section23_Risks: "23. Risks: Assessment of project risks with probability and impact.",
+            Section24_Costs: "24. Costs: Monetary and time estimates.",
+            Section25_Documentation: "25. User Documentation and Training: Required manuals and training deliverables.",
+            Section26_WaitingRoom: "26. Waiting Room: Requirements postponed to future releases.",
+            Section27_IdeasForSolutions: "27. Ideas for Solutions: Design or implementation ideas that are not requirements."
         },
 
         skeleton: {
-            ProjectDrivers: {
-                PurposeOfProject: { businessProblem: "", background: "", measurableGoals: [] },
-                Stakeholders: { client: "", customer: "", users: [], otherInterestedParties: [] }
-            },
-            ProjectConstraints: {
-                MandatedConstraints: { solutionConstraints: [], environmentalConstraints: [], budgetSchedule: "" },
-                NamingConventions: [],
-                RelevantFactsAndAssumptions: { facts: [], assumptions: [] }
-            },
-            FunctionalRequirements: {
-                ScopeOfWork: { contextDiagram: "Link/Description", workPartitioning: [] },
-                BusinessDataModel: { erd: "Link/Description", dataDictionary: [] },
-                ScopeOfProduct: { useCaseDiagram: "Link/Description", productUseCases: [] },
-                Requirements: [
-                    {
-                        requirementId: "",
-                        type: "Functional",
-                        description: "",
-                        rationale: "",
-                        originator: "",
-                        fitCriterion: "",
-                        customerSatisfaction: 3,
-                        customerDissatisfaction: 3,
-                        priority: "",
-                        conflicts: [],
-                        history: ""
-                    }
-                ]
-            },
-            NonFunctionalRequirements: {
-                LookAndFeel: [{ requirementId: "", description: "", fitCriterion: "", priority: "" }],
-                UsabilityAndHumanity: [{ requirementId: "", description: "", fitCriterion: "", priority: "" }],
-                Performance: [{ requirementId: "", description: "", fitCriterion: "", priority: "" }],
-                OperationalAndEnvironmental: [{ requirementId: "", description: "", fitCriterion: "", priority: "" }],
-                MaintainabilityAndSupport: [{ requirementId: "", description: "", fitCriterion: "", priority: "" }],
-                Security: [{ requirementId: "", description: "", fitCriterion: "", priority: "" }],
-                Cultural: [{ requirementId: "", description: "", fitCriterion: "", priority: "" }],
-                Legal: [{ requirementId: "", description: "", fitCriterion: "", priority: "" }]
-            },
-            ProjectIssues: {
-                OpenIssues: [],
-                OffTheShelfSolutions: [],
-                NewProblems: [],
-                Tasks: [],
-                Migration: "",
-                Risks: [{ description: "", probability: "", impact: "", contingency: "" }],
-                Costs: "",
-                UserDocumentation: [],
-                WaitingRoom: [],
-                IdeasForSolutions: []
-            }
+            Section1_PurposeOfProject: { businessProblem: "", background: "", measurableGoals: [] },
+            Section2_Stakeholders: { client: "", customer: "", users: [], otherInterestedParties: [] },
+            Section3_MandatedConstraints: { solutionConstraints: [], environmentalConstraints: [], budgetSchedule: "" },
+            Section4_NamingConventions: [],
+            Section5_FactsAndAssumptions: { facts: [], assumptions: [] },
+            Section6_ScopeOfWork: { contextDiagram: "", workPartitioning: [] },
+            Section7_BusinessDataModel: { erd: "", dataDictionary: [] },
+            Section8_ScopeOfProduct: { useCaseDiagram: "", productUseCases: [] },
+            Section9_FunctionalRequirements: [
+                {
+                    requirementId: "",
+                    type: "Functional",
+                    description: "",
+                    rationale: "",
+                    originator: "",
+                    fitCriterion: "",
+                    customerSatisfaction: 3,
+                    customerDissatisfaction: 3,
+                    priority: "",
+                    conflicts: [],
+                    history: ""
+                }
+            ],
+            Section10_LookAndFeel: [{ requirementId: "", description: "", fitCriterion: "", priority: "" }],
+            Section11_Usability: [{ requirementId: "", description: "", fitCriterion: "", priority: "" }],
+            Section12_Performance: [{ requirementId: "", description: "", fitCriterion: "", priority: "" }],
+            Section13_Operational: [{ requirementId: "", description: "", fitCriterion: "", priority: "" }],
+            Section14_Maintainability: [{ requirementId: "", description: "", fitCriterion: "", priority: "" }],
+            Section15_Security: [{ requirementId: "", description: "", fitCriterion: "", priority: "" }],
+            Section16_Cultural: [{ requirementId: "", description: "", fitCriterion: "", priority: "" }],
+            Section17_Legal: [{ requirementId: "", description: "", fitCriterion: "", priority: "" }],
+            Section18_OpenIssues: [],
+            Section19_OffTheShelf: [],
+            Section20_NewProblems: [],
+            Section21_Tasks: [],
+            Section22_Migration: "",
+            Section23_Risks: [{ description: "", probability: "", impact: "", contingency: "" }],
+            Section24_Costs: "",
+            Section25_Documentation: [],
+            Section26_WaitingRoom: [],
+            Section27_IdeasForSolutions: []
         },
 
         rules: {
             requirementPrefix: "The product shall",
-            requiresQuantification: ["NonFunctionalRequirements"],
+            requiresQuantification: [
+                "Section10_LookAndFeel",
+                "Section11_Usability",
+                "Section12_Performance",
+                "Section13_Operational",
+                "Section14_Maintainability",
+                "Section15_Security",
+                "Section16_Cultural",
+                "Section17_Legal"
+            ],
             forbiddenTerms: FORBIDDEN_TERMS
         }
     }

@@ -11,6 +11,7 @@
  */
 
 const { TEMPLATES, FORBIDDEN_TERMS } = require('./srs_templates.cjs');
+const { getFewShotBlock } = require('./srs_few_shot_examples.cjs');
 
 /**
  * Generates the system prompt for a given section and template.
@@ -21,6 +22,7 @@ function getSystemPrompt(section, templateId) {
     if (!template) throw new Error(`Unknown template: ${templateId}`);
 
     const forbiddenList = (template.rules.forbiddenTerms || FORBIDDEN_TERMS).join(', ');
+    const fewShotBlock = getFewShotBlock(templateId, section);
 
     return `${template.systemPromptDirective}
 
@@ -32,7 +34,13 @@ CRITICAL RULES:
 3. FORBIDDEN TERMS — Do not use any of these vague terms: ${forbiddenList}. Replace them with quantified metrics or specific descriptions.
 4. CONSISTENCY — Do not contradict any data in the "PREVIOUSLY GENERATED SECTIONS" context.
 5. COMPLETENESS — Fill every field in the schema. If information is not available from the project description, state "TBD" rather than leaving empty.
-6. TESTABILITY — Every requirement must be verifiable. If it cannot be tested, rewrite it until it can be.`;
+6. TESTABILITY — Every requirement must be verifiable. If it cannot be tested, rewrite it until it can be.
+
+INDUSTRY QUALITY STANDARDS (ISO 29148):
+- UNAMBIGUOUS: Only one interpretation is possible. Use numbers and units.
+- SINGULAR: Each requirement must address only one function or constraint.
+- MEASURABLE: Avoid "as soon as possible" or "fast". Use "within 500ms" or "> 99.9%".
+- IMPLEMENTATION INDEPENDENT: Describe WHAT the system does, not HOW (no database table names, no specific code snippets unless requested).${fewShotBlock}`;
 }
 
 /**

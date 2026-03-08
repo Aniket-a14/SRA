@@ -10,35 +10,40 @@
  * Layer 5: Reflection Retry (inject errors into regeneration prompt)
  * 
  * Features:
- *   - Contextual Chain-of-Generation (Section N depends on Sections 0..N-1)
+ *   - Multi-Template Support (IEEE, ISO, Volere, Agile)
+ *   - Contextual Chain-of-Generation
  *   - Parallel Batching (Concurrency control)
- *   - Granular Metric Tracking (Tokens, Errors, Compliance)
+ *   - Granular Metric Tracking (Tokens, Errors, Compliance, Score)
  *   - Reflection-style retry with error feedback injection
  */
 
 const fs = require('fs');
 const path = require('path');
 const { callModel, MODELS } = require('./model_clients.cjs');
-const { getTemplateConfig } = require('./srs_skeleton.cjs');
+const { getTemplateConfig, getAvailableTemplates } = require('./srs_skeleton.cjs');
 const { validateSection, checkAlignment } = require('./srs_validator.cjs');
 const { getSystemPrompt, getUserPrompt } = require('./srs_prompt_factory.cjs');
+const { scoreSRS } = require('./srs_scorer.cjs');
 const projects = require('./benchmark_projects.json');
 
 const CONCURRENCY_LIMIT = parseInt(process.env.BENCHMARK_CONCURRENCY) || 2;
 const MAX_SECTION_RETRIES = parseInt(process.env.MAX_SECTION_RETRIES) || 3;
-const ACTIVE_TEMPLATE = process.env.SRS_TEMPLATE || "IEEE_830";
+
+// Template selection: comma-separated list or "ALL"
+const SRS_TEMPLATE_ENV = process.env.SRS_TEMPLATE || "IEEE_830";
+let TEMPLATES_TO_RUN = [];
+
+if (SRS_TEMPLATE_ENV.toUpperCase() === "ALL") {
+    TEMPLATES_TO_RUN = getAvailableTemplates().map(t => t.id);
+} else {
+    TEMPLATES_TO_RUN = SRS_TEMPLATE_ENV.split(',').map(s => s.trim());
+}
 
 /**
- * RUNNING IN NVIDIA LABS: 
- * Set BENCHMARK_CONCURRENCY in .env to increase speed if your rate limits allow.
- * Set SRS_TEMPLATE to "ISO_29148", "AGILE_USER_STORIES", "VOLERE", or "IEEE_830".
+ * Runs the benchmark for a single model on a specific template.
  */
-
-/**
- * Runs the benchmark for a single model on all projects.
- */
-async function runModelBenchmark(modelName) {
-    console.log(`\n>>> Starting Benchmarking for: ${modelName} [Template: ${ACTIVE_TEMPLATE}] <<<`);
+async function runTemplateBenchmark(modelName, templateId) {
+    console.log(`\n>>> Benchmarking Model: ${modelName} | Template: ${templateId} <<<`);
     const projectResults = [];
 
     // Batch projects based on concurrency limit
@@ -46,28 +51,28 @@ async function runModelBenchmark(modelName) {
         const batch = projects.slice(i, i + CONCURRENCY_LIMIT);
         console.log(`  Processing Batch ${Math.floor(i / CONCURRENCY_LIMIT) + 1}/${Math.ceil(projects.length / CONCURRENCY_LIMIT)}...`);
 
-        const batchPromises = batch.map(project => processProject(modelName, project));
+        const batchPromises = batch.map(project => processProject(modelName, project, templateId));
         const batchResults = await Promise.all(batchPromises);
         projectResults.push(...batchResults);
     }
 
     return {
         model: modelName,
-        template: ACTIVE_TEMPLATE,
+        template: templateId,
         projects: projectResults
     };
 }
 
 /**
- * Generates a full SRS for a project using a specific model.
+ * Generates a full SRS for a project using a specific model and template.
  * Implements the 5-layer pipeline per section.
  */
-async function processProject(modelName, project) {
-    const { skeleton, sections } = getTemplateConfig(ACTIVE_TEMPLATE);
+async function processProject(modelName, project, templateId) {
+    const { skeleton, sections, name: templateName } = getTemplateConfig(templateId);
     const result = {
         projectId: project.id,
         projectName: project.name,
-        template: ACTIVE_TEMPLATE,
+        template: templateId,
         sections: {},
         metrics: {
             totalLatency: 0,
@@ -95,8 +100,8 @@ async function processProject(modelName, project) {
             attempt++;
 
             // --- LAYER 1: Prompt Generation ---
-            const systemPrompt = getSystemPrompt(section, ACTIVE_TEMPLATE);
-            let userPrompt = getUserPrompt(section, project.name, project.description, generatedSections, ACTIVE_TEMPLATE);
+            const systemPrompt = getSystemPrompt(section, templateId);
+            let userPrompt = getUserPrompt(section, project.name, project.description, generatedSections, templateId);
 
             // LAYER 5: Reflection — inject previous errors into retry prompt
             if (attempt > 1 && lastErrors.length > 0) {
@@ -118,18 +123,16 @@ async function processProject(modelName, project) {
                     const content = JSON.parse(response.content);
 
                     // --- LAYER 3: Validation Gate ---
-                    const validation = validateSection(section, content, ACTIVE_TEMPLATE);
+                    const validation = validateSection(section, content, templateId);
 
                     if (validation.errors.length > 0) {
-                        // Validation failed — track errors for reflection retry
                         lastErrors = validation.errors;
                         result.metrics.regenerationCount++;
                         result.metrics.validationErrors.push(...validation.errors.map(e => `[${section}] ${e}`));
                         result.metrics.errors.push(`[${section}] Validation failed (Attempt ${attempt}): ${validation.errors.join(', ')}`);
-                        continue; // Retry with reflection
+                        continue;
                     }
 
-                    // Log warnings (non-blocking)
                     if (validation.warnings.length > 0) {
                         result.metrics.validationErrors.push(...validation.warnings.map(w => `[WARN][${section}] ${w}`));
                     }
@@ -138,7 +141,6 @@ async function processProject(modelName, project) {
                     const alignment = checkAlignment(section, content, project.name, project.description);
                     if (!alignment.aligned) {
                         result.metrics.alignmentMismatches.push(...alignment.mismatches.map(m => `[${section}] ${m}`));
-                        // Alignment mismatches are warnings, not blockers
                     }
 
                     // --- SUCCESS: Store section ---
@@ -161,14 +163,19 @@ async function processProject(modelName, project) {
         result.sections[section] = { success, attempts: attempt };
         if (!success) {
             result.isValid = false;
-            break; // Stop if a prerequisite section fails
+            break;
         }
     }
 
+    // Score the generated SRS
+    const scoreResult = scoreSRS(fullSrs, templateId, project.name, project.description);
+    result.score = scoreResult;
+
     // Save the final artifacts
-    const outputDir = path.join(__dirname, 'benchmarks', 'artifacts', modelName.replace(/ /g, '_'));
+    const outputDir = path.join(__dirname, 'benchmarks', 'artifacts', modelName.replace(/ /g, '_'), templateId);
     if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
     fs.writeFileSync(path.join(outputDir, `srs_${project.id}.json`), JSON.stringify(fullSrs, null, 2));
+    fs.writeFileSync(path.join(outputDir, `score_${project.id}.json`), JSON.stringify(scoreResult, null, 2));
 
     return result;
 }
@@ -179,13 +186,16 @@ async function main() {
 
     console.log(`\n=================================================`);
     console.log(`SRA-PRO BENCHMARK [NVIDIA LABS MODE]`);
-    console.log(`Template: ${ACTIVE_TEMPLATE} | Concurrency: ${CONCURRENCY_LIMIT}`);
+    console.log(`Templates: ${TEMPLATES_TO_RUN.join(', ')}`);
+    console.log(`Concurrency: ${CONCURRENCY_LIMIT} | Retries: ${MAX_SECTION_RETRIES}`);
     console.log(`Projects: ${projects.length} | Models: ${MODELS.length}`);
     console.log(`=================================================\n`);
 
     for (const model of MODELS) {
-        const modelData = await runModelBenchmark(model);
-        allResults.push(modelData);
+        for (const templateId of TEMPLATES_TO_RUN) {
+            const benchmarkData = await runTemplateBenchmark(model, templateId);
+            allResults.push(benchmarkData);
+        }
     }
 
     const duration = (Date.now() - start) / 1000;
@@ -199,16 +209,18 @@ async function main() {
         const totalPT = m.projects.reduce((s, p) => s + p.metrics.promptTokens, 0);
         const totalCT = m.projects.reduce((s, p) => s + p.metrics.completionTokens, 0);
         const totalAlignIssues = m.projects.reduce((s, p) => s + p.metrics.alignmentMismatches.length, 0);
+        const avgScore = total > 0 ? Math.round(m.projects.reduce((s, p) => s + (p.score ? p.score.total : 0), 0) / total) : 0;
 
         return {
             model: m.model,
             template: m.template,
             validity: `${((valid / total) * 100).toFixed(1)}%`,
+            avgScore: `${avgScore}/100`,
+            avgGrade: getAvgGrade(avgScore),
             avgRegen: (totalRegens / total).toFixed(2),
             avgLatency: `${(totalLat / total / 1000).toFixed(2)}s`,
             avgTokens: Math.round((totalPT + totalCT) / total),
-            alignmentIssues: totalAlignIssues,
-            successCount: valid
+            alignmentIssues: totalAlignIssues
         };
     });
 
@@ -216,9 +228,17 @@ async function main() {
     console.table(summary);
     console.log(`Total Duration: ${Math.round(duration)}s`);
 
-    const reportPath = path.join(__dirname, 'benchmarks', 'hardened_report.json');
+    const reportPath = path.join(__dirname, 'benchmarks', 'combined_benchmark_report.json');
     fs.writeFileSync(reportPath, JSON.stringify({ summary, details: allResults, timestamp: new Date() }, null, 2));
     console.log(`\nReport saved to: ${reportPath}`);
+}
+
+function getAvgGrade(score) {
+    if (score >= 90) return 'A';
+    if (score >= 80) return 'B';
+    if (score >= 70) return 'C';
+    if (score >= 60) return 'D';
+    return 'F';
 }
 
 main().catch(console.error);

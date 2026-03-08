@@ -1,0 +1,65 @@
+{
+  "Introduction": {
+    "Purpose": "",
+    "DocumentConventions": "",
+    "IntendedAudienceAndReadingSuggestions": "",
+    "ProductScope": "",
+    "References": []
+  },
+  "OverallDescription": {
+    "ProductPerspective": "",
+    "ProductFunctions": [],
+    "UserClassesAndCharacteristics": [],
+    "OperatingEnvironment": "",
+    "DesignAndImplementationConstraints": [],
+    "UserDocumentation": [],
+    "AssumptionsAndDependencies": []
+  },
+  "ExternalInterfaceRequirements": {
+    "UserInterfaces": "",
+    "HardwareInterfaces": "",
+    "SoftwareInterfaces": "",
+    "CommunicationsInterfaces": ""
+  },
+  "SystemFeatures": [
+    {
+      "featureName": "System Feature 1",
+      "descriptionAndPriority": "",
+      "stimulusResponseSequences": [],
+      "functionalRequirements": []
+    }
+  ],
+  "OtherNonfunctionalRequirements": {
+    "PerformanceRequirements": [],
+    "SafetyRequirements": [],
+    "SecurityRequirements": [],
+    "SoftwareQualityAttributes": {
+      "reliability": "",
+      "availability": "",
+      "security": "",
+      "maintainability": "",
+      "portability": ""
+    },
+    "BusinessRules": []
+  },
+  "OtherRequirements": [],
+  "Appendices": {
+    "Glossary": [],
+    "AnalysisModels": {
+      "flowchartDiagram": {
+        "code": "",
+        "caption": ""
+      },
+      "sequenceDiagram": {
+        "code": "",
+        "caption": ""
+      },
+      "entityRelationshipDiagram": {
+        "code": "",
+        "caption": ""
+      }
+    },
+    "ToBeDeterminedList": []
+  },
+  "projectTitle": "Smart Warehouse Management System"
+}

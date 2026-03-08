@@ -8,6 +8,12 @@
  * 
  * Layer 3 (Alignment): Cross-checks generated content against
  *                      project name/description for hallucination detection.
+ * 
+ * Updated to match corrected template structures:
+ * - IEEE 830 (Wiegers variant): SystemFeatures, OtherNonfunctionalRequirements
+ * - ISO 29148 SRS/StRS/SyRS (three separate specs with clause numbers)
+ * - Volere Edition 16 (27 numbered sections, full Requirement Shell)
+ * - Agile User Stories (Connextra + INVEST + BDD)
  */
 
 const { TEMPLATES, FORBIDDEN_TERMS } = require('./srs_templates.cjs');
@@ -15,7 +21,7 @@ const { TEMPLATES, FORBIDDEN_TERMS } = require('./srs_templates.cjs');
 /**
  * Layer 2: Validates a generated SRS section against template rules.
  * 
- * @param {string} section - Section key (e.g., "introduction")
+ * @param {string} section - Section key (e.g., "Introduction")
  * @param {object} content - The generated JSON content for this section
  * @param {string} templateId - Template ID (e.g., "IEEE_830")
  * @returns {{ success: boolean, errors: string[], warnings: string[] }}
@@ -86,14 +92,11 @@ function checkAlignment(section, content, projectName, projectDescription) {
     const projectNameLower = projectName.toLowerCase();
 
     // 1. Name alignment: Check if the content refers to the correct project
-    // Only flag if a DIFFERENT project name appears to be referenced
     const genericNames = ['project', 'system', 'application', 'product', 'software', 'platform'];
     if (projectNameLower.length > 3 && !genericNames.includes(projectNameLower)) {
-        // Extract capitalized multi-word names from content that might be other project names
         const possibleNames = contentStr.match(/[A-Z][a-zA-Z]+\s[A-Z][a-zA-Z]+/g) || [];
         for (const name of possibleNames) {
             if (!projectNameLower.includes(name.toLowerCase()) && !genericNames.some(g => name.toLowerCase().includes(g))) {
-                // Only flag if it looks like a specific product name
                 if (name.length > 5 && !contentStr.includes(projectNameLower)) {
                     mismatches.push(`Possible identity mismatch: Content may reference "${name}" instead of "${projectName}".`);
                     break;
@@ -120,6 +123,8 @@ function getExpectedKeys(section, template) {
     const skel = template.skeleton[section];
     if (!skel) return [];
     if (Array.isArray(skel)) return []; // Array sections don't have fixed keys
+    if (typeof skel === 'string') return []; // String sections are just values
+    if (typeof skel === 'boolean') return []; // Boolean values (e.g., FrontMatter flags)
     return Object.keys(skel);
 }
 
@@ -148,16 +153,29 @@ function checkEmptyValues(obj, path, errors, warnings) {
 
 /**
  * Checks that functional requirements use the expected prefix.
+ * Maps each template to the sections where requirements are expected.
  */
 function checkRequirementPrefix(content, prefix, section, templateId, warnings) {
     const contentStr = JSON.stringify(content);
 
-    // Only check in relevant sections
+    // Map of template → sections where requirement prefix should appear
     const requirementSections = {
-        'IEEE_830': ['specificRequirements'],
-        'ISO_29148': ['functionalRequirements'],
+        'IEEE_830': ['SystemFeatures'],
+        'ISO_29148_SRS': ['Functions', 'SpecificRequirements'],
+        'ISO_29148_SyRS': ['FunctionalRequirements'],
+        'ISO_29148_StRS': ['UserRequirements'],
         'AGILE_USER_STORIES': ['featureBacklog'],
-        'VOLERE': ['functionalRequirements']
+        'VOLERE': [
+            'Section9_FunctionalRequirements',
+            'Section10_LookAndFeel',
+            'Section11_Usability',
+            'Section12_Performance',
+            'Section13_Operational',
+            'Section14_Maintainability',
+            'Section15_Security',
+            'Section16_Cultural',
+            'Section17_Legal'
+        ]
     };
 
     const relevantSections = requirementSections[templateId] || [];
@@ -175,7 +193,6 @@ function checkRequirementPrefix(content, prefix, section, templateId, warnings) 
  */
 function checkQuantification(content, section, warnings) {
     const contentStr = JSON.stringify(content);
-    // Look for numeric values — a basic heuristic
     const hasNumbers = /\d+(\.\d+)?(%|ms|s|min|hr|MB|GB|TB|users|req\/s)/i.test(contentStr);
     if (!hasNumbers) {
         warnings.push(`Section "${section}" should contain quantified metrics (e.g., "< 200ms", "99.9% uptime", "1000 concurrent users") but none were found.`);
@@ -204,63 +221,149 @@ function checkForbiddenTerms(content, forbiddenTerms, section, warnings) {
  * Template-specific validation rules.
  */
 function runTemplateSpecificValidation(section, content, templateId, errors, warnings) {
-    switch (templateId) {
-        case 'VOLERE':
-            validateVolereRequirements(section, content, errors, warnings);
-            break;
-        case 'AGILE_USER_STORIES':
-            validateAgileStories(section, content, errors, warnings);
-            break;
-        case 'ISO_29148':
-            validateISO29148(section, content, errors, warnings);
-            break;
-        default:
-            break;
+    // IEEE 830 (Wiegers)
+    if (templateId === 'IEEE_830') {
+        validateIEEE830(section, content, errors, warnings);
+    }
+
+    // ISO 29148 variants
+    if (templateId.startsWith('ISO_29148')) {
+        validateISO29148(section, content, templateId, errors, warnings);
+    }
+
+    // Volere
+    if (templateId === 'VOLERE') {
+        validateVolereRequirement(section, content, errors, warnings);
+    }
+
+    // Agile
+    if (templateId === 'AGILE_USER_STORIES') {
+        validateAgileStories(section, content, errors, warnings);
     }
 }
+
+
+// ============================================================================
+// IEEE 830 (Wiegers Template) Validation
+// ============================================================================
+
+/**
+ * IEEE 830: SystemFeatures must have featureName, descriptionAndPriority,
+ * stimulusResponseSequences, and functionalRequirements per feature.
+ */
+function validateIEEE830(section, content, errors, warnings) {
+    if (section !== 'SystemFeatures') return;
+    if (!Array.isArray(content)) return;
+
+    for (const feature of content) {
+        if (!feature.featureName || feature.featureName.trim() === '') {
+            errors.push('IEEE 830 SystemFeature missing featureName.');
+        }
+        if (!feature.descriptionAndPriority || feature.descriptionAndPriority.trim() === '') {
+            errors.push(`Feature "${feature.featureName || '?'}" missing descriptionAndPriority.`);
+        }
+        if (!Array.isArray(feature.stimulusResponseSequences) || feature.stimulusResponseSequences.length === 0) {
+            warnings.push(`Feature "${feature.featureName || '?'}" has no stimulus/response sequences.`);
+        }
+        if (!Array.isArray(feature.functionalRequirements) || feature.functionalRequirements.length === 0) {
+            errors.push(`Feature "${feature.featureName || '?'}" has no functional requirements.`);
+        }
+    }
+}
+
+
+// ============================================================================
+// ISO 29148 (SRS / StRS / SyRS) Validation
+// ============================================================================
+
+/**
+ * ISO 29148: Functions must have purpose, inputs, operations, outputs.
+ * Verification section must not be empty.
+ */
+function validateISO29148(section, content, templateId, errors, warnings) {
+    // SRS: Functions section
+    if (templateId === 'ISO_29148_SRS' && section === 'Functions') {
+        if (!Array.isArray(content)) return;
+        for (const fn of content) {
+            if (!fn.purpose || fn.purpose.trim() === '') {
+                errors.push('ISO 29148 Function missing purpose.');
+            }
+            if (!Array.isArray(fn.inputs) || fn.inputs.length === 0) {
+                warnings.push(`Function "${fn.purpose || '?'}" has no inputs defined.`);
+            }
+            if (!fn.operations || fn.operations.trim() === '') {
+                warnings.push(`Function "${fn.purpose || '?'}" has no operations defined.`);
+            }
+            if (!Array.isArray(fn.outputs) || fn.outputs.length === 0) {
+                warnings.push(`Function "${fn.purpose || '?'}" has no outputs defined.`);
+            }
+        }
+    }
+
+    // All ISO variants: Verification section must have content
+    if (section === 'Verification') {
+        if (Array.isArray(content) && content.length === 0) {
+            errors.push('ISO 29148 Verification section is empty. Every requirement needs a verification method.');
+        }
+    }
+
+    // SRS: Identification must have Title
+    if (section === 'Identification') {
+        if (!content.Title || content.Title.trim() === '') {
+            errors.push('ISO 29148 Identification missing Title.');
+        }
+    }
+}
+
+
+// ============================================================================
+// Volere Edition 16 (27 Sections) Validation
+// ============================================================================
 
 /**
  * Volere: Each requirement must have a Requirement Shell with fitCriterion.
  */
-function validateVolereRequirements(section, content, errors, warnings) {
-    if (section !== 'functionalRequirements' && section !== 'nonFunctionalRequirements') return;
+function validateVolereRequirement(section, content, errors, warnings) {
+    const requirementSections = [
+        'Section9_FunctionalRequirements',
+        'Section10_LookAndFeel',
+        'Section11_Usability',
+        'Section12_Performance',
+        'Section13_Operational',
+        'Section14_Maintainability',
+        'Section15_Security',
+        'Section16_Cultural',
+        'Section17_Legal'
+    ];
 
-    const requirements = extractVolereRequirements(section, content);
-    for (const req of requirements) {
+    if (!requirementSections.includes(section)) return;
+
+    // For Volere, these sections are ALWAYS arrays of shells
+    if (!Array.isArray(content)) {
+        errors.push(`Volere section "${section}" must be an array of requirement shells.`);
+        return;
+    }
+
+    for (const req of content) {
         if (!req.description || req.description.trim() === '') {
-            errors.push(`Volere requirement ${req.requirementId || '?'} missing description.`);
+            errors.push(`Volere requirement ${req.requirementId || '?'} in "${section}" missing description.`);
         }
         if (!req.fitCriterion || req.fitCriterion.trim() === '') {
-            errors.push(`Volere requirement ${req.requirementId || '?'} missing fitCriterion. Every requirement MUST have a measurable Fit Criterion.`);
+            errors.push(`Volere requirement ${req.requirementId || '?'} in "${section}" missing fitCriterion. Every requirement MUST have a measurable Fit Criterion.`);
         }
         if (!req.rationale || req.rationale.trim() === '') {
-            warnings.push(`Volere requirement ${req.requirementId || '?'} missing rationale.`);
+            warnings.push(`Volere requirement ${req.requirementId || '?'} in "${section}" missing rationale.`);
         }
     }
 }
 
-/**
- * Extracts all Volere requirement objects from a section.
- */
-function extractVolereRequirements(section, content) {
-    if (section === 'functionalRequirements' && content.requirements) {
-        return Array.isArray(content.requirements) ? content.requirements : [];
-    }
-    if (section === 'nonFunctionalRequirements') {
-        // NFRs are organized by category, each is an array of requirement objects
-        const all = [];
-        for (const category of Object.values(content)) {
-            if (Array.isArray(category)) {
-                all.push(...category);
-            }
-        }
-        return all;
-    }
-    return [];
-}
+
+// ============================================================================
+// Agile User Stories (Connextra + INVEST + BDD)
+// ============================================================================
 
 /**
- * Agile: Each story must have role/goal/benefit and acceptance criteria.
+ * Agile: Each story must follow Connextra format and have Given/When/Then.
  */
 function validateAgileStories(section, content, errors, warnings) {
     if (section !== 'featureBacklog') return;
@@ -293,35 +396,21 @@ function validateAgileStories(section, content, errors, warnings) {
     }
 }
 
-/**
- * ISO 29148: Functional requirements must have traceability.
- */
-function validateISO29148(section, content, errors, warnings) {
-    if (section !== 'functionalRequirements') return;
-    if (!Array.isArray(content)) return;
 
-    for (const req of content) {
-        if (!req.traceability || req.traceability.trim() === '') {
-            warnings.push(`ISO 29148 requirement "${req.featureName || '?'}" missing traceability link.`);
-        }
-        if (!req.priority || req.priority.trim() === '') {
-            warnings.push(`ISO 29148 requirement "${req.featureName || '?'}" missing priority.`);
-        }
-    }
-}
+// ============================================================================
+// Mermaid Syntax Check
+// ============================================================================
 
 /**
  * Basic Mermaid syntax validation for diagram sections.
  */
 function checkMermaidSyntax(content, section, warnings) {
     const contentStr = JSON.stringify(content);
-    // Look for common Mermaid keywords
     const mermaidKeywords = ['graph ', 'flowchart ', 'sequenceDiagram', 'erDiagram', 'classDiagram', 'stateDiagram'];
     const hasMermaid = mermaidKeywords.some(kw => contentStr.includes(kw));
 
-    if (!hasMermaid) return; // No diagrams to validate
+    if (!hasMermaid) return;
 
-    // Check for common Mermaid errors
     if (contentStr.includes('```mermaid')) {
         warnings.push(`Section "${section}" contains markdown code fences around Mermaid code. The "code" field should contain raw Mermaid syntax only, without fences.`);
     }
