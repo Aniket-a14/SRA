@@ -1,0 +1,1153 @@
+<html><head>
+
+
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Child Care Software Software Requirements Specification</title>
+<meta name="description" content="Software Requirements Specification for Child Care Center Software Systm">
+<meta name="keywords" content="Software Requirements Specification,Child Care Center">
+
+<style>
+<!--
+  
+   span.FONT {  
+  font-family: verdana;  
+    font-size: 9pt;  
+    color: black;  
+  }  
+  
+-->
+</style>
+<style type="text/css">
+<!--
+	BODY {font-size: 8pt; color: black; background-color: white; margin-top: 0px; margin-left: 0px; font-family: Verdana, Arial, Helvetica;}
+	A:link {color: rgb(0,128,192); text-decoration: none; cursor: hand; font-size: 8pt; font-family: Verdana, Arial, Helvetica;}
+	A:visited {color: rgb(0,128,192); text-decoration: none; cursor: hand; font-size: 8pt; font-family: Verdana, Arial, Helvetica;}
+	A:active {color: rgb(0,128,192); text-decoration: none; cursor: hand; font-size: 8pt; font-family: Verdana, Arial, Helvetica;}
+	A:hover {color: rgb(204,51,0); text-decoration: underline; cursor: hand; font-size: 8pt; font-family: Verdana, Arial, Helvetica;}
+	TABLE {font-size: 8pt; font-family: Verdana, Arial, Helvetica;}
+div.Section1
+	{page:Section1;}
+ table.MsoNormalTable
+	{mso-style-parent:"";
+	font-size:10.0pt;
+	font-family:"Times New Roman"}
+ li.MsoNormal
+	{mso-style-parent:"";
+	margin-bottom:.0001pt;
+	line-height:12.0pt;
+	font-size:12.0pt;
+	font-family:Times;
+	margin-left:0in; margin-right:0in; margin-top:0in}
+	-->
+</style>
+
+
+</head><body topmargin="0" leftmargin="0">
+
+<table border="0" cellpadding="0" cellspacing="0" width="101%">
+	<tbody><tr>
+		<td background="nenios_care_center_srs_files/bg_1.gif">
+		<table border="0" cellpadding="0" cellspacing="0" width="716">
+			<tbody><tr>
+				<td colspan="2">
+				<img src="nenios_care_center_srs_files/web_hosting_03.jpg" alt="" width="716" height="45"></td>
+			</tr>
+			<tr>
+				<td width="50%">
+				<img src="nenios_care_center_srs_files/1_home_hosting.jpg" alt="" width="497" height="133"></td>
+				<td width="31%">
+				<img src="nenios_care_center_srs_files/web_hosting_06.jpg" alt="" width="219" height="133"></td>
+			</tr>
+			<tr>
+				<td rowspan="3" width="50%">
+				<table style="font-size: 8pt; font-family: Verdana,Arial,Helvetica;" border="0" cellpadding="0" cellspacing="0" width="496" height="31">
+					<tbody><tr>
+						<td background="nenios_care_center_srs_files/general_menu.jpg" width="496" height="31">
+						<table style="font-size: 8pt; font-family: Verdana,Arial,Helvetica;" border="0" cellpadding="0" cellspacing="0" width="497">
+							<tbody><tr>
+								<td width="99">
+								<p align="center"><b>
+								<font face="Tahoma"><a href="http://www.hostitwise.com/index.html">Home</a></font></b></p></td>
+								<td width="99">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+								<b><a href="http://www.hostitwise.com/hosting.html">Hosting</a></b></td>
+								<td width="99">&nbsp;&nbsp;&nbsp;&nbsp;
+				<b><a href="http://www.hostitwise.com/domain_registration.html">Domains</a></b></td>
+								<td width="99">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>
+								<a href="http://www.hostitwise.com/supports.html">Support</a></b></td>
+								<td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>
+								<font color="#006699">
+								<a href="http://www.hostitwise.com/contacts.html">Contacts</a></font></b></td>
+							</tr>
+						</tbody></table></td>
+					</tr>
+				</tbody></table></td>
+				<td width="31%">
+				<img src="nenios_care_center_srs_files/menu_08.gif" alt="" width="219" height="6"></td>
+			</tr>
+			<tr>
+				<td width="31%">
+				<img src="nenios_care_center_srs_files/menu_09.jpg" alt="" width="219" height="20"></td>
+			</tr>
+			<tr>
+				<td width="31%">
+				<img src="nenios_care_center_srs_files/menu_10.jpg" alt="" width="219" height="5"></td>
+			</tr>
+			<tr>
+				<td colspan="2" width="100%" height="12">
+				<img src="nenios_care_center_srs_files/web_hosting_15.jpg" alt="" width="715" height="12"></td>
+			</tr>
+		</tbody></table>
+		</td>
+	</tr>
+	<tr>
+		<td>
+		<table border="0" cellpadding="30" cellspacing="0" width="712">
+			<tbody><tr>
+				<td>
+<p align="center"><br>
+<b><font face="Arial" size="5"><a name="top"></a>Software Requirements 
+Specification<br>
+for<br>
+Ne�ios Child Care Center</font><br>
+</b><br>
+<br>
+&nbsp;</p>
+<p><br>
+<a href="#Revision"><span style="font-size: 9pt;">Revision History</span></a><span style="font-size: 9pt;"><br>
+</span><a href="#1."><span style="font-size: 9pt;">1. Introduction</span></a></p>
+<blockquote>
+	<p><a href="#1.1"><span style="font-size: 9pt;">1.1 Goals and objectives</span></a><span style="font-size: 9pt;"><br>
+	</span><a href="#1.2"><span style="font-size: 9pt;">1.2 Statement of scope</span></a><span style="font-size: 9pt;"><br>
+	</span><a href="#1.3"><span style="font-size: 9pt;">1.3 Software context</span></a><span style="font-size: 9pt;"><br>
+	</span><a href="#1.4"><span style="font-size: 9pt;">1.4 Major constraints</span></a></p>
+</blockquote>
+<p><span style="font-size: 9pt;">
+<a href="http://www.hostitwise.com/software_design/nenios_care_center_srs_usage_scenario.html">2. Usage scenario</a></span></p>
+<p><span style="font-size: 9pt;">
+<a href="http://www.hostitwise.com/software_design/nenios_care_center_srs_data_model.html">3. Data Model and Description</a></span></p>
+<p><span style="font-size: 9pt;">
+<a href="http://www.hostitwise.com/software_design/nenios_care_center_srs_data_model.html">4. Functional Model and 
+Description</a></span></p>
+<p><span style="font-size: 9pt;">
+<a href="http://www.hostitwise.com/software_design/nenios_care_center_srs_data_model.html">Appendix A: Glossary</a><br>
+</span><span style="font-size: 9pt;">
+<a href="http://www.hostitwise.com/software_design/nenios_care_center_srs_data_model.html">Appendix B: Issues 
+List</a></span><br>
+<br>
+<br>
+<b><font style="font-size: 14pt;" face="Arial"><a name="Revision">Revision</a> 
+History</font><br>
+&nbsp;</b></p>
+<table style="border-collapse: collapse;" border="1" cellpadding="0" width="387">
+	<tbody><tr>
+		<td><b>Name</b></td>
+		<td><b>Date</b></td>
+		<td><b>Reason For Changes</b></td>
+		<td width="36"><b>Version</b></td>
+	</tr>
+	<tr>
+		<td>P. Bojan</td>
+		<td>10/17/05</td>
+		<td>Initial draft version</td>
+		<td width="36">0.1</td>
+	</tr>
+</tbody></table>
+<p><br>
+&nbsp;&nbsp; <br>
+&nbsp; <br>
+<br>
+<br>
+<a href="#top"><font color="#cc3300"><u>Go TO TOP</u></font></a><br>
+<br>
+<b><font style="font-size: 14pt;" face="Arial"><a name="1.">1.</a> Introduction</font></b><br>
+<br>
+<b><a name="1.1"></a>1.1 Goals and objectives</b><br>
+<br>
+The purpose of this document is to describe requirements for the Ne�ios Child 
+Care Management (NCCM) software that will serve as a foundation for the final 
+product. It is important that an agreement of these requirements be reached so 
+that everyone�s expectations will be met. This document uses written 
+descriptions as well as various types of modeling diagrams to illustrate the 
+high level structure of the application. Although some of these diagrams may 
+seem to convey similar information they typically do so from an alternate 
+perspective. This gives different stakeholders a view of the requirements that 
+is better suited to their area of responsibility.<br>
+<br>
+A Web based solution will be delivered so that users can access the system with 
+their favorite browser. By designing around a standardized language like HTML 
+the application will run on the most popular computer platforms. In addition, a 
+centralized database connected to the internet will allow employees to more 
+easily share information.<br>
+<br>
+The Child Care Management software is intended to provide a computer based 
+system that will assist in managing a child care center. Many of the typical 
+functions involved in operating a center will be automated through software to 
+improve the operational workflow within a facility. For instance, activities 
+like tracking child immunizations and maintaining classroom waiting lists will 
+be performed by the computer system so that employees can spend more time caring 
+for the children. In addition, tasks like processing invoices and printing 
+customer reports will be available within the program to minimize the time that 
+administrative staff must spend creating these documents. This Requirements 
+Specification will describe these as well as many other features of the software 
+in greater detail. <a href="#top"><u><font color="#cc3300">^</font></u><font color="#cc3300"><u> 
+TOP</u></font></a><br>
+<br>
+<br>
+<b><a name="1.2">1.2</a> Statement of scope<br>
+</b><br>
+This section contains a general description of the software functionality 
+followed by detailed requirements that will be traced throughout the project.<br>
+<br>
+Before gaining access to the NCCM system an employee will be required to enter 
+their user name and password. An employee�s access privileges within the system 
+are determined by their job classification. The administrators will have 
+unlimited access whereas teachers and assistants will have fewer privileges as 
+described below.<br>
+<br>
+Administrators are responsible for registering new customers so they are the 
+only employees allowed to view or edit all account information. When a parent 
+contacts the Care Center to enroll a child an administrator will first check 
+classroom availability. If the classrooms for the child�s age group are already 
+full the child is placed on the classroom waiting list. The administrator will 
+then create an account if it is a new customer or edit an existing account for a 
+returning customer.<br>
+<br>
+As the children arrive in the morning the teaching assistant will record the 
+time of their arrival. Likewise when the children leave for the day the 
+assistant will record the time of their departure. The departure time will be 
+used to keep track of late pick ups so the parent can be billed accordingly. If 
+a parent is unable to pick up their child they may send another person, but only 
+if the person had previously been designated as an authorized pick up. The names 
+of all authorized pick ups are maintained in a child�s record for this purpose.
+<br>
+<br>
+One of the teacher�s responsibilities is to document the behavior of children 
+they supervise. The NCCM system will store this information in a database for 
+future reference. This is especially useful for parent teacher conferences. 
+Teachers will have the ability to add or edit their comments at any time. <br>
+<br>
+Administrators can access a reporting feature that generates preformatted 
+documents summarizing key customer information. In addition to printing these 
+reports administrators are able to print invoices. Invoices will include a 
+special notice if a child is due for a required immunization. Customers will be 
+billed on the last day of every month with a discount applied to those accounts 
+having multiple children enrolled in the Care Center.<br>
+<br>
+Daily reminders are a feature that all employees have access to. An employee can 
+enter the date of an event as well as a message describing the event. On the day 
+of the reminder a pop up message will be displayed when the employee logs onto 
+the system. Acknowledgement of the reminder will permanently remove it from the 
+database.<br>
+<br>
+The following table groups user requirements into various categories. Each 
+requirement is assigned a priority to indicate whether it must be implemented 
+(High) or may be left out (Low). Low priority requirements may be eliminated if 
+it helps meet the scheduled delivery date. Medium priority requirements are not 
+essential and their implementation will be determined as program progresses.
+<a href="#top"><u><font color="#cc3300">^</font></u><font color="#cc3300"><u> 
+TOP</u></font></a><br>
+<br>
+<br>
+<b>User Requirements for the Ne�ios Child Care Software Project</b></p>
+<table class="MsoNormalTable" style="border-collapse: collapse; border: medium none;" border="1" cellpadding="0" cellspacing="0">
+	<tbody><tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border: 1pt solid windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-align: center;" align="center"><b>Req. 
+		No.</b></p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: 1pt 1pt 1pt medium; border-style: solid solid solid none; border-color: windowtext windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center"><b>
+		Priority</b></p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: 1pt 1pt 1pt medium; border-style: solid solid solid none; border-color: windowtext windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal" style="text-align: center;" align="center"><b>
+		Reference</b></p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: 1pt 1pt 1pt medium; border-style: solid solid solid none; border-color: windowtext windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal" style="text-align: center;" align="center"><b>
+		Description</b></p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td colspan="4" style="width: 6.85in; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="658">
+		<p class="MsoNormal"><b>Access Privileges</b></p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R1<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp; </span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">There shall be two levels of access; one for 
+		teachers and assistants and one for administrators.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R2<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp; </span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">The teachers and assistants shall only be allowed 
+		to enter or edit child comments and child arrival or departure times.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R3<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp; </span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">The administrators shall be allowed to enter or 
+		edit all data.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R4<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp; </span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">Med</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">Only the administrators shall be allowed to view or 
+		print reports.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R5<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp; </span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">Med</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">Only the administrators shall be allowed to view or 
+		print invoices.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R6<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp; </span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">All employees shall be allowed to use the Daily 
+		Reminders.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td colspan="4" style="width: 6.85in; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="658">
+		<p class="MsoNormal"><b>Security</b></p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R7<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp; </span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">Each user shall be required to log on with a unique 
+		user name and password before using the system. The password does not 
+		need to be unique.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R8<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp; </span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">Low</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Code Works</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">The user name shall be the first four charters of 
+		the employee�s last name followed by the first three characters of their 
+		first name.</p></td>
+	</tr>
+	<tr style="height: 13.55pt;">
+		<td style="width: 45.25pt; height: 13.55pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R9<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp; </span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 13.55pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 13.55pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 13.55pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">A password shall be assigned to each user.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R10<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">The password shall contain 6 to 8 alphanumeric 
+		characters.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R11<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">Med</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Code Works</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">After three unsuccessful attempts to enter a 
+		password the user shall be locked out of the system until their password 
+		is reset.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R12<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">A new password shall be assigned if a user forgets.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R13<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">Low</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">If there is no activity for 10 minutes the user 
+		shall be logged off of the system.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td colspan="4" style="width: 6.85in; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="658">
+		<p class="MsoNormal"><b>Daily Reminders</b></p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R14<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">Med</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">Users shall only be allowed to set daily reminders 
+		for themselves.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R15<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">Low</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Code Works</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">The date of the reminder shall be selected from a 
+		calendar.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R16<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">Med</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Code Works</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">The user shall be allowed to enter up to a 50 
+		character message for their reminder.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R17<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">Low</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Code Works</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">When the user logs onto the system on the date of 
+		their reminder, they shall receive a popup window displaying their 
+		reminder message.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td colspan="4" style="width: 6.85in; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="658">
+		<p class="MsoNormal"><b>Immunizations</b></p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R18<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">A child�s record shall contain the dates that their 
+		required immunizations were received.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R19<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">Med</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Code Works</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">When a child is within two weeks of a required 
+		immunization a message shall be displayed when their teacher logs onto 
+		the system.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R20<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">Med</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">A child�s record shall contain the date of their 
+		last physical examination.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R21<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">Low</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Code Works</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">The Administrators shall be able to enter the type 
+		and schedule of required immunizations.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R22<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">Med</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Code Works</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">A notification for required immunizations shall be 
+		printed on the monthly invoice.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td colspan="4" style="width: 6.85in; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="658">
+		<p class="MsoNormal"><b>Billing</b></p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R23<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">If only a single child is enrolled a parent shall 
+		be billed $90 at the end of the each month.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R24<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">If only two children are enrolled a parent shall be 
+		billed $157.50 at the end of each month.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R25<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">If more than two children are enrolled a parent 
+		shall be billed $157.50 for the first two children plus $45 for each 
+		additional child at the end of each month.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R26<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High </p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">An account history for each customer shall contain 
+		all activity by date.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R27<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">Itemized customer invoices showing amount due shall 
+		be available for printing.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R28<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">Customers shall be billed $10 an hour (per child) 
+		for late pick ups. </p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R29<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">All invoices shall be available for printing at the 
+		end of each month.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td colspan="4" style="width: 6.85in; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="658">
+		<p class="MsoNormal"><b>Reports</b></p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R30<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">A <b>Customer Directory Report</b> shall list the 
+		customers alphabetically by last name and include their address and 
+		phone number.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R31<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">A <b>Daily Classroom &amp; Center Enrollment Report</b> 
+		shall alphabetically list the names of children by classroom and 
+		indicate if they are present or absent.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R32<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">A <b>Birthday Lists &amp; Child Age Report</b> shall 
+		list the children alphabetically by last name and include their birthday 
+		and age.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R33<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">A <b>Parent/Child Cross Reference Report</b> shall 
+		list the parents alphabetically by last name and include their 
+		children�s first names.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R34<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">A <b>Family Registration Information Report</b> 
+		shall list the customer names alphabetically and include their address 
+		and home telephone number.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R35<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">An <b>Immunization Due &amp; History Report</b> shall 
+		list the children alphabetically by last name and include any remaining 
+		immunizations that are required and the dates of previous immunizations.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R36<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">The <b>Child Enrollment/Withdrawal Report</b> shall 
+		list the children alphabetically by last name and whether or not they 
+		are registered or withdrawn from the Child Care Center.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R37<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">The <b>Child Notes &amp; Comments Report</b> shall list 
+		the children alphabetically by last name and include any notes that are 
+		attached to their records.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R38<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">The <b>Account Activity Report</b> shall list a 
+		selected customer�s account activity by date.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td colspan="4" style="width: 6.85in; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="658">
+		<p class="MsoNormal"><b>Account Information </b></p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R39<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">Med</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">When a user edits an account their user ID along 
+		with the date, time and a description of the change shall be recorded in 
+		the database.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R40<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">The Parent�s record shall contain the following 
+		information:</p>
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 36.6pt;">
+		1.<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Name</p>
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 36.6pt;">
+		2.<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>
+		Address</p>
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 36.6pt;">
+		3.<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Home 
+		phone</p>
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 36.6pt;">
+		4.<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Work 
+		phone</p>
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 36.6pt;">
+		5.<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>
+		Email address</p>
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 36.6pt;">
+		6.<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>
+		Emergency contact</p>
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 36.6pt;">
+		7.<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Name 
+		of an authorized pick up</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R41<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">The Child�s record shall contain the following 
+		information:</p>
+		<ol style="margin-top: 0in; margin-bottom: 0in;" start="1" type="1">
+			<li class="MsoNormal" style="line-height: normal;">Name</li>
+			<li class="MsoNormal" style="line-height: normal;">Date of birth</li>
+			<li class="MsoNormal" style="line-height: normal;">Gender</li>
+			<li class="MsoNormal" style="line-height: normal;">Classroom name</li>
+			<li class="MsoNormal" style="line-height: normal;">Special needs</li>
+			<li class="MsoNormal" style="line-height: normal;">Photo</li>
+			<li class="MsoNormal" style="line-height: normal;">Teacher�s comments</li>
+			<li class="MsoNormal" style="line-height: normal;">Immunization dates</li>
+		</ol>
+		</td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R42<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">The software shall support the ability to enter, 
+		store, and update parent, child and billing information.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R43<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">Customer log notes shall store the date and 
+		comments regarding any correspondence with a parent.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td colspan="4" style="width: 6.85in; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="658">
+		<p class="MsoNormal"><b>Classroom</b></p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R44<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">Each classroom shall only accept a maximum of 20 
+		children.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R45<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">Each student shall only belong to one class</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R46<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">One teacher and one assistant shall be assigned to 
+		each class.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R47<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">A waiting list shall store the names and phone 
+		numbers of up to 100 potential customers waiting for a classroom opening 
+		to enroll their child.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td colspan="4" style="width: 6.85in; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="658">
+		<p class="MsoNormal"><b>User Interface</b></p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R48<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">The system shall have a Web based interface that 
+		works with Internet Explorer and Netscape Navigator.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R49<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">The background color of all windows shall be blue.</p></td>
+	</tr>
+	<tr style="height: 12.8pt;">
+		<td style="width: 45.25pt; height: 12.8pt; border-left: 1pt solid windowtext; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt; border-style: none solid solid; border-color: -moz-use-text-color windowtext windowtext; padding: 0in 5.4pt;" valign="top" width="60">
+		<p class="MsoNormal" style="text-indent: -0.25in; line-height: normal; margin-left: 0.5in;">
+		R50<span style="font: 7pt &quot;Times New Roman&quot;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+		</span>&nbsp;</p></td>
+		<td style="width: 52.85pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="70">
+		<p class="MsoNormal" style="text-align: center;" align="center">High</p></td>
+		<td style="width: 67.7pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="90">
+		<p class="MsoNormal">Customer</p></td>
+		<td style="width: 327.4pt; height: 12.8pt; border-left: medium none; border-right: 1pt solid windowtext; border-width: medium 1pt 1pt medium; border-style: none solid solid none; border-color: -moz-use-text-color windowtext windowtext -moz-use-text-color; padding: 0in 5.4pt;" valign="top" width="437">
+		<p class="MsoNormal">The system shall respond to all user requests 
+		within 20 seconds.</p></td>
+	</tr>
+</tbody></table>
+<p><a href="#top"><u><font color="#cc3300">^</font></u><font color="#cc3300"><u> 
+TOP</u></font></a><br>
+<br>
+<b><a name="1.3">1.3</a> Software context</b><br>
+<br>
+There are many key components to the Day Care profession. But the ability of 
+your Day Care Facility to remain in business will be dictated by your ability to 
+manage, facility location, ability to retain children and establish a plan for 
+growth. You will have to manage your facilities in a cost effective, efficient 
+manner in order to maximize revenues per class room yet still remain in 
+compliance with Federal, State, and Local guidelines. This document assumes your 
+facility has already met the Federal, State and Local requirements and will not 
+discuss these issues. <br>
+<br>
+The first topic that will be discussed is the current face of daycare in 
+Illinois. According to Department of Child and Family Services in July 2005 
+Illinois has 287,000 children in daycare 2,918 are licensed day care facilities 
+in addition there are 10,277 licensed Day Care Homes. The vast majority say 70% 
+of these children are in the Day Care Centers. The parent preference of Day Care 
+Centers versus Day Care Homes might be smaller if home facilities appeared more 
+professional to the parents. <br>
+<br>
+Based on a parent survey compiled by Childcareaware.com the following are 
+general concerns parents will have when observing your facilities. Is there a 
+child focused staff without appearing to be overwhelmed? Is every child viewed 
+as unique and special individual? Are the caregivers and teacher practices 
+responsive to the abilities of different children? Are special events scheduled 
+and shared with the family? Is there a balance between activities and quiet time 
+and are activities right for each age group? Can you afford to waste valuable 
+resources convincing parents that staff can responsibly address these issues?
+<br>
+<br>
+These issues and more can be achieved via Code Works day care software which 
+will keep facility operators updated with daily activities along with reminders 
+designed to dialogue with parents. Billing invoices, immunizations and other 
+items of concern to parents/guardians are all added to allow technology to ease 
+the minds of facility operators allowing them to focus on staff/class 
+supervision. Parents will also have peace of mind knowing that facility 
+operators are able to ensure staff focus is on the children and not the mundane 
+but important bookkeeping aspects of facility management.<br>
+<br>
+Code Works day care software has detailed billing which includes history of 
+payments received, student tuition and tracking of late fees. These features 
+will help the facility operator keep a tab on profit/loss which is imperative 
+for short and long term cash flow management. The hidden benefit is that a 
+profit/loss statement can be generated at all times. Lending institution will 
+want to see this document prior to loaning funds to your business for capitol 
+improvements. <br>
+<br>
+The future of Day Care in America is bright which means that current Day care 
+facility operators will have to plan for the future if they are to benefit from 
+the positive social changes as well as the demographics which favor the 
+expansion of day care and early childhood development. According to the U.S. 
+Bureau of the Census, the United States is <br>
+According to the U.S. Bureau of the Census, the United States is in the midst of 
+a childcare revolution the will continue to strain the current system. 
+Dual-earners families can account for about 75 percent of the increased demand 
+for childcare. It is estimated that by 2005, the labor force participation of 
+women ages 25-54 (the traditional at-home caregivers) will increase from 75-84 
+percent. In addition high divorce rates and the steady increase of births 
+occurring out of wedlock will add to this demand. These trends are similar in 
+Chicago where since the year 2000 at least 50% of all children ages 3-5 were 
+enrolled in some type of day care. Therefore there is continued demand and 
+future growth for this business segment. According to Dun and Bradstreet April 
+2004, there are 133,020 child care services facilities operating nationally with 
+an average of 7 employees and generates .20 million in sales annually. The 
+annual growth for child care services averaged 7.44 percent between 1898 and 
+2002. Code Works day care software is leading the way in providing the features 
+necessary to increase enrollment. The waitlist feature along with customer 
+tracking will allow the facility owners to be notified when student has dropped 
+or when the age limitation has been reached. The software allow for discounting 
+enrollment for parent referral and multiple child attendance. Code Works also 
+has the expertise to deliver software using various software models that can 
+deliver continued feature upgrades based upon the growth and level of service 
+your facility requires. <a href="#top"><u><font color="#cc3300">^</font></u><font color="#cc3300"><u> 
+TOP</u></font></a><br>
+<br>
+The following are a list of Web sites used to compile this document.</p>
+<blockquote>
+	<p>1) The majority of the statistics contained in this document was gathered 
+	from the United States Census taken in 2000.<br>
+	<br>
+	2) Industry Report: Child Care Services. �Dun &amp; Bradstreet and Marketing 
+	Solutions Internet: www.zapdata.com. Accessed March 21, 2004<br>
+	<br>
+	3) �Industry Growth Outlook Report: SIC 8351: Child Day Care Services.� 
+	Integra Information. March 21 2004. Internet://www.integrainfo.com </p>
+</blockquote>
+<p>Department of Children and Family Services
+<a href="http://www.state.il.us/dcfs/daycare/index.shtml">
+http://www.state.il.us/dcfs/daycare/index.shtml</a></p>
+<p><br>
+<b><a name="1.4">1.4</a> Major constraints</b></p>
+<ul>
+	<li type="square">The NCCM system will use Microsoft�s ASP.NET which 
+	requires a Web server supporting this technology. </li>
+</ul>
+<hr size="1">
+			<p align="center">
+								<font color="#666666" face="Tahoma">|
+			<a href="http://www.hostitwise.com/index.html"><font color="#666666">Home</font></a> | </font>
+			<a href="http://www.hostitwise.com/hosting.html"><font color="#666666">Hosting |</font></a><font color="#666666">&nbsp;</font><a href="http://www.hostitwise.com/domain_registration.html"><font color="#666666">Domains 
+			| </font></a><a href="http://www.hostitwise.com/supports.html"><font color="#666666">Support |
+			</font></a><font color="#666666">&nbsp;</font><a href="http://www.hostitwise.com/contacts.html"><font color="#666666">Contacts</font></a><font color="#666666"> 
+			|<br>
+			| </font><a href="http://www.hostitwise.com/terms_conditions.html"><font color="#666666">Terms 
+			&amp; Condition</font></a><font color="#666666"> | </font>
+			<a href="http://www.hostitwise.com/privacy_policy.html"><font color="#666666">Privacy Policy</font></a><font color="#666666"> 
+			| </font></p>
+			<hr width="300" size="1">
+			<p align="center">&nbsp;</p>
+			<p align="center"><font color="#666666">Copyright � 2005 by 
+			HostItWise.com Read our <a href="http://www.hostitwise.com/copy_right.html">Copyright</a>. All 
+			rights reserved.</font></p>
+						<p>&nbsp;</p></td>
+			</tr>
+		</tbody></table>
+		</td>
+	</tr>
+</tbody></table>
+
+	<p>
+			&nbsp;</p>
+
+</body></html>

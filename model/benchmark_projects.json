@@ -1,0 +1,102 @@
+[
+    {
+        "id": 1,
+        "name": "Smart Warehouse Management System",
+        "description": "An AI-powered system for a 500,000 sq ft logistics hub. Must integrate with RFID gait sensors, optimize 3D shelf space using genetic algorithms, and coordinate a fleet of 50 stock-counting drones via ROS2. Key KPI: Real-time inventory accuracy > 99.9%."
+    },
+    {
+        "id": 2,
+        "name": "Tele-Health Post-Op Recovery Platform",
+        "description": "Remote monitoring for cardiac surgery patients. Integrates with wearable ECG/Pulse-Ox via Bluetooth LE. Features AI wound analysis (computer vision) for early infection detection and HL7 FHIR integration with hospital EMRs. Data must be HIPAA compliant."
+    },
+    {
+        "id": 3,
+        "name": "Autonomous Urban Delivery Robot Control",
+        "description": "Fleet management for 200 sidewalk robots. Requirements include LiDAR-based obstacle avoidance (SLM), mesh network communication (5G/V2X), and a 100ms latency remote takeover interface for human operators. Must handle adverse weather navigation."
+    },
+    {
+        "id": 4,
+        "name": "Decentralized Carbon Credit Marketplace",
+        "description": "Ethereum-based L2 platform for tokenized carbon credits. Requires Solidity smart contracts for verifiable sequestration auditing, Oracle integration for satellite biomass data, and a Liquidity Pool for spot-price trading."
+    },
+    {
+        "id": 5,
+        "name": "AI-Driven Smart Grid Stabilizer",
+        "description": "Real-time balancing for a city-scale microgrid. Must process 10,000 sensor pulses/sec, predict solar/wind fluctuations using LSTM networks, and perform automated load-shedding during peak demand to maintain 60Hz frequency stability."
+    },
+    {
+        "id": 6,
+        "name": "Multi-Tenant SaaS HR Payroll Engine",
+        "description": "Payroll for global firms (100+ countries). Must handle complex tax logic (GDPR/SOC2 compliant), support 50+ currencies with real-time XE integration, and provide an automated audit trail for government compliance reporting."
+    },
+    {
+        "id": 7,
+        "name": "Edge-Computing Traffic Control System",
+        "description": "Hardware-software system for intelligent intersections. Uses edge-AI (NVIDIA Jetson) for vehicle classification, V2X emergency vehicle pre-emption, and dynamic signal phase optimization to reduce CO2 emissions by 15%."
+    },
+    {
+        "id": 8,
+        "name": "Personalized Oncology Treatment Portal",
+        "description": "Decision support for oncologists. Matches patient genomic profiles (VCF files) against a database of 5,000+ active clinical trials using NLP. Must provide evidence-based treatment ranking with confidence scores."
+    },
+    {
+        "id": 9,
+        "name": "Zero-Trust Enterprise Identity Manager",
+        "description": "Security layer for hybrid-cloud infrastructure. Enforces FIDO2 biometrics, micro-segmentation using eBPF, and continuous risk scoring based on user behavioral analytics (typing cadence, IP geo-drift)."
+    },
+    {
+        "id": 10,
+        "name": "High-Frequency Algorithmic Trading Core",
+        "description": "Execution engine for NYSE/NASDAQ. Requirements: < 50-microsecond tick-to-trade latency, FPGA-accelerated order parsing, and circuit-breaker logic for multi-million dollar basket trades. Uses 10Gbps Solarflare networking."
+    },
+    {
+        "id": 11,
+        "name": "Predictive Industrial Equipment Maintenance",
+        "description": "Digital twin for hydro-electric turbines. Uses 128-channel vibration analysis (FFT), thermal imaging integration, and predictive failure modeling to increase Mean Time Between Failures (MTBF) by 25%."
+    },
+    {
+        "id": 12,
+        "name": "Shared Electric Scooter Fleet Service",
+        "description": "Real-time mobility platform for 10,000 vehicles. Features remote battery monitoring, geo-fencing (speed limiting in parks), and an automated billing engine using Stripe. Requires 99.99% uptime for the mobile API."
+    },
+    {
+        "id": 13,
+        "name": "Collaborative Architectural VR Design Room",
+        "description": "Multi-user engine for BIM-integrated design. Supports 32 concurrent VR users, physics-accurate Ray Tracing (RTX), and real-time syncing of Revit/Rhino models with <20ms motion-to-photon latency."
+    },
+    {
+        "id": 14,
+        "name": "Smart Irrigation for Sustainable Arid Farming",
+        "description": "Closed-loop agricultural system. Integrates LoRaWAN soil sensors with satellite moisture mapping and weather APIs to optimize water delivery per-quadrant, reducing usage by 40%."
+    },
+    {
+        "id": 15,
+        "name": "Elderly Fall Detection and Response Hub",
+        "description": "Privacy-first vision system for assisted living. Uses skeletal tracking (PoseNet) on local edge nodes to detect falls without streaming raw video. Alerts emergency services via Twilio and provides health logs."
+    },
+    {
+        "id": 16,
+        "name": "Cross-Platform AR Retail Fitting Room",
+        "description": "Virtual try-on for e-commerce. Uses 3D body mesh scanning, cloth physics simulation (Unity/Unreal), and AI-driven style recommendations based on purchase history. Must work on iOS/Android ARKit/ARCore."
+    },
+    {
+        "id": 17,
+        "name": "Micro-Service API Security Gateway",
+        "description": "L7 traffic manager for 1,000+ services. Features mTLS termination, dynamic rate-limiting via Redis, and real-time anomaly detection for SQL injection and credential stuffing attacks."
+    },
+    {
+        "id": 18,
+        "name": "Intelligent Public Transit Route Optimizer",
+        "description": "Dynamic city-wide bus dispatching. Uses real-time passenger demand heatmaps from mobile sensors to reroute 'on-demand' shuttles and optimize fixed bus lines for fuel efficiency."
+    },
+    {
+        "id": 19,
+        "name": "Digital Twin for Subsea Oil Pipeline",
+        "description": "Structural health monitoring for underwater infrastructure. Integrates acoustic sensor arrays with CFD (Computational Fluid Dynamics) models to predict corrosion and detect pinhole leaks at 2,000m depth."
+    },
+    {
+        "id": 20,
+        "name": "E-Learning Adaptive Content Engine",
+        "description": "K-12 personalized learning platform. Uses IRT (Item Response Theory) to calibrate question difficulty, assesses student gaze/engagement via webcam, and generates dynamic curriculum paths for 1M+ active users."
+    }
+]

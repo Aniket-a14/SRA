@@ -63,4 +63,3 @@ terraform.rc
 *.tfplan
 terraform/terraform.tfstate.1769920708.backup
 
-model/

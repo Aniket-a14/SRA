@@ -1,0 +1,2056 @@
+<html><head>
+
+	
+		<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+		<title>K-Team - Software Requirements Specification</title>
+	</head><body bgcolor="white">
+		<center>
+			The address of this document is: <a href="http://www.perceptek.com.au/kteam/docs/srs.html">http://www.perceptek.com.au/kteam/docs/srs.html</a>
+			<hr width="580">
+			<p>
+			<table border="0" cellpadding="0" cellspacing="2" width="580">
+				<tbody><tr>
+					<td>
+						<center>
+							<h1>Software Requirements Specification</h1>
+						</center>
+					</td>
+				</tr>
+			</tbody></table>
+			</p>
+			<p>
+			</p><hr width="580">
+			<p></p>
+			<p><b>
+			</b><table border="0" cellpadding="3" cellspacing="2" width="580">
+				<tbody><tr>
+					<td>
+						<center>
+							<h1>The MultiMahjong Project</h1>
+							<h1>K-Team</h1>
+							<h2>
+							<hr width="300">
+							</h2>
+						</center>
+						<p>&nbsp;</p>
+						<div align="left">
+							<ul>
+								<h3>Team Members:</h3>
+								<h3>
+								<table border="0" cellpadding="0" cellspacing="2">
+									<tbody><tr>
+										<td valign="top">
+											<ol>
+												<li><b>Joanna Araminta </b>
+												<div align="left">
+													<li><b>Victor Leung </b>
+													</li><li><b>Joel Brakey </b>
+													</li><li><b>Michael Hart </b>
+													</li><li><b>Dean Cortinovis </b>
+													</li><li><b>Long Tang </b>
+												</li></div></li></ol>
+											
+										</td>
+										<td valign="top"><b>(Project Manager)<br>
+											(Technical Researcher)<br>
+											(Client Liaison Officer, Web Site Manager)<br>
+											(Secretary, Web Site Manager, Backup Manager)<br>
+											(Technical Researcher)<br>
+											(Technical Researcher and Risk Manager)</b></td>
+									</tr>
+								</tbody></table>
+								</h3>
+								<h3><b>Abstract:</b></h3>
+								<ul>
+									<p><b>MultiMahjong is a single/multi player Mahjong computer 
+game. This document describes the requirements for the MultiMahjong 
+product.</b></p>
+								</ul>
+								<h3>Maintainer:</h3>
+								<ul>
+									<p><b>Michael Hart (mwhart)</b></p>
+								</ul>
+								<h3>Version Control:</h3>
+								<ul>
+									<p><b>$Revision: 2.1 $<br>
+									$Date: 1999/08/16 12:00:44 $</b></p>
+								</ul>
+							</ul>
+						</div>
+						<center>
+							<p>&nbsp;</p>
+							<p>&nbsp;</p>
+							<h2>Table Of Contents</h2>
+						</center>
+						<ol>
+							<li type="1"><a href="#Anchor-1"><b>Introduction</b></a>
+							</li><li type="1"><a href="#Anchor-2"><b>The Existing Logical System</b></a>
+							</li><li type="1"><a href="#Anchor-3"><b>The Proposed Logical System</b></a><b><br>
+							</b><a href="#Anchor-3.1">3.1 Data Flow Diagrams (DFDs)</a><br>
+							<a href="#Anchor-3.2">3.2 Data Dictionary</a>
+							</li><li type="1"><a href="#Anchor-4"><b>Functional Requirements<br>
+							</b></a><a href="#Anchor-4.1">4.1 The MultiMahjongServer</a><a href="#Anchor-4"><b><br>
+							</b></a><a href="#Anchor-4.2">4.2 Beginning the Game</a><a href="#Anchor-4"><b><br>
+							</b></a><a href="#Anchor-4.3">4.3 Playing the Game</a><b><br>
+							</b><a href="#Anchor-4.4">4.4 Ending the Game</a><b><br>
+							</b><a href="#Anchor-4.5">4.5 Computer Opponent (CO)</a>
+							</li><li type="1"><a href="#Anchor-5"><b>Non-Functional Requirements</b></a><b><br>
+							</b><a href="#Anchor-5.1">5.1 Nature of the Users</a><br>
+							<a href="#Anchor-5.2">5.2 Error Handling</a><br>
+							<a href="#Anchor-5.3">5.3 Implementation Constraints</a><br>
+							<a href="#Anchor-5.4">5.4 </a><a href="#Anchor-5.4">Hardware Constraints</a><br>
+							<a href="#Anchor-5.5">5.5 Performance Constraints</a><br>
+							<a href="#Anchor-5.6">5.6 Security Requirements</a>
+							</li><li type="1"><a href="#Anchor-6"><b>User Interface Requirements<br>
+							</b></a><a href="#Anchor-6.1">6.1 User Interface - MultiMahjongServer</a><a href="#Anchor-6"><b><br>
+							</b></a><a href="#Anchor-6.2">6.2 User Interface - MultiMahjongClient</a><a href="#Anchor-6"><b><br>
+							</b></a><a href="#Anchor-6.3">6.3 Graphical User Interface - MultiMahjongClient</a>
+							</li><li type="1"><a href="#Anchor-7"><b>Document/Training Requirements<br>
+							</b></a><a href="#Anchor-7.1">7.1 MultiMahjongServer Documentation</a><a href="#Anchor-7"><b><br>
+							</b></a><a href="#Anchor-7.2">7.2 MultiMahjongClient Documentation</a><a href="#Anchor-7"><b><br>
+							</b></a><a href="#Anchor-7.3">7.3 Coding and Design Documentation</a>
+							</li><li type="1"><a href="#Anchor-8"><b>Acceptance Criteria</b></a>
+							</li><li type="1"><a href="#Anchor-9"><b>Examples of Behaviour<br>
+							</b></a><a href="#Anchor-9.1">9.1 Beginning the Game</a><a href="#Anchor-9.2"><b><br>
+							</b>9.2 Playing the Game</a><a href="#Anchor-9"><b><br>
+							</b></a><a href="#Anchor-9.3">9.3 Ending the Game</a>
+							</li><li type="1"><a href="#Anchor-10"><b>Glossary</b></a>
+							</li><li type="1"><a href="#Anchor-11"><b>Customer Sign-Off</b></a>
+						</li></ol>
+						<center>
+							<h2>&nbsp;Table Of Figures</h2>
+						</center>
+						<ol>
+							<li><a href="#Anchor-3.1.1"><b>Figure 3.1.1 - Level 0 DFD of the MultiMahjong System</b></a>
+							</li><li><a href="#Anchor-3.1.2"><b>Figure 3.1.2 - Level 1 DFD of the MultiMahjong System</b></a>
+							</li><li><a href="#Anchor-6.3.1"><b>Figure 6.3.1 - Draft of the Proposed Main Window</b></a>
+						</li></ol>
+						<h3><a name="Anchor-1"></a>1. Introduction</h3>
+						<ul>
+							<p>This document formally states the requirements for the MultiMahjong product.</p>
+							<p>These requirements have been prioritised into three levels:</p>
+						</ul>
+						<ol>
+							<ol>
+								<li><em>Essential</em><br>
+								The minimum set of requirements for the product to be accepted (see <a href="#Anchor-8">Section 8</a>).
+								</li><li><em>Highly Desirable</em><br>
+								Requirements that are considered to be likely inclusions to the product, time permitting.
+								</li><li><em>Desirable</em><br>
+								Requirements that are not likely to be added in this version, but should be considered for future modifications.
+							</li></ol>
+						</ol>
+						<ul>
+							<p>MultiMahjong is a product consisting of two programs - a 
+MultiMahjongServer and a MultiMahjongClient. This Server/Client 
+architecture will allow up to 4 players to play Mahjong against each 
+other over a TCP/IP network. The MultiMahjongClient program will also 
+allow 1 player to play in a stand-alone mode.</p>
+							<p>As any game of Mahjong requires 4 players to play, and there 
+may not be 4 people available for a network game, the game will allow 
+users to choose enough computer opponents to make up the required 4 
+players. In a single player game, the user will play against 3 computer 
+opponents.</p>
+							<p>To play the game, users will use the MultiMahjongClient. The 
+MultiMahjongServer is to reside on a TCP/IP server and will communicate 
+with MultiMahjongClients.</p>
+							<p>The client requires the product for commercial purposes. The MultiMahjongClient program is to be sold to potential users (see <a href="#Anchor-5.1">Section 5.1.1</a>) and the MultiMahjongServer is to initially reside on a server owned or operated by the client.</p>
+							<p>The client for this project is:</p>
+							<ul>
+								<p>Steve Goschnick, Managing Director<br>
+								Solid Software Pty Ltd<br>
+								Level 3, Bouverie Street,<br>
+								Carlton VIC, 3053<br>
+								Ph: 03 9344 9322, 03 9344 0154<br>
+								E-Mail: <a href="mailto:gosh@solidsoftware.com.au">gosh@solidsoftware.com.au</a>, <a href="mailto:gosh@cs.mu.oz.au">gosh@cs.mu.oz.au</a></p>
+							</ul>
+							<p>Our team for the project is called K-Team and consists of:</p>
+							<ul>
+								<p>
+								<table border="0" cellpadding="0" cellspacing="0">
+									<tbody><tr>
+										<td valign="top">Joanna Araminta (<a href="mailto:jiar@students.cs.mu.oz.au">jiar</a>)<br>
+											Victor Leung (<a href="mailto:vhle@students.cs.mu.oz.au">vhle</a>)<br>
+											Joel Brakey (<a href="mailto:jebr@students.cs.mu.oz.au">jebr</a>)<br>
+											Michael Hart (<a href="mailto:mwhart@students.cs.mu.oz.au">mwhart</a>)<br>
+											Dean Cortinovis (<a href="mailto:dcort@students.cs.mu.oz.au">dcort</a>)&nbsp;<br>
+											Long Tang (<a href="mailto:lqkt@students.cs.mu.oz.au">lqkt</a>)</td>
+										<td valign="top" width="250">Ph: 9889 4423 (Project Manager)<br>
+											Ph: 9706 1560<br>
+											Ph: 9859 6038<br>
+											Ph: 9859 5419<br>
+											Ph: 9798 2684<br>
+											Ph: 9540 8992</td>
+									</tr>
+								</tbody></table>
+								</p>
+							</ul>
+							<p>The supervisor for the project is:</p>
+							<ul>
+								<p>
+								<table border="0" cellpadding="0" cellspacing="0">
+									<tbody><tr>
+										<td valign="top">Anthony Senyard (<a href="mailto:anthls@students.cs.mu.oz.au">anthls</a>)&nbsp;</td>
+										<td valign="top" width="250">Ph (W): 9344 1940<br>
+											Ph (H): 9417 2839</td>
+									</tr>
+								</tbody></table>
+								</p>
+							</ul>
+						</ul>
+						<ul>
+							<p><a name="Anchor-Rules"></a>This document contains many 
+references to the rules of Mahjong, specifically the Chinese rules of 
+Mahjong. It is assumed that the reader of this document is familiar with
+ these rules as many of the requirements are Mahjong specific. These 
+rules can be found in the following book:</p>
+							<ul>
+								<p>Carkner, K.J. "How to play Mah Jong",<br>
+								1993, Penguin Books Australia Ltd.</p>
+							</ul>
+						</ul>
+						<p>&nbsp;</p>
+						<h3><a name="Anchor-2"></a>2. The Existing Logical System</h3>
+						<ul>
+							<p>The client has no existing system for MultiMahjong.</p>
+						</ul>
+						<p>&nbsp;</p>
+						<h3><a name="Anchor-3"></a>3. The Proposed Logical System</h3>
+						<ul>
+							<p>As this is only a <em>suggestion</em> for the proposed logical system, all requirements mentioned in this section are Level 2 requirements.</p>
+							<h4><a name="Anchor-3.1"></a>3.1 Data Flow Diagrams (DFDs)</h4>
+							<ul>
+								<p>The following diagrams show the flow of data between the entities of the MultiMahjong system:</p>
+								<h4><a name="Anchor-3.1.1"></a><img src="srs_files/level0_dfd.gif" width="371" height="71"></h4>
+								<p><b>Figure 3.1.1 - Level 0 DFD of the MultiMahjong System</b></p>
+							</ul>
+						</ul>
+						<p>&nbsp;</p>
+						<ul>
+							<p><a name="Anchor-3.1.2"></a><b><img src="srs_files/level1_dfd.gif" width="520" height="367"></b></p>
+							<ul>
+								<p><b>Figure 3.1.2 - Level 1 DFD of the MultiMahjong System</b></p>
+								<p>Note that these diagrams only describe the top level 
+processes and the data that flows between them. They do not describe the
+ functions of the MultiMahjongClient and MultiMahjongServer programs as 
+the processes are shared between both programs. The functionality of the
+ MultiMahjongClient and MultiMahjongServer programs is described in more
+ detail in <a href="#Anchor-4">Section 4</a>.</p>
+							</ul>
+							<h4><a name="Anchor-3.2"></a>3.2 Data Dictionary</h4>
+							<ul>
+								<p>
+								<table border="0" cellpadding="0" cellspacing="0" width="443">
+									<tbody><tr>
+										<td width="120"><i>name:</i></td>
+										<td width="323"><b>player action</b></td>
+									</tr>
+									<tr>
+										<td width="120"><i>aliases:</i></td>
+										<td width="323">user input</td>
+									</tr>
+									<tr>
+										<td width="120"><i>where/how used:</i></td>
+										<td width="323"><b>process player action</b> (input)</td>
+									</tr>
+								</tbody></table>
+								<i>description:</i><br>
+								<b>&nbsp;&nbsp;&nbsp;&nbsp;player action = [mouse state | keystroke]<br>
+								&nbsp;&nbsp;&nbsp;&nbsp;mouse state = co-ordinate + button state<br>
+								&nbsp;&nbsp;&nbsp;&nbsp;co-ordinate = xval + yval<br>
+								&nbsp;&nbsp;&nbsp;&nbsp;xval = *horizontal distance (in pixels)*<br>
+								&nbsp;&nbsp;&nbsp;&nbsp;yval = *vertical distance (in pixels)*<br>
+								&nbsp;&nbsp;&nbsp;&nbsp;keystroke = *character from keyboard*</b></p>
+								<p>
+								<table border="0" cellpadding="0" cellspacing="0" width="443">
+									<tbody><tr>
+										<td width="120"><i>name:</i></td>
+										<td width="323"><b>pref. data</b></td>
+									</tr>
+									<tr>
+										<td width="120"><i>aliases:</i></td>
+										<td width="323">preferences data, prefs</td>
+									</tr>
+									<tr>
+										<td valign="top" width="120"><i>where/how used:</i></td>
+										<td width="323"><b>process player action</b> (input and output)<br>
+											<b>preferences</b> (input and output)</td>
+									</tr>
+								</tbody></table>
+								<i>description:</i><br>
+								<b>&nbsp;&nbsp;&nbsp;&nbsp;preference data = [current player's name | icon |<br>
+								</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>limit for winning hand | sound on/off]<br>
+								&nbsp;&nbsp;&nbsp;&nbsp;current player's name = *any 30 character unicode-based string*<br>
+								&nbsp;&nbsp;&nbsp;&nbsp;icon = *colour image in a JPEG or GIF formatted file*<br>
+								&nbsp;&nbsp;&nbsp;&nbsp;limit for winning hand = *6 digit number*<br>
+								&nbsp;&nbsp;&nbsp;&nbsp;sound on/off = *boolean*</b></p>
+								<p>
+								<table border="0" cellpadding="0" cellspacing="0" width="443">
+									<tbody><tr>
+										<td width="120"><i>name:</i></td>
+										<td width="323"><b>screen changes</b></td>
+									</tr>
+									<tr>
+										<td width="120"><i>aliases:</i></td>
+										<td width="323"></td>
+									</tr>
+									<tr>
+										<td width="120"><i>where/how used:</i></td>
+										<td width="323"><b>update screen </b>(input)</td>
+									</tr>
+								</tbody></table>
+								<i>description:</i><br>
+								<b>&nbsp;&nbsp;&nbsp;&nbsp;screen changes = ["display preferences window" command |<br>
+								</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>"update icon" command |<br>
+								</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>"update name" command |<br>
+								</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>"update game area" command |<br>
+								</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>"display action button" command |<br>
+								</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>"updated score" command]<br>
+								&nbsp;&nbsp;&nbsp;&nbsp;"display preferences window" command = *content to be decided<br>
+								
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;in
+ SDD*<br>
+								&nbsp;&nbsp;&nbsp;&nbsp;"updated icon" command = *content to be decided in SDD*<br>
+								&nbsp;&nbsp;&nbsp;&nbsp;"updated name" command = *content to be decided in SDD*<br>
+								&nbsp;&nbsp;&nbsp;&nbsp;"updated game area" command = *content to be decided in SDD*<br>
+								&nbsp;&nbsp;&nbsp;&nbsp;"display action button" command = *content to be decided in SDD*<br>
+								&nbsp;&nbsp;&nbsp;&nbsp;"updated score" command = *content to be decided in SDD*</b></p>
+								<p>
+								<table border="0" cellpadding="0" cellspacing="0" width="443">
+									<tbody><tr>
+										<td width="120"><i>name:</i></td>
+										<td width="323"><b>game data</b></td>
+									</tr>
+									<tr>
+										<td width="120"><i>aliases:</i></td>
+										<td width="323"></td>
+									</tr>
+									<tr>
+										<td valign="top" width="120"><i>where/how used:</i></td>
+										<td width="323"><b>process player action </b>(input and output)<br>
+											<b>handle game</b> (input and output)<br>
+											<b>determine computer opponent action</b> (input and output)<br>
+											<b>game info</b> (input and output)</td>
+									</tr>
+								</tbody></table>
+								<i>description:</i><br>
+								<b>&nbsp;&nbsp;&nbsp;&nbsp;game data = [tile position | current round |<br>
+								
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;first
+ Wind of the Round | current Wind of the Round |<br>
+								&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;current player]<br>
+								&nbsp;&nbsp;&nbsp;&nbsp;tile position = [The Wall | Discard | Dead Tile | Exposed Set |<br>
+								&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Revealed Kong]<br>
+								&nbsp;&nbsp;&nbsp;&nbsp;Exposed Set = [Exposed Kong | Exposed Pung | Exposed Chow]<br>
+								&nbsp;&nbsp;&nbsp;&nbsp;current round = *1 digit number*<br>
+								&nbsp;&nbsp;&nbsp;&nbsp;first Wind of the Round = *content to be decided in SDD, will be<br>
+								
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;player
+ ID*<br>
+								&nbsp;&nbsp;&nbsp;&nbsp;current Wind of the Round = *content to be decided in SDD,<br>
+								
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;will
+ be player ID*<br>
+								&nbsp;&nbsp;&nbsp;&nbsp;current player = *content to be decided in SDD, will be player ID*</b></p>
+								<p>
+								<table border="0" cellpadding="0" cellspacing="0" width="443">
+									<tbody><tr>
+										<td width="120"><i>name:</i></td>
+										<td width="323"><b>game action</b></td>
+									</tr>
+									<tr>
+										<td width="120"><i>aliases:</i></td>
+										<td width="323"></td>
+									</tr>
+									<tr>
+										<td valign="top" width="120"><i>where/how used:</i></td>
+										<td width="323"><b>process player action </b>(output)<b><br>
+											handle game </b>(input and output)<b><br>
+											determine computer opponent action </b>(input and output)</td>
+									</tr>
+								</tbody></table>
+								<i>description:</i><br>
+								<b>&nbsp;&nbsp;&nbsp;&nbsp;game action = [discarded tile | picked up tile | exposed tile]<br>
+								&nbsp;&nbsp;&nbsp;&nbsp;discarded tile = *tile class (tile class to be decided in SDD)*<br>
+								&nbsp;&nbsp;&nbsp;&nbsp;picked up tile = *tile class (tile class to be decided in SDD)*<br>
+								&nbsp;&nbsp;&nbsp;&nbsp;revealed tile = *tile class (tile class to be decided in SDD)*</b></p>
+								<p>
+								<table border="0" cellpadding="0" cellspacing="0" width="443">
+									<tbody><tr>
+										<td width="120"><i>name:</i></td>
+										<td width="323"><b>graphic data</b></td>
+									</tr>
+									<tr>
+										<td width="120"><i>aliases:</i></td>
+										<td width="323"></td>
+									</tr>
+									<tr>
+										<td valign="top" width="120"><i>where/how used:</i></td>
+										<td width="323"><b>update screen </b>(input)<br>
+											<b>graphics </b>(output)</td>
+									</tr>
+								</tbody></table>
+								<i>description:</i><br>
+								<b>&nbsp;&nbsp;&nbsp;&nbsp;graphic data = *colour image file*</b></p>
+								<p>
+								<table border="0" cellpadding="0" cellspacing="0" width="443">
+									<tbody><tr>
+										<td width="120"><i>name:</i></td>
+										<td width="323"><b>graphic request</b></td>
+									</tr>
+									<tr>
+										<td width="120"><i>aliases:</i></td>
+										<td width="323"></td>
+									</tr>
+									<tr>
+										<td valign="top" width="120"><i>where/how used:</i></td>
+										<td width="323"><b>graphics </b>(input)<br>
+											<b>update screen </b>(output)</td>
+									</tr>
+								</tbody></table>
+								<i>description:</i><br>
+								<b>&nbsp;&nbsp;&nbsp;&nbsp;graphic request = *command to be determined in SDD*</b></p>
+								<p>
+								<table border="0" cellpadding="0" cellspacing="0" width="443">
+									<tbody><tr>
+										<td width="120"><i>name:</i></td>
+										<td width="323"><b>screen image</b></td>
+									</tr>
+									<tr>
+										<td width="120"><i>aliases:</i></td>
+										<td width="323"></td>
+									</tr>
+									<tr>
+										<td width="120"><i>where/how used:</i></td>
+										<td width="323"><b>player </b>(input)<br>
+											<b>update screen </b>(output)</td>
+									</tr>
+								</tbody></table>
+								<i>description:</i><br>
+								<b>&nbsp;&nbsp;&nbsp;&nbsp;screen image = *what appears on screen*</b></p>
+							</ul>
+						</ul>
+						<p>&nbsp;</p>
+						<h3><a name="Anchor-4"></a>4. Functional Requirements</h3>
+						<ul>
+							<p>This section states the requirements that relate to the 
+functionality of the MultiMahjong system. Each requirement has been 
+prioritised according to the levels set out in the Introduction (<a href="#Anchor-1">see Section 1</a>). Requirements that relate to what is displayed on the user's screen are defined in <a href="#Anchor-6">Section 6</a>.</p>
+							<p>Note that for single player games, the MultiMahjongServer will
+ not be required and the player need not be connected to a TCP/IP 
+network. Although many requirements mention that the MultiMahjongClient 
+will send certain information to the MultiMahjongServer, in the single 
+player game, this is not the case. In a single player game, the 
+MultiMahjongClient will intercept this information and process it 
+internally. The reference to the MultiMahjongServer is made to reduce 
+duplicate requirements.</p>
+							<h4><a name="Anchor-4.1"></a>4.1 The MultiMahjongServer</h4>
+							<ul>
+								<p><i>Level 1 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>4.1.1</b>&nbsp;</td>
+											<td valign="top">The MultiMahjongServer will be designed to 
+reside on a central computer (server) that is connected to a TCP/IP 
+network and has a unique IP address.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.1.2</b>&nbsp;</td>
+											<td valign="top">The MultiMahjongServer will allow connections from MultiMahjongClients and communicate with them using IP.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.1.3</b></td>
+											<td valign="top">The MultiMahjongServer will serve as a node 
+for MultiMahjongClients. That is, it will be able to relay data received
+ from one MultiMahjongClient to other MultiMahjongClients that request 
+it.</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+								<p><i>Level 2 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>4.1.4</b>&nbsp;</td>
+											<td valign="top">The MultiMahjongServer will automate the 
+game initialisation functions (as opposed to the MultiMahjongClient 
+doing them), such as: randomising tile order, randomising seating 
+position and storing the "Game Info" database (see <a href="#Anchor-3.1.2">Figure 3.1.2</a>).</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.1.5</b>&nbsp;</td>
+											<td valign="top">The MultiMahjongServer will contain a High Scores list with the names and scores of the top MultiMahjong players.</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+								<p><i>Level 3 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>4.1.6</b>&nbsp;</td>
+											<td valign="top">The MultiMahjongServer will allow players on MultiMahjongClient programs to chat with each other in real time.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.1.7</b>&nbsp;</td>
+											<td valign="top">The MultiMahjongServer will allow players on
+ MultiMahjongClient programs to modify their own names and icons during 
+gameplay (as opposed to only at the beginning).</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.1.8</b>&nbsp;</td>
+											<td valign="top">The MultiMahjongServer will support an 
+architecture whereby all Computer Opponents (CO) required will reside on
+ it instead of on the MultiMahjongClient programs.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.1.9</b>&nbsp;</td>
+											<td valign="top">The MultiMahjongServer will have a graphical
+ user interface with which the administrator of the server can get log 
+information and change game settings.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.1.10</b>&nbsp;</td>
+											<td valign="top">The MultiMahjongServer will be able to save preferences to a file and read from that file at start-up.</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+								<p>Note that all requirements hereafter are concerned with the MultiMahjongClient program.</p>
+							</ul>
+							<h4><a name="Anchor-4.2"></a>4.2 Beginning the Game</h4>
+							<ul>
+								<p><i>Level 1 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>4.2.1</b>&nbsp;</td>
+											<td valign="top">When the user begins the MultiMahjongClient 
+program, they will be able to choose to create a new multi player game, 
+to create a new single player game, to join an existing multi player 
+game, or to quit the program. These options will be available at any 
+stage while the program is running as long as there is no game currently
+ being played by the user (see <a href="#Anchor-4.4">Section 4.4</a> for more details about quitting).</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.2.2</b></td>
+											<td valign="top">When a user creates a new multi player game, they must:<br>
+												<table border="0" cellpadding="1" cellspacing="0">
+													<tbody><tr>
+														<td><b>4.2.2.1</b></td>
+														<td valign="top">Enter their name.</td>
+													</tr>
+													<tr>
+														<td><b>4.2.2.2</b></td>
+														<td valign="top">Choose an icon from a predetermined list.</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>4.2.2.3</b>&nbsp;</td>
+														<td valign="top">Decide the number of human and computer 
+opponents they want. As any game of Mahjong requires 4 players, the 
+MultiMahjongClient will limit the user to choosing 4 players in total.</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>4.2.2.4</b></td>
+														<td valign="top">Set the score limit for winning a hand of Mahjong.</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>4.2.2.5</b></td>
+														<td valign="top">When all the necessary human players have joined the game, the user may choose to begin the game.</td>
+													</tr>
+												</tbody></table>
+											</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.2.3</b>&nbsp;</td>
+											<td valign="top">The MultiMahjongClient must send this game 
+initialisation information to the MultiMahjongServer so that the 
+MultiMahjongServer can create a new game.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.2.4</b>&nbsp;</td>
+											<td valign="top">The processing for any Computer Opponents (CO) (see <a href="#Anchor-4.5">Section 4.5</a>
+ for more detail) will be done by the MultiMahjongClient program. In a 
+single player game, the MultiMahjongClient will need to process for 3 
+COs. In a multi player game with 2 human players, each 
+MultiMahjongClient will support 1 CO. In a multi player game with 3 
+human players, only 1 of the 3 MultiMahjongClients will support a CO. 
+Obviously, in a multi player game with 4 human players, no CO is 
+required.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.2.5</b>&nbsp;</td>
+											<td valign="top">When a user creates a new single player game, they must:<br>
+												<table border="0" cellpadding="1" cellspacing="0">
+													<tbody><tr>
+														<td valign="top"><b>4.2.5.1</b></td>
+														<td valign="top">Enter their name.</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>4.2.5.2</b>&nbsp;</td>
+														<td valign="top">Choose an icon from a predetermined list.</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>4.2.5.3</b>&nbsp;</td>
+														<td valign="top">Set the score limit for winning a hand of Mahjong.</td>
+													</tr>
+												</tbody></table>
+											</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.2.6</b>&nbsp;</td>
+											<td valign="top">When a user selects the option to join an 
+existing game, the MultiMahjongClient will retrieve a list of any games 
+that still require players from the MultiMahjongServer.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.2.7</b>&nbsp;</td>
+											<td valign="top">When a user wishes to join a multi player game, they must:<br>
+												<table border="0" cellpadding="1" cellspacing="0">
+													<tbody><tr>
+														<td valign="top"><b>4.2.7.1</b>&nbsp;</td>
+														<td valign="top">Enter their name.</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>4.2.7.2</b>&nbsp;</td>
+														<td valign="top">Choose an icon from a predetermined list.</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>4.2.7.3</b>&nbsp;</td>
+														<td valign="top">Choose which of the available games they wish to join.</td>
+													</tr>
+												</tbody></table>
+											</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.2.8</b>&nbsp;</td>
+											<td valign="top">The MultiMahjongClient must send this join information to the MultiMahjongServer.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.2.9</b>&nbsp;</td>
+											<td valign="top">In a multi player game, each MultiMahjongClient must retrieve the following data from the MultiMahjongServer:<br>
+												<table border="0" cellpadding="1" cellspacing="0">
+													<tbody><tr>
+														<td valign="top"><b>4.2.9.1</b>&nbsp;</td>
+														<td valign="top">Whether it must support a CO.</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>4.2.9.2</b>&nbsp;</td>
+														<td valign="top">The score limit for a hand.</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>4.2.9.3</b></td>
+														<td valign="top">All players' names, icons and seating positions.</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>4.2.9.4</b></td>
+														<td valign="top">The tiles of the human and CO (optional) player supported on the MultiMahjongClient.</td>
+													</tr>
+												</tbody></table>
+											</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+								<p><i>Level 2 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>4.2.10</b>&nbsp;</td>
+											<td valign="top">The list of un-started games that the 
+MultiMahjongClient fetches from the MultiMahjongServer will be displayed
+ in such a way that users can see the following information about each 
+game:<br>
+												<table border="0" cellpadding="1" cellspacing="0">
+													<tbody><tr>
+														<td valign="top"><b>4.2.10.1</b>&nbsp;</td>
+														<td valign="top">The name and icon of the player who created the game.</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>4.2.10.2</b>&nbsp;</td>
+														<td valign="top">The score limit for winning a hand.</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>4.2.10.3</b></td>
+														<td valign="top">The number of places that still need to be filled before the game can commence.</td>
+													</tr>
+												</tbody></table>
+											</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.2.11</b>&nbsp;</td>
+											<td valign="top">The MultiMahjongClient will save the user preferences in a file and read them in when the program begins.</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+								<p><i>Level 3 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>4.2.12</b></td>
+											<td valign="top">Users who create a new game will be able to 
+change the ability level of any CO involved in the game. There will be 3
+ levels available: Beginner, Intermediate and Advanced.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.2.13</b>&nbsp;</td>
+											<td valign="top">Users who create a new game will be able to choose to play different variations of Mahjong rules other than those described in <a href="#Anchor-4.3">Section 4.3.1</a>. The variations will include the Cleared Hand variation and the Japanese variation (see the <a href="#Anchor-Rules">rulebook</a> for more detail).</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.2.14</b></td>
+											<td valign="top">Any user who creates or joins a game will be
+ able to upload their own JPEG or GIF image that they wish to have 
+displayed above their name, if they do not wish to use a preset icon.</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+							</ul>
+							<h4><a name="Anchor-4.3"></a>4.3 Playing the Game</h4>
+							<ul>
+								<p><i>Level 1 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>4.3.1</b>&nbsp;</td>
+											<td valign="top">The MultiMahjongClient must only allow 
+players to make moves according to the Chinese rules of Mahjong as 
+described in the rulebook, "<a href="#Anchor-Rules">How to Play Mah Jong</a>".</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.3.2</b>&nbsp;</td>
+											<td valign="top">The MultiMahjongClient will inform the user whose turn it is to pick up a tile.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.3.3</b></td>
+											<td valign="top">The MultiMahjongClient will retrieve other 
+players' changes in the game situation from the MultiMahjongServer. The 
+user's screen is then updated to display these changes. The following 
+game changes are displayed:<br>
+												<table border="0" cellpadding="1" cellspacing="0">
+													<tbody><tr>
+														<td valign="top"><b>4.3.3.1</b>&nbsp;</td>
+														<td valign="top">Another player picks up a tile from the wall.</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>4.3.3.2</b>&nbsp;</td>
+														<td valign="top">Another player exposes/reveals a set of tiles.</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>4.3.3.3</b></td>
+														<td valign="top">Another player discards a tile.</td>
+													</tr>
+												</tbody></table>
+											</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.3.4</b>&nbsp;</td>
+											<td valign="top">If the configurations of: the current 
+discard, the tiles in a user's hand, and the player whose turn it is, 
+would allow the user to Chow/Pung/Kong/Mahjong under the Chinese rules 
+of Mahjong, the MultiMahjongClient will inform the user that they can do
+ so. If they choose to take this action, then the MultiMahjongClient 
+must send this information to the MultiMahjongServer.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.3.5</b>&nbsp;</td>
+											<td valign="top">User's will be able to pick up a tile from 
+the wall if it is their turn. If they choose to pick up, the 
+MultiMahjongClient must send this information to the MultiMahjongServer.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.3.6</b>&nbsp;</td>
+											<td valign="top">User's will be able to discard a tile if 
+they have picked one up. When they choose to discard, the 
+MultiMahjongClient must send this information to the MultiMahjongServer.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.3.7</b>&nbsp;</td>
+											<td valign="top">The MultiMahjongClient must inform the user if another player is fishing.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.3.8</b>&nbsp;</td>
+											<td valign="top">The MultiMahjongClient must inform the user if another player goes Mahjong. The wind of the round is also updated (if required).</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.3.9</b>&nbsp;</td>
+											<td valign="top">The MultiMahjongClient must inform the user if the hand has ended in a draw.</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+								<p><i>Level 2 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>4.3.10</b>&nbsp;</td>
+											<td valign="top">The MultiMahjongClient will keep the user's tiles in order.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.3.11</b>&nbsp;</td>
+											<td valign="top">The MultiMahjongClient will play sound effects associated with certain game actions.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.3.12</b></td>
+											<td valign="top">Users will be able to turn the sound on or off at any stage during the game.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.3.13</b>&nbsp;</td>
+											<td valign="top">Users will have access to the User's Documentation online (see <a href="#Anchor-7.2">Section 7.2</a>) at any stage during the game.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.3.14</b>&nbsp;</td>
+											<td valign="top">Users will be able to view the High Scores list that is located on the MultiMahjongServer.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.3.15</b>&nbsp;</td>
+											<td valign="top">The MultiMahjongClient will automate the picking up of a tile from the wall if the user has no other option.</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+								<p><i>Level 3 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>4.3.16</b>&nbsp;</td>
+											<td valign="top">User's will be able to Undo their last move if playing in single player mode.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.3.17</b>&nbsp;</td>
+											<td valign="top">User's will be able to Save their game if playing in single player mode.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.3.18</b></td>
+											<td valign="top">User's will be able to chat with each other in real time.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.3.19</b>&nbsp;</td>
+											<td valign="top">User's will be able to change their icons/pictures and names during the game.</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+							</ul>
+							<h4><a name="Anchor-4.4"></a>4.4 Ending the Game</h4>
+							<ul>
+								<p><i>Level 1 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>4.4.1</b>&nbsp;</td>
+											<td valign="top">The game will end when all 4 rounds have been played or if the user chooses to end the game.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.4.2</b>&nbsp;</td>
+											<td valign="top">The user will be able to end the game at any
+ stage of the game. The user will then be able to quit the program or 
+begin/join a new game.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.4.3</b></td>
+											<td valign="top">The MultiMahjongServer will inform all 
+MultiMahjongClients connected to the game that the game has ended. Users
+ of any MultiMahjongClient previously connected to the game will have 
+the choice to quit the program or to begin/join a new game.</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+								<p><i>Level 2 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>4.4.4</b>&nbsp;</td>
+											<td valign="top">If a user leaves the game prematurely, a new
+ CO is created on another user's machine to fill their place. This CO 
+will take over the user's current position and circumstance within the 
+game. This CO will play at an ability level as defined in the Level 2 
+Requirements for the CO (see <a href="#Anchor-4.5">Section 4.5.6</a>).</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+								<p><i>Level 3 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>4.4.5</b>&nbsp;</td>
+											<td valign="top">If a user leaves the game prematurely, a new
+ CO is created on another user's machine to fill their place. The user 
+who created the game will decide at what level (see <a href="#Anchor-4.5">Section 4.5.8</a>) the CO will play at.</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+							</ul>
+							<h4><a name="Anchor-4.5"></a>4.5 Computer Opponent (CO)</h4>
+							<ul>
+								<p><i>Level 1 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>4.5.1</b>&nbsp;</td>
+											<td valign="top">The CO must play moves according to the Chinese rules of Mahjong.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.5.2</b>&nbsp;</td>
+											<td valign="top">The CO will not have access to the data 
+containing the faces of any tiles in the wall or any concealed tiles in 
+any other players' hands.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.5.3</b></td>
+											<td valign="top">The CO will have access to the number of tiles in the wall or in a player's hand.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.5.4</b>&nbsp;</td>
+											<td valign="top">The CO will be able to read any player's exposed or revealed hands.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.5.5</b>&nbsp;</td>
+											<td valign="top">The CO will be able to pick up tiles off the wall, discard tiles, reveal Kongs, and Chow/Pung/Kong/Mahjong.</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+								<p><i>Level 2 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>4.5.6</b>&nbsp;</td>
+											<td valign="top">The CO will be able to determine what tiles 
+have not been played according to the tiles that have already been 
+discarded, exposed or revealed.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.5.7</b>&nbsp;</td>
+											<td valign="top">The CO will be able to recognise "almost 
+finished" sets of tiles (i.e. 2 tiles in a sequence is an almost 
+finished Chow) and will not discard tiles in such sets. This is to give 
+the CO a basic level of strategy.</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+								<p><i>Level 3 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>4.5.8</b>&nbsp;</td>
+											<td valign="top">The CO will be able to play at 3 different ability levels: Beginner, Intermediate and Advanced.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.5.9</b>&nbsp;</td>
+											<td valign="top">The CO will be able to perform look ahead algorithms to determine its best move in the Intermediate and Advanced levels.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.5.10</b>&nbsp;</td>
+											<td valign="top">The CO will be able to perform calculations at any stage of the game.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.5.11</b></td>
+											<td valign="top">The CO will be able to play any version of the rules that are specified by the user who creates the game.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>4.5.12</b></td>
+											<td valign="top">There will be CO's of different playing styles that the user can choose from.</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+							</ul>
+						</ul>
+						<p>&nbsp;</p>
+						<h3><a name="Anchor-5"></a>5. Non-Functional Requirements</h3>
+						<ul>
+							<p>This section states all the requirements of the MultiMahjong 
+system that are not related to the functionality of the MultiMahjong 
+system.</p>
+							<h4><a name="Anchor-5.1"></a>5.1 Nature of the Users</h4>
+							<ul>
+								<h4>5.1.1 MultiMahjongClient</h4>
+								<ul>
+									<p><i>Level 1 Requirements:</i></p>
+								</ul>
+								<ul>
+									<ul>
+										<p>
+										<table border="0" cellpadding="2" cellspacing="0">
+											<tbody><tr>
+												<td valign="top"><b>5.1.1.1</b>&nbsp;</td>
+												<td valign="top">The potential users of the MultiMahjongClient product will be anyone who enjoys playing or is interested in the game of Mahjong.</td>
+											</tr>
+											<tr>
+												<td valign="top"><b>5.1.1.2</b>&nbsp;</td>
+												<td valign="top">The product is aimed at users who have a basic knowledge how to operate a PC, Macintosh or Unix box (see <a href="#Anchor-5.3">Section 5.3.1</a>).</td>
+											</tr>
+											<tr>
+												<td valign="top"><b>5.1.1.3</b></td>
+												<td valign="top">Users who wish to play multi player Mahjong
+ will not need to have advanced knowledge of TCP/IP networking. It is 
+assumed however, that the computer has been configured correctly to 
+connect to a TCP/IP network.</td>
+											</tr>
+											<tr>
+												<td valign="top"><b>5.1.1.4</b>&nbsp;</td>
+												<td valign="top">Prior knowledge of Mahjong rules is not necessary, as the product will be designed for both players with some or no experience.</td>
+											</tr>
+										</tbody></table>
+										</p>
+									</ul>
+								</ul>
+								<h4>5.1.2 MultiMahjongServer</h4>
+								<ul>
+									<p><i>Level 1 Requirements:</i></p>
+									<ul>
+										<p>
+										<table border="0" cellpadding="2" cellspacing="0">
+											<tbody><tr>
+												<td valign="top"><b>5.1.2.1</b>&nbsp;</td>
+												<td valign="top">The user of the MultiMahjongServer will most likely have general knowledge of a Web Server environment.</td>
+											</tr>
+											<tr>
+												<td valign="top"><b>5.1.2.2</b>&nbsp;</td>
+												<td valign="top">The user will need to know how to set-up and operate a TCP/IP server.</td>
+											</tr>
+											<tr>
+												<td valign="top"><b>5.1.2.3</b></td>
+												<td valign="top">The user will understand the basic 
+principles of networking and know any networking information associated 
+with the server the MultiMahjongServer program is run on (hostname and 
+IP address).</td>
+											</tr>
+										</tbody></table>
+										</p>
+									</ul>
+								</ul>
+							</ul>
+							<h4><a name="Anchor-5.2"></a>5.2 Error Handling</h4>
+							<ul>
+								<p>Every error that occurs during program execution can be 
+classified into two types - fatal and nonfatal errors. The distinction 
+between the two is that the program is unable to continue to execute 
+upon encountering a fatal error.</p>
+								<h4>5.2.1 Nonfatal errors:</h4>
+								<ul>
+									<p><i>Level 1 Requirements:</i></p>
+									<ul>
+										<p>
+										<table border="0" cellpadding="2" cellspacing="0">
+											<tbody><tr>
+												<td valign="top"><b>5.2.1.1</b>&nbsp;</td>
+												<td valign="top">If a nonfatal error occurs, a dialogue box reporting the nature of error will be displayed.</td>
+											</tr>
+											<tr>
+												<td valign="top"><b>5.2.1.2</b>&nbsp;</td>
+												<td valign="top">As the error is classified 'nonfatal', the user will be able to continue the current game.</td>
+											</tr>
+										</tbody></table>
+										</p>
+									</ul>
+									<p><i>Level 2 Requirements:</i></p>
+									<ul>
+										<p>
+										<table border="0" cellpadding="2" cellspacing="0">
+											<tbody><tr>
+												<td valign="top"><b>5.2.1.3</b>&nbsp;</td>
+												<td valign="top">An option to access the online troubleshooting guide (<a href="#Anchor-7.2">Section 7.2.4</a>) is included in the error dialogue box.</td>
+											</tr>
+										</tbody></table>
+										</p>
+									</ul>
+								</ul>
+								<h4>5.2.2 Fatal errors:</h4>
+								<ul>
+									<p><i>Level 1 Requirements:</i></p>
+									<ul>
+										<p>
+										<table border="0" cellpadding="2" cellspacing="0">
+											<tbody><tr>
+												<td valign="top"><b>5.2.2.1</b>&nbsp;</td>
+												<td valign="top">If a fatal error occurs, a dialogue box reporting the nature of error will be displayed.</td>
+											</tr>
+											<tr>
+												<td valign="top"><b>5.2.1.2</b>&nbsp;</td>
+												<td valign="top">The only option to the user is to quit the 
+game. All processes will be cleaned up (if possible) and the program 
+execution will terminate.</td>
+											</tr>
+										</tbody></table>
+										</p>
+									</ul>
+								</ul>
+							</ul>
+							<h4><a name="Anchor-5.3"></a>5.3 Implementation Constraints</h4>
+							<ul>
+								<p><i>Level 1 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>5.3.1</b>&nbsp;</td>
+											<td valign="top">The MultiMahjong system is to be written using <a href="http://java.sun.com/jdk/1.2/">JDK 1.2</a> (the Java development kit from <a href="http://www.sun.com/">Sun Microsystems</a>).</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>5.3.2</b>&nbsp;</td>
+											<td valign="top">The coding standard will be the same as that suggested by <a href="http://www.sun.com/">Sun Microsystems</a>. This document is available in PDF in our repository at:<br>
+												MultiMahjong/doc/SQAP/CodeConventions.pdf<br>
+												or online at:<br>
+												<a href="ftp://ftp.javasoft.com/docs/codeconv/CodeConventions.pdf">ftp://ftp.javasoft.com/docs/codeconv/CodeConventions.pdf</a></td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+								<p><i>Level 3 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>5.3.3</b>&nbsp;</td>
+											<td valign="top">Multiple languages will be supported using Java's Unicode standard.</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+							</ul>
+							<h4><a name="Anchor-5.4"></a>5.4 Hardware Constraints</h4>
+							<ul>
+								<p><i>Level 1 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>5.4.1</b>&nbsp;</td>
+											<td valign="top">The software will run on any machine that is capable of running a Java Virtual Machine that supports <a href="http://java.sun.com/jdk/1.2/">JDK 1.2</a> (see <a href="#Anchor-5.3">Section 5.3</a>). These machines include:<br>
+												<table border="0" cellpadding="1" cellspacing="0">
+													<tbody><tr>
+														<td valign="top"><b>5.4.1.1</b>&nbsp;</td>
+														<td valign="top">A PC operated under Windows 95/98/NT</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>5.4.1.2</b>&nbsp;</td>
+														<td valign="top">A Macintosh operated under OS 8</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>5.4.1.3</b></td>
+														<td valign="top">A Unix box operated under Solaris 2.6 or Solaris 7</td>
+													</tr>
+												</tbody></table>
+											</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+								<p><i>Level 2 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>5.4.2</b>&nbsp;</td>
+											<td valign="top">The minimum system requirements for the product to operate under are:<br>
+												<table border="0" cellpadding="1" cellspacing="0">
+													<tbody><tr>
+														<td valign="top"><b>5.4.2.1</b>&nbsp;</td>
+														<td valign="top">100 MHz processor</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>5.4.2.2</b>&nbsp;</td>
+														<td valign="top">32 Mb of RAM</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>5.4.2.3</b></td>
+														<td valign="top">10 MB of uncompressed hard disk</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>5.4.2.4</b>&nbsp;</td>
+														<td valign="top">16-bit video card with minimum resolution of 800 x 600</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>5.4.2.5</b>&nbsp;</td>
+														<td valign="top">28.8 Kbps modem and a TCP/IP connection to the Internet, or a TCP/IP LAN connection. For multi player game only.</td>
+													</tr>
+												</tbody></table>
+											</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+							</ul>
+							<h4><a name="Anchor-5.5"></a>5.5 Performance Constraints</h4>
+							<ul>
+								<p><i>Level 1 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>5.5.1</b>&nbsp;</td>
+											<td valign="top">The CO must respond within 1 minute in both single and multi player modes.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>5.5.2</b>&nbsp;</td>
+											<td valign="top">The MultiMahjongServer must be able to handle requests in multi player mode of up to 10 simultaneous games (max 40 players).</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>5.5.3</b>&nbsp;</td>
+											<td valign="top">The MultiMahjongClient must be able to calculate possible Chow/Pung/Kong/Mahjong moves (see <a href="#Anchor-4.3">Section 4.3.4</a>) within 5 seconds of being informed of the last discard.</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+							</ul>
+							<h4><a name="Anchor-5.6"></a>5.6 Security Requirements</h4>
+							<ul>
+								<p>As the data being exchanged between machines does not contain
+ any private information and is not capable of undermining the system 
+integrity of the computers connected to the MultiMahjongServer, 
+encryption and protection of data are not needed.</p>
+							</ul>
+						</ul>
+						<h3>
+						<p>&nbsp;</p>
+						</h3>
+						<h3><a name="Anchor-6"></a>6. User Interface Requirements</h3>
+						<ul>
+							<p>This section states all the requirements of the MultiMahjong 
+system that are related to what the user sees and how the user interacts
+ with the MultiMahjong system.</p>
+							<h4><a name="Anchor-6.1"></a>6.1 User Interface - MultiMahjongServer</h4>
+							<ul>
+								<p><i>Level 1 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>6.1.1</b>&nbsp;</td>
+											<td valign="top">The MultiMahjongServer will have no graphical user interface and will be run using a command prompt.</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+								<p><i>Level 2 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>6.1.2</b>&nbsp;</td>
+											<td valign="top">The MultiMahjongServer will have a graphical
+ user interface with which the administrator of the server can get log 
+information and change game settings. No requirements for this graphical
+ user interface are set in this document.</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+							</ul>
+							<h4><a name="Anchor-6.2"></a>6.2 User Interface - MultiMahjongClient</h4>
+							<ul>
+								<p><i>Level 1 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>6.2.1</b>&nbsp;</td>
+											<td valign="top">The MultiMahjongClient will have a graphical
+ user interface that the user will be able to interact with using a 
+mouse and a keyboard. The details of this graphical user interface are 
+described in <a href="#Anchor-6.3">Section 6.3</a>. Where it is appropriate, keyboard shortcuts will be provided for mouse based operations.</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+								<p><i>Level 2 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>6.2.2</b>&nbsp;</td>
+											<td valign="top">The MultiMahjongClient will have sound effects associated with the game actions.</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+								<p><i>Level 3 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>6.2.3</b>&nbsp;</td>
+											<td valign="top">The MultiMahjongClient will have animation also associated with game actions.</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+							</ul>
+							<h4><a name="Anchor-6.3"></a>6.3 Graphical User Interface - MultiMahjongClient</h4>
+							<ul>
+								<p>The graphical user interface (GUI) described below only 
+applies to the MultiMahjongClient program. As the validity of these 
+requirements will not be determined until the design phase, most of them
+ are Level 2 or Level 3 requirements. As described in <a href="#Anchor-6.2">Section 6.2.1</a>, the <em>existence</em> of the GUI is a Level 1 requirement, however, the <em>detail </em>of the GUI is not necessarily so.</p>
+								<p><i>Level 1 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>6.3.1</b>&nbsp;</td>
+											<td valign="top">The GUI is to be designed so that the user can perform all of the Level 1 requirements set out in <a href="#Anchor-4">Section 4</a>.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>6.3.2</b>&nbsp;</td>
+											<td valign="top">The GUI is to be contained within a screen resolution of 800 x 600 pixels.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>6.3.3</b>&nbsp;</td>
+											<td>All graphics will be in 16 bit colour.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>6.3.4</b>&nbsp;</td>
+											<td>There will be a Main Window that will contain the following game elements:<br>
+												<table border="0" cellpadding="1" cellspacing="0">
+													<tbody><tr>
+														<td valign="top"><b>6.3.4.1</b>&nbsp;</td>
+														<td valign="top">The faces of the current user's tiles</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>6.3.4.2</b>&nbsp;</td>
+														<td valign="top">The wall with the remaining tiles</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>6.3.4.3</b></td>
+														<td valign="top">The backs of the other player's tiles</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>6.3.4.4</b></td>
+														<td valign="top">Any revealed or exposed tiles from any player</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>6.3.4.5</b>&nbsp;</td>
+														<td valign="top">The last discarded tile</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>6.3.4.6</b>&nbsp;</td>
+														<td valign="top">Buttons to allow the user to pick up a tile, to discard a tile, to Chow/Pung/Kong/Mahjong and to reveal a Kong.</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>6.3.4.7</b>&nbsp;</td>
+														<td valign="top">A button will be made inactive (typically greyed out) if the user is not allowed to perform the associated activity.</td>
+													</tr>
+												</tbody></table>
+											</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+								<p><i>Level 2 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>6.3.5</b>&nbsp;</td>
+											<td valign="top">The Main Window will also contain a tabbed frame (with 3 tabs) to display the following items:<br>
+												<table border="0" cellpadding="1" cellspacing="0">
+													<tbody><tr>
+														<td valign="top"><b>6.3.5.1</b>&nbsp;</td>
+														<td valign="top">Tab1: Player's name</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>6.3.5.2</b>&nbsp;</td>
+														<td valign="top">Tab1: Player's icon</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>6.3.5.3</b></td>
+														<td valign="top">Tab1: Wind of the round</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>6.3.5.4</b></td>
+														<td valign="top">Tab2: Score</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>6.3.5.5</b>&nbsp;</td>
+														<td valign="top">Tab2: Limit of the hand</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>6.3.5.6</b>&nbsp;</td>
+														<td valign="top">Tab3: Preferences</td>
+													</tr>
+												</tbody></table>
+											</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>6.3.6</b>&nbsp;</td>
+											<td>The options at the beginning of the program, as described in <a href="#Anchor-4.2">Sections 4.2.1, 4.2.2, 4.2.5 &amp; 4.2.7</a>, will be presented to the user using a dialogue box with buttons associated with each option.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>6.3.7</b>&nbsp;</td>
+											<td>The list of available games, as described in <a href="#Anchor-4.2">Section 4.2.7</a>,
+ will be presented to a user in a dialogue box with a scroll bar and 
+selectable list items so that the user can select the game they wish to 
+join.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>6.3.8</b>&nbsp;</td>
+											<td valign="top">The Main Window will show the dead tiles.</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+								<p><i>Level 3 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>6.3.9</b>&nbsp;</td>
+											<td valign="top">When a button becomes active, it will use animation to get the user's attention.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>6.3.10</b>&nbsp;</td>
+											<td valign="top">When a player performs a Chow/Pung/Kong/Mahjong, the tiles involved will be animated.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>6.3.11</b>&nbsp;</td>
+											<td>The user may click in the frame that contains the remaining wall and a frame showing the discarded tiles will be shown.</td>
+										</tr>
+									</tbody></table>
+									</p>
+									<p>A draft version of the proposed Main Window appears below:</p>
+								</ul>
+							</ul>
+						</ul>
+						<p><a name="Anchor-6.3.1"></a><img src="srs_files/gui.gif" alt="Main Window Image" width="536" height="396"></p>
+						<ul>
+							<ul>
+								<ul>
+									<p><b>Figure 6.3.1 - Draft of proposed Main Window</b></p>
+								</ul>
+							</ul>
+						</ul>
+						<h3>
+						<p>&nbsp;</p>
+						</h3>
+						<h3><a name="Anchor-7"></a>7. Document/Training Requirements</h3>
+						<ul>
+							<p>This section states all the documentation which is required to
+ be included with the MultiMahjong product. There will be no formal 
+training sessions arranged. The documentation included with the 
+MultiMahjongClient and MultiMahjongServer applications will be of 
+sufficient quality for users (see <a href="#Anchor-5.1">Section 5.1</a>) to learn how to use the programs without any further explanation.</p>
+							<h4><a name="Anchor-7.1"></a>7.1 MultiMahjongServer Documentation</h4>
+							<ul>
+								<p><i>Level 1 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>7.1.1</b>&nbsp;</td>
+											<td valign="top">An administrator's manual, explaining how to install and operate the MultiMahjongServer, will be provided.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>7.1.2</b>&nbsp;</td>
+											<td valign="top">This manual will be provided as an electronic file.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>7.1.3</b>&nbsp;</td>
+											<td valign="top">The manual will contain the following sections:<br>
+												<table border="0" cellpadding="1" cellspacing="0">
+													<tbody><tr>
+														<td valign="top"><b>7.1.3.1</b>&nbsp;</td>
+														<td valign="top">How to install the MultiMahjongServer program.</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>7.1.3.2</b>&nbsp;</td>
+														<td valign="top">The background knowledge the administrator must have in order to set-up and operate the MultiMahjongServer program.</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>7.1.3.3</b></td>
+														<td valign="top">How to configure the TCP/IP server the administrator is using to run the MultiMahjongServer program.</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>7.1.3.4</b></td>
+														<td valign="top">Troubleshooting guide for any problems the administrator may encounter during setup</td>
+													</tr>
+												</tbody></table>
+											</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+								<p><i>Level 2 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>7.1.4</b>&nbsp;</td>
+											<td valign="top">A section added to the manual which details some technical information on the MultiMahjong product, including:
+												<table border="0" cellpadding="1" cellspacing="0">
+													<tbody><tr>
+														<td valign="top"><b>7.1.4.1</b>&nbsp;</td>
+														<td valign="top">The languages we used to write the MultiMahjong product and a history of how it developed.</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>7.1.4.2</b>&nbsp;</td>
+														<td valign="top">A brief description of how the MultiMahjongServer and MultiMahjongClients interact.</td>
+													</tr>
+												</tbody></table>
+											</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+								<p><i>Level 3 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>7.1.5</b>&nbsp;</td>
+											<td valign="top">The administrator's manual will also be viewable from within the MultiMahjongServer program.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>7.1.6</b>&nbsp;</td>
+											<td valign="top">The manual will contain the following sections (see <a href="#Anchor-4.1">Section 4.1.9</a>):
+												<table border="0" cellpadding="1" cellspacing="0">
+													<tbody><tr>
+														<td valign="top"><b>7.1.6.1</b>&nbsp;</td>
+														<td valign="top">How to use the GUI to get log info.</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>7.1.6.2</b>&nbsp;</td>
+														<td valign="top">How to use the GUI to change game settings.</td>
+													</tr>
+												</tbody></table>
+											</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+							</ul>
+							<h4><a name="Anchor-7.2"></a>7.2 MultiMahjongClient Documentation</h4>
+							<ul>
+								<p><i>Level 1 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>7.2.1</b>&nbsp;</td>
+											<td valign="top">A user's manual, explaining how to install and operate the MultiMahjongClient, will be provided.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>7.2.2</b>&nbsp;</td>
+											<td valign="top">This manual will be provided in both a hard copy book and an electronic file.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>7.2.3</b>&nbsp;</td>
+											<td valign="top">The manual will contain the following sections:
+												<table border="0" cellpadding="1" cellspacing="0">
+													<tbody><tr>
+														<td valign="top"><b>7.2.3.1</b>&nbsp;</td>
+														<td valign="top">How to install the MultiMahjongClient program.</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>7.2.3.2</b>&nbsp;</td>
+														<td valign="top">How to begin a single/multi player game or join a multi player game (see <a href="#Anchor-4.2">Section 4.2</a>)</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>7.2.3.3</b></td>
+														<td valign="top">How to play a game of MultiMahjong (which describes the rules and scoring in a game of Chinese Mahjong).</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>7.2.3.4</b>&nbsp;</td>
+														<td valign="top">An explanation of what all parts of the GUI do (see <a href="#Anchor-6.3">Section 6.3</a>) and how to use them.</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>7.2.3.5</b>&nbsp;</td>
+														<td valign="top">Troubleshooting guide</td>
+													</tr>
+												</tbody></table>
+											</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+								<p><i>Level 2 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>7.2.4</b>&nbsp;</td>
+											<td valign="top">The user's manual will also be viewable from within the MultiMahjongClient program.</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+							</ul>
+							<h4><a name="Anchor-7.3"></a>7.3 Coding and Design Documentation</h4>
+							<ul>
+								<p><i>Level 1 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>7.3.1</b>&nbsp;</td>
+											<td valign="top">All design documentation and coding documentation will be maintained thoroughly during the project and delivered to the client.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>7.3.2</b>&nbsp;</td>
+											<td valign="top">This documentation will be available in electronic files, and, with the exception of source code, in hard copy format.</td>
+										</tr>
+										<tr>
+											<td valign="top"><b>7.3.3</b>&nbsp;</td>
+											<td valign="top">The documentation includes:<br>
+												<table border="0" cellpadding="1" cellspacing="0">
+													<tbody><tr>
+														<td valign="top"><b>7.2.3.1</b>&nbsp;</td>
+														<td valign="top">SQAP (Software Quality Assurance Plan)</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>7.2.3.2</b>&nbsp;</td>
+														<td valign="top">SRS (Software Requirements Specification)</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>7.2.3.3</b></td>
+														<td valign="top">SADD (Software Architectural Design Document)</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>7.2.3.4</b></td>
+														<td valign="top">SDD (Software Design Document)</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>7.2.3.5</b>&nbsp;</td>
+														<td valign="top">SVVP (Software Verification &amp; Validation Plan) and TP (Test Plan)</td>
+													</tr>
+													<tr>
+														<td valign="top"><b>7.2.3.6</b>&nbsp;</td>
+														<td valign="top">Source Code</td>
+													</tr>
+												</tbody></table>
+											</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+								<p><i>Level 2 Requirements:</i></p>
+								<ul>
+									<p>
+									<table border="0" cellpadding="2" cellspacing="0">
+										<tbody><tr>
+											<td valign="top"><b>7.2.4</b>&nbsp;</td>
+											<td valign="top">The source code will be provided in hard copy format.</td>
+										</tr>
+									</tbody></table>
+									</p>
+								</ul>
+							</ul>
+						</ul>
+						<h3>
+						<p>&nbsp;</p>
+						</h3>
+						<h3>
+						<p><a name="Anchor-8"></a>8. Acceptance Criteria</p>
+						</h3>
+						<ul>
+							<p>The acceptance criteria for the product are defined by all 
+Level 1 requirements. That is, Level 1 contains the minimum requirements
+ that have to be met for the project to be accepted. Levels 2 and 3 
+represent likely and future inclusions respectively, the feasibility of 
+which will be determined during the project.</p>
+							<p>Note that Level 1 requirements may not necessarily be 
+implemented if they are replaced by corresponding Level 2 or 3 
+requirements.</p>
+						</ul>
+						<p>&nbsp;</p>
+						<h3><a name="Anchor-9"></a>9. Examples of Behaviour</h3>
+						<ul>
+							<p>This section describes a possible scenario that incorporates 
+some of the requirements mentioned in this document. As some of the 
+requirements used are Level 2 and Level 3 requirements, the actual 
+implementation of the product may not reflect this scenario exactly.</p>
+							<h4><a name="Anchor-9.1"></a>9.1 Beginning the Game</h4>
+							<ul>
+								<p>The administrator (<a href="#Anchor-5.1">5.1.2</a>) runs the MultiMahjongServer program on a server (<a href="#Anchor-4.1">4.1.1</a>). This program begins running and waits for MultiMahjongClients to connect (<a href="#Anchor-4.1">4.1.2</a>).</p>
+								<p>A user (<a href="#Anchor-5.1">5.1.1</a>), Bob, runs the MultiMahjongClient program on another computer. A dialogue box (<a href="#Anchor-6.3">6.3.6</a>) appears on the Bob's computer displaying the options to begin the game (<a href="#Anchor-4.2">4.2.1</a>, <a href="#Anchor-4.2">4.2.2</a>). Bob enters his name (<a href="#Anchor-4.2">4.2.2.1</a>), chooses an icon (<a href="#Anchor-4.2">4.2.2.2</a>), sets the score limit (<a href="#Anchor-4.2">4.2.2.4</a>) and decides to select one human opponent and two CO opponents (<a href="#Anchor-4.2">4.2.2.3</a>). Bob then waits for a human opponent to join.</p>
+								<p>Another user, Sally, also runs the MultiMahjongClient program, enters her details and selects to join an existing game (<a href="#Anchor-4.2">4.2.7</a>)
+ from the dialogue box. The MultiMahjongClient retrieves a list of the 
+available games (including Bob's) from the MultiMahjongServer (<a href="#Anchor-4.2">4.2.6</a>). The MultiMahjongClient displays this list on the screen (<a href="#Anchor-6.3">6.3.7</a>). Sally selects Bob's game and joins the game.</p>
+								<p>Bob sees that Sally has joined and selects to begin the game (<a href="#Anchor-4.2">4.2.2.5</a>).
+ The MultiMahjongServer receives the begin game command from Bob's 
+MultiMahjongClient and it initialises all information necessary to begin
+ the game (<a href="#Anchor-4.1">4.1.4</a>) and sends it to both Sally's and Bob's MultiMahjongClients (<a href="#Anchor-4.1">4.1.3</a>).
+ The processing for one CO player will be done by the MultiMahjongClient
+ running on Bob's machine, the other by the MultiMahjongClient running 
+on Sally's machine (<a href="#Anchor-4.2">4.2.4</a>).</p>
+							</ul>
+							<h4><a name="Anchor-9.2"></a>9.2 Playing the Game</h4>
+							<ul>
+								<p>A main window containing all the game information (<a href="#Anchor-6.3">6.3.4</a>) is displayed on both Sally's and Bob's screens.</p>
+								<p>Bob, Sally and the CO's take turns in picking up (<a href="#Anchor-4.3">4.3.5</a>) and discarding (<a href="#Anchor-4.3">4.3.6</a>) tiles . After Sally discards a certain tile, Bob can Chow (<a href="#Anchor-4.3">4.3.4</a>), and a button named 'Chow' in his main window becomes active (<a href="#Anchor-6.3">6.3.4.6</a>). Bob chooses to Chow by clicking on this button. Bob's MultiMahjongClient sends this move to the MultiMahjongServer (<a href="#Anchor-4.3">4.3.4</a>), which subsequently sends this move to the other MultiMahjongClient (<a href="#Anchor-4.1">4.1.3</a>). The tiles in both Bob's and Sally's main window are updated to show that Bob has Chow'ed (<a href="#Anchor-4.3">4.3.3.2</a>).</p>
+								<p>The hand continues in this fashion, with all players making moves within the Chinese rules of Mahjong (<a href="#Anchor-4.3">4.3.1</a>).
+ After a few moves, the combination of tiles in Sally's hand allows her 
+to Mahjong and a button named 'Mahjong' becomes active in her main 
+window (<a href="#Anchor-6.3">6.3.4.6</a>). Sally clicks this button and a new hand begins. When all hands have been played, the Wind of the Round indicator is updated (<a href="#Anchor-4.3">4.3.8</a>) and a new round begins. The game continues in this fashion</p>
+							</ul>
+							<h4><a name="Anchor-9.3"></a>9.3 Ending the Game</h4>
+							<ul>
+								<p>At the end of the 4th round, Bob goes Mahjong. Bob's MultiMahjongClient sends this information to the MultiMahjongServer (<a href="#Anchor-4.3">4.3.8</a>) which sends it to the other MultiMahjongClient (<a href="#Anchor-4.3">4.3.1</a>). The main window on both MultiMahjongClients is closed and the original dialogue box (<a href="#Anchor-6.3">6.3.6</a>) is displayed (<a href="#Anchor-4.4">4.4.3</a>).</p>
+								<p>Both Bob and Sally choose to quit the program and the MultiMahjongClients on both machines exit (<a href="#Anchor-4.4">4.4.1</a>).</p>
+							</ul>
+						</ul>
+						<p>&nbsp;</p>
+						<h3><a name="Anchor-10"></a>10. Glossary</h3>
+						<ul>
+							<p>
+							<table border="0" cellpadding="0" cellspacing="0" width="530">
+								<tbody><tr>
+									<td valign="top"><b>Chow&nbsp;</b></td>
+									<td valign="top">A set of 3 sequentially numbered tiles from a given suit.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>Concealed Set&nbsp;</b></td>
+									<td valign="top">A Kong, Pung or Chow that has been formed entirely by picking up from The Wall.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>CO</b></td>
+									<td valign="top">Computer Opponent. The entity that calculates and executes the computer's moves.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>Dead Tiles&nbsp;</b></td>
+									<td valign="top">All the Tiles which have already been discarded.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>Dead Wall&nbsp;</b></td>
+									<td valign="top">The Tiles at the end of The Wall which are used to replenish the extra tile used in getting a Kong.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>Dialogue Box&nbsp;</b></td>
+									<td valign="top">A small window that expects input data from the user. Usually contains text and buttons.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>Discard&nbsp;</b></td>
+									<td valign="top">The tile a player chooses to discard at the end of their turn.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>Dragon Tiles&nbsp;</b></td>
+									<td valign="top">Dragon Tiles include Red, Green and White Dragon Tiles. There are four of each of these kinds of Dragon Tiles.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>Draw&nbsp;</b></td>
+									<td valign="top">A draw occurs when 3 players go Mahjong at the
+ same time or all the tiles up to the dead wall have been drawn without 
+any player going Mahjong.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>Exposed Set&nbsp;</b></td>
+									<td valign="top">When a discard is picked up in order to form a
+ Kong, Pung or Chow. This set of tiles must be shown to all players for 
+the rest of the hand.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>Fishing&nbsp;</b></td>
+									<td valign="top">A player is "fishing for Mahjong" when they 
+need only one tile to go Mahjong. All other players in the game must be 
+alerted that the player is fishing.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>Game&nbsp;</b></td>
+									<td valign="top">A game ends when 4 rounds have been played.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>Hand&nbsp;</b></td>
+									<td valign="top">The tiles each player has. A winning hand is 
+when a player goes Mahjong by forming an ordinary or special hand. If a 
+winning hand is achieved then all winds rotate anti-clockwise. Once the 
+player who was the Wind of the Round at the start of the round is again 
+that wind then the round is completed. A hand has to be replayed if 
+there is a draw.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>Honour Tiles&nbsp;</b></td>
+									<td valign="top">These are special tiles in Mahjong. They can be Dragon Tiles or Wind Tiles.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>HTML&nbsp;</b></td>
+									<td valign="top">HyperText Mark-up Language. The language used to compose and format most of the content found on the World Wide Web.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>Kong&nbsp;</b></td>
+									<td valign="top">A set of 4 identical tiles.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>Limit&nbsp;</b></td>
+									<td valign="top">The highest amount that can be scored for a winning hand.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>Mahjong&nbsp;</b></td>
+									<td valign="top">A 4 player game which is thought to have originated in China around 500 BC. Also the term given to a winning hand.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>Ordinary Hand&nbsp;</b></td>
+									<td valign="top">A hand containing any four sets of Kongs, Pungs and Chows, and a pair.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>OS&nbsp;</b></td>
+									<td valign="top">Operating System, the software that controls the execution of all applications and system software programs.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>Pair&nbsp;</b></td>
+									<td valign="top">2 of the same tile.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>Pung&nbsp;</b></td>
+									<td valign="top">A set of 3 identical tiles.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>Revealed Kong&nbsp;</b></td>
+									<td valign="top">When a player reveals a concealed Kong. They have to do this otherwise they would be a tile short of being able to go Mahjong.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>Round&nbsp;</b></td>
+									<td valign="top">When the player who was the Wind of the Round 
+originally is that wind again then a round is over and the Wind of the 
+Round changes.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>SDD&nbsp;</b></td>
+									<td valign="top">Software Design Description. A design document to be completed at a later stage.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>Server&nbsp;</b></td>
+									<td valign="top">A central computer in a LAN/WAN that allows connections.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>Special Hand&nbsp;</b></td>
+									<td valign="top">When a player forms an exact arrangement of 
+designated tiles. To see what constitutes special hands are possible 
+refer to a Mahjong rule book.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>Suit Tiles&nbsp;</b></td>
+									<td valign="top">Three kinds of suits exist in Mahjong. These 
+suits are Bamboos, Characters and Circles. Each suit has tiles 
+consecutively numbered from 1 to 9. There are 4 of each of these 
+numbered tiles in a suit.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>TCP/IP&nbsp;</b></td>
+									<td valign="top">Transmission Control Protocol/Internet 
+Protocol. A set of communications protocols developed by the Department 
+of Defence to link dissimilar computers across many kinds of networks.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>The Wall&nbsp;</b></td>
+									<td valign="top">A 4 sided arrangement of tiles, 17 tiles long and 2 tiles high in the Chinese game of Mahjong, from which each hand is played.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>Tiles&nbsp;</b></td>
+									<td valign="top">What is used to play a game of Mahjong, just like cards in Gin. Tiles are either Suit Tiles or Honour Tiles.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>Wind&nbsp;</b></td>
+									<td valign="top">The position which each player is sitting in. Winds include: East, South, West and North.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>Wind of the Round&nbsp;</b></td>
+									<td valign="top">The wind whose round it currently is. This is 
+important for scoring and determines when a game finishes. The first 
+round is East Wind's round, the second round is South Wind's round, the 
+third round is West Wind's round and the last round is North Wind's 
+round.</td>
+								</tr>
+								<tr>
+									<td valign="top"></td>
+									<td valign="top"></td>
+								</tr>
+								<tr>
+									<td valign="top"><b>Wind Tiles&nbsp;</b></td>
+									<td valign="top">Wind Tiles include East, South, West and North Wind Tiles. There are four of each of these kinds of Wind Tiles.</td>
+								</tr>
+							</tbody></table>
+							</p>
+						</ul>
+						<h3>
+						<p>&nbsp;</p>
+						</h3>
+						<h3><a name="Anchor-11"></a>11. Customer Sign-Off</h3>
+						<ul>
+							<p>I (the client), hereby agree that the requirements specified 
+within this document agree with my own requirements and expectations of 
+the product, and abide by the Acceptance Criteria (<a href="#Anchor-8">Section 8</a>).</p>
+							<p>Any alterations to any of the Acceptance Criteria specified above, are to be negotiated between myself and the team.</p>
+							<ul>
+								<p>_________________________<br>
+								Steve Goschnick (the client)</p>
+							</ul>
+							<p>Team Members:</p>
+							<ul>
+								<p>_________________________<br>
+								Joanna Araminta</p>
+								<p>_________________________<br>
+								Victor Leung</p>
+								<p>_________________________<br>
+								Joel Brakey</p>
+								<p>_________________________<br>
+								Michael Hart</p>
+								<p>_________________________<br>
+								Dean Cortinovis</p>
+								<p>_________________________<br>
+								Long Tang</p>
+							</ul>
+							<p>Date: ___/___/___
+						</p></ul>
+					</td>
+				</tr>
+			</tbody></table>
+<b>			</b></p>
+			<p><b>
+			<hr width="580">
+			</b></p>
+			<p><a href="http://www.perceptek.com.au/kteam/docs/"><b>Other Documentation</b></a></p>
+			<p>
+			</p><hr width="580">
+		</center>
+	</body></html>

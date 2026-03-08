@@ -49,5 +49,6 @@ jobs:
           cache-dependency-path: package-lock.json
       - run: npm ci
         working-directory: .
-      # - run: npm run lint # Add lint script to cli/package.json if needed
-      #   working-directory: cli
+      - run: npm run lint
+        working-directory: cli
+
