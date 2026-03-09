@@ -70,39 +70,25 @@ const TEMPLATES = {
                 CommunicationsInterfaces: "Describe the requirements associated with any communications functions required by this product, including e-mail, web browser, network server communications protocols, electronic forms, and so on. Define any pertinent message formatting. Identify any communication standards that will be used, such as FTP or HTTP. Specify any communication security or encryption issues, data transfer rates, and synchronization mechanisms."
             },
             SystemFeatures: {
-                _self: "This template illustrates organizing the functional requirements for the product by system features, the major services provided by the product. You may prefer to organize this section by use case, mode of operation, user class, object class, functional hierarchy, or combinations of these, whatever makes the most logical sense for your product.",
-                SystemFeature1: `4.1 System Feature 1
-<Don’t really say “System Feature 1.” State the feature name in just a few words.>
-4.1.1 Description and Priority
-<Provide a short description of the feature and indicate whether it is of High,
-Medium, or Low priority. You could also include specific priority component ratings,
-such as benefit, penalty, cost, and risk (each rated on a relative scale from a low of 1
-to a high of 9).>
-4.1.2 Stimulus/Response Sequences
-<List the sequences of user actions and system responses that stimulate the
-behavior defined for this feature. These will correspond to the dialog elements
-associated with use cases.>
-4.1.3 Functional Requirements
-<Itemize the detailed functional requirements associated with this feature. These are
-the software capabilities that must be present in order for the user to carry out the
-services provided by the feature, or to execute the use case. Include how the
-product should respond to anticipated error conditions or invalid inputs.
-Requirements should be concise, complete, unambiguous, verifiable, and necessary.
-Use “TBD” as a placeholder to indicate when necessary information is not yet
-available.>
-<Each requirement should be uniquely identified with a sequence number or a
-meaningful tag of some kind.>
-REQ-1:
-REQ-2:
-4.2 System Feature 2 (and so on)`
+                _self: "4. System Features: Organize the functional requirements for the product by system features, the major services provided by the product.",
+                featureName: "Provide a short description of the feature and indicate whether it is of High, Medium, or Low priority. You could also include specific priority component ratings, such as benefit, penalty, cost, and risk (each rated on a relative scale from a low of 1 to a high of 9).",
+                stimulusResponseSequences: "List the sequences of user actions and system responses that stimulate the behavior defined for this feature. These will correspond to the dialog elements associated with use cases.",
+                functionalRequirements: "Itemize the detailed functional requirements associated with this feature. These are the software capabilities that must be present in order for the user to carry out the services provided by the feature, or to execute the use case. Include how the product should respond to anticipated error conditions or invalid inputs. Requirements should be concise, complete, unambiguous, verifiable, and necessary. Use 'TBD' as a placeholder to indicate when necessary information is not yet available. Each requirement should be uniquely identified (e.g., REQ-1, REQ-2)."
             },
             OtherNonfunctionalRequirements: {
                 _self: "This section should specify all of the other nonfunctional requirements that are required by the product.",
-                PerformanceRequirements: "If there are performance requirements for the product under various circumstances, state them here and explain their rationale, to help the developers understand the intent and make suitable design choices. Specify the timing relationships for real time systems. Make such requirements as acceptable response times or throughput acceptable to the users. Specify any limits on capacity.",
-                SafetyRequirements: "Specify those requirements that are concerned with possible loss, damage, or harm that could result from the use of the product. Define any safeguards or actions that must be taken, as well as actions that must be prevented. Refer to any external policies or regulations that state safety issues that affect the product’s design or use. Define any safety certifications that must be satisfied.",
-                SecurityRequirements: "Specify any requirements regarding security or privacy issues surrounding use of the product or protection of the data used or created by the product. Define any user identity authentication requirements. Refer to any external policies or regulations containing security issues that affect the product. Define any security or privacy certifications that must be satisfied.",
-                SoftwareQualityAttributes: "Specify any additional quality characteristics for the product that will be important to either the customers or the developers. Some to consider are: adaptability, availability, correctness, flexibility, interoperability, maintainability, portability, reliability, reusability, robustness, testability, and usability. Write these to be specific, quantitative, and verifiable when possible. At the least, clarify the relative preferences for various attributes, such as ease of use over ease of learning.",
-                BusinessRules: "List any operating principles about the product, such as which individuals or roles can perform which functions under specific circumstances. These are not functional requirements in themselves, but they may imply certain functional requirements to enforce the rules."
+                PerformanceRequirements: "Specify response times, throughput, and capacity constraints.",
+                SafetyRequirements: "Requirements concerned with loss, damage, or harm safeguards.",
+                SecurityRequirements: "User authentication, privacy, and data protection requirements.",
+                SoftwareQualityAttributes: {
+                    _self: "Specify availability, reliability, maintainability, etc.",
+                    reliability: "The ability of a system or component to perform its required functions under stated conditions for a specified period of time.",
+                    availability: "The degree to which a system or component is operational and accessible when required for use.",
+                    security: "The degree to which a system or component protects information and data.",
+                    maintainability: "The ease with which a product can be modified to correct defects or improve performance.",
+                    portability: "The ease with which a product can be transferred from one hardware or software environment to another."
+                },
+                BusinessRules: "Operating principles about the product (e.g., role-based access)."
             },
             OtherRequirements: {
                 _self: "Define any other requirements not covered elsewhere in the SRS. This might include database requirements, internationalization requirements, legal requirements, reuse objectives for the project, and so on. Add any new sections that are pertinent to the project."
@@ -140,8 +126,7 @@ REQ-2:
             },
             SystemFeatures: [
                 {
-                    featureName: "System Feature 1",
-                    descriptionAndPriority: "",
+                    featureName: "",
                     stimulusResponseSequences: [],
                     functionalRequirements: []
                 }
@@ -268,12 +253,11 @@ REQ-2:
                 _self: "9.5.10 External interfaces: Detailed requirements for User, Hardware, Software, and Communication interfaces."
             },
             Functions: {
-                _self: "9.5.11 Functions: Detailed functional requirements.",
-                Requirement: `For each function, specify:
-a) Purpose: Goal of the function.
-b) Inputs: Data entering the function.
-c) Operations: Processing performed.
-d) Outputs: Resulting data.`
+                _self: "9.5.11 Functions: Detailed functional requirements. For each function in the array, specify:",
+                purpose: "The goal or intent of the function.",
+                inputs: "A list of data items or signals entering the function.",
+                operations: "Precise description of the processing logic performed.",
+                outputs: "A list of data items or signals resulting from the function."
             },
             UsabilityRequirements: {
                 _self: "9.5.12 Usability requirements: Measurable effectiveness, efficiency, and satisfaction targets."

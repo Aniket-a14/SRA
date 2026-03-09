@@ -294,10 +294,18 @@ function getFewShotBlock(templateId, sectionId) {
             example = { ...example, good: volereExamples.Section1_PurposeOfProject.good };
         } else if (sectionId === 'Section9_FunctionalRequirements') {
             example = { ...example, good: volereExamples.Section9_FunctionalRequirements.good };
-        } else if (sectionId && sectionId.startsWith('Section') && parseInt(sectionId.match(/\d+/)[0]) >= 10 && parseInt(sectionId.match(/\d+/)[0]) <= 17) {
-            example = { ...example, good: volereExamples.NFR_Shell.good };
+        } else if (sectionId && sectionId.startsWith('Section')) {
+            const match = sectionId.match(/\d+/);
+            const sectionNum = match ? parseInt(match[0]) : 0;
+            // Sections 10-17 are NFRs, but we can extend the shell example to 9-21 (Requirements/Tasks)
+            if (sectionNum >= 10 && sectionNum <= 21) {
+                example = { ...example, good: volereExamples.NFR_Shell.good };
+            } else {
+                // Fallback to Section 9 for unknown sections
+                example = { ...example, good: volereExamples.Section9_FunctionalRequirements.good };
+            }
         } else {
-            // Default to Section 9 for other relevant sections
+            // Default to Section 9 for anything else
             example = { ...example, good: volereExamples.Section9_FunctionalRequirements.good };
         }
 

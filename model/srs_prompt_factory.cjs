@@ -88,8 +88,10 @@ ACTION: Generate the "${section}" section for the project described above. Retur
  */
 function buildSectionInstruction(section, template) {
     const instructions = template.sectionInstructions[section];
-    if (!instructions) {
-        return `Generate the "${section}" section according to ${template.name} standard guidelines.`;
+
+    // If instructions is a string, return it directly
+    if (typeof instructions === 'string') {
+        return instructions;
     }
 
     const lines = [];

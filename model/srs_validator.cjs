@@ -161,7 +161,7 @@ function checkRequirementPrefix(content, prefix, section, templateId, warnings) 
     // Map of template → sections where requirement prefix should appear
     const requirementSections = {
         'IEEE_830': ['SystemFeatures'],
-        'ISO_29148_SRS': ['Functions', 'SpecificRequirements'],
+        'ISO_29148_SRS': ['Functions'],
         'ISO_29148_SyRS': ['FunctionalRequirements'],
         'ISO_29148_StRS': ['UserRequirements'],
         'AGILE_USER_STORIES': ['featureBacklog'],
@@ -258,9 +258,6 @@ function validateIEEE830(section, content, errors, warnings) {
     for (const feature of content) {
         if (!feature.featureName || feature.featureName.trim() === '') {
             errors.push('IEEE 830 SystemFeature missing featureName.');
-        }
-        if (!feature.descriptionAndPriority || feature.descriptionAndPriority.trim() === '') {
-            errors.push(`Feature "${feature.featureName || '?'}" missing descriptionAndPriority.`);
         }
         if (!Array.isArray(feature.stimulusResponseSequences) || feature.stimulusResponseSequences.length === 0) {
             warnings.push(`Feature "${feature.featureName || '?'}" has no stimulus/response sequences.`);
