@@ -1,0 +1,35 @@
+# CodeRabbit Configuration
+# Documentation: https://docs.coderabbit.ai/getting-started/configure-coderabbit
+
+version: 1
+
+rules:
+  - id: sra-monorepo-context
+    description: "Provide context for the SRA monorepo architecture."
+    glob: "**/*"
+    instructions: |
+      This is a monorepo containing:
+      - /frontend: React.js
+      - /backend: Node.js/Express
+      - /cli: Command-line interface
+      - /model: Shared logic and templates
+      Keep the architecture in mind when reviewing changes.
+
+reviews:
+  # Enable/disable high-level summary of the PR
+  summary:
+    enabled: true
+  
+  # Enable/disable line-by-line code review
+  code_review:
+    enabled: true
+    
+  # Enable/disable chat with CodeRabbit
+  chat:
+    enabled: true
+
+# Advanced: ignore generated files
+ignore:
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "package-lock.json"
