@@ -19,7 +19,9 @@ const FORBIDDEN_TERMS = [
     "easy to use", "user-friendly", "robust", "flexible", "efficient",
     "optimal", "powerful", "high-performance", "state-of-the-art", "seamless",
     "intuitive", "scalable", "reliable", "fast", "simple", "cutting-edge",
-    "best-in-class", "world-class", "next-generation", "innovative"
+    "best-in-class", "world-class", "next-generation", "innovative",
+    "transparent", "dynamic", "secure", "user-centric", "versatile",
+    "automated", "intelligent", "artificial intelligence", "smart", "advanced"
 ];
 
 const TEMPLATES = {

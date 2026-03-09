@@ -1,102 +1,102 @@
 [
     {
         "id": 1,
-        "name": "Smart Warehouse Management System",
-        "description": "An AI-powered system for a 500,000 sq ft logistics hub. Must integrate with RFID gait sensors, optimize 3D shelf space using genetic algorithms, and coordinate a fleet of 50 stock-counting drones via ROS2. Key KPI: Real-time inventory accuracy > 99.9%."
+        "name": "Zenith-Orchestrator: Warehouse Automation Rollout",
+        "description": "Our main logistics hub is about 500,000 square feet and inventory drift is starting to impact our bottom line. We're losing too much time on manual picking and we've decided to pull the trigger on a fleet of about 200 autonomous robots. The floor gets crowded fast, so the bots need a brain that can reroute them in less than 50 milliseconds to prevent any gridlock. We're looking at ROS2 and maybe some high-end simulation like Isaac Sim to get the pathfinding right. The end goal is a solid 10,000 picks per hour with basically perfect accuracy—99.9%—using RFID and SLAM sensors. We need to integrate this with our 5G backbone to keep the latency low."
     },
     {
         "id": 2,
-        "name": "Tele-Health Post-Op Recovery Platform",
-        "description": "Remote monitoring for cardiac surgery patients. Integrates with wearable ECG/Pulse-Ox via Bluetooth LE. Features AI wound analysis (computer vision) for early infection detection and HL7 FHIR integration with hospital EMRs. Data must be HIPAA compliant."
+        "name": "PulseBridge: Medical Post-Op Recovery System",
+        "description": "We're constantly short on ICU beds, so we need a system that lets us move cardiac patients to lower-risk wards but keeps the same level of safety. The idea is to use Bluetooth ECG and Pulse-Ox patches on every patient. The software needs to catch things like arrhythmia or sudden heart rate drops instantly—we're thinking AI on the edge so we don't rely on the ward's Wi-Fi. If a patient's heart rate hits a danger zone like under 40 bpm, the nurse handsets have to start buzzing in under 2 seconds. Everything has to be HIPAA-grade with AES-256 encryption. We need the sensors to last at least 48 hours so we aren't swapping batteries mid-recovery."
     },
     {
         "id": 3,
-        "name": "Autonomous Urban Delivery Robot Control",
-        "description": "Fleet management for 200 sidewalk robots. Requirements include LiDAR-based obstacle avoidance (SLM), mesh network communication (5G/V2X), and a 100ms latency remote takeover interface for human operators. Must handle adverse weather navigation."
+        "name": "UrbanGlide: Autonomous Delivery Robot Network",
+        "description": "We're planning to deploy 500 delivery robots into the downtown core to solve our last-mile cost problem. These things are going to be on busy sidewalks, so we're looking for Level 4 autonomy using a mix of LiDAR and a lot of 4K cameras. If a robot gets stuck or confused, we need a remote operator to be able to take over with less than 100ms lag. It rains a lot here, so they've got to be able to navigate even when it's pouring. We're using NVIDIA Orin for the compute and we're aiming for that 99.99% safety rating. Down the line, we might even try drone-to-robot handoffs on rooftops."
     },
     {
         "id": 4,
-        "name": "Decentralized Carbon Credit Marketplace",
-        "description": "Ethereum-based L2 platform for tokenized carbon credits. Requires Solidity smart contracts for verifiable sequestration auditing, Oracle integration for satellite biomass data, and a Liquidity Pool for spot-price trading."
+        "name": "TerraGraph: Decentralized Carbon Credit Platform",
+        "description": "The carbon market is a mess of double-counting and we need a system people can actually trust. We want to build a marketplace where credits are minted as ERC-1155 tokens on a blockchain. We'll use satellite feeds to prove the trees are actually there and growing, then use ZK-Rollups to prove it to the ledger without leaking sensitive land data. We need to handle at least $10M in daily trades and the transactions have to be fast—finality in under 5 seconds—otherwise traders won't use it. Solidity is the preference, and we need daily biomass updates from the satellites."
     },
     {
         "id": 5,
-        "name": "AI-Driven Smart Grid Stabilizer",
-        "description": "Real-time balancing for a city-scale microgrid. Must process 10,000 sensor pulses/sec, predict solar/wind fluctuations using LSTM networks, and perform automated load-shedding during peak demand to maintain 60Hz frequency stability."
+        "name": "GridGuard: Dynamic City-Scale Power Stabilizer",
+        "description": "Our city grid is getting unstable with all the new wind and solar farms. We need something to keep the frequency steady at 60Hz. If it drifts more than 0.05Hz, it starts breaking industrial equipment. We need to ingest 50,000 telemetry points a second from our PMUs and use something like an LSTM network to predict when the wind is going to drop before it actually happens. We have to talk to our existing SCADA gear using DNP3. Response time for a stability trigger has to be under 10 milliseconds or it's useless. Eventually, we want to use parked EVs as a giant battery for the whole city."
     },
     {
         "id": 6,
-        "name": "Multi-Tenant SaaS HR Payroll Engine",
-        "description": "Payroll for global firms (100+ countries). Must handle complex tax logic (GDPR/SOC2 compliant), support 50+ currencies with real-time XE integration, and provide an automated audit trail for government compliance reporting."
+        "name": "GlobalPay: Multi-National Payroll Engine",
+        "description": "We have employees in over 150 countries and our current tax code is a spiderweb of manual overrides. We need a new multi-tenant core where tax logic is handled by a dynamic rule engine. It's got to be GDPR compliant and handle 50+ currencies with real-time XE rates. When we run payroll at the end of the month, we need to process a million people in about 30 minutes, so we're going to need some serious database sharding. The audit log has to be completely immutable—no deletions, no changes, just a permanent record of every cent."
     },
     {
         "id": 7,
-        "name": "Edge-Computing Traffic Control System",
-        "description": "Hardware-software system for intelligent intersections. Uses edge-AI (NVIDIA Jetson) for vehicle classification, V2X emergency vehicle pre-emption, and dynamic signal phase optimization to reduce CO2 emissions by 15%."
+        "name": "CityFlow: Intelligent Edge Traffic Control",
+        "description": "Traffic lights are still running on timers from the 90s. We're installing AI boxes at the intersections to watch the traffic in 4K. We need the system to categorize vehicles—cars, trucks, bikes—and prioritize ambulances or fire trucks when they're approaching. The goal is to cut idling time by 20% across the city. The AI needs to be reliable to 99.9% even in the middle of the night or in heavy fog. We're leaning towards NVIDIA Jetson for the edge processing because we need that low-latency response for signal timing."
     },
     {
         "id": 8,
-        "name": "Personalized Oncology Treatment Portal",
-        "description": "Decision support for oncologists. Matches patient genomic profiles (VCF files) against a database of 5,000+ active clinical trials using NLP. Must provide evidence-based treatment ranking with confidence scores."
+        "name": "GenoMatch: Oncology Treatment Support",
+        "description": "Oncologists are spending days trying to find the right clinical trials for patients. We want to build a portal where they can just upload a genomic profile and get back a ranked list of trial matches from the life sciences cloud. It needs to use NLP to scan through 10,000 active trials and explain why certain trials were picked. We're integrating with the Cloud Life Sciences API and it has to handle heavy DICOM files. HIPAA and data privacy are the biggest concerns here, obviously. We want to get the matching time down from two weeks to under an hour."
     },
     {
         "id": 9,
-        "name": "Zero-Trust Enterprise Identity Manager",
-        "description": "Security layer for hybrid-cloud infrastructure. Enforces FIDO2 biometrics, micro-segmentation using eBPF, and continuous risk scoring based on user behavioral analytics (typing cadence, IP geo-drift)."
+        "name": "SafeEdge: SASE Enterprise Security Gateway",
+        "description": "Our traditional VPN is failing because everyone's remote. We need a Zero-Trust gateway that checks a device's health—using eBPF—before it lets any traffic through. We're looking at FIDO2 for authentication and even behavioral checks like typing rhythms. The latency has to be virtually invisible, under 10ms for a global TLS connection, or our engineers will just find ways to bypass it. We need this deployed across 200 edge locations to support our global team without any bottlenecks."
     },
     {
         "id": 10,
-        "name": "High-Frequency Algorithmic Trading Core",
-        "description": "Execution engine for NYSE/NASDAQ. Requirements: < 50-microsecond tick-to-trade latency, FPGA-accelerated order parsing, and circuit-breaker logic for multi-million dollar basket trades. Uses 10Gbps Solarflare networking."
+        "name": "Chronos-HFT: High-Frequency Trading Core",
+        "description": "If we aren't the fastest in the market, we're losing money. We're building a NYSE order execution core that needs to be under 20 microseconds wire-to-wire. We're looking at a C++ and FPGA hybrid for the heavy lifting. We need 100Gbps networking using RoCE v2 and PTP for nanosecond-level time sync. We also need hardware-level circuit breakers to stop the engine instantly if it goes out of sync. Every microsecond counts here—it's got to be the most deterministic system we've ever built."
     },
     {
         "id": 11,
-        "name": "Predictive Industrial Equipment Maintenance",
-        "description": "Digital twin for hydro-electric turbines. Uses 128-channel vibration analysis (FFT), thermal imaging integration, and predictive failure modeling to increase Mean Time Between Failures (MTBF) by 25%."
+        "name": "DeepGuard: Subsea Infrastructure Monitor",
+        "description": "Our subsea pipelines are down at 3,000 meters and a leak could be an environmental disaster. We're deploying acoustic hydrophone arrays that can hear a tiny pinhole leak of 0.1 liters an hour. We want to build a digital twin using CFD to predict when corrosion is going to become an issue 6 months before it happens. Radio doesn't work down there, so we're using low-power acoustic telemetry to pull the data. If we can hit 90% accuracy on our predictions, we're saving millions on repairs."
     },
     {
         "id": 12,
-        "name": "Shared Electric Scooter Fleet Service",
-        "description": "Real-time mobility platform for 10,000 vehicles. Features remote battery monitoring, geo-fencing (speed limiting in parks), and an automated billing engine using Stripe. Requires 99.99% uptime for the mobile API."
+        "name": "SwiftCycle: Global Mobility Fleet Manager",
+        "description": "We've got 50,000 e-scooters out there and we need a central hub to manage them all. We need telemetry on the battery levels every 10 seconds and we have to enforce no-ride zones near pedestrian areas—that's a hard geofence that drops the scooter speed to 5km/h instantly. The unlock command from the app needs to take less than a second. We're also integrating with global payment APIs so we can settle the bill the moment a user ends their ride. It's got to be up 99.999% of the time."
     },
     {
         "id": 13,
-        "name": "Collaborative Architectural VR Design Room",
-        "description": "Multi-user engine for BIM-integrated design. Supports 32 concurrent VR users, physics-accurate Ray Tracing (RTX), and real-time syncing of Revit/Rhino models with <20ms motion-to-photon latency."
+        "name": "ConstructVR: Collaborative Design Studio",
+        "description": "Architects want to be able to walk through their buildings with a group of 64 people in a shared VR space. We need to keep the motion-to-photon latency under 20ms so nobody gets motion sick. We're doing real-time raytracing for the lighting to make it look realistic. The system has to sync up with Revit models so if something changes in the office, the VR goggles see it instantly. We also need spatial anchors so the virtual building stays locked into the same spot in the physical room."
     },
     {
         "id": 14,
-        "name": "Smart Irrigation for Sustainable Arid Farming",
-        "description": "Closed-loop agricultural system. Integrates LoRaWAN soil sensors with satellite moisture mapping and weather APIs to optimize water delivery per-quadrant, reducing usage by 40%."
+        "name": "AquaSave: Precision Agricultural Suite",
+        "description": "We're trying to grow crops in arid land where water is a huge expense. We've got 10,000 acres and we want to control every single irrigation nozzle independently. The system needs to look at soil moisture from LoRaWAN sensors and combine it with satellite evapotranspiration data. The goal is to drop our water usage by 35% without hurting the yield. It has to be able to keep running even if the rural cellular connection is spotty, so most of the logic needs to stay on the local gateway."
     },
     {
         "id": 15,
-        "name": "Elderly Fall Detection and Response Hub",
-        "description": "Privacy-first vision system for assisted living. Uses skeletal tracking (PoseNet) on local edge nodes to detect falls without streaming raw video. Alerts emergency services via Twilio and provides health logs."
+        "name": "Orion-Render: Managed GPU Cloud",
+        "description": "Creative studios need more power than they can buy. We're building a cluster of 512 high-end GPUs that they can use for real-time raytracing. We're aiming for sub-10ms network latency so it feels like the hardware is under their desk. We also have to manage the heat; if a node hits 85 degrees Celsius, it has to throttle or shift the load instantly. Security is a massive deal for these studios—they need full tenant isolation and AES-256 encryption. We're targeting 10,000 concurrent 4K streams."
     },
     {
         "id": 16,
-        "name": "Cross-Platform AR Retail Fitting Room",
-        "description": "Virtual try-on for e-commerce. Uses 3D body mesh scanning, cloth physics simulation (Unity/Unreal), and AI-driven style recommendations based on purchase history. Must work on iOS/Android ARKit/ARCore."
+        "name": "Agentic-Logic: Advanced Task Orchestrator",
+        "description": "We need a platform to run autonomous AI agents for long sessions, like 24 hours at a time. The big priority is safety—we need a filter that stops any personal info (PII) from leaving the sandbox. We also need to keep an eye on the budget, so we need to throttle agents if they blow past 1 million tokens an hour. It has to connect to vector databases for long-term memory and use JSON-RPC for tool calling. Each 'thought' cycle for an agent should happen in under 500 milliseconds."
     },
     {
         "id": 17,
-        "name": "Micro-Service API Security Gateway",
-        "description": "L7 traffic manager for 1,000+ services. Features mTLS termination, dynamic rate-limiting via Redis, and real-time anomaly detection for SQL injection and credential stuffing attacks."
+        "name": "GeoSync: Globally Consistent Edge Ledger",
+        "description": "We're building a database for 5G edge nodes across 48 global regions. The big challenge is keeping everything 'strictly serializable'—no inconsistencies anywhere. We need local read speeds under 5ms. If we lose an entire data center, we need to be back up in 30 seconds with exactly zero data loss. We're using internal atomic clocks to keep the time sync perfect across the whole planet. We're aiming to handle a peak load of a million writes every second without the system falling apart."
     },
     {
         "id": 18,
-        "name": "Intelligent Public Transit Route Optimizer",
-        "description": "Dynamic city-wide bus dispatching. Uses real-time passenger demand heatmaps from mobile sensors to reroute 'on-demand' shuttles and optimize fixed bus lines for fuel efficiency."
+        "name": "OmniFit: High-Fidelity AR Retail System",
+        "description": "We want to let shoppers 'try on' clothes using Lidar and 3D mesh scanning. We're building a digital twin of the user and then running a real-time cloth simulation so they can see how the fabric drapes as they move. It's got to stay at 60fps on a phone with basically zero lag. We're looking for 95% accuracy on fit recommendations so we can stop the flood of returns in our e-commerce business. It also needs to sync with our CRM so we know their size history and preferences."
     },
     {
         "id": 19,
-        "name": "Digital Twin for Subsea Oil Pipeline",
-        "description": "Structural health monitoring for underwater infrastructure. Integrates acoustic sensor arrays with CFD (Computational Fluid Dynamics) models to predict corrosion and detect pinhole leaks at 2,000m depth."
+        "name": "SecurePath: Microservice Traffic Coordinator",
+        "description": "We have over 2,000 microservices running and it's getting too complex to manage. We need a gateway that handles mTLS for everything automatically. It has to handle a massive throughput—5 million requests a second—with almost no overhead, maybe 2 milliseconds at most. We also need it to catch anomalies like SQL injection or credential stuffing at the edge. We want it integrated with our secret management system and a sharded Redis cluster for the rate-limiting logic."
     },
     {
         "id": 20,
-        "name": "E-Learning Adaptive Content Engine",
-        "description": "K-12 personalized learning platform. Uses IRT (Item Response Theory) to calibrate question difficulty, assesses student gaze/engagement via webcam, and generates dynamic curriculum paths for 1M+ active users."
+        "name": "RouteAlpha: Live Urban Transit Dispatch",
+        "description": "Our bus routes are too rigid. We want to use Graph Neural Networks to recalculate the best routes every minute based on where passengers are actually waiting. The goal is to get the wait time for a bus down to under 5 minutes for everyone. We need to integrate with GTFS-Realtime feeds and talk to the city's smart signal controllers so our buses get priority. We're also looking to optimize for fuel efficiency while we're moving people around the urban downtown."
     }
 ]
