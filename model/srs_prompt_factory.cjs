@@ -15,71 +15,79 @@ const { getFewShotBlock } = require('./srs_few_shot_examples.cjs');
 
 /**
  * Generates the system prompt for a given section and template.
- * This is the LLM's "persona" — it defines WHO the model is.
+ * IMPLEMENTS: [Persona Hardening] + [Industrial Standard Guarding]
  */
 function getSystemPrompt(section, templateId) {
     const template = TEMPLATES[templateId];
     if (!template) throw new Error(`Unknown template: ${templateId}`);
 
-    const forbiddenList = (template.rules.forbiddenTerms || FORBIDDEN_TERMS).join(', ');
     const fewShotBlock = getFewShotBlock(templateId, section);
 
-    return `${template.systemPromptDirective}
+    return `<persona>
+${template.systemPromptDirective}
 
-STANDARD: ${template.name}
+Your Role: Lead Industrial Systems Engineer & Compliance Auditor.
+Primary Goal: Generate high-fidelity, zero-hallucination SRS documentation matching the ${template.name} standard.
 
-CRITICAL RULES:
-1. Return ONLY valid JSON matching the provided schema. No markdown, no commentary, no code fences.
-2. All requirements must use the prefix: "${template.rules.requirementPrefix}".
-3. FORBIDDEN TERMS — Do not use any of these vague terms: ${forbiddenList}. Replace them with quantified metrics or specific descriptions.
-4. CONSISTENCY — Do not contradict any data in the "PREVIOUSLY GENERATED SECTIONS" context.
-5. COMPLETENESS — Fill every field in the schema. If information is not available from the project description, state "TBD" rather than leaving empty.
-6. TESTABILITY — Every requirement must be verifiable. If it cannot be tested, rewrite it until it can be.
+CORE OPERATING PRINCIPLES:
+1. PRECISION: Use measurable metrics (milliseconds, percentages, tolerances) for every technical claim.
+2. SINGULARITY: Each requirement must describe exactly one function or constraint.
+3. ATOMICITY: No "etc.", "and so on", or "and more". List all items explicitly or stop.
+4. TESTABILITY: If a requirement cannot be verified by an automated test or inspection, it is invalid.
+</persona>
 
-INDUSTRY QUALITY STANDARDS (ISO 29148):
-- UNAMBIGUOUS: Only one interpretation is possible. Use numbers and units.
-- SINGULAR: Each requirement must address only one function or constraint.
-- MEASURABLE: Avoid "as soon as possible" or "fast". Use "within 500ms" or "> 99.9%".
-- IMPLEMENTATION INDEPENDENT: Describe WHAT the system does, not HOW (no database table names, no specific code snippets unless requested).${fewShotBlock}`;
+${fewShotBlock}`;
 }
 
 /**
- * Generates the user prompt for a given section and template.
- * This is the "task" — it tells the model WHAT to do.
- * 
- * Structure:
- *   SECTION INSTRUCTION  — Official guidance text from the standard
- *   SCHEMA               — Exact JSON structure to fill
- *   CONTEXT              — Previously generated sections (chained)
- *   ACTION               — What to do
+ * Generates the user prompt.
+ * IMPLEMENTS: [XML Tagging] + [Anchor Positioning] + [Chain-of-Thought]
  */
 function getUserPrompt(section, projectName, projectDescription, previousSections, templateId) {
     const template = TEMPLATES[templateId];
     if (!template) throw new Error(`Unknown template: ${templateId}`);
 
-    // 1. Build section instruction
+    const forbiddenList = (template.rules.forbiddenTerms || FORBIDDEN_TERMS).join(', ');
     const instructionBlock = buildSectionInstruction(section, template);
-
-    // 2. Build schema block
     const sectionSkeleton = template.skeleton[section];
     const schemaBlock = JSON.stringify(sectionSkeleton, null, 2);
-
-    // 3. Build context block
     const contextBlock = buildContextBlock(previousSections);
 
-    // 4. Assemble the prompt
-    return `PROJECT: ${projectName}
-DESCRIPTION: ${projectDescription}
+    return `<project_stimulus>
+PROJECT: ${projectName}
+RAW DESCRIPTION: ${projectDescription}
+</project_stimulus>
 
----
-SECTION INSTRUCTION (from ${template.name}):
+<section_requirements>
+STANDARD: ${template.name}
+TARGET SECTION: ${section}
+INSTRUCTIONS:
 ${instructionBlock}
----
-EXPECTED JSON SCHEMA (fill this structure):
+</section_requirements>
+
+<json_contract>
+TARGET SCHEMA:
 ${schemaBlock}
----
-${contextBlock}---
-ACTION: Generate the "${section}" section for the project described above. Return ONLY the JSON object matching the schema. Do not wrap in code fences or add any text outside the JSON.`;
+</json_contract>
+
+<chained_context>
+${contextBlock}</chained_context>
+
+<mandatory_compliance_rules>
+1. OUTPUT: Return ONLY valid JSON. No markdown backticks, no text.
+2. PREFIX: Every requirement must start with "${template.rules.requirementPrefix}:".
+3. TRUTHFULNESS: If the project description lacks data for a field, state "TBD". Never invent details.
+4. CONSISTENCY: Do not contradict the <chained_context>.
+5. FORBIDDEN TERMS: NEVER use these vague terms: ${forbiddenList}.
+6. LAZINESS GUARD: Do not use placeholders like "etc." or "and so on".
+</mandatory_compliance_rules>
+
+<action>
+Step 1 [Reasoning]: Mentally analyze the <project_stimulus> and <chained_context>.
+Step 2 [Validation]: Verify how the ${section} relates to previous anchor sections.
+Step 3 [Extraction]: Identify specific technical metrics to satisfy the rules.
+Step 4 [Generation]: Produce the JSON object matching the <json_contract>.
+</action>`;
 }
 
 /**
@@ -113,6 +121,7 @@ function buildSectionInstruction(section, template) {
 
 /**
  * Builds the chained context block from previously generated sections.
+ * IMPLEMENTS: [Semantic Anchoring] — Highlighting high-impact sections.
  */
 function buildContextBlock(previousSections) {
     if (!previousSections || Object.keys(previousSections).length === 0) {
@@ -121,13 +130,18 @@ function buildContextBlock(previousSections) {
 
     let context = 'PREVIOUSLY GENERATED SECTIONS (for consistency — do not contradict):\n';
 
+    // Anchor sections that influence many others
+    const ANCHOR_SECTIONS = ['FunctionalRequirements', 'SystemFeatures', 'Functions', 'ProductFunctions'];
+
     for (const [sectionName, sectionContent] of Object.entries(previousSections)) {
+        const isAnchor = ANCHOR_SECTIONS.some(a => sectionName.includes(a));
+        const anchorLabel = isAnchor ? ' [PRIMARY ANCHOR]' : '';
+
         let contentStr = JSON.stringify(sectionContent, null, 2);
-        // Cap individual section context to prevent token overflow
         if (contentStr.length > 2000) {
             contentStr = contentStr.substring(0, 2000) + '\n... [TRUNCATED]';
         }
-        context += `\n[${sectionName}]:\n${contentStr}\n`;
+        context += `\n[${sectionName}]${anchorLabel}:\n${contentStr}\n`;
     }
 
     return context + '\n';

@@ -9,12 +9,14 @@
 const axios = require('axios');
 require('dotenv').config();
 
+const LOCAL_URL = process.env.LOCAL_INFERENCE_URL; // e.g., "http://localhost:8000/v1" or "http://127.0.0.1:11434/v1"
+
 const MODEL_ENDPOINTS = {
-    "DeepSeek V4": process.env.DEEPSEEK_API_URL || "https://api.deepseek.com/v1",
-    "Kimi K2.5": process.env.KIMI_API_URL || "https://api.moonshot.cn/v1",
-    "GLM-5": process.env.GLM_API_URL || "https://open.bigmodel.cn/api/paas/v4",
-    "Qwen 3.5": process.env.QWEN_API_URL || "https://dashscope.aliyuncs.com/compatible-mode/v1",
-    "LLaMA 4 Maverick": process.env.LLAMA_API_URL || "http://localhost:8000/v1"
+    "DeepSeek V4": LOCAL_URL || process.env.DEEPSEEK_API_URL || "https://api.deepseek.com/v1",
+    "Kimi K2.5": LOCAL_URL || process.env.KIMI_API_URL || "https://api.moonshot.cn/v1",
+    "GLM-5": LOCAL_URL || process.env.GLM_API_URL || "https://open.bigmodel.cn/api/paas/v4",
+    "Qwen 3.5": LOCAL_URL || process.env.QWEN_API_URL || "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "LLaMA 4 Maverick": LOCAL_URL || process.env.LLAMA_API_URL || "http://localhost:8000/v1"
 };
 
 const API_KEYS = {
