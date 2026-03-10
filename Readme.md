@@ -224,7 +224,7 @@ terraform/
 ### Managed Resources
 
 Terraform manages the following infrastructure:
-- ✅ **Vercel Projects**: Frontend (`sra`) and Backend (`sra-backend`)
+- ✅ **Vercel Projects**: Monorepo with frontend (`sra`) and backend (`sra-backend`)
 - ✅ **Build Configuration**: Build/install commands and framework settings
 - ✅ **Git Integration**: Repository connections and deployment triggers
 
