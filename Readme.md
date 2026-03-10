@@ -355,8 +355,6 @@ SRA/
 └── package.json            # Root monorepo workspace definition
 ```
 
-```
-
 </details>
 
 ---
