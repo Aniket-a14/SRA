@@ -6,10 +6,10 @@ export class BaseAgent {
     constructor(name, modelName = "gemini-2.5-flash") {
         this.name = name;
         this.modelName = modelName;
-        // Allows switching models dynamically if needed, e.g. for cost/performance
+        // Default models will be overridden in analysisService based on tiering
     }
 
-    async callLLM(prompt, temperature = 0.7, jsonMode = true, retries = 3, initialDelay = 5000) {
+    async callLLM(prompt, temperature = 0.7, jsonMode = true, responseSchema = null, retries = 3, initialDelay = 5000) {
         logger.debug({ msg: `[${this.name}] Calling LLM`, model: this.modelName });
 
         if (process.env.MOCK_AI === 'true') {
@@ -70,7 +70,8 @@ export class BaseAgent {
                     generationConfig: {
                         temperature,
                         maxOutputTokens: 65535,
-                        responseMimeType: jsonMode ? "application/json" : "text/plain"
+                        responseMimeType: jsonMode ? "application/json" : "text/plain",
+                        ...(responseSchema && { responseSchema })
                     }
                 });
 
@@ -117,6 +118,17 @@ export class BaseAgent {
         }
     }
 
+    async countTokens(text) {
+        try {
+            const model = genAI.getGenerativeModel({ model: this.modelName });
+            const { totalTokens } = await model.countTokens(text);
+            return totalTokens;
+        } catch (error) {
+            logger.error({ msg: `[${this.name}] countTokens failed`, error: error.message });
+            return 0; // Fallback
+        }
+    }
+
     parseJSON(text) {
         let cleanText = text;
         try {
@@ -137,10 +149,28 @@ export class BaseAgent {
             cleanText = cleanText.replace(/\]\s*\]\s*,\s*\[/g, '], [');
             // b) Remove trailing commas before a closing brace/bracket
             cleanText = cleanText.replace(/,\s*\}/g, '}').replace(/,\s*\]/g, ']');
+            // c) Fix missing colons in key-value pairs (very common in large Flash outputs)
+            // Pattern: "key" "value" -> "key": "value"
+            cleanText = cleanText.replace(/"([^"]+)"\s+"([^"]*)"/g, '"$1": "$2"');
+            cleanText = cleanText.replace(/"([^"]+)"\s+([0-9.]+)/g, '"$1": $2');
+            cleanText = cleanText.replace(/"([^"]+)"\s+(true|false|null)/g, '"$1": $2');
 
-            // 4. Use professional jsonrepair library for fault-tolerant parsing
-            const repaired = jsonrepair(cleanText);
-            return JSON.parse(repaired);
+            // 4. Handle Truncation: If the JSON is obviously truncated (unbalanced braces)
+            let openBraces = (cleanText.match(/\{/g) || []).length;
+            let closeBraces = (cleanText.match(/\}/g) || []).length;
+            if (openBraces > closeBraces) {
+                logger.warn({ msg: `[${this.name}] Detected truncated JSON. Attempting to auto-balance.`, open: openBraces, close: closeBraces });
+                cleanText += '}'.repeat(openBraces - closeBraces);
+            }
+
+            // 5. Use professional jsonrepair library for fault-tolerant parsing
+            try {
+                const repaired = jsonrepair(cleanText);
+                return JSON.parse(repaired);
+            } catch (repairError) {
+                // If repair fails, try one last time with primitive JSON.parse
+                return JSON.parse(cleanText);
+            }
         } catch (error) {
             logger.error({ msg: `[${this.name}] JSON Parsing Failed`, error: error.message });
 
@@ -151,11 +181,15 @@ export class BaseAgent {
                     const pos = parseInt(posStr[1]);
                     const start = Math.max(0, pos - 50);
                     const end = Math.min(cleanText.length, pos + 50);
-                    logger.debug({ msg: 'JSON Parse Context', context: '...' + cleanText.substring(start, pos) + ' >>> ' + (cleanText[pos] || '') + ' <<< ' + cleanText.substring(pos + 1, end) + '...' });
+                    logger.debug({
+                        msg: 'JSON Parse Context',
+                        position: pos,
+                        contextSnippet: '...' + cleanText.substring(start, pos) + ' >>> ' + (cleanText[pos] || '') + ' <<< ' + cleanText.substring(pos + 1, end) + '...'
+                    });
                 }
             }
 
-            throw new Error(`${this.name} failed to parse JSON output. See console for error position.`);
+            throw new Error(`${this.name} failed to parse JSON output. ${error.message}`);
         }
     }
 }

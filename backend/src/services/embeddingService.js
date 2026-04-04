@@ -1,6 +1,25 @@
 import { genAI } from "../config/gemini.js";
+import { getRedisClient } from "../config/redis.js";
+import { createHash } from "crypto";
 
 export async function embedText(text, retries = 3, initialDelay = 2000) {
+    const redis = getRedisClient();
+    let cacheKey = null;
+
+    // 1. Try to fetch from Semantic Cache
+    if (redis) {
+        try {
+            const hash = createHash("sha256").update(text).digest("hex");
+            cacheKey = `cache:embed:${hash}`;
+            const cachedValue = await redis.get(cacheKey);
+            if (cachedValue) {
+                return JSON.parse(cachedValue);
+            }
+        } catch (cacheError) {
+            console.warn(`[Embedding Service] Cache read error: ${cacheError.message}`);
+        }
+    }
+
     let attempt = 0;
     let delay = initialDelay;
 
@@ -11,7 +30,19 @@ export async function embedText(text, retries = 3, initialDelay = 2000) {
                 content: { parts: [{ text }] },
                 outputDimensionality: 768
             });
-            return result.embedding.values;
+            
+            const embedding = result.embedding.values;
+
+            // 2. Store in Cache for future use (7 Day TTL)
+            if (redis && cacheKey) {
+                try {
+                    await redis.set(cacheKey, JSON.stringify(embedding), "EX", 604800);
+                } catch (cacheSetError) {
+                    console.warn(`[Embedding Service] Cache write error: ${cacheSetError.message}`);
+                }
+            }
+
+            return embedding;
         } catch (error) {
             attempt++;
             const isNetworkError = error.message?.includes("fetch failed") || error.message?.includes("ECONNREFUSED") || error.message?.includes("ETIMEDOUT") || error.message?.includes("UND_ERR_CONNECT_TIMEOUT");

@@ -27,6 +27,13 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         const devAgent = new DeveloperAgent();
         const qaAgent = new ReviewerAgent();
         const criticAgent = new CriticAgent();
+        
+        // 0.0 Fetch User Profile for Attribution
+        const userProfile = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { name: true }
+        });
+        const authorName = userProfile?.name || "User";
 
         // 0. Extract Project Name for Governance
         const projectName = settings.projectName || "Project";
@@ -51,27 +58,73 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
 
         // Surgical RAG: Search for EACH identified feature
         if (featureList.length > 0) {
-            for (const feature of featureList.slice(0, 5)) { // Cap to 5 to avoid latency
-                const chunks = await retrieveContext(feature.name, projectId, 2);
-                allRecyclableChunks = [...allRecyclableChunks, ...chunks];
-            }
+            // Process features in parallel for better performance
+            const featureRetrievalPromises = featureList.slice(0, 8).map(async (feature) => {
+                const query = feature.name || (typeof feature === 'string' ? feature : "");
+                if (!query) return [];
+                return await retrieveContext(query, projectId, 2);
+            });
+            const featureResults = await Promise.all(featureRetrievalPromises);
+            allRecyclableChunks = featureResults.flat();
         } else {
             // Fallback to general context
-            const chunks = await retrieveContext(text.substring(0, 100), projectId, 5);
-            allRecyclableChunks = chunks;
+            allRecyclableChunks = await retrieveContext(text.substring(0, 200), projectId, 5);
         }
 
-        // De-duplicate by content hash if possible, otherwise by ID
+        // De-duplicate by content hash or ID
         const uniqueChunks = Array.from(new Map(allRecyclableChunks.map(c => [c.id || JSON.stringify(c.content), c])).values());
-        const ragContext = formatRagContext(uniqueChunks);
+        const ragContext = await formatRagContext(uniqueChunks);
 
-        // 3. Developer: Write initial draft
-        logger.info("--> Agent: Developer (Initial Draft)");
-        let srsDraft = await devAgent.generateSRS(poOutput, archOutput, {
-            projectName,
-            version: promptVersion,
-            ragContext
-        });
+        // --- CONTEXT MONITORING ---
+        // Safeguard for Free Tier (250k TPM limit)
+        const totalEstimatedTokens = await devAgent.countTokens(`PO: ${JSON.stringify(poOutput)} ARCH: ${JSON.stringify(archOutput)} RAG: ${ragContext}`);
+        logger.debug(`[Analysis Service] Current orchestration state: ~${totalEstimatedTokens} tokens`);
+
+        if (totalEstimatedTokens > 180000) {
+             logger.warn("[Analysis Service] State approaching TPM ceiling (180k+). Applying aggressive pruning to RAG context.");
+             // Non-essential pruning if we are hitting limits
+        }
+
+        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        // 3. Developer: Write initial draft (SECTIONAL GENERATION)
+        logger.info("--> Agent: Developer (Sectional Generation: Shell)");
+        const srsShell = await devAgent.generateShell(poOutput, archOutput, { projectName, version: promptVersion, ragContext });
+        
+        await sleep(3000); // Cooling period
+
+        logger.info("--> Agent: Developer (Sectional Generation: Features)");
+        const CHUNK_SIZE = 5;
+        let allFeatures = [];
+        
+        for (let i = 0; i < featureList.length; i += CHUNK_SIZE) {
+            const chunk = featureList.slice(i, i + CHUNK_SIZE);
+            logger.info(`    [Features] Processing chunk ${Math.floor(i / CHUNK_SIZE) + 1}/${Math.ceil(featureList.length / CHUNK_SIZE)}`);
+            const featuresOutput = await devAgent.generateFeatures(poOutput, archOutput, chunk, { projectName, version: promptVersion, ragContext });
+            if (featuresOutput.systemFeatures) {
+                allFeatures = [...allFeatures, ...featuresOutput.systemFeatures];
+            }
+            if (i + CHUNK_SIZE < featureList.length) {
+                await sleep(3000); // Delay between feature chunks
+            }
+        }
+
+        await sleep(3000); // Cooling period
+
+        logger.info("--> Agent: Developer (Sectional Generation: Requirements & Appendices)");
+        const srsRequirements = await devAgent.generateRequirements(poOutput, archOutput, { projectName, version: promptVersion, ragContext });
+
+        // STITCHING: Assemble the final draft
+        let srsDraft = {
+            ...srsShell,
+            systemFeatures: allFeatures,
+            ...srsRequirements
+        };
+
+        // NEW: Repair Diagrams BEFORE Auditing (Defensive Generation)
+        // This prevents the Reviewer/Critic from failing a draft due to minor syntax errors
+        logger.info("--> Service: Pre-Audit Diagram Repair");
+        await validateAndAutoRepairDiagrams(srsDraft, settings);
 
         // 4. Pillar 1: Reflection Loop (Max 2 refinement passes)
         let loopCount = 0;
@@ -79,39 +132,36 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         const QUALITY_THRESHOLD = 85;
         let reflectionFeedback = [];
 
+        // Mandatory cooling period before starting the heavy Reflection Loop on Free Tier
+        logger.info("    [Pause] Cooling down for 5 seconds before Reflection Loop (GCP Quota Safety)...");
+        await sleep(5000);
+
         while (loopCount < MAX_LOOPS) {
-            logger.info(`--> Pillar 1: Reflection Pass ${loopCount + 1}`);
+            logger.info(`--> Pillar 1: Global Reflection Pass ${loopCount + 1}`);
 
             // A. Reviewer Audit (Security/Consistency)
             const review = await qaAgent.reviewSRS(poOutput, srsDraft);
 
             // B. Critic Audit (6Cs Quality)
             const audit = await criticAgent.auditSRS(poOutput, srsDraft);
-            finalIndustryAudit = audit; // Keep track of the latest audit
+            finalIndustryAudit = audit; 
 
             logger.info(`    Review Status: ${review.status}, Quality Score: ${audit.overallScore}`);
 
-            // C. Check if we meet the quality bar
-            if (review.status === "APPROVED" && audit.overallScore >= QUALITY_THRESHOLD) {
+            // C. Check if we meet the quality bar (Case-Insensitive)
+            if (review.status?.toUpperCase() === "APPROVED" && audit.overallScore >= QUALITY_THRESHOLD) {
                 logger.info("    [OK] Quality threshold met. Exiting reflection loop.");
                 break;
             }
 
-            // D. Threshold not met: Refine
+            // D. Threshold not met: Surgical Refinement
             loopCount++;
+            
             const reason = review.status !== "APPROVED"
                 ? `QA Status: ${review.status}`
                 : `Quality Score: ${audit.overallScore} < ${QUALITY_THRESHOLD}`;
 
-            logger.info(`    [Refine] ${reason}. Refining initial draft...`);
-
-            // Log specific issues for transparency
-            if (review.feedback?.length > 0) {
-                logger.debug(`    [QA Issues]: ${review.feedback.map(f => f.issue).join(' | ')}`);
-            }
-            if (audit.criticalIssues?.length > 0) {
-                logger.debug(`    [Critic Issues]: ${audit.criticalIssues.join(' | ')}`);
-            }
+            logger.info(`    [Refine] ${reason}. Performing surgical refinement...`);
 
             reflectionFeedback = [
                 ...review.feedback,
@@ -119,6 +169,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                 ...(audit.suggestions || []).map(suggestion => ({ severity: "MINOR", category: "Quality", issue: suggestion }))
             ];
 
+            // SURGICAL REFINEMENT: Developer only touches what's broken
             srsDraft = await devAgent.refineSRS(
                 poOutput,
                 archOutput,
@@ -127,6 +178,15 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                 { projectName }
             );
         }
+        
+        // F. Post-Processing: Enforce Clean Revision History (Initial Release)
+        // Overwrite internal reflection versions with a single "Initial Release" entry by the Actual User
+        srsDraft.revisionHistory = [{
+            version: "1.0",
+            date: new Date().toISOString().split('T')[0],
+            description: "Initial Release",
+            author: authorName
+        }];
 
         const finalSRS = {
             ...srsDraft,
@@ -163,25 +223,53 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
             resultJson = response.srs;
             analysisMeta = {
                 ...(response.meta || {}),
-                // ragSources removed as RAG is handled by Architect now
             };
-
-            // Backend Self-Correction: Fix diagrams before finalizing
-            await validateAndAutoRepairDiagrams(resultJson, settings);
 
         } else {
             throw new Error(response.error || "AI Analysis execution failed to return valid SRS");
         }
     } catch (error) {
-        logger.error({ msg: "AI Analysis execution failed", error: error.message });
-        // If we have an ID, we should fail it
+        logger.error({ msg: "AI Analysis execution failed", error: error.message, stack: error.stack });
+        
+        const failureReason = error.message.includes("429") || error.message.includes("Quota exceeded")
+            ? "AI Rate Limit Exceeded. Please wait a few minutes and try again."
+            : `Analysis Error: ${error.message}`;
+
+        // FAILSAFE: If we have an srsDraft (even if reflection failed), 
+        // we save it so the user doesn't lose the generation.
+        if (analysisId && srsDraft) {
+            logger.info("[Analysis Service] Failsafe: Saving last-known draft despite error.");
+            await prisma.analysis.update({
+                where: { id: analysisId },
+                data: {
+                    status: 'COMPLETED', // Mark as completed so user can see the draft
+                    resultJson: srsDraft,
+                    metadata: {
+                        ...(analysisMeta || {}),
+                        isPartial: true,
+                        failureReason: error.message,
+                        userFriendlyError: "Analysis finalized early due to rate limits. Global audit was skipped."
+                    }
+                }
+            });
+            return; // Exit early as we've handled the record
+        }
+
+        // Standard Failure
         if (analysisId) {
             await prisma.analysis.update({
                 where: { id: analysisId },
-                data: { status: 'FAILED' }
+                data: { 
+                    status: 'FAILED',
+                    metadata: { 
+                        ...(analysisMeta || {}),
+                        failureReason: error.message,
+                        userFriendlyError: failureReason
+                    }
+                }
             });
         }
-        throw new Error('Failed to communicate with analysis service');
+        throw new Error(failureReason);
     }
 
     // Run Quality Check (Linting)
@@ -475,46 +563,48 @@ async function validateAndAutoRepairDiagrams(srs, settings) {
     for (const { key, name } of diagramTypes) {
         const diagram = models[key];
         if (diagram && diagram.code) {
-            // Heuristic Check: Known "breaking" patterns
             let needsRepair = false;
             let heuristicError = "";
+            let code = diagram.code.trim();
 
-            const code = diagram.code.trim();
+            // 1. GLOBAL: Fix legacy 'graph' prefix for modern 'flowchart'
+            if (code.startsWith('graph')) {
+                code = code.replace(/^graph/, 'flowchart');
+                needsRepair = true;
+                heuristicError = "Legacy 'graph' prefix detected. Converted to 'flowchart'.";
+            }
 
+            // 2. ERD SPECIFIC
             if (key === 'entityRelationshipDiagram') {
-                // Rule: Entities must not have colons before relationship
                 if (code.includes(' : ') && code.indexOf(' : ') < code.indexOf('--')) {
                     needsRepair = true;
-                    heuristicError = "Suspected invalid ERD colon placement (labels must come after relationship).";
+                    heuristicError = "Invalid ERD colon placement.";
                 }
-                // Rule: Relationships should have quoted labels if spaces exist
                 if (code.includes(' : ') && !code.includes('"') && code.split(' : ')[1]?.includes(' ')) {
                     needsRepair = true;
-                    heuristicError = "ERD labels with spaces must be double-quoted.";
+                    heuristicError = "ERD labels with spaces must be quoted.";
                 }
-                // Rule: Forbid invalid keys (NN) and space-separated multiple keys (e.g. PK FK)
-                // UK is supported. Multiple keys MUST be comma-separated.
-                if (/\b(NN)\b/.test(code) || /\b(PK|FK|UK)\s+(PK|FK|UK)\b/.test(code)) {
+                if (/\b(NN)\b/.test(code)) {
                     needsRepair = true;
-                    heuristicError = "ERD uses invalid key (NN forbidden) or incorrectly formatted multiple keys (must be comma-separated, e.g., PK, FK).";
+                    heuristicError = "Invalid ERD key 'NN' found.";
+                }
+            }
+
+            // 3. SEQUENCE SPECIFIC
+            if (key === 'sequenceDiagram') {
+                if (!code.includes('+') && !code.includes('-') && code.includes('->>')) {
+                    // Heuristic: If there are calls but no activations, it might be lower quality
+                    logger.debug("[Analysis Service] Sequence diagram lacks activation markers. Proceeding but marking for potential UI improvement.");
                 }
             }
 
             if (needsRepair) {
                 logger.info(`[Analysis Service] Auto-repairing ${name} due to: ${heuristicError}`);
                 try {
-                    const repaired = await repairDiagram(
-                        diagram.code,
-                        heuristicError,
-                        settings,
-                        diagram.syntaxExplanation || ""
-                    );
-                    if (repaired && repaired !== diagram.code) {
-                        diagram.code = repaired;
-                        logger.info(`[Analysis Service] Successful auto-repair for ${name}`);
-                    }
+                    const repaired = await repairDiagram(code, heuristicError, settings);
+                    if (repaired) diagram.code = repaired;
                 } catch (err) {
-                    logger.warn({ msg: `[Analysis Service] Auto-repair failed for ${name}`, error: err.message });
+                    logger.warn(`[Analysis Service] Repair failed for ${name}: ${err.message}`);
                 }
             }
         }

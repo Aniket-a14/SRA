@@ -1,9 +1,9 @@
 import { BaseAgent } from './BaseAgent.js';
-import { constructMasterPrompt } from '../utils/prompts.js';
+import { RefinedIntentSchema } from '../utils/aiSchemas.js';
 
 export class ProductOwnerAgent extends BaseAgent {
   constructor() {
-    super("Product Owner");
+    super("Product Owner", "gemini-2.5-flash");
   }
 
   async refineIntent(userInput, settings = {}) {
@@ -19,35 +19,12 @@ Emphasize business goals, user benefits, revenue impact, and operational efficie
 ${personaInstruction}
 
 ### SPECIFIC TASK:
-Refine the following user request for the project "${projectName}" into a structured JSON refined intent.
+Refine the following user request for the project "${projectName}" into a structured refined intent.
 
 User Input:
 "${userInput}"
-
-### OUTPUT SCHEMA (STRICTLY JSON ONLY):
-{
-  "projectTitle": "${projectName}",
-  "scopeSummary": "Summarize the product scope and purpose. Judge appropriate length/depth based on complexity.",
-  "features": [
-    {
-      "name": "Feature Name",
-      "description": "Explain the feature value. Depth should scale with complexity.",
-      "priority": "High/Medium/Low"
-    },
-    "... (Generate as many as needed based on project complexity)"
-  ],
-  "userStories": [
-    {
-      "role": "As a [Role]",
-      "action": "I want to [Action]",
-      "benefit": "So that [Benefit]",
-      "acceptanceCriteria": ["Criteria 1", "Criteria 2"]
-    },
-    "... (Generate as many as needed)"
-  ]
-}
 `;
 
-    return this.callLLM(prompt, 0.7, true);
+    return this.callLLM(prompt, 0.7, true, RefinedIntentSchema);
   }
 }

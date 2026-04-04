@@ -1,37 +1,46 @@
+import { getRedisClient } from '../src/config/redis.js';
+import dotenv from 'dotenv';
 
-// Simple script to verify Rate Limiting headers
-const BASE_URL = 'http://localhost:3000';
+dotenv.config();
 
-async function verifyRateLimit() {
-    console.log(`\n🔍 Verifying Rate Limiting (Redis) at ${BASE_URL}/api/health\n`);
+async function verifyRedis() {
+    console.log(`\n🔍 Verifying Redis Connection and Cache Operations...\n`);
+
+    const redis = getRedisClient();
+    
+    if (!redis) {
+        console.error("❌ Redis client not initialized. Check your REDIS_URL in .env");
+        process.exit(1);
+    }
 
     try {
-        const initialRes = await fetch(`${BASE_URL}/api/health`);
-        if (!initialRes.ok) {
-            console.error("❌ Stats Check Failed: Service might be down.");
-            return;
+        // 1. Check Ping
+        const pong = await redis.ping();
+        console.log(`   Ping Result: ✅ ${pong}`);
+
+        // 2. Test Set/Get
+        const testKey = 'verify:test:key';
+        const testValue = JSON.stringify({ status: 'success', timestamp: Date.now() });
+        
+        await redis.set(testKey, testValue, 'EX', 10);
+        const retrieved = await redis.get(testKey);
+
+        if (retrieved === testValue) {
+            console.log(`   Cache Set/Get: ✅ Success`);
+            console.log(`   Retrieved Data: ${retrieved}`);
+        } else {
+            console.error(`   Cache Set/Get: ❌ Failure (Mismatched data)`);
         }
 
-        console.log("Checking headers...");
-
-        // Loop a few times to see decrement
-        for (let i = 1; i <= 5; i++) {
-            const res = await fetch(`${BASE_URL}/api/health`);
-            const limit = res.headers.get('ratelimit-limit');
-            const remaining = res.headers.get('ratelimit-remaining');
-            const reset = res.headers.get('ratelimit-reset');
-
-            if (limit && remaining) {
-                console.log(`   Request ${i}: ✅ Success | Limit: ${limit} | Remaining: ${remaining}`);
-            } else {
-                console.log(`   Request ${i}: ⚠️ Missing Headers (Is Redis connected?)`);
-            }
-        }
-
-        console.log("\n✅ Verification Complete: If 'Remaining' count decreased, Redis Rate Limiting is working.");
+        // 3. Cleanup
+        await redis.del(testKey);
+        
+        console.log("\n✅ Redis Infrastructure Verified Successfully.");
+        process.exit(0);
     } catch (error) {
-        console.error("❌ Error running verification:", error.message);
+        console.error("❌ Redis verification failed:", error.message);
+        process.exit(1);
     }
 }
 
-verifyRateLimit();
+verifyRedis();

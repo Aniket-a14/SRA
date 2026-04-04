@@ -1,6 +1,8 @@
 import { BaseAgent } from './BaseAgent.js';
 import { retrieveContext, formatRagContext } from '../services/ragService.js';
 import { constructMasterPrompt } from '../utils/prompts.js';
+import { ArchitectSchema } from '../utils/aiSchemas.js';
+import { SchemaType } from "@google/generative-ai";
 import logger from '../config/logger.js';
 
 const QUERY_EXPANSION_PROMPT = `
@@ -15,7 +17,7 @@ Output JSON: { "queries": ["..."] }
 
 export class ArchitectAgent extends BaseAgent {
   constructor() {
-    super("System Architect");
+    super("System Architect", "gemini-2.5-flash");
   }
 
   async generateQueries(features) {
@@ -23,7 +25,14 @@ export class ArchitectAgent extends BaseAgent {
     const prompt = QUERY_EXPANSION_PROMPT.replace("{features}", featureList);
 
     try {
-      const result = await this.callLLM(prompt, 0.5, true);
+      const querySchema = {
+        type: SchemaType.OBJECT,
+        properties: {
+          queries: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }
+        },
+        required: ["queries"]
+      };
+      const result = await this.callLLM(prompt, 0.5, true, querySchema);
       return result.queries || [featureList.substring(0, 100)];
     } catch (e) {
       return [featureList.substring(0, 100)];
@@ -88,32 +97,11 @@ ${JSON.stringify(poOutput, null, 2)}
 Historical Context (RAG):
 ${ragContext || "No historical context available."}
 
-### OUTPUT SCHEMA (STRICTLY v1.1.0 COMPATIBLE):
-Return a JSON object only. NO markdown blocks.
-{
-  "techStack": { 
-    "frontend": "string (e.g. Next.js, Tailwind)", 
-    "backend": "string (e.g. Node.js, Express)", 
-    "database": "string (e.g. PostgreSQL, Redis)" 
-  },
-  "databaseSchema": [ 
-    { 
-      "table": "string", 
-      "columns": ["string (type)"], 
-      "relationships": ["string"] 
-    } 
-  ],
-  "designDecisions": [ 
-    "A single string starting with a Title: and followed by a justification. DO NOT use an object here. Use a flat array of strings." 
-  ]
-}
-
 ### FINAL RULES:
-1. "designDecisions" MUST be an ARRAY of strings, not an object.
-2. Ensure the JSON is complete and all arrays are closed. 
-3. Do not include any text before or after the JSON.
+1. Address all potential scalability and security concerns in the "designDecisions".
+2. Ensure the "databaseSchema" is normalization-aware.
 `;
 
-    return this.callLLM(prompt, 0.4, true);
+    return this.callLLM(prompt, 0.4, true, ArchitectSchema);
   }
 }

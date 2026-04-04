@@ -1,4 +1,5 @@
 import { BaseAgent } from './BaseAgent.js';
+import { AuditSchema } from '../utils/aiSchemas.js';
 
 /**
  * Critic Agent (Requirements Auditor)
@@ -7,6 +8,11 @@ import { BaseAgent } from './BaseAgent.js';
 
 const CRITIC_PROMPT = `
 You are a Senior Requirements Auditor. Your goal is to audit a Software Requirements Specification (SRS) against the **Original User Requirements** to ensure it creates a professional and faithful technical bridge.
+
+### IMPORTANT: SCORING RULES
+1. All scores (overallScore and individual metrics) MUST be on a scale of 0 to 100.
+2. A score of 85+ means the document is production-ready.
+3. Be brutally honest. If there are ambiguities, penalize the score.
 
 ### ORIGINAL USER REQUIREMENTS:
 {originalRequirements}
@@ -21,31 +27,11 @@ You are a Senior Requirements Auditor. Your goal is to audit a Software Requirem
 4. **Logical Consistency**: Are there technical contradictions? (e.g., "Requires 2FA" vs "Only basic email login allowed").
 5. **No Pedantry**: Do NOT penalize for missing metrics if they were not in the Original requirements. Judge based on faithful mapping.
 6. **Appendix C (TBD Management)**: If "TBD" or "placeholder" strings are found in the body, are they accurately summarized in Appendix C?
-
-Return ONLY JSON. All scores MUST be integers between 0 and 100:
-{
-  "scores": {
-    "clarity": 0,
-    "completeness": 0,
-    "conciseness": 0,
-    "consistency": 0,
-    "correctness": 0,
-    "context": 0
-  },
-  "overallScore": 0,
-  "ieeeCompliance": {
-    "status": "COMPLIANT | PARTIALLY_COMPLIANT | NON_COMPLIANT",
-    "missingSections": [],
-    "standardAdherence": "Summary of how well the doc follows the SRS pattern."
-  },
-  "criticalIssues": ["Issues where the SRS severely diverges from or ignores the input. Be specific."],
-  "suggestions": ["Improvements to the mapping or professional tone."]
-}
 `;
 
 export class CriticAgent extends BaseAgent {
     constructor() {
-        super("Senior QA Critic");
+        super("Senior QA Critic", "gemini-2.5-flash");
     }
 
     async auditSRS(originalRequirements, srsContent) {
@@ -53,19 +39,7 @@ export class CriticAgent extends BaseAgent {
             .replace("{originalRequirements}", JSON.stringify(originalRequirements, null, 2))
             .replace("{srs}", JSON.stringify(srsContent, null, 2));
 
-        try {
-            const auditResult = await this.callLLM(prompt, 0.3, true);
-            return auditResult;
-        } catch (error) {
-            console.error("Audit Error:", error);
-            return {
-                scores: {
-                    clarity: 0, completeness: 0, conciseness: 0, consistency: 0, correctness: 0, context: 0
-                },
-                overallScore: 0,
-                criticalIssues: ["Audit engine failed to process the SRS."],
-                suggestions: []
-            };
-        }
+        const auditResult = await this.callLLM(prompt, 0.3, true, AuditSchema);
+        return auditResult;
     }
 }

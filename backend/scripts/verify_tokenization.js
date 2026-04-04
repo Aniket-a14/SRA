@@ -1,21 +1,28 @@
 import { constructMasterPrompt } from '../src/utils/prompts.js';
+import dotenv from 'dotenv';
+dotenv.config();
 
 console.log("--- Lightweight Verification Started ---");
 
 // 1. Verify Prompts.js Syntax (Implicitly valid if import succeeds)
-try {
-  const prompt = constructMasterPrompt({ profile: 'default' });
-  console.log("SUCCESS: Prompts.js syntax is valid.");
-  if (prompt.includes('JSON Array of Strings')) {
-    console.log("SUCCESS: Prompt contains correct instruction.");
-  } else {
-    console.error("FAILURE: Prompt missing array instruction.");
+async function run() {
+  // 1. Verify Prompts.js Syntax
+  try {
+    const prompt = await constructMasterPrompt({ profile: 'default' });
+    console.log("SUCCESS: Prompts.js syntax is valid.");
+    if (typeof prompt === 'string' && prompt.includes('JSON Array of Strings')) {
+      console.log("SUCCESS: Prompt contains correct instruction.");
+    } else {
+      console.error("FAILURE: Prompt missing array instruction or is not a string.");
+      process.exit(1);
+    }
+  } catch (e) {
+    console.error("FAILURE: Prompts.js error:", e);
     process.exit(1);
   }
-} catch (e) {
-  console.error("FAILURE: Prompts.js error:", e);
-  process.exit(1);
 }
+
+run();
 
 // 2. Simulate Controller Tokenization Logic
 const srsData = {

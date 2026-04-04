@@ -3,11 +3,14 @@ import prisma from '../config/prisma.js';
 import { embedText } from './embeddingService.js';
 import logger from '../config/logger.js';
 import { traverseGraph } from './graphService.js';
+import { genAI } from '../config/gemini.js';
+
+// Global token limit for context injection (Layer 5 policy)
+// Increased to 32k tokens to leverage Gemini 2.5 Pro/Flash capacity while staying within Free Tier TPM limits.
+const CONTEXT_TOKEN_LIMIT = 32768; 
 
 /**
  * Retrieves granular knowledge chunks based on semantic similarity and keywords.
- * This is the core of Layer 5 "Granular RAG".
- * NOW ENHANCED WITH GRAPH RAG (Phase 1).
  */
 export const retrieveContext = async (queryText, projectId = null, limit = 5) => {
     try {
@@ -32,7 +35,6 @@ export const retrieveContext = async (queryText, projectId = null, limit = 5) =>
             JOIN "Analysis" a ON kc."sourceAnalysisId" = a.id
             LEFT JOIN "Project" p ON a."projectId" = p.id
             WHERE kc.embedding IS NOT NULL
-            -- PILLAR 2: Aggressive Prioritization of High-Quality (Gold Standard) fragments
             ORDER BY 
                 CASE WHEN kc."qualityScore" >= 0.85 THEN 1 ELSE 0 END DESC,
                 kc.embedding <=> ${vectorStr}::vector ASC
@@ -50,7 +52,6 @@ export const retrieveContext = async (queryText, projectId = null, limit = 5) =>
 
         // 2. Graph Retrieval (If Project Context exists)
         if (projectId) {
-            // Named Entity Heuristic: Extract capitalized words and filter common stop-words
             const stopWords = new Set(['The', 'And', 'For', 'This', 'That', 'With', 'From', 'Moreover', 'However', 'Furthermore']);
             const matches = queryText.match(/[A-Z][a-zA-Z0-9]+/g) || [];
             const potentialEntities = matches.filter(word => !stopWords.has(word));
@@ -58,11 +59,10 @@ export const retrieveContext = async (queryText, projectId = null, limit = 5) =>
             if (potentialEntities.length > 0) {
                 const graphContext = await traverseGraph(potentialEntities, projectId);
                 if (graphContext) {
-                    // We append Graph Context as a special "System Knowledge" chunk
                     vectorResults.push({
                         type: 'GRAPH_RELATIONSHIPS',
                         content: graphContext,
-                        similarity: 1.0, // High priority
+                        similarity: 1.0, 
                         sourceTitle: 'System Knowledge Graph'
                     });
                 }
@@ -78,37 +78,61 @@ export const retrieveContext = async (queryText, projectId = null, limit = 5) =>
 };
 
 /**
- * Formats retrieved chunks into a string for LLM prompt injection.
+ * Formats retrieved chunks into a string for LLM prompt injection with token-awareness.
+ * PILLAR 2: Aggressive prioritization of high-quality chunks.
  */
-export const formatRagContext = (chunks) => {
+export const formatRagContext = async (chunks) => {
     if (!chunks || chunks.length === 0) return "";
 
-    let context = "\n[RELEVANT_KNOWLEDGE_BASE_CONTEXT_START]\n";
-    context += "The following sections from similar finalized projects are provided for reference and pattern matching:\n\n";
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    let contextHeader = "\n[RELEVANT_KNOWLEDGE_BASE_CONTEXT_START]\nThe following sections from similar finalized projects are provided for reference:\n\n";
+    let formattedContext = contextHeader;
+    let currentTokens = 0;
 
-    chunks.forEach((chunk, i) => {
-        const sourceInfo = chunk.sourceTitle ? ` (from ${chunk.sourceTitle})` : "";
-        const qualityLabel = (chunk.qualityScore && chunk.qualityScore >= 0.85) ? " [GOLD STANDARD]" : "";
-        context += `--- REFERENCE ${i + 1} (${chunk.type}${sourceInfo})${qualityLabel} ---\n`;
-
-        let contentStr = JSON.stringify(chunk.content, null, 2);
-        // Truncate individual chunk content if it's excessively large (e.g. > 1500 chars)
-        if (contentStr.length > 1500) {
-            contentStr = contentStr.substring(0, 1500) + "\n... [TRUNCATED FOR BREVITY] ...";
-        }
-
-        context += contentStr;
-        context += "\n\n";
+    // Prioritization: 1. Graph, 2. Gold Standard, 3. General Similarity
+    const sortedChunks = [...chunks].sort((a, b) => {
+        if (a.type === 'GRAPH_RELATIONSHIPS') return -1;
+        if (b.type === 'GRAPH_RELATIONSHIPS') return 1;
+        return (b.qualityScore || 0) - (a.qualityScore || 0);
     });
 
-    context += "[RELEVANT_KNOWLEDGE_BASE_CONTEXT_END]\n";
+    try {
+        const { totalTokens: initialTokens } = await model.countTokens(contextHeader);
+        currentTokens = initialTokens;
 
-    // Final safety cap: Ensure total context doesn't exceed 8000 characters
-    if (context.length > 8000) {
-        context = context.substring(0, 8000) + "\n\n... [ADDITIONAL CONTEXT OMITTED TO PRESERVE MODEL FOCUS] ...\n[RELEVANT_KNOWLEDGE_BASE_CONTEXT_END]";
+        for (let i = 0; i < sortedChunks.length; i++) {
+            const chunk = sortedChunks[i];
+            const sourceInfo = chunk.sourceTitle ? ` (from ${chunk.sourceTitle})` : "";
+            const qualityLabel = (chunk.qualityScore && chunk.qualityScore >= 0.85) ? " [GOLD STANDARD]" : "";
+            
+            let chunkText = `--- REFERENCE ${i + 1} (${chunk.type}${sourceInfo})${qualityLabel} ---\n`;
+            let contentStr = JSON.stringify(chunk.content, null, 2);
+            
+            // Per-chunk safety cap before token check
+            if (contentStr.length > 10000) {
+                contentStr = contentStr.substring(0, 10000) + "... [DOC_SLICE] ...";
+            }
+            
+            chunkText += contentStr + "\n\n";
+
+            const { totalTokens: chunkTokens } = await model.countTokens(chunkText);
+
+            if (currentTokens + chunkTokens > CONTEXT_TOKEN_LIMIT) {
+                formattedContext += "--- [32768 TOKEN BUDGET REACHED: ADDITIONAL CONTEXT OMITTED] ---\n";
+                break;
+            }
+
+            formattedContext += chunkText;
+            currentTokens += chunkTokens;
+        }
+        
+    } catch (tokenError) {
+        logger.warn({ msg: "[RAG Service] Token counting failed, falling back to simple slicing", error: tokenError.message });
+        return chunks.map(c => JSON.stringify(c.content)).join("\n\n").substring(0, 100000);
     }
 
-    return context;
+    formattedContext += "[RELEVANT_KNOWLEDGE_BASE_CONTEXT_END]\n";
+    return formattedContext;
 };
 
 /**
