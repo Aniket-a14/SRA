@@ -6,9 +6,9 @@
     "node": ">=20.19.0"
   },
   "scripts": {
-    "dev": "cross-env NODE_OPTIONS='--max-old-space-size=4096' next dev -p 3001",
-    "build": "cross-env NODE_OPTIONS='--max-old-space-size=4096' next build",
-    "start": "cross-env NODE_OPTIONS='--max-old-space-size=4096' next start",
+    "dev": "cross-env NODE_OPTIONS='--max-old-space-size=8192' next dev -p 3001 --turbopack",
+    "build": "cross-env NODE_OPTIONS='--max-old-space-size=8192' next build",
+    "start": "cross-env NODE_OPTIONS='--max-old-space-size=8192' next start",
     "lint": "eslint ."
   },
   "dependencies": {
@@ -54,6 +54,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "1.0.4",
+    "core-js": "^3.40.0",
     "date-fns": "^4.1.0",
     "embla-carousel-react": "8.5.1",
     "file-saver": "^2.0.5",

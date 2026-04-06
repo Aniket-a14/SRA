@@ -20,6 +20,9 @@ const mockPrisma = {
     },
     knowledgeChunk: {
         createMany: jest.fn()
+    },
+    user: {
+        findUnique: jest.fn().mockResolvedValue({ id: 'e2e-user', name: 'Test User' }),
     }
 };
 

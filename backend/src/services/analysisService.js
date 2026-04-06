@@ -19,6 +19,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
     let resultJson;
     let analysisMeta = {};
     let finalIndustryAudit = null;
+    let srsDraft = null; // Declare upfront to avoid ReferenceError in catch block
 
     try {
         // ORCHESTRATION START
@@ -85,7 +86,11 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
              // Non-essential pruning if we are hitting limits
         }
 
-        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+        // Optimized sleep context for tests/mock mode
+        const sleep = (ms) => {
+            if (process.env.MOCK_AI === 'true') return Promise.resolve();
+            return new Promise(resolve => setTimeout(resolve, ms));
+        };
 
         // 3. Developer: Write initial draft (SECTIONAL GENERATION)
         logger.info("--> Agent: Developer (Sectional Generation: Shell)");
@@ -115,7 +120,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         const srsRequirements = await devAgent.generateRequirements(poOutput, archOutput, { projectName, version: promptVersion, ragContext });
 
         // STITCHING: Assemble the final draft
-        let srsDraft = {
+        srsDraft = {
             ...srsShell,
             systemFeatures: allFeatures,
             ...srsRequirements
