@@ -475,16 +475,16 @@ STRICT RULES:
 2. Mermaid syntax must be RAW string. No markdown code blocks. CRITICAL: Quote ALL node labels with spaces/symbols (e.g., id1["Text"]). Use simple alphanumeric IDs.
 3. System Features must follow specific structure defined above or output is INVALID.
 4. Output MUST be valid JSON only.
-5. ERD SPECIAL RULE: Relationships MUST be 'ENTITY1 rel ENTITY2 : "label"'. NO COLONS BEFORE LABELS.
+5. ERD SPECIAL RULE: Relationships MUST be 'ENTITY1 rel ENTITY2 : "label"'. Label MUST always be quoted. NO COLONS INSIDE ENTITY BLOCKS.
 6. ERD ATTRIBUTE RULE: Attributes MUST follow 'type name [PK|FK|UK] ["comment"]'.
-   - FORBIDDEN: \`NN\` or any other constraint. ONLY \`PK\`, \`FK\`, and \`UK\` are allowed.
+   - FORBIDDEN: \`NN\`, \`NOT NULL\`, or any non-standard constraint. ONLY \`PK\`, \`FK\`, and \`UK\` are valid key markers.
    - **Safety**: Attribute names MUST be alphanumeric (e.g., \`user_id\`). NO spaces, NO quotes. Entity names with spaces MUST be quoted.
 7. FLOWCHART RULE: NEVER use 'end', 'subgraph', or 'class' as node IDs. IDs must be alphanumeric and have NO spaces.
    - **Labels**: If text has spaces, it MUST be quoted: \`id["My Label"]\`.
 8. SEQUENCE RULE: Balance every \`activate\` with \`deactivate\`. Use \`->>+\` / \`-->>-\` shorthand if possible.
    - **Safety**: NEVER quote alias IDs. Avoid \`{}\` in messages. NO activations inside \`alt\`/\`opt\`/\`loop\` blocks.
-   - If multiple keys are needed, use ONLY PK or FK (whichever is more critical).
-   - NEVER combine keys (e.g., NO 'FK UK').
+   - Multiple keys CAN be combined using comma separation (e.g., 'int id PK, FK').
+   - Space-separated constraints (e.g., 'FK UK' without comma) are FORBIDDEN.
 
 User Input (Raw Description):
 `;

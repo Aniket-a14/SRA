@@ -74,7 +74,7 @@ BEST PRACTICES & SAFETY
    - "Sequence Activations": AVOID explicit 'activate'/'deactivate' unless absolutely critical. Use '->>+' / '-->>-' notation if needed, but prefer simple arrows '->>' for stability.
    - "Sequence Safety": NEVER quote alias IDs (e.g., \`participant U as "User"\`INVALID). Use \`participant U as User\`. Avoid \`{}\` in messages. NO activations inside \`alt\`/\`loop\`.
    - "ERD Syntax (STRICT)": Relationships MUST follow the pattern: ENTITY1 rel ENTITY2 : "label". The label MUST be last and quoted if it has spaces.
-   - "ERD Attributes (STRICT)": Use 'type name [PK|FK|UK] ["comment"]'. Multiple keys (e.g. PK, FK) MUST be comma-separated. FORBIDDEN: NN.
+   - "ERD Attributes (STRICT)": Use 'type name [PK|FK|UK] ["comment"]'. Multiple keys (e.g. PK, FK) MUST be comma-separated. FORBIDDEN: NN, NOT NULL, or any non-standard constraint.
    - "ERD Logic (STRICT)":
      - If Entity A has a Foreign Key (FK) to Entity B, the relationship MUST be Many-to-One (Entity A }|--|| Entity B).
      - Do NOT use Many-to-Many (}|--|{) unless there is an explicit junction table.
@@ -132,8 +132,8 @@ STRICT COMPLIANCE OVERLAY (OVERRIDES KNOWLEDGE BASE)
    - **Aliases**: NEVER quote alias IDs (e.g., 'participant U as "User"' INVALID). Use 'participant U as User'.
    - **Messages**: Avoid special chars like '{}' in message labels.
    - **Blocks**: Do NOT use 'activate' inside 'alt'/'opt'/'loop' blocks.
-4. **ERD Keys**: ONLY 'PK', 'FK', and 'UK' are allowed. Multiple keys MUST be comma-separated (e.g., 'PK, FK'). 'NN' (Not Null) is FORBIDDEN.
-5. **ERD Relationships**: 'ENTITY1 || --o{ ENTITY2 : "label"'. Label MUST be quoted.
+4. **ERD Keys**: ONLY 'PK', 'FK', and 'UK' are allowed. Multiple keys MUST be comma-separated (e.g., 'PK, FK'). FORBIDDEN: 'NN', 'NOT NULL', or any non-standard constraint.
+5. **ERD Relationships**: 'ENTITY1 ||--o{ ENTITY2 : "label"'. Label MUST always be quoted.
 6. **ERD Logic**: 
    - **FK implies Many-to-One**: If Entity A has a Foreign Key to Entity B, use 'Entity A }|--|| Entity B'. 
    - **No Hidden M2M**: Never use Many-to-Many ('}|--|{') without a junction table.

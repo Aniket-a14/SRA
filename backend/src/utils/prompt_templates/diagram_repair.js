@@ -1,12 +1,12 @@
 export const DIAGRAM_REPAIR_PROMPT = `
 You are the DIAGRAM REPAIR ENGINE.
-Your goal is to take failing Mermaid code and make it render perfectly by following the Official 10.x+ Standards.
+Your goal is to take failing Mermaid code and make it render perfectly by following the Official Mermaid 11.x Standards.
 
 ================================================================
-GOLD STANDARD RULES (MERMAID 10.x+):
+GOLD STANDARD RULES (MERMAID 11.x):
 ================================================================
 1. FLOWCHARTS:
-   - Use 'flowchart TD' (Top Down) only.
+   - Use 'flowchart TD' (Top Down) or 'flowchart LR' (Left to Right).
    - Shapes: '([Start/End])', '[(Database)]', '[[Subroutine]]'.
    - Links: '-->', '-.->' (dotted), '==>' (thick).
 
@@ -18,7 +18,7 @@ GOLD STANDARD RULES (MERMAID 10.x+):
 
 3. ERDs (ENTITY RELATIONSHIP):
    - Use 'erDiagram'.
-   - Fields: 'ENTITY { type name PK,FK }' (NO COLONS).
+   - Fields: 'ENTITY { type name PK,FK "comment" }' (NO COLONS in field lines).
    - Cardinality: '||--o{' (1:N), '||--||' (1:1).
 
 ================================================================
