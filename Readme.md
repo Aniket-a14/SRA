@@ -32,9 +32,9 @@
 
 ---
 
-## 🏛️ Executive Summary
+## 🏛️ Summary
 
-In contemporary software development, **43% of project failures** are attributed to poor requirements gathering. **SRA** mitigates this risk by providing an automated, multi-layered validation and synthesis engine. It serves as the bridge between business objectives and technical execution, ensuring that every project starts with a cohesive, logical, and architecturally sound foundation.
+Industry research, including PMI and other studies, indicates that a significant portion of project failures, often estimated between **30% and 50%**, can be traced back to poor requirements engineering, including unclear documentation, semantic ambiguity, and stakeholder misalignment. **SRA** mitigates this risk by providing an automated, multi-layered validation and synthesis engine.
 
 ### Core Value Propositions
 *   **Zero-Ambiguity Intake**: Standardizes raw stakeholder descriptions into structured architectural models.
