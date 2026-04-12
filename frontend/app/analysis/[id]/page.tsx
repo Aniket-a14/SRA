@@ -234,12 +234,21 @@ function AnalysisDetailContent() {
     const handleRunValidation = async () => {
         setIsValidating(true);
         try {
-            // First Save current draft to ensure validation uses latest data
             await updateAnalysis(id, token!, {
                 metadata: { ...analysis?.metadata, draftData, status: 'DRAFT' }
             });
 
             const result = await runValidation(id, token!);
+
+            if (result.validation_status === 'SERVICE_ERROR') {
+                const errInfo = result.service_error || {};
+                toast.error(errInfo.title || 'Validation Service Error', {
+                    description: errInfo.message || 'Please try again in a few moments.',
+                    duration: 6000
+                });
+                return;
+            }
+
             setValidationIssues(result.issues || []);
             mutate();
             toast.success("Validation Complete");

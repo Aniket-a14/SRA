@@ -94,18 +94,18 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
 
         // 3. Developer: Write initial draft (SECTIONAL GENERATION)
         logger.info("--> Agent: Developer (Sectional Generation: Shell)");
-        const srsShell = await devAgent.generateShell(poOutput, archOutput, { projectName, version: promptVersion, ragContext });
+        const srsShell = await devAgent.generateShell(text, poOutput, archOutput, { projectName, version: promptVersion, ragContext });
         
         await sleep(3000); // Cooling period
 
         logger.info("--> Agent: Developer (Sectional Generation: Features)");
-        const CHUNK_SIZE = 5;
+        const CHUNK_SIZE = 2;
         let allFeatures = [];
         
         for (let i = 0; i < featureList.length; i += CHUNK_SIZE) {
             const chunk = featureList.slice(i, i + CHUNK_SIZE);
             logger.info(`    [Features] Processing chunk ${Math.floor(i / CHUNK_SIZE) + 1}/${Math.ceil(featureList.length / CHUNK_SIZE)}`);
-            const featuresOutput = await devAgent.generateFeatures(poOutput, archOutput, chunk, { projectName, version: promptVersion, ragContext });
+            const featuresOutput = await devAgent.generateFeatures(text, srsShell, poOutput, archOutput, chunk, { projectName, version: promptVersion, ragContext });
             if (featuresOutput.systemFeatures) {
                 allFeatures = [...allFeatures, ...featuresOutput.systemFeatures];
             }
@@ -116,14 +116,22 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
 
         await sleep(3000); // Cooling period
 
-        logger.info("--> Agent: Developer (Sectional Generation: Requirements & Appendices)");
-        const srsRequirements = await devAgent.generateRequirements(poOutput, archOutput, { projectName, version: promptVersion, ragContext });
+        logger.info("--> Agent: Developer (Sectional Generation: Requirements & Glossary)");
+        const sections1And2 = { ...srsShell, systemFeatures: allFeatures };
+        const srsRequirements = await devAgent.generateRequirements(text, sections1And2, poOutput, archOutput, { projectName, version: promptVersion, ragContext });
+
+        await sleep(3000); // Cooling period
+
+        logger.info("--> Agent: Developer (Sectional Generation: Appendices & Diagrams)");
+        const sections123 = { ...sections1And2, ...srsRequirements };
+        const srsAppendices = await devAgent.generateAppendices(text, sections123, poOutput, archOutput, { projectName, version: promptVersion, ragContext });
 
         // STITCHING: Assemble the final draft
         srsDraft = {
             ...srsShell,
             systemFeatures: allFeatures,
-            ...srsRequirements
+            ...srsRequirements,
+            ...srsAppendices
         };
 
         // NEW: Repair Diagrams BEFORE Auditing (Defensive Generation)
@@ -154,8 +162,13 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
             logger.info(`    Review Status: ${review.status}, Quality Score: ${audit.overallScore}`);
 
             // C. Check if we meet the quality bar (Case-Insensitive)
-            if (review.status?.toUpperCase() === "APPROVED" && audit.overallScore >= QUALITY_THRESHOLD) {
-                logger.info("    [OK] Quality threshold met. Exiting reflection loop.");
+            // Intelligent Override: If score is near perfect (98+), allow pass even if Reviewer is stuck in pedantry
+            const isApproved = review.status?.toUpperCase() === "APPROVED";
+            const isHighQuality = audit.overallScore >= QUALITY_THRESHOLD;
+            const isExceptional = audit.overallScore >= 98;
+
+            if ((isApproved || isExceptional) && isHighQuality) {
+                logger.info(`    [OK] Quality threshold met${isExceptional && !isApproved ? " (Exceptional Score Override)" : ""}. Exiting reflection loop.`);
                 break;
             }
 
@@ -174,14 +187,47 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                 ...(audit.suggestions || []).map(suggestion => ({ severity: "MINOR", category: "Quality", issue: suggestion }))
             ];
 
+            const hasAppendicesFeedback = reflectionFeedback.some(f => f.issue.toLowerCase().includes('diagram') || f.issue.toLowerCase().includes('flowchart') || f.issue.toLowerCase().includes('erd'));
+            const hasNFRFeedback = reflectionFeedback.some(f => f.issue.toLowerCase().includes('requirement') || f.issue.toLowerCase().includes('security') || f.category === 'Security');
+            const hasFeatureFeedback = reflectionFeedback.some(f => f.issue.toLowerCase().includes('feature') || f.issue.toLowerCase().includes('function'));
+            
+            let targetSectionName = "Shell";
+            let targetDraft = { ...srsShell };
+
+            if (hasAppendicesFeedback) {
+                targetSectionName = "Appendices";
+                targetDraft = { ...srsAppendices };
+            } else if (hasNFRFeedback) {
+                targetSectionName = "Requirements";
+                targetDraft = { ...srsRequirements };
+            } else if (hasFeatureFeedback) {
+                targetSectionName = "Features";
+                targetDraft = { systemFeatures: allFeatures };
+            }
+
             // SURGICAL REFINEMENT: Developer only touches what's broken
-            srsDraft = await devAgent.refineSRS(
+            const refinedSection = await devAgent.refineSRS(
+                text,
                 poOutput,
                 archOutput,
-                srsDraft,
+                targetDraft,
+                targetSectionName,
                 reflectionFeedback,
                 { projectName }
             );
+
+            // Re-stitch based on which section was refined
+            if (targetSectionName === "Shell") {
+                srsDraft = { ...srsDraft, ...refinedSection };
+            } else if (targetSectionName === "Features") {
+                if (refinedSection.systemFeatures) allFeatures = refinedSection.systemFeatures;
+                srsDraft.systemFeatures = allFeatures;
+            } else if (targetSectionName === "Requirements") {
+                // Re-merge requirements
+                srsDraft = { ...srsDraft, ...refinedSection };
+            } else if (targetSectionName === "Appendices") {
+                srsDraft = { ...srsDraft, ...refinedSection };
+            }
         }
         
         // F. Post-Processing: Enforce Clean Revision History (Initial Release)

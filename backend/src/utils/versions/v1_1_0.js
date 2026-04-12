@@ -3,15 +3,13 @@ import { getDiagramAuthorityPrompt } from '../prompt_templates/diagram_authority
 export const generate = async (settings = {}) => {
   const {
     profile = "default",
-    depth = 3,      // 1-5 (Verbosity)
-    strictness = 3, // 1-5 (Creativity: 5=Creative, 1=Strict/Dry)
+    depth = 3,
+    strictness = 3,
     projectName = "Project"
   } = settings;
 
-  // 0. FETCH DYNAMIC AUTHORITY
   const diagramAuthority = await getDiagramAuthorityPrompt();
 
-  // Derive Prefix: Take uppercase initials or first 2-3 letters
   const projectPrefix = projectName
     .split(/\s+/)
     .map(word => word[0])
@@ -19,7 +17,6 @@ export const generate = async (settings = {}) => {
     .toUpperCase()
     .slice(0, 3) || "REQ";
 
-  // 1. PERSONA INJECTION
   let personaInstruction = "You are an expert Software Requirements Analyst strictly adhering to IEEE 830-1998 standards.";
 
   if (profile === "business_analyst") {
@@ -40,10 +37,8 @@ Your requirements must explicitly address Authentication, Authorization, Data Pr
       `;
   }
 
-  // 2. DEPTH/VERBOSITY (1 = Concise, 5 = Detailed)
   const detailLevel = depth <= 2 ? "Concise and high-level" : depth >= 4 ? "Extremely detailed and exhaustive" : "Detailed and professional";
 
-  // 3. STRICTNESS/CREATIVITY
   let creativityInstruction = "";
   if (strictness >= 4) {
     creativityInstruction = "STRICTNESS: HIGH. Do NOT infer features not explicitly requested. Stick exactly to the user input.";
@@ -145,6 +140,23 @@ VALID:
 INVALID:
 - "<ProjectName>: A system that manages …"
 
+================================================================
+TECHNOLOGY AGNOSTICISM (STRICT)
+================================================================
+
+1. DO NOT implicitly assume or inject specific technology stacks, frameworks, languages, or databases (e.g., React, Node, AWS, PostgreSQL, MongoDB, Spring Boot).
+2. The architectural definitions and text MUST remain strictly technology-agnostic (using generalized terms like "Primary Database", "Frontend Client", "Message Queue").
+3. The ONLY exception is if the user explicitly specifies a particular technology or framework in their raw user input/description, or if historical context mandates it.
+
+================================================================
+STRICT NARRATIVE DISCIPLINE (ZERO HALLUCINATION)
+================================================================
+
+1. ZERO ASSUMPTIONS: Do NOT assume features, constraints, user roles, or technical requirements that are not explicitly stated or logically necessitated by the Raw Description, PO Input, or Architecture.
+2. NO "FILLER" CONTENT: Do NOT invent hypothetical scenarios or use "Creative Writing" styles. This is a technical engineering specification.
+3. TBD ENFORCEMENT: If a critical detail is missing from the input that is required for a section (e.g., specific hardware interfaces), do NOT hallucinate a placeholder. Instead, state the missing detail and mark it for the [TBD List] in the Appendices.
+4. SOURCE TRACEABILITY: Every sentence in the SRS must be traceably derived from the provided input layers.
+
 *** SYSTEM INSTRUCTION: UNSTRUCTURED RAW INPUT PARSING ***
 You will receive a raw input which serves as the "Layer 2" transmission.
 The input is a **JSON Array of Strings** (e.g., ["Project:", "Name", "...", "Description:", "The", "app", ...]).
@@ -185,9 +197,9 @@ You must adhere to the following strict formatting rules. ANY violation will ren
 3. SELECTIVE KEYWORD BOLDING ONLY
    - You may ONLY use markdown bolding (**word**) for:
      * System Name (first occurrence per section)
-     * Platform Names (e.g., **iOS**, **Android**, **Web**)
-     * Key Technologies (e.g., **PostgreSQL**, **Redis**, **REST API**)
-     * Role-specific Applications (e.g., **Admin Dashboard**, **Driver App**)
+     * Platform Names (e.g., **Mobile Client**, **Web Portal**, **Desktop App**)
+     * Key Technologies if specified by user (e.g., **Primary Database**, **Message Queue**, **REST API**)
+     * Role-specific Applications (e.g., **Admin Dashboard**, **Customer Portal**)
    - DO NOT BOLD: Entire sentences, paragraphs, or non-technical words.
    - NO other markdown is allowed.
 
@@ -390,98 +402,155 @@ You must adhere to the following strict formatting rules. ANY violation will ren
 
 *** END CRITICAL INSTRUCTION ***
 
-You MUST return output ONLY in the following exact JSON structure. Do not add extra fields.
+================================================================
+IEEE 830-1998 SECTION GUIDELINES (MANDATORY CONTENT RULES)
+================================================================
+You MUST refer to these definitions when generating the content for each specific section.
 
-{
-  "projectTitle": "${projectName}",
-  "revisionHistory": [
-    { "version": "1.0", "date": "YYYY-MM-DD", "description": "Initial Release", "author": "SRA System" }
-  ],
-  "introduction": {
-    "purpose": "Strictly 1 concise paragraph explaining the goal and scope.",
-    "documentConventions": "Strictly 1 concise paragraph explaining standards used.",
-    "intendedAudience": "Strictly 1 concise paragraph defining who the document is for.",
-    "productScope": "Strictly 1 concise paragraph summarizing the technical boundaries.",
-    "references": [
-      "IEEE 830-1998 IEEE Recommended Practice for Software Requirements Specifications.",
-      "ISO/IEC/IEEE 29148:2018 Systems and software engineering — Life cycle processes — Requirements engineering."
-    ]
-  },
-  "overallDescription": {
-    "productPerspective": "Describe the context and origin of the product being specified in this SRS. For example, state whether this product is a follow-on member of a product family, a replacement for certain existing systems, or a new, self-contained product. If the SRS defines a component of a larger system, relate the requirements of the larger system to the functionality of this software and identify interfaces between the two. A simple diagram that shows the major components of the overall system, subsystem interconnections, and external interfaces can be helpful. Split into paragraphs.",
-    "productFunctions": ["Summarize the major functions the product must perform or must let the user perform. Details will be provided in Section 3, so only a high level summary (such as a bullet list) is needed here. Organize the functions to make them understandable to any reader of the SRS."],
-    "userClassesAndCharacteristics": [
-      { "userClass": "Name of user class", "characteristics": "Identify the various user classes that you anticipate will use this product. User classes may be differentiated based on frequency of use, subset of product functions used, technical expertise, security or privilege levels, educational level, or experience. Describe the pertinent characteristics of each user class. Certain requirements may pertain only to certain user classes. Distinguish the most important user classes for this product from those who are less important to satisfy." }
-    ],
-    "operatingEnvironment": "Describe the environment in which the software will operate, including the hardware platform, operating system and versions, and any other software components or applications with which it must peacefully coexist. Split into paragraphs.",
-    "designAndImplementationConstraints": ["Describe any items or issues that will limit the options available to the developers. These might include: corporate or regulatory policies; hardware limitations (timing requirements, memory requirements); interfaces to other applications; specific technologies, tools, and databases to be used; parallel operations; language requirements; communications protocols; security considerations; design conventions or programming standards (for example, if the customer’s organization will be responsible for maintaining the delivered software)."],
-    "userDocumentation": ["List the user documentation components (such as user manuals, on-line help, and tutorials) that will be delivered along with the software. Identify any known user documentation delivery formats or standards."],
-    "assumptionsAndDependencies": ["List any assumed factors (as opposed to known facts) that could affect the requirements stated in the SRS. These could include third-party or commercial components that you plan to use, issues around the development or operating environment, or constraints. The project could be affected if these assumptions are incorrect, are not shared, or change. Also identify any dependencies the project has on external factors, such as software components that you intend to reuse from another project, unless they are already documented elsewhere (for example, in the vision and scope document or the project plan)."]
-  },
-  "externalInterfaceRequirements": {
-    "userInterfaces": "Describe the logical characteristics of each interface between the software product and the users. This may include sample screen images, any GUI standards or product family style guides that are to be followed, screen layout constraints, standard buttons and functions (e.g., help) that will appear on every screen, keyboard shortcuts, error message display standards, and so on. Define the software components for which a user interface is needed. Details of the user interface design should be documented in a separate user interface specification. Split into paragraphs.",
-    "hardwareInterfaces": "Describe the logical and physical characteristics of each interface between the software product and the hardware components of the system. This may include the supported device types, the nature of the data and control interactions between the software and the hardware, and communication protocols to be used.",
-    "softwareInterfaces": "Describe the connections between this product and other specific software components (name and version), including databases, operating systems, tools, libraries, and integrated commercial components. Identify the data items or messages coming into the system and going out and describe the purpose of each. Describe the services needed and the nature of communications. Refer to documents that describe detailed application programming interface protocols. Identify data that will be shared across software components. If the data sharing mechanism must be implemented in a specific way (for example, use of a global data area in a multitasking operating system), specify this as an implementation constraint.",
-    "communicationsInterfaces": "Describe the requirements associated with any communications functions required by this product, including e-mail, web browser, network server communications protocols, electronic forms, and so on. Define any pertinent message formatting. Identify any communication standards that will be used, such as FTP or HTTP. Specify any communication security or encryption issues, data transfer rates, and synchronization mechanisms."
-  },
-  "systemFeatures": [
-    {
-      "name": "Feature Name (Concise)",
-      "description": "4.x.1 Description and Priority: Provide a professional description (1-2 paragraphs) explaining business and user value. Include a Priority rating (High, Medium, or Low) and rationale.",
-      "stimulusResponseSequences": ["4.x.2 Stimulus/Response Sequences: List sequences as 'Stimulus: <action> Response: <behavior>'. These must map to specific use case dialogs."],
-      "functionalRequirements": ["4.x.3 Functional Requirements: Itemize as atomic 'The system shall...' statements. Use 'TBD' if details are pending, and ensure these are mirrored in Appendix C."]
-    }
-  ],
-  "nonFunctionalRequirements": {
-    "performanceRequirements": ["State requirements AND rationale. (IEEE-830 Section 5.1)"],
-    "safetyRequirements": ["Define safeguards AND rationale. (IEEE-830 Section 5.2)"],
-    "securityRequirements": ["Specify authentication/privacy AND rationale. (IEEE-830 Section 5.3)"],
-    "softwareQualityAttributes": ["IEEE-830 Section 5.4: Specify attributes AND rationale (Adaptability, Availability, Correctness, Flexibility, Interoperability, Maintainability, Portability, Reliability, Reusability, Robustness, Testability, Usability)."],
-    "businessRules": ["List all operating principles and regulatory constraints. (IEEE-830 Section 5.5)"]
-  },
-  "otherRequirements": ["Define any other requirements not covered elsewhere. (IEEE-830 Section 6)"],
-  "glossary": [
-    { "term": "Term", "definition": "Define terms, acronyms, and abbreviations." }
-  ],
-  "appendices": {
-    "analysisModels": {
-      "flowchartDiagram": { 
-          "syntaxExplanation": "FORMAL SPECIFICATION: Explanation of flow grammar and rules.", 
-          "code": "Mermaid flowchart TD code...", 
-          "caption": "System process flow and decisions." 
-      },
-      "sequenceDiagram": { 
-          "syntaxExplanation": "FORMAL SPECIFICATION: Explanation of participants and time flow.", 
-          "code": "Mermaid sequenceDiagram code...", 
-          "caption": "Core workflow sequence interaction." 
-      },
-      "entityRelationshipDiagram": { 
-          "syntaxExplanation": "FORMAL SPECIFICATION: ER Entity and Cardinality rules.", 
-          "code": "Mermaid erDiagram code...", 
-          "caption": "Entity relationship diagram with attributes." 
-      }
-    },
-    "tbdList": ["Appendix C: Provide a numbered list of all TBD (to be determined) items found in this document. If none, provide an empty array."]
-  },
-  "promptSettingsUsed": {
-      "profile": "${profile}",
-      "depth": ${depth},
-      "strictness": ${strictness}
-  }
-}
+[1] INTRODUCTION
+- purpose: Identify the product whose software requirements are specified in this document, including the
+revision or release number. Describe the scope of the product that is covered by this SRS,
+particularly if this SRS describes only part of the system or a single subsystem.
+- documentConventions: Describe any standards or typographical conventions that were followed when writing this SRS,
+such as fonts or highlighting that have special significance. For example, state whether priorities
+for higher-level requirements are assumed to be inherited by detailed requirements, or whether
+every requirement statement is to have its own priority
+- intendedAudience: Describe the different types of reader that the document is intended for, such as developers,
+project managers, marketing staff, users, testers, and documentation writers. Describe what the
+rest of this SRS contains and how it is organized. Suggest a sequence for reading the document,
+beginning with the overview sections and proceeding through the sections that are most pertinent
+to each reader type.
+- productScope: Provide a short description of the software being specified and its purpose, including relevant
+benefits, objectives, and goals. Relate the software to corporate goals or business strategies. If a
+separate vision and scope document is available, refer to it rather than duplicating its contents
+here.
+- references: List any other documents or Web addresses to which this SRS refers. These may include user
+interface style guides, contracts, standards, system requirements specifications, use case
+documents, or a vision and scope document. Provide enough information so that the reader could
+access a copy of each reference, including title, author, version number, date, and source or
+location.
+
+[2] OVERALL DESCRIPTION
+- productPerspective: Describe the context and origin of the product being specified in this SRS. For example, state
+whether this product is a follow-on member of a product family, a replacement for certain existing
+systems, or a new, self-contained product. If the SRS defines a component of a larger system,
+relate the requirements of the larger system to the functionality of this software and identify
+interfaces between the two. A simple diagram that shows the major components of the overall
+system, subsystem interconnections, and external interfaces can be helpful.
+- productFunctions: Summarize the major functions the product must perform or must let the user perform. Details
+will be provided in Section 3, so only a high level summary (such as a bullet list) is needed here.
+Organize the functions to make them understandable to any reader of the SRS. A picture of the
+major groups of related requirements and how they relate, such as a top level data flow diagram or
+object class diagram, is often effective.
+- userClassesAndCharacteristics: Identify the various user classes that you anticipate will use this product. User classes may be
+differentiated based on frequency of use, subset of product functions used, technical expertise,
+security or privilege levels, educational level, or experience. Describe the pertinent characteristics
+of each user class. Certain requirements may pertain only to certain user classes. Distinguish the
+most important user classes for this product from those who are less important to satisfy.
+- operatingEnvironment: Describe the environment in which the software will operate, including the hardware platform,
+operating system and versions, and any other software components or applications with which it
+must peacefully coexist.
+- designAndImplementationConstraints: Describe any items or issues that will limit the options available to the developers. These might
+include: corporate or regulatory policies; hardware limitations (timing requirements, memory
+requirements); interfaces to other applications; specific technologies, tools, and databases to be
+used; parallel operations; language requirements; communications protocols; security
+considerations; design conventions or programming standards (for example, if the customer’s
+organization will be responsible for maintaining the delivered software).
+- userDocumentation: List the user documentation components (such as user manuals, on-line help, and tutorials) that
+will be delivered along with the software. Identify any known user documentation delivery formats
+or standards.
+- assumptionsAndDependencies: List any assumed factors (as opposed to known facts) that could affect the requirements stated in
+the SRS. These could include third-party or commercial components that you plan to use, issues
+around the development or operating environment, or constraints. The project could be affected if
+these assumptions are incorrect, are not shared, or change. Also identify any dependencies the
+project has on external factors, such as software components that you intend to reuse from
+another project, unless they are already documented elsewhere (for example, in the vision and
+scope document or the project plan).
+
+[3] EXTERNAL INTERFACE REQUIREMENTS
+- userInterfaces: Describe the logical characteristics of each interface between the software product and the
+users. This may include sample screen images, any GUI standards or product family style guides
+that are to be followed, screen layout constraints, standard buttons and functions (e.g., help) that
+will appear on every screen, keyboard shortcuts, error message display standards, and so on.
+Define the software components for which a user interface is needed. Details of the user interface
+design should be documented in a separate user interface specification.
+- hardwareInterfaces: Describe the logical and physical characteristics of each interface between the software product
+and the hardware components of the system. This may include the supported device types, the
+nature of the data and control interactions between the software and the hardware, and
+communication protocols to be used.
+- softwareInterfaces: Describe the connections between this product and other specific software components (name
+and version), including databases, operating systems, tools, libraries, and integrated commercial
+components. Identify the data items or messages coming into the system and going out and
+describe the purpose of each. Describe the services needed and the nature of communications.
+Refer to documents that describe detailed application programming interface protocols. Identify
+data that will be shared across software components. If the data sharing mechanism must be
+implemented in a specific way (for example, use of a global data area in a multitasking operating
+system), specify this as an implementation constraint.
+- communicationsInterfaces: Describe the requirements associated with any communications functions required by this
+product, including e-mail, web browser, network server communications protocols, electronic
+forms, and so on. Define any pertinent message formatting. Identify any communication standards
+that will be used, such as FTP or HTTP. Specify any communication security or encryption issues,
+data transfer rates, and synchronization mechanisms.
+
+[4] SYSTEM FEATURES
+- Feature Name: Must be concise.
+- description: 4.x.1 Description and Priority: Provide a short description of the feature and indicate whether it is of High,
+Medium, or Low priority. You could also include specific priority component ratings,
+such as benefit, penalty, cost, and risk (each rated on a relative scale from a low of 1
+to a high of 9).
+- stimulusResponseSequences: 4.x.2 Stimulus/Response Sequences: List sequences as 'Stimulus: <action> Response: <behavior>'. Must map to use cases.
+- functionalRequirements: 4.x.3 Functional Requirements: Itemize as atomic 'The system shall...' statements. Use 'TBD' if pending.
+
+[5] NON-FUNCTIONAL REQUIREMENTS
+- performanceRequirements: If there are performance requirements for the product under various circumstances, state them
+here and explain their rationale, to help the developers understand the intent and make suitable
+design choices. Specify the timing relationships for real time systems. Make such requirements as
+specific as possible. You may need to state performance requirements for individual functional
+requirements or features.
+- safetyRequirements: Specify those requirements that are concerned with possible loss, damage, or harm that could
+result from the use of the product. Define any safeguards or actions that must be taken, as well as
+actions that must be prevented. Refer to any external policies or regulations that state safety
+issues that affect the product’s design or use. Define any safety certifications that must be
+satisfied.
+- securityRequirements: Specify any requirements regarding security or privacy issues surrounding use of the product or
+protection of the data used or created by the product. Define any user identity authentication
+requirements. Refer to any external policies or regulations containing security issues that affect the
+product. Define any security or privacy certifications that must be satisfied.
+- softwareQualityAttributes: Specify any additional quality characteristics for the product that will be important to either the
+customers or the developers. Some to consider are: adaptability, availability, correctness,
+flexibility, interoperability, maintainability, portability, reliability, reusability, robustness, testability,
+and usability. Write these to be specific, quantitative, and verifiable when possible. At the least,
+clarify the relative preferences for various attributes, such as ease of use over ease of learning.
+- businessRules: List any operating principles about the product, such as which individuals or roles can perform
+which functions under specific circumstances. These are not functional requirements in
+themselves, but they may imply certain functional requirements to enforce the rules.
+
+[6] OTHER REQUIREMENTS:Define any other requirements not covered elsewhere in the SRS. This might include database
+requirements, internationalization requirements, legal requirements, reuse objectives for the
+project, and so on. Add any new sections that are pertinent to the project.
+
+[7] GLOSSARY: Define all the terms necessary to properly interpret the SRS, including acronyms and
+abbreviations. You may wish to build a separate glossary that spans multiple projects or the entire
+organization, and just include terms specific to a single project in each SRS.
+
+[8] APPENDICES
+- analysisModels: (flowchartDiagram, sequenceDiagram, entityRelationshipDiagram). Must include "syntaxExplanation", "code", and "caption".
+- tbdList: Collect a numbered list of the TBD (to be determined) references that remain in the SRS so they
+can be tracked to closure.
+
+Output MUST be returned as a structured JSON object according to the requested API schema. Ensure all fields adhere strictly to the qualitative depth and the IEEE 830-1998 definitions established above.
 
 STRICT RULES:
 1. "flowchartDiagram", "sequenceDiagram", "entityRelationshipDiagram" must be objects with "syntaxExplanation", "code", and "caption". "dataFlowDiagram" must have "level0", "level1", "syntaxExplanation", and "caption".
 2. Mermaid syntax must be RAW string. No markdown code blocks. CRITICAL: Quote ALL node labels with spaces/symbols (e.g., id1["Text"]). Use simple alphanumeric IDs.
 3. System Features must follow specific structure defined above or output is INVALID.
-4. Output MUST be valid JSON only.
-5. ERD SPECIAL RULE: Relationships MUST be 'ENTITY1 rel ENTITY2 : "label"'. Label MUST always be quoted. NO COLONS INSIDE ENTITY BLOCKS.
+4. ERD SPECIAL RULE: Relationships MUST be 'ENTITY1 rel ENTITY2 : "label"'. Label MUST always be quoted. NO COLONS INSIDE ENTITY BLOCKS.
 6. ERD ATTRIBUTE RULE: Attributes MUST follow 'type name [PK|FK|UK] ["comment"]'.
    - FORBIDDEN: \`NN\`, \`NOT NULL\`, or any non-standard constraint. ONLY \`PK\`, \`FK\`, and \`UK\` are valid key markers.
    - **Safety**: Attribute names MUST be alphanumeric (e.g., \`user_id\`). NO spaces, NO quotes. Entity names with spaces MUST be quoted.
 7. FLOWCHART RULE: NEVER use 'end', 'subgraph', or 'class' as node IDs. IDs must be alphanumeric and have NO spaces.
    - **Labels**: If text has spaces, it MUST be quoted: \`id["My Label"]\`.
-8. SEQUENCE RULE: Balance every \`activate\` with \`deactivate\`. Use \`->>+\` / \`-->>-\` shorthand if possible.
+8. SEQUENCE RULE: DO NOT use lifecycle activations (\`activate\` / \`deactivate\` keywords or \`+\` / \`-\` arrow shorthands). They cause rendering crashes if unbalanced.
    - **Safety**: NEVER quote alias IDs. Avoid \`{}\` in messages. NO activations inside \`alt\`/\`opt\`/\`loop\` blocks.
    - Multiple keys CAN be combined using comma separation (e.g., 'int id PK, FK').
    - Space-separated constraints (e.g., 'FK UK' without comma) are FORBIDDEN.

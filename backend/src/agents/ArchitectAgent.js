@@ -17,7 +17,7 @@ Output JSON: { "queries": ["..."] }
 
 export class ArchitectAgent extends BaseAgent {
   constructor() {
-    super("System Architect", "gemini-2.5-flash");
+    super("System Architect");
   }
 
   async generateQueries(features) {
@@ -99,7 +99,7 @@ ${ragContext || "No historical context available."}
 
 ### FINAL RULES:
 1. Address all potential scalability and security concerns in the "designDecisions".
-2. Ensure the "databaseSchema" is normalization-aware.
+2. Ensure the "databaseSchema" is normalization-aware, but strictly limit to the top 10-12 core tables. Do not exceed this limit.
 `;
 
     return this.callLLM(prompt, 0.4, true, ArchitectSchema);

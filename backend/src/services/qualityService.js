@@ -139,7 +139,7 @@ export const checkAlignment = async (originalInput, validationContext, srsOutput
 
     // Call AI
     const response = await analyzeText(text, {
-        modelName: 'gemini-2.5-flash',
+        modelName: process.env.GEMINI_MODEL_NAME || 'gemini-2.5-flash',
         systemPrompt: systemPrompt,
         temperature: 0.0 // Strict logic
     });

@@ -31,7 +31,7 @@ You are a Senior Requirements Auditor. Your goal is to audit a Software Requirem
 
 export class CriticAgent extends BaseAgent {
     constructor() {
-        super("Senior QA Critic", "gemini-2.5-flash");
+        super("Senior QA Critic");
     }
 
     async auditSRS(originalRequirements, srsContent) {

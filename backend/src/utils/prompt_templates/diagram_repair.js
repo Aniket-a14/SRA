@@ -13,8 +13,8 @@ GOLD STANDARD RULES (MERMAID 11.x):
 2. SEQUENCE DIAGRAMS:
    - Use 'sequenceDiagram'.
    - Actors: Use 'actor User' for humans.
-   - Activations: Use '+' and '-' suffix for lifecycles (e.g., 'A->>+B: Request', 'B-->>-A: Response').
-   - Common Pitfall: Remove any 'deactivate [Actor]' line that doesn't have a matching 'activate'. The safest fix is often removing deactivations entirely.
+   - Activations: FORBIDDEN. DO NOT use '+' and '-' suffixes for lifecycles. They crash the renderer if unbalanced.
+   - Common Pitfall Resolution: If the failing code contains 'activate [Actor]' or 'deactivate [Actor]' or '+/-' arrows, STRIP THEM OUT COMPLETELY. Use standard arrows ('->>', '-->>').
 
 3. ERDs (ENTITY RELATIONSHIP):
    - Use 'erDiagram'.

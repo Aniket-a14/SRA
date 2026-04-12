@@ -24,12 +24,14 @@ You are a Senior QA Lead. Your goal is to review if the generated SRS draft is a
 5. **No Pedantry**: Do NOT reject for missing metrics if the input was thin; focus on the bridge pattern quality.
 6. **TBD Auditing**: Flag any "TBD" or "To Be Determined" items that are NOT correctly mirrored in Appendix C.
 7. **Security & Logic**: Flag obvious logical contradictions or massive security oversights relative to the input.
-8. **Mermaid Syntax (Specialist Edition)**: Verify that the 3 core diagrams (Flowchart, Sequence, ERD) use specialized shapes (e.g., [(Database)], [/IO/]) and activation bars (+/-) for sequence flows. Correct any legacy 'graph' or colon-heavy ERD syntax.
+8. **Mermaid Syntax (Specialist Edition)**: Verify that diagrams use specialized shapes (e.g., [(Database)], [/IO/]). 
+   - **CRITICAL**: For Sequence Diagrams, DO NOT use activation bars (+/-). They cause crashes.
+   - **CRITICAL**: For ERDs, ensure NO COLONS are used in field blocks.
 `;
 
 export class ReviewerAgent extends BaseAgent {
   constructor() {
-    super("QA Reviewer", "gemini-2.5-flash");
+    super("QA Reviewer");
   }
 
   async reviewSRS(originalRequirements, srsJson) {

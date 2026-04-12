@@ -188,7 +188,12 @@ export const SRSShellSchema = {
             }
         }
     },
-    required: ["projectTitle", "introduction", "overallDescription"]
+    required: [
+        "projectTitle", 
+        "revisionHistory", 
+        "introduction", 
+        "overallDescription"
+    ]
 };
 
 export const SRSFeaturesSchema = {
@@ -245,12 +250,26 @@ export const SRSRequirementsSchema = {
                     definition: { type: SchemaType.STRING }
                 }
             }
-        },
+        }
+    },
+    required: [
+        "externalInterfaceRequirements",
+        "nonFunctionalRequirements",
+        "otherRequirements",
+        "glossary"
+    ]
+};
+
+export const SRSAppendicesSchema = {
+    type: SchemaType.OBJECT,
+    description: "SRS Appendices containing structural technical diagrams and TBD lists.",
+    properties: {
         appendices: {
             type: SchemaType.OBJECT,
             properties: {
                 analysisModels: {
                     type: SchemaType.OBJECT,
+                    description: "Structural Mermaid diagrams for the architecture.",
                     properties: {
                         flowchartDiagram: {
                             type: SchemaType.OBJECT,
@@ -282,7 +301,7 @@ export const SRSRequirementsSchema = {
             }
         }
     },
-    required: ["nonFunctionalRequirements", "appendices"]
+    required: ["appendices"]
 };
 
 export const SRSSchema = {

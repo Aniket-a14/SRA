@@ -13,7 +13,7 @@ export async function analyzeText(text, settings = {}) {
   const sanitizedText = sanitizePII(text);
   const {
     modelProvider = "google",
-    modelName = "gemini-2.5-flash",
+    modelName = process.env.GEMINI_MODEL_NAME || "gemini-2.5-flash",
     promptVersion = getLatestVersion(),
     systemPrompt = null,
     projectId = null, // Extract projectId if available
@@ -153,7 +153,7 @@ ${text}
         output = completion.choices[0].message.content;
       } else {
         const model = genAI.getGenerativeModel({
-          model: modelName || "gemini-2.5-flash",
+          model: modelName || process.env.GEMINI_MODEL_NAME || "gemini-3-flash-preview",
           generationConfig: {
             responseMimeType: "application/json",
             temperature: settings.temperature || 0.7
@@ -275,7 +275,7 @@ ${text}
 
 export async function repairDiagram(code, error, settings = {}, customInstruction = "") {
   const {
-    modelName = "gemini-2.5-flash",
+    modelName = process.env.GEMINI_MODEL_NAME || "gemini-3-flash-preview",
   } = settings;
 
   const finalPrompt = `

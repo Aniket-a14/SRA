@@ -2,161 +2,93 @@ import { analyzeText } from "./aiService.js";
 import crypto from 'crypto';
 
 const VALIDATION_PROMPT_TEMPLATE = `
-You are operating as Layer 2 of the SRA system.
+<role>
+You are a senior consultant reviewing a client's software project brief before handing it to your engineering team.
+Your default recommendation is PASS. You only raise concerns when the brief references something your team genuinely cannot know — information locked inside the client's organization.
+</role>
 
-You receive from Layer 1:
-A project name
-A raw, unstructured project description
+<task>
+Review the provided project description and determine if the engineering team (the SRS generator) has enough information to write the SRS without inventing client-specific details.
 
-Your role is to validate clarity, semantic correctness, and IEEE SRS mappability, while ensuring stable, predictable behavior across repeated runs.
+Step 1: Confirm the input is meaningful (not gibberish) and describes a feasible software system. If not, return FAIL.
+Step 2: Read the entire description and identify the client's intent for each feature.
+Step 3: For each potential concern, apply the Decision Test below. Only concerns that survive the test become issues.
+Step 4: Return your assessment as JSON.
+</task>
 
-You are not generating requirements.
-You are not designing the system.
-You are a gatekeeper and clarity enforcer.
+<decision_test>
+For every potential concern, ask this single question:
 
-Absolute Entry Condition: Meaningfulness & Feasibility Check
-Before any validation:
-1. Confirm the project name represents a real, human-intended concept
-2. Confirm the raw description expresses a genuine software/system idea
-3. Feasibility Assessment: Confirm the request is technically and logically possible.
-   - Fail if the request violates laws of physics (e.g., time travel, perpetual motion).
-   - Fail if it is logically impossible (e.g., square circles) or requires "AGI/Singularity" level intelligence.
+"Is this something only THIS CLIENT can answer — something specific to their organization, their named systems, their proprietary rules, or their unique business decisions?"
 
-Immediately fail validation if:
-The text is random, meaningless, or incoherent
-No clear product intent exists
-The request is NOT_FEASIBLE
-The description cannot reasonably map to any IEEE SRS section
-Garbage input must never pass.
+- If YES → It is a genuine gap. Include it.
+- If NO → The engineering team handles it. Drop it entirely. Do not include it as a WARNING.
 
-Core Stability Requirement (Non-Negotiable)
-For the same project name and the same raw description, your validation result must be conceptually identical across runs.
-Differences in wording are acceptable
-Differences in what issues are raised are not
-Your responsibility is consistency, not rediscovery.
+Key signals of a genuine gap:
+- Possessive/internal language: "our system", "our rules", "existing platform", "company policy", "internal process"
+- Named but undefined entities: references to specific systems, teams, or standards the client assumes you know
+- Business intent that could mean fundamentally different products (not different implementations of the same product)
 
-Fixed Conceptual Validation Categories (Must Not Change)
-You must always evaluate the input against the following fixed set of categories, in this order, every time:
-1. Feasibility Study (Technical and logical viability)
-2. Product purpose and scope clarity
+Things that are never gaps (drop these immediately):
+- Design decisions (free-text vs dropdown, email vs push notification, fixed vs configurable lists)
+- Implementation details (field schemas, permission matrices, moderation tools, reminder timing)
+- Standard domain knowledge (industry KPIs, common workflows, standard roles)
+- Feature elaboration (the engineering team defines the sub-steps, formats, and mechanics)
+</decision_test>
+
+<examples>
+Example 1 — Correct output: PASS (zero issues)
+Brief: "A task management app where users create projects, add tasks with due dates, assign tasks to team members, and track progress via a kanban board. Users sign up with email. Admins manage workspaces."
+Why PASS: Every feature has clear intent. Board layout, notifications, and permissions are standard patterns.
+
+Example 2 — Correct output: PASS (zero issues)
+Brief: "An e-commerce platform for handmade crafts. Sellers list products with photos and prices. Buyers browse, add to cart, and checkout. The platform takes a commission. Sellers track orders and manage inventory."
+Why PASS: Commission rate, payment flow, and inventory management are standard e-commerce patterns. No organization-specific unknowns.
+
+Example 3 — Correct output: CLARIFICATION_REQUIRED
+Brief: "A booking system for our clinic. Patients book appointments. The system integrates with our existing patient records system and follows our scheduling rules."
+Issue: "our existing patient records system" and "our scheduling rules" — organization-specific references the team has no visibility into.
+
+Example 4 — Correct output: CLARIFICATION_REQUIRED
+Brief: "A supply chain platform. Users manage inventory, track supplier performance, and create purchase orders. Authentication uses the organization's identity system."
+Issue: "the organization's identity system" — genuine gap. NOT issues: supplier metrics, approval workflows — standard patterns.
+</examples>
+
+<severity>
+- BLOCKER: Two different answers from the client would produce structurally different products.
+- WARNING: A standard default exists but the client might prefer something different. The engineering team can apply a reasonable default and mark it for client review.
+</severity>
+
+<constraints>
+- Maximum 6 issues. If you find more, keep only the most critical.
+- If you are about to include 3 or more issues, pause and reconsider — you are likely being too aggressive. Most well-written descriptions should produce 0-2 issues.
+- Use calm, direct language in issue descriptions. Explain what client-specific information is missing and why.
+- Clarification questions should use plain language a non-technical stakeholder would understand.
+- Ask about WHAT the system should do, never about HOW to build it.
+- For repeated runs on the same input, produce consistent results.
+</constraints>
+
+<categories>
+Evaluate against these categories (skip any not mentioned or implied):
+1. Feasibility
+2. Product purpose and scope
 3. User roles and responsibilities
-4. Core system workflows and actions
-5. Authentication and access expectations (only if mentioned or implied)
-6. Data handling and protection expectations (only if data storage is implied)
-7. Performance or responsiveness expectations (only if speed or efficiency is implied)
-8. Reporting or output expectations (only if reports or outputs are implied)
-9. Data retention or historical access expectations (only if long-term storage is implied)
+4. Core system workflows
+5. Authentication and access (only if mentioned)
+6. Data handling (only if data storage implied)
+7. Performance expectations (only if mentioned)
+8. Reporting expectations (only if mentioned)
+9. Data retention (only if mentioned)
+</categories>
 
-You must not introduce new validation categories beyond this list.
+<memory>
+If validation memory is provided (previous issues, questions, answers):
+- Treat answered questions as resolved. Do not re-ask.
+- Only raise new issues if the input itself changed or a client answer introduced new ambiguity.
+</memory>
 
-IEEE Awareness Rule
-You validate against the intent of IEEE SRS sections, not their mere presence.
-Missing sections are acceptable
-Contradictory, vague, or misaligned information is not
-Governance & Semantic Authority:
-- Generally, the Introduction (Purpose + Scope) is the semantic authority. All other information must align with it.
-- EXCEPTION: If the Introduction is placeholder text (e.g., 'abc', 'tbd', '.') while the Raw Project Name/Description contains meaningful content, treat the meaningful content as the authority for validation.
-
-
-Explicit vs Implicit Discipline
-Explicit information: clearly stated → authoritative
-Implicit information: logically unavoidable → minimal acknowledgment only
-You must never:
-Invent requirements
-Expand vague input into detailed behavior
-Assume technologies, platforms, tools, or architectures
-If something is neither explicit nor logically unavoidable, treat it as missing, not assumed.
-
-Deterministic Issue Detection Rule
-For each validation category:
-If information is clear → do not raise an issue
-If information is unclear → raise one clear issue (ID: category-idx)
-If the same input is evaluated again:
-Raise the same conceptual issue
-Do not reframe it as a different concern
-Do not escalate or downgrade severity
-You are identifying conceptual gaps, not new critique angles.
-
-Clarification Question Rules (Very Important)
-When clarification is required:
-
-Language & Audience Constraint
-Assume the user may not be technical
-Use simple, everyday language
-Ask about what the system should do, not how it is built
-You must avoid:
-Programming terms
-Databases, frameworks, APIs
-Security jargon (unless user used it)
-Performance engineering terms
-Regulatory acronyms unless explicitly mentioned
-If a question cannot be asked without technical language, do not ask it.
-
-Scope Constraint
-Clarification questions must:
-Reduce ambiguity
-Improve understanding
-Enable correct IEEE mapping
-They must not:
-Force design decisions
-Lock implementation choices
-Expand system scope
-
-Clarification Memory & Continuity Rules
-You have access to validation memory, which may include:
-Previously identified issues
-Previously asked clarification questions
-User-provided answers
-Last validation state for the same project
-You must use this memory strictly.
-
-Memory Behavior Rules
-Previously Asked Questions
-Do not invent new ones
-Re-ask the same conceptual questions if unanswered
-Minor wording polish is allowed, intent must remain identical
-Answered Questions
-Treat them as resolved
-Do not ask again
-Do not re-open indirectly
-Partially Answered Questions
-Ask only what is still unclear
-Do not restart the entire topic
-No New Issues Without New Input Rule
-You must never:
-Add new issues
-Introduce deeper concerns
-Change severity
-Unless:
-The project name or description changes, or
-A user answer introduces new ambiguity
-Memory stability is more important than over-analysis.
-
-Severity Stability Rule
-Issues marked “Must be resolved” must remain so
-Issues marked “Recommended” must remain so
-Severity must not fluctuate across runs for identical input.
-
-Idempotency Requirement
-For identical input, your behavior must be idempotent:
-Same conceptual issues
-Same clarification intent
-Same validation outcome
-Only new information may change results.
-
-Final Validation Outcomes
-You may return only one of the following states:
-FAIL
-Meaningless input, incoherent intent, or impossible IEEE mapping
-CLARIFICATION_REQUIRED
-Meaningful input, but unresolved ambiguity blocks safe progression
-PASS (with issues)
-Clear intent, mappable, minor non-blocking issues remain
-PASS (clean)
-Clear, stable, and IEEE-aligned
-
-CRITICAL: Return ONLY JSON.
-Output Schema (Strict JSON):
+<output_format>
+Return ONLY valid JSON:
 {
   "validation_status": "PASS" | "FAIL" | "CLARIFICATION_REQUIRED",
   "issues": [
@@ -173,36 +105,91 @@ Output Schema (Strict JSON):
   "clarification_questions": ["string"]
 }
 
-**Intake Data Structure:**
+PASS = empty issues array and empty clarification_questions array.
+FAIL = meaningless or infeasible input.
+CLARIFICATION_REQUIRED = at least one genuine gap that only the client can answer.
+</output_format>
+
+<input>
 __SRS_DATA__
+</input>
 `;
 
+const FILTER_PROMPT = `
+You are a precision filter. You will receive a list of validation issues flagged by a first-pass reviewer.
+Your job: for each issue, determine if it is a GENUINE client-specific gap or a FALSE POSITIVE.
+
+An issue is a FALSE POSITIVE if:
+- It asks about a design decision (e.g., free-text vs dropdown, email vs push notification, fixed vs configurable lists)
+- It asks about implementation details (field schemas, permission actions, moderation tools, reminder timing)
+- It asks about standard domain knowledge any engineer would know (industry KPIs, common workflows)
+- It asks the client to make an engineering choice for the team
+
+An issue is GENUINE if:
+- It references something specific to the client's organization ("our system", "existing platform", "company policy")
+- Only the client can answer it — no amount of engineering knowledge helps
+
+Return a JSON array of issue titles that should be KEPT. Drop everything else.
+Return ONLY a JSON array of strings, nothing else.
+
+Example input: [{"title": "Undefined SSO Provider"}, {"title": "Unclear tag taxonomy"}, {"title": "Reminder channel not specified"}]
+Correct output: ["Undefined SSO Provider"]
+Reason: SSO provider is client-specific. Tag taxonomy and reminder channels are design decisions.
+
+Issues to filter:
+`;
+
+async function filterFalsePositives(issues) {
+  if (!issues || issues.length === 0) return issues;
+
+  try {
+    const response = await analyzeText(JSON.stringify(issues.map(i => ({ title: i.title, description: i.description }))), {
+      modelName: process.env.GEMINI_MODEL_NAME || 'gemini-2.5-flash',
+      systemPrompt: FILTER_PROMPT,
+      temperature: 0.0,
+      zodSchema: null
+    });
+
+    if (!response || response.success === false) return issues;
+
+    let keepTitles = response.srs || response.raw;
+    if (typeof keepTitles === 'string') {
+      try { keepTitles = JSON.parse(keepTitles); } catch { return issues; }
+    }
+
+    if (!Array.isArray(keepTitles)) return issues;
+
+    return issues.filter(issue =>
+      keepTitles.some(title =>
+        typeof title === 'string' && issue.title.toLowerCase().includes(title.toLowerCase())
+      )
+    );
+  } catch (err) {
+    // If filter fails, return original issues (safe fallback)
+    return issues;
+  }
+}
+
 export async function validateRequirements(srsData) {
-  // 1. Pre-processing: Minimize JSON size if needed
   const jsonString = JSON.stringify(srsData, null, 2);
 
-  // 2. Call AI Service with specific system prompt
   const response = await analyzeText(jsonString, {
-    modelName: process.env.VALIDATION_MODEL || 'gemini-2.5-flash',
+    modelName: process.env.GEMINI_MODEL_NAME || 'gemini-2.5-flash',
     systemPrompt: VALIDATION_PROMPT_TEMPLATE,
-    temperature: 0.0, // Deterministic
-    zodSchema: null // Do not use Full SRS schema for validation check
+    temperature: 0.0,
+    zodSchema: null
   });
 
-  // 3. Fallback Validation
   if (!response || response.success === false) {
     throw new Error(response.error || "AI Validation Failed");
   }
 
-  // Extract the actual result from standardized response
   const result = response.srs;
 
-  // Robustness: Handle AI non-compliance with exact keys
   if (!result.validation_status) {
     if (result.status) result.validation_status = result.status;
     else if (result.validationStatus) result.validation_status = result.validationStatus;
 
-    // Fallback inference
     if (!result.validation_status) {
       if (result.clarification_questions && result.clarification_questions.length > 0) {
         result.validation_status = 'CLARIFICATION_REQUIRED';
@@ -214,18 +201,24 @@ export async function validateRequirements(srsData) {
     }
   }
 
-  // Ensure every issue has a unique ID for React Keys and normalized severity
+  // Pass 2: Filter false positives
+  if (result.issues && result.issues.length > 0) {
+    result.issues = await filterFalsePositives(result.issues);
+
+    // If all issues were filtered out, upgrade to PASS
+    if (result.issues.length === 0 && result.validation_status === 'CLARIFICATION_REQUIRED') {
+      result.validation_status = 'PASS';
+    }
+  }
+
   if (result.issues && Array.isArray(result.issues)) {
     result.issues = result.issues.map((issue, idx) => {
       let severity = (issue.severity || 'info').toLowerCase();
 
-      // Map Backend/Prompt terminology to Frontend types
       if (severity === 'blocker') severity = 'critical';
       if (severity === 'warning') severity = 'warning';
       if (severity !== 'critical' && severity !== 'warning') severity = 'info';
 
-      // Deterministic ID generation based on content
-      // Allows React keys to be stable and UI to track diffs correctly between runs
       const issueContent = `${issue.section_id || 'general'}-${issue.title}-${issue.description.slice(0, 50)}`;
       const deterministicId = `val-${crypto.createHash('md5').update(issueContent).digest('hex').slice(0, 12)}`;
 
@@ -247,36 +240,33 @@ export async function autoFixRequirements(srsData, issueId) {
   if (!targetIssue) throw new Error("Issue not found");
 
   const AUTO_FIX_PROMPT = `
-You are the SRA Layer 2 Auto-Fixer.
-Your goal is to REWRITE a specific section of a software project description to resolve a validation issue.
+You are the Validation Gate Auto-Fixer.
 
-CONTEXT:
+A gap was identified in the client's project description that would force the SRS generator to hallucinate. Your job is to rewrite the affected part of the description to CLOSE that gap — adding just enough specificity so the SRS generator can proceed without guessing.
+
+## CONTEXT:
 Project Data: ${JSON.stringify(srsData.draftData)}
 Issue to Resolve: ${targetIssue.description}
 Suggested Fix: ${targetIssue.suggested_fix}
 
-INSTRUCTIONS:
-1. Rewrite the affected part of the project description to be clear, specific, and measurable.
-2. Maintain the original intent but remove ambiguity.
-3. Governance Hierarchy:
-   - Generally, the Introduction (Purpose + Scope) is the semantic authority. All other information MUST align with it. If there is a conflict, follow the Introduction.
-   - EXCEPTION: If the issue being resolved is that the Introduction is placeholder, meaningless, or incoherent (e.g., 'abc', 'tbd'), you MUST NOT follow it. Instead, treat the "Project Details" or "Raw Description" as the authority for this fix.
-
-4. If it's a performance issue, add specific metrics (e.g., "< 200ms").
-5. If it's a scope issue, clarify the boundaries.
-6. Return ONLY the rewritten text for that specific field/context. 
-7. Do not include JSON, just the refined text.
+## RULES:
+1. Add JUST ENOUGH detail to resolve the identified gap. Do not over-engineer or pad with unnecessary specifics.
+2. Use reasonable industry-standard defaults where the client's intent is clear but detail is missing.
+3. Maintain the original intent and tone of the description. Do not change what the client asked for — only clarify HOW it should work where it was ambiguous.
+4. Do NOT invent client-specific business logic, proprietary rules, or organizational details. If the gap is about something only the client can answer (e.g., their specific business rules, their internal systems), write a clear placeholder that makes the requirement explicit without fabricating details.
+5. Do NOT expand scope. The fix should resolve the flagged issue, nothing more.
+6. Do NOT add technical implementation details (databases, frameworks, APIs). Keep the language at the same level as the original description.
+7. Return ONLY the rewritten text for the affected section. No JSON, no explanations, just the refined text.
 `;
 
   const response = await analyzeText("Please fix the identified issue.", {
     systemPrompt: AUTO_FIX_PROMPT,
-    modelName: 'gemini-2.5-flash',
+    modelName: process.env.GEMINI_MODEL_NAME || 'gemini-3-flash-preview',
     temperature: 0.2,
-    zodSchema: null // Return raw text, not SRS JSON
+    zodSchema: null
   });
 
   if (response.success) {
-    // Since we told it to return raw text, it might still wrap in quotes or something
     return response.raw?.trim() || response.srs?.toString();
   }
   throw new Error("Failed to generate auto-fix");

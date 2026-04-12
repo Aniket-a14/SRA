@@ -24,7 +24,7 @@ User: ${userMessage}
 `;
 
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" }); // Use lite for speed/cost if available, or fallback
+        const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL_NAME || "gemini-3-flash-preview" }); // Use latest stable flash preview
         console.log("Sending refinement request to AI...");
         const result = await model.generateContent(fullPrompt);
         let outputText = result.response.text();

@@ -127,11 +127,10 @@ STRICT COMPLIANCE OVERLAY (OVERRIDES KNOWLEDGE BASE)
 ================================================================
 1. **Flowchart IDs**: NEVER use 'end', 'subgraph', or 'class' as IDs. Use alphanumeric (A-Z, 0-9) ONLY. NO spaces.
 2. **Quoting**: ALL labels with spaces/symbols MUST be double-quoted. \`id["Label"]\`.
-3. **Sequence Activations**: RESTRICTED. Do NOT use 'activate'/'deactivate' unless you are simulating a complex recursive call. Prefer standard arrows. If you MUST use them, they MUST be balanced.
+3. **Sequence Activations**: FORBIDDEN. Do NOT use 'activate'/'deactivate' keywords or '+/-' arrow suffixes. They cause rendering crashes if unbalanced. Always use standard arrows.
 4. **Sequence Safety**:
    - **Aliases**: NEVER quote alias IDs (e.g., 'participant U as "User"' INVALID). Use 'participant U as User'.
    - **Messages**: Avoid special chars like '{}' in message labels.
-   - **Blocks**: Do NOT use 'activate' inside 'alt'/'opt'/'loop' blocks.
 4. **ERD Keys**: ONLY 'PK', 'FK', and 'UK' are allowed. Multiple keys MUST be comma-separated (e.g., 'PK, FK'). FORBIDDEN: 'NN', 'NOT NULL', or any non-standard constraint.
 5. **ERD Relationships**: 'ENTITY1 ||--o{ ENTITY2 : "label"'. Label MUST always be quoted.
 6. **ERD Logic**: 

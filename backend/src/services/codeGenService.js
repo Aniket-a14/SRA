@@ -59,9 +59,9 @@ export const generateCodeFromAnalysis = async (userId, analysisId) => {
     }
 
     // 2. Prepare Prompt
-    // Using gemini-2.5-flash as requested, but with JSON mode
+    // Using configurable model name (defaulting to Gemini 3 Flash)
     const model = genAI.getGenerativeModel({
-        model: "gemini-2.5-flash",
+        model: process.env.GEMINI_MODEL_NAME || "gemini-2.5-flash",
         generationConfig: { responseMimeType: "application/json" }
     });
 

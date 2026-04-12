@@ -3,7 +3,7 @@ import { RefinedIntentSchema } from '../utils/aiSchemas.js';
 
 export class ProductOwnerAgent extends BaseAgent {
   constructor() {
-    super("Product Owner", "gemini-2.5-flash");
+    super("Product Owner");
   }
 
   async refineIntent(userInput, settings = {}) {

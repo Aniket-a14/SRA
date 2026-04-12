@@ -1,7 +1,7 @@
 "use client"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { AlertTriangle, CheckCircle, XCircle, Info, ShieldAlert, FileWarning, HelpCircle } from "lucide-react"
+import { AlertTriangle, CheckCircle, XCircle, Info, ShieldAlert, FileWarning, HelpCircle, X } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
@@ -30,12 +30,18 @@ interface ValidationReportProps {
 }
 
 export function ValidationReport({ issues, clarificationQuestions = [], onProceed, onEdit, isProceeding, onSubmitClarifications, onAutoFix, isFixing }: ValidationReportProps) {
-    const criticalCount = issues.filter(i => i.severity === 'critical').length;
-    const warningCount = issues.filter(i => i.severity === 'warning').length;
+    const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+    const visibleIssues = issues.filter(i => !dismissedIds.has(i.id));
+    const criticalCount = visibleIssues.filter(i => i.severity === 'critical').length;
+    const warningCount = visibleIssues.filter(i => i.severity === 'warning').length;
     const [answers, setAnswers] = useState<Record<string, string>>({});
 
     const isBlocked = criticalCount > 0;
     const isClarificationNeeded = clarificationQuestions.length > 0;
+
+    const handleDismiss = (id: string) => {
+        setDismissedIds(prev => new Set(prev).add(id));
+    };
 
     const handleAnswerChange = (idx: number, value: string) => {
         setAnswers(prev => ({ ...prev, [idx]: value }));
@@ -135,11 +141,17 @@ export function ValidationReport({ issues, clarificationQuestions = [], onProcee
                 </Card>
                 <Card>
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium">Passed Checks</CardTitle>
+                        <CardTitle className="text-sm font-medium">Requirement Clarity</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-green-600 flex items-center gap-2">
-                            <CheckCircle className="h-6 w-6" /> {100 - issues.length}
+                            <CheckCircle className="h-6 w-6" /> {(() => {
+                                const TOTAL_CATEGORIES = 9;
+                                const blockerWeight = 15;
+                                const warningWeight = 5;
+                                const totalDeduction = (criticalCount * blockerWeight) + (warningCount * warningWeight);
+                                return Math.max(0, Math.round(100 - totalDeduction));
+                            })()}%
                         </div>
                     </CardContent>
                 </Card>
@@ -151,13 +163,13 @@ export function ValidationReport({ issues, clarificationQuestions = [], onProcee
                     <CardDescription>Review the following items before proceeding.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {issues.length === 0 && (
+                    {visibleIssues.length === 0 && (
                         <div className="text-center py-8 text-muted-foreground">
                             <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
                             <p>No issues found. Your inputs are high quality.</p>
                         </div>
                     )}
-                    {issues.map((issue) => (
+                    {visibleIssues.map((issue) => (
                         <div key={issue.id} className="flex items-start gap-4 p-4 border rounded-lg bg-card group hover:border-primary/50 transition-colors">
                             {issue.severity === 'critical' ? (
                                 issue.conflict_type === 'HARD_CONFLICT' ? <ShieldAlert className="h-5 w-5 text-red-600 mt-0.5" /> : <XCircle className="h-5 w-5 text-destructive mt-0.5" />
@@ -198,7 +210,18 @@ export function ValidationReport({ issues, clarificationQuestions = [], onProcee
                                     </div>
                                 )}
                             </div>
-                            <Button variant="ghost" size="sm" onClick={onEdit}>Edit</Button>
+                            <div className="flex flex-col gap-1">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                    onClick={() => handleDismiss(issue.id)}
+                                    title="Dismiss this issue"
+                                >
+                                    <X className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="sm" onClick={onEdit}>Edit</Button>
+                            </div>
                         </div>
                     ))}
                 </CardContent>

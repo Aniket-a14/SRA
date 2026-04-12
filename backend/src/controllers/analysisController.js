@@ -561,19 +561,15 @@ export const finalizeAnalysis = async (req, res, next) => {
             throw error;
         }
 
-        // 1. Generate Signature for Knowledge Base
-        // Generate real embedding for the input text
         let embeddingVector = [];
         try {
             if (process.env.MOCK_AI === 'true') {
-                // Mock 768-dim vector
                 embeddingVector = Array(768).fill(0.1);
             } else {
                 embeddingVector = await embedText(analysis.inputText.trim());
             }
         } catch (e) {
             logger.error({ err: e }, "Embedding generation failed, proceeding with finalization without vector");
-            // We proceed, but vectorSignature will be null.
         }
 
         const heuristicSignature = {
@@ -582,46 +578,17 @@ export const finalizeAnalysis = async (req, res, next) => {
             textHash: crypto.createHash('md5').update(analysis.inputText.trim()).digest('hex')
         };
 
-        // 2. Update DB with Finalization
-        // Store heuristic tags in metadata for keyword filtering
         const updatedMetadata = {
             ...(analysis.metadata || {}),
             heuristicSignature: heuristicSignature
         };
 
-        // Update standard fields via Prisma Client
-        await prisma.analysis.update({
-            where: { id },
-            data: {
-                isFinalized: true,
-                metadata: updatedMetadata
-            }
-        });
-
-        // Update vectorSignature via Raw SQL (Prisma doesn't support writing to Unsupported columns directly)
-        if (embeddingVector && embeddingVector.length > 0) {
-            try {
-                // Ensure vector format is like '[0.1, 0.2, ...]' string
-                const vectorString = `[${embeddingVector.join(',')}]`;
-                await prisma.$executeRaw`UPDATE "Analysis" SET "vectorSignature" = ${vectorString}::vector WHERE "id" = ${id}`;
-            } catch (rawError) {
-                logger.error({ err: rawError }, "Failed to update vectorSignature");
-                // Don't fail the whole request, just log it.
-            }
-        }
-
-        const finalized = { id, isFinalized: true }; // Minimal response obj since we did raw update
-
-        // 3. Shred & Store Chunks (Layer 5 Advanced Reuse)
         const chunks = [];
         const result = analysis.resultJson;
 
-        // Pillar 2: Quality-Aware Recycling
-        // Extract overall quality score from the Pillar 1 Industry Audit
         const overallScore = result.benchmarks?.qualityAudit?.overallScore ||
             (result.qualityAudit?.score ? result.qualityAudit.score / 10 : null);
 
-        // A. Features
         if (result.systemFeatures && Array.isArray(result.systemFeatures)) {
             for (const feature of result.systemFeatures) {
                 const contentStr = JSON.stringify(feature);
@@ -647,7 +614,6 @@ export const finalizeAnalysis = async (req, res, next) => {
             }
         }
 
-        // B. NFRs
         if (result.nonFunctionalRequirements) {
             for (const [category, reqs] of Object.entries(result.nonFunctionalRequirements)) {
                 if (Array.isArray(reqs) && reqs.length > 0) {
@@ -675,33 +641,67 @@ export const finalizeAnalysis = async (req, res, next) => {
             }
         }
 
-        // Batch Insert Chunks with pgvector support
-        if (chunks.length > 0) {
-            await prisma.$transaction(async (tx) => {
-                for (const chunk of chunks) {
-                    // 1. Create structure
-                    await tx.knowledgeChunk.create({
-                        data: {
-                            id: chunk.id,
-                            type: chunk.type,
-                            content: chunk.content,
-                            hash: chunk.hash,
-                            tags: chunk.tags,
-                            qualityScore: chunk.qualityScore,
-                            sourceAnalysisId: chunk.sourceAnalysisId
-                        }
-                    });
-
-                    // 2. Update vector (Unsupported column)
-                    if (chunk.embedding) {
-                        const vectorStr = `[${chunk.embedding.join(',')}]`;
-                        await tx.$executeRaw`UPDATE "KnowledgeChunk" SET "embedding" = ${vectorStr}::vector WHERE "id" = ${chunk.id}`;
-                    }
+        await prisma.$transaction(async (tx) => {
+            await tx.analysis.update({
+                where: { id },
+                data: {
+                    isFinalized: true,
+                    metadata: updatedMetadata
                 }
             });
-        }
 
-        return successResponse(res, { message: "Analysis finalized and broken into reusable chunks with semantic embeddings", id: finalized.id, chunksStored: chunks.length });
+            if (embeddingVector && embeddingVector.length > 0) {
+                const vectorString = `[${embeddingVector.join(',')}]`;
+                await tx.$executeRaw`UPDATE "Analysis" SET "vectorSignature" = ${vectorString}::vector WHERE "id" = ${id}`;
+            }
+
+            if (chunks.length > 0) {
+                await tx.knowledgeChunk.createMany({
+                    data: chunks.map(chunk => ({
+                        id: chunk.id,
+                        type: chunk.type,
+                        content: chunk.content,
+                        hash: chunk.hash,
+                        tags: chunk.tags,
+                        qualityScore: chunk.qualityScore,
+                        sourceAnalysisId: id
+                    }))
+                });
+
+                const chunksWithVectors = chunks.filter(c => c.embedding && c.embedding.length > 0);
+                if (chunksWithVectors.length > 0) {
+                
+                const chunksWithVectors = chunks.filter(c => c.embedding && c.embedding.length > 0);
+                if (chunksWithVectors.length > 0) {
+                    const payload = chunksWithVectors.map(c => ({
+                        id: c.id,
+                        em: `[${c.embedding.join(',')}]`
+                    }));
+
+                    console.log(`[Layer 5] Executing batch vector update for ${chunksWithVectors.length} chunks at ${new Date().toISOString()}`);
+
+                    await tx.$executeRaw`
+                        UPDATE "KnowledgeChunk" AS k
+                        SET embedding = v.new_embedding::vector
+                        FROM (
+                            SELECT (val->>'id') AS v_id, (val->>'em') AS new_embedding
+                            FROM jsonb_array_elements(${JSON.stringify(payload)}::jsonb) AS val
+                        ) AS v
+                        WHERE k.id::text = v.v_id::text;
+                    `;
+                    console.log("[Layer 5] Batch update successful.");
+                }
+                }
+            }
+        }, {
+            timeout: 30000 
+        });
+
+        return successResponse(res, { 
+            message: "Analysis finalized and broken into reusable chunks with semantic embeddings", 
+            id: id, 
+            chunksStored: chunks.length 
+        });
     } catch (error) {
         next(error);
     }
@@ -728,31 +728,29 @@ export const validateAnalysis = async (req, res, next) => {
             validationResult = await validateRequirements(draftData);
         } catch (validationErr) {
             logger.error({ msg: "AI Validation Failed", error: validationErr.message });
-            // Fallback to basic error if AI service is down
             let friendlyMessage = validationErr.message;
             let friendlyTitle = 'AI Validation Service Unavailable';
 
-            if (validationErr.message.includes('429') || validationErr.message.includes('Quota exceeded')) {
-                friendlyTitle = 'System Busy (Rate Limit)';
-                friendlyMessage = 'The AI service is currently experiencing high demand. Please try again in 15-20 seconds.';
+            if (validationErr.message.includes('429') || validationErr.message.includes('Quota exceeded') || validationErr.message.includes('quota')) {
+                friendlyTitle = 'AI Quota Exceeded';
+                friendlyMessage = 'The AI service is currently rate-limited. Please retry in 30-60 seconds.';
             }
 
             validationResult = {
-                validation_status: 'FAIL',
-                issues: [{
-                    id: 'sys-error',
-                    severity: 'critical',
+                validation_status: 'SERVICE_ERROR',
+                service_error: {
                     title: friendlyTitle,
-                    description: friendlyMessage,
-                    message: friendlyMessage,
-                    section: 'System'
-                }]
+                    message: friendlyMessage
+                },
+                issues: [],
+                clarification_questions: []
             };
         }
 
         const newStatus = validationResult.validation_status === 'PASS' ? 'VALIDATED'
-            : validationResult.validation_status === 'CLARIFICATION_REQUIRED' ? 'VALIDATING' // Still in validation phase
-                : 'NEEDS_FIX';
+            : validationResult.validation_status === 'CLARIFICATION_REQUIRED' ? 'VALIDATING'
+                : validationResult.validation_status === 'SERVICE_ERROR' ? 'DRAFT'
+                    : 'NEEDS_FIX';
 
         // Update Analysis
         const updatedMetadata = {

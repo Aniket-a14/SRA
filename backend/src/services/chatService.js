@@ -56,7 +56,7 @@ User: ${userMessage}
             }
         });
     } else {
-        const modelName = process.env.GEMINI_API_MODEL || "gemini-2.5-flash";
+        const modelName = process.env.GEMINI_MODEL_NAME || "gemini-2.5-flash";
         const model = genAI.getGenerativeModel({ model: modelName });
         const result = await model.generateContent(fullPrompt);
         outputText = result.response.text();
@@ -145,7 +145,7 @@ User: ${userMessage}
                         promptSettings: {
                             ...(currentAnalysis.metadata?.promptSettings || {}),
                             // Ensure model info is carried over or defaults
-                            modelName: currentAnalysis.metadata?.promptSettings?.modelName || "gemini-2.5-flash",
+                            modelName: currentAnalysis.metadata?.promptSettings?.modelName || process.env.GEMINI_MODEL_NAME || "gemini-3-flash-preview",
                             modelProvider: currentAnalysis.metadata?.promptSettings?.modelProvider || "google"
                         }
                     }

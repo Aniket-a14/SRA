@@ -5,6 +5,11 @@
       "source": "davila7/claude-code-templates",
       "sourceType": "github",
       "computedHash": "4fd9576e76e89e17d72891fb63e11741bf34c72390058baeb42812e396698525"
+    },
+    "ui-ux-pro-max": {
+      "source": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "sourceType": "github",
+      "computedHash": "6337038fe1fe6bbe1b9f252ab678ee575859190bab6f0f246f4061824eb40875"
     }
   }
 }

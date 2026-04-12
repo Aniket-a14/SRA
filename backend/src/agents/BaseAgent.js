@@ -3,7 +3,7 @@ import { jsonrepair } from 'jsonrepair';
 import logger from '../config/logger.js';
 
 export class BaseAgent {
-    constructor(name, modelName = "gemini-2.5-flash") {
+    constructor(name, modelName = process.env.GEMINI_MODEL_NAME || "gemini-3-flash-preview") {
         this.name = name;
         this.modelName = modelName;
         // Default models will be overridden in analysisService based on tiering

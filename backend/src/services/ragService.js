@@ -84,7 +84,7 @@ export const retrieveContext = async (queryText, projectId = null, limit = 5) =>
 export const formatRagContext = async (chunks) => {
     if (!chunks || chunks.length === 0) return "";
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL_NAME || "gemini-2.5-flash" });
     let contextHeader = "\n[RELEVANT_KNOWLEDGE_BASE_CONTEXT_START]\nThe following sections from similar finalized projects are provided for reference:\n\n";
     let formattedContext = contextHeader;
     let currentTokens = 0;

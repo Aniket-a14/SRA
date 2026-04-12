@@ -24,7 +24,7 @@ async function testLayer3() {
 
     try {
         const result = await analyzeText(textInput, {
-            modelName: 'gemini-2.5-flash-lite',
+            modelName: process.env.GEMINI_MODEL_NAME || 'gemini-3-flash-preview',
             profile: 'default'
         });
 
