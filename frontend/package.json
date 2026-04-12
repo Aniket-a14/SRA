@@ -97,7 +97,7 @@
     "babel-plugin-react-compiler": "^1.0.0",
     "baseline-browser-mapping": "2.9.19",
     "cross-env": "^10.1.0",
-    "eslint": "^8.57.0",
+    "eslint": "^9.21.0",
     "eslint-config-next": "^16.2.3",
     "lightningcss": "^1.29.1",
     "postcss": "^8.5.3",
