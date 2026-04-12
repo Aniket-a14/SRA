@@ -577,7 +577,7 @@ function AnalysisDetailContent() {
                                                 <SheetTitle>Knowledge Recycling</SheetTitle>
                                             </SheetHeader>
                                             <RecyclingPanel
-                                                onApply={async (content) => {
+                                                onApply={async (content: string | SystemFeature) => {
                                                     const loadingToast = toast.loading("Applying recycled requirement...");
                                                     try {
                                                         // 1. Determine if it's a Feature or just a Requirement fragment
@@ -746,7 +746,7 @@ function AnalysisDetailContent() {
 
             <ProjectChatPanel
                 analysisId={id}
-                onAnalysisUpdate={(newId) => router.push(`/analysis/${newId}`)}
+                onAnalysisUpdate={(newId: string) => router.push(`/analysis/${newId}`)}
                 hidden={isDiagramEditing}
                 isFinalized={analysis?.isFinalized}
             />

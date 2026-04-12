@@ -136,7 +136,7 @@ export function FeatureDisplay({ features, projectTitle = "SRA", isEditing, onUp
                             {isEditing ? (
                                 <Editor
                                     initialContent={feature.description}
-                                    onChange={(markdown) => updateFeature(index, { description: markdown })}
+                                    onChange={(markdown: string) => updateFeature(index, { description: markdown })}
                                     editable={true}
                                 />
                             ) : (

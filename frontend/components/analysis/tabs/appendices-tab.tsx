@@ -1,6 +1,6 @@
 "use client"
 
-import React, { memo } from "react"
+import { memo } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { toast } from "sonner"
 import dynamic from "next/dynamic"
@@ -85,7 +85,7 @@ export const AppendicesTab = memo(function AppendicesTab({
                         initialCode={typeof appendices?.analysisModels?.flowchartDiagram === 'string'
                             ? appendices.analysisModels.flowchartDiagram
                             : appendices?.analysisModels?.flowchartDiagram?.code || ""}
-                        onSave={(newCode, options) => handleDiagramSave('flowchartDiagram', newCode, options)}
+                        onSave={(newCode: string, options?: { inPlace?: boolean }) => handleDiagramSave('flowchartDiagram', newCode, options)}
                         onOpenChange={onDiagramEditChange}
                         syntaxExplanation={typeof appendices?.analysisModels?.flowchartDiagram === 'object' && appendices.analysisModels.flowchartDiagram !== null ? (appendices.analysisModels.flowchartDiagram as Diagram).syntaxExplanation : undefined}
                     />
@@ -94,7 +94,7 @@ export const AppendicesTab = memo(function AppendicesTab({
                         initialCode={typeof appendices?.analysisModels?.sequenceDiagram === 'string'
                             ? appendices.analysisModels.sequenceDiagram
                             : appendices?.analysisModels?.sequenceDiagram?.code || ""}
-                        onSave={(newCode, options) => handleDiagramSave('sequenceDiagram', newCode, options)}
+                        onSave={(newCode: string, options?: { inPlace?: boolean }) => handleDiagramSave('sequenceDiagram', newCode, options)}
                         onOpenChange={onDiagramEditChange}
                         syntaxExplanation={typeof appendices?.analysisModels?.sequenceDiagram === 'object' && appendices.analysisModels.sequenceDiagram !== null ? (appendices.analysisModels.sequenceDiagram as Diagram).syntaxExplanation : undefined}
                     />
@@ -149,7 +149,7 @@ export const AppendicesTab = memo(function AppendicesTab({
                             ? appendices.analysisModels.entityRelationshipDiagram
                             : appendices?.analysisModels?.entityRelationshipDiagram?.code || ""}
                         syntaxExplanation={typeof appendices?.analysisModels?.entityRelationshipDiagram === 'object' && appendices.analysisModels.entityRelationshipDiagram !== null ? (appendices.analysisModels.entityRelationshipDiagram as Diagram).syntaxExplanation : undefined}
-                        onSave={(newCode, options) => handleDiagramSave('entityRelationshipDiagram', newCode, options)}
+                        onSave={(newCode: string, options?: { inPlace?: boolean }) => handleDiagramSave('entityRelationshipDiagram', newCode, options)}
                         onOpenChange={onDiagramEditChange}
                     />
                 </div>
