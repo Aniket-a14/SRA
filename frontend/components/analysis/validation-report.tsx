@@ -146,7 +146,6 @@ export function ValidationReport({ issues, clarificationQuestions = [], onProcee
                     <CardContent>
                         <div className="text-2xl font-bold text-green-600 flex items-center gap-2">
                             <CheckCircle className="h-6 w-6" /> {(() => {
-                                const TOTAL_CATEGORIES = 9;
                                 const blockerWeight = 15;
                                 const warningWeight = 5;
                                 const totalDeduction = (criticalCount * blockerWeight) + (warningCount * warningWeight);
