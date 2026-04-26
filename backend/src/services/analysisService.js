@@ -581,12 +581,18 @@ export const getAnalysisHistory = async (userId, rootId) => {
 };
 
 export const getAnalysisById = async (userId, analysisId) => {
+    logger.info(`[getAnalysisById] Searching for analysisId: ${analysisId} (user: ${userId})`);
     const analysis = await prisma.analysis.findUnique({
         where: { id: analysisId },
     });
 
-    if (!analysis) return null;
+    if (!analysis) {
+        logger.warn(`[getAnalysisById] Analysis ${analysisId} not found in database.`);
+        return null;
+    }
+    
     if (analysis.userId !== userId) {
+        logger.warn(`[getAnalysisById] Analysis ${analysisId} belongs to ${analysis.userId}, but requested by ${userId}`);
         const error = new Error('Unauthorized access to this analysis');
         error.statusCode = 403;
         throw error;

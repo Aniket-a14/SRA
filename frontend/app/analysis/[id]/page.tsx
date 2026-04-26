@@ -125,6 +125,21 @@ function AnalysisDetailContent() {
 
         // Handle Error terminal state
         if (currentStatus === 'FAILED') {
+            const metaStatus = analysis.metadata?.status;
+            // If the failed analysis is itself a draft, show the draft view instead of the error wall
+            if (metaStatus === 'DRAFT' && analysis.metadata?.draftData) {
+                setIsLoading(false);
+                setError("");
+                setDraftData((analysis.metadata.draftData as unknown as SRSIntakeModel) || null);
+                unlockAndNavigate(1);
+                return;
+            }
+            // If it failed and has a parent draft, automatically go back to the draft
+            if (analysis.parentId) {
+                toast.error("Analysis generation failed due to service limits. Returning to draft.");
+                router.push(`/analysis/${analysis.parentId}`);
+                return;
+            }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const msg = (analysis.resultJson as any)?.error || "Analysis generation failed.";
             setError(msg);
@@ -410,6 +425,9 @@ function AnalysisDetailContent() {
     }
 
     if (error) {
+        // If this failed analysis has a parent (i.e. spawned from a draft), offer to go back to it
+        const parentDraftId = analysis?.parentId;
+
         return (
             <div className="h-[calc(100vh-64px)] flex flex-col">
                 <div className="flex-1 flex items-center justify-center p-8 text-center bg-muted/10">
@@ -423,6 +441,14 @@ function AnalysisDetailContent() {
                         </p>
 
                         <div className="flex flex-col gap-2">
+                            {parentDraftId && (
+                                <Button
+                                    onClick={() => router.push(`/analysis/${parentDraftId}`)}
+                                    className="w-full"
+                                >
+                                    <ArrowLeft className="h-4 w-4 mr-2" /> Back to Draft
+                                </Button>
+                            )}
                             <Button
                                 onClick={() => router.push('/analysis')}
                                 variant="outline"
@@ -430,8 +456,6 @@ function AnalysisDetailContent() {
                             >
                                 <ArrowLeft className="h-4 w-4 mr-2" /> Back to Projects
                             </Button>
-
-                            {/* Optional: Retry mechanism could be added here if backend supports it */}
                         </div>
                     </div>
                 </div>
@@ -445,7 +469,7 @@ function AnalysisDetailContent() {
     const isTerminal = modelStatus === 'COMPLETED' || modelStatus === 'FAILED';
     const isValidatingOrValidated = metadataStatus === 'VALIDATING' || metadataStatus === 'VALIDATED' || metadataStatus === 'NEEDS_FIX';
 
-    if (metadataStatus === 'DRAFT' && !isTerminal) {
+    if (metadataStatus === 'DRAFT') {
         return (
             <div className="h-[calc(100vh-64px)] flex flex-col bg-background">
                 <div className="border-b px-6 py-4 flex items-center justify-between sticky top-0 bg-background z-20 shadow-sm">

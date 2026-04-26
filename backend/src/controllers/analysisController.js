@@ -2,6 +2,7 @@ import { performAnalysis, getUserAnalyses, getAnalysisById, getAnalysisHistory }
 import { processChat } from '../services/chatService.js';
 import { generateCodeFromAnalysis } from '../services/codeGenService.js';
 import { addAnalysisJob, getJobStatus } from '../services/queueService.js';
+import { surgicalRefine } from '../services/surgicalRefineService.js';
 import { compareAnalyses } from '../services/diffService.js';
 import { lintRequirements, checkAlignment } from '../services/qualityService.js';
 import { validateRequirements, autoFixRequirements } from '../services/validationService.js';
@@ -493,60 +494,81 @@ export const regenerate = async (req, res, next) => {
             throw error;
         }
 
-        // 2. Version Check (Soft Cap)
-        if (currentAnalysis.version >= 5 && !req.body.force) {
-            // We can return a warning or just proceed. The prompt says "After cap: Warn user".
-            // Since this is an API, we assume the frontend showed the warning and sent 'force=true' if the user persisted.
-            // Or we can just allow it but flag it in the response (which we can't do if we are async queuing).
-            // Let's implement a hard error if > 8 (sanity) but allow up to 5 conventionally.
-            // For now, let's just proceed. The Frontend will handle the UI warning.
+        // 2. Version Check (Hard cap at 8 for sanity)
+        if (currentAnalysis.version >= 8) {
+            const error = new Error('Maximum version limit reached (8). Please start a new analysis.');
+            error.statusCode = 400;
+            throw error;
         }
 
-        // 3. Construct Context-Aware Input
-        // We need to guide the AI to use the original input + context + improvements
-        const originalInput = currentAnalysis.inputText;
+        // 3. Surgical Refinement — single AI call, not full pipeline
+        logger.info({ msg: "[Layer 4] Starting surgical refinement", analysisId: id, version: currentAnalysis.version });
 
-        // We create a composite input prompt. 
-        // Note: The 'performAnalysis' and underlying AI service usually expects a single string input.
-        // We trust the AI Prompt to parse this structure.
-        const contextPayload = `
-[ORIGINAL_REQUEST_START]
-${originalInput}
-[ORIGINAL_REQUEST_END]
-
-[PREVIOUS_SRS_CONTEXT_START]
-${JSON.stringify(currentAnalysis.resultJson, null, 2)}
-[PREVIOUS_SRS_CONTEXT_END]
-
-[IMPROVEMENT_INSTRUCTION_START]
-User Feedback for Version ${currentAnalysis.version}:
-Affected Sections: ${affectedSections ? affectedSections.join(', ') : 'General'}
-Notes: ${improvementNotes}
-
-INSTRUCTION: Regenerate the SRS based on the Original Request. Incorporate the Improvement Notes. 
-- You MUST maintain valid JSON structure compatible with the previous output.
-- Only modify sections relevant to the feedback.
-- Preserve sections that are not affected.
-[IMPROVEMENT_INSTRUCTION_END]
-`;
-
-        // 4. Queue the Job
-        // We recognize the rootId to maintain the "family tree"
-        const rootId = currentAnalysis.rootId || currentAnalysis.id;
-
-        const job = await addAnalysisJob(
-            req.user.userId,
-            contextPayload,
-            currentAnalysis.projectId,
-            currentAnalysis.metadata?.promptSettings || {},
-            currentAnalysis.id, // parentId (Current analysis becomes parent)
-            rootId // rootId
+        const partialUpdate = await surgicalRefine(
+            currentAnalysis.resultJson,
+            improvementNotes,
+            affectedSections || []
         );
 
+        // 4. Merge: Overlay the partial AI output onto the existing SRS
+        const mergedResultJson = {
+            ...currentAnalysis.resultJson,
+            ...partialUpdate,
+            layer3Status: 'REFINED' // Mark as refined, not re-aligned
+        };
+
+        // 5. Run lightweight quality lint (no AI call)
+        const qualityAudit = lintRequirements({ ...mergedResultJson });
+        mergedResultJson.qualityAudit = qualityAudit;
+
+        // 6. Diff
+        const diff = compareAnalyses(currentAnalysis, { inputText: currentAnalysis.inputText, resultJson: mergedResultJson });
+        mergedResultJson.diff = diff;
+
+        // 7. Create new version in transaction
+        const rootId = currentAnalysis.rootId || currentAnalysis.id;
+
+        const newAnalysis = await prisma.$transaction(async (tx) => {
+            const maxVersionAgg = await tx.analysis.findFirst({
+                where: { rootId },
+                orderBy: { version: 'desc' },
+                select: { version: true }
+            });
+            const nextVersion = (maxVersionAgg?.version || 0) + 1;
+
+            return await tx.analysis.create({
+                data: {
+                    userId: req.user.userId,
+                    inputText: currentAnalysis.inputText,
+                    resultJson: mergedResultJson,
+                    version: nextVersion,
+                    title: currentAnalysis.title || `Version ${nextVersion}`,
+                    status: 'COMPLETED',
+                    rootId: rootId,
+                    parentId: currentAnalysis.id,
+                    projectId: currentAnalysis.projectId,
+                    metadata: {
+                        ...currentAnalysis.metadata,
+                        trigger: 'refinement',
+                        source: 'surgical_refine',
+                        refinementNotes: improvementNotes,
+                        refinedSections: Object.keys(partialUpdate),
+                        promptSettings: currentAnalysis.metadata?.promptSettings || {}
+                    }
+                }
+            });
+        });
+
+        logger.info({ msg: "[Layer 4] Surgical refinement complete", newId: newAnalysis.id, version: newAnalysis.version, modifiedSections: Object.keys(partialUpdate) });
+
         return successResponse(res, {
-            jobId: job.id,
-            status: "queued"
-        }, "Regeneration queued", 202);
+            ...newAnalysis.resultJson,
+            id: newAnalysis.id,
+            title: newAnalysis.title,
+            version: newAnalysis.version,
+            createdAt: newAnalysis.createdAt,
+            metadata: newAnalysis.metadata
+        });
 
     } catch (error) {
         next(error);

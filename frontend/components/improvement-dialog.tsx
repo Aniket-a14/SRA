@@ -10,7 +10,6 @@ import { AlertTriangle, Loader2, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
-import React from "react"
 
 interface ImprovementDialogProps {
     open: boolean
@@ -34,13 +33,6 @@ export function ImprovementDialog({ open, onOpenChange, analysisId, version }: I
     const [selectedSections, setSelectedSections] = useState<string[]>([])
     const [notes, setNotes] = useState("")
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const pollIntervalRef = React.useRef<NodeJS.Timeout | null>(null)
-
-    React.useEffect(() => {
-        return () => {
-            if (pollIntervalRef.current) clearInterval(pollIntervalRef.current)
-        }
-    }, [])
 
     const handleSectionToggle = (sectionId: string) => {
         setSelectedSections(prev =>
@@ -67,65 +59,33 @@ export function ImprovementDialog({ open, onOpenChange, analysisId, version }: I
                 },
                 body: JSON.stringify({
                     affectedSections: selectedSections,
-                    improvementNotes: notes,
-                    force: version >= 5 // Auto-force if user persists past warning (implied by clicking submit)
+                    improvementNotes: notes
                 })
             })
 
             if (!response.ok) {
                 const err = await response.json()
-                throw new Error(err.message || "Failed to start regeneration")
+                throw new Error(err.message || err.error || "Failed to apply changes")
             }
 
             const json = await response.json()
             const data = json.data || json
-            toast.success("Improvement cycle started!")
 
-            // Poll for completion
-            if (data.jobId) {
-                pollJob(data.jobId)
+            toast.success(`Changes applied! ${data.metadata?.refinedSections?.length || 0} section(s) updated.`)
+
+            // Navigate to the new version directly — no polling needed
+            onOpenChange(false)
+            if (data.id) {
+                router.push(`/analysis/${data.id}`)
+            } else {
+                window.location.reload()
             }
-
         } catch (error) {
             console.error(error)
             toast.error(error instanceof Error ? error.message : "Something went wrong")
+        } finally {
             setIsSubmitting(false)
         }
-    }
-
-    const pollJob = async (jobId: string) => {
-        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current)
-
-        pollIntervalRef.current = setInterval(async () => {
-            try {
-                const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/job/${jobId}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                })
-                const json = await res.json()
-                const jobState = json.data || json
-
-                if (jobState.status === "COMPLETED") {
-                    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current)
-                    toast.success("New SRS Verified & Generated!")
-
-                    if (jobState.result && jobState.result.id) {
-                        onOpenChange(false)
-                        router.push(`/analysis/${jobState.result.id}`)
-                    } else if (jobState.id) {
-                        onOpenChange(false)
-                        router.push(`/analysis/${jobState.id}`)
-                    } else {
-                        window.location.reload()
-                    }
-                } else if (jobState.status === "FAILED") {
-                    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current)
-                    setIsSubmitting(false)
-                    toast.error("Regeneration failed: " + (jobState.error || "Unknown error"))
-                }
-            } catch (e) {
-                console.error("Polling error", e)
-            }
-        }, 2000)
     }
 
     return (
@@ -134,10 +94,10 @@ export function ImprovementDialog({ open, onOpenChange, analysisId, version }: I
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Sparkles className="h-5 w-5 text-amber-500" />
-                        Layer 4: Refinement Cycle (v{version} → v{version + 1})
+                        Layer 4: Surgical Edit (v{version} → v{version + 1})
                     </DialogTitle>
                     <DialogDescription>
-                        Provide specific feedback to refine the analysis. The AI will regenerate the SRS while preserving your valid requirements.
+                        Describe what needs to change. The AI will edit only the affected sections while preserving everything else.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -145,7 +105,7 @@ export function ImprovementDialog({ open, onOpenChange, analysisId, version }: I
                     <div className="bg-yellow-500/10 text-yellow-500 p-3 rounded-md flex items-start gap-2 text-sm">
                         <AlertTriangle className="h-4 w-4 mt-0.5" />
                         <span>
-                            Warning: You are approaching the regeneration cap (5 versions).
+                            Warning: You are approaching the refinement cap (8 versions).
                             Further improvements may deliver diminishing returns.
                         </span>
                     </div>
@@ -153,7 +113,7 @@ export function ImprovementDialog({ open, onOpenChange, analysisId, version }: I
 
                 <div className="grid gap-4 py-4">
                     <div className="space-y-2">
-                        <Label>Refinement Scope (Where to focus)</Label>
+                        <Label>Refinement Scope (optional — select sections to focus on)</Label>
                         <div className="grid grid-cols-2 gap-2">
                             {SECTIONS.map((section) => (
                                 <div key={section.id} className="flex items-center space-x-2">
@@ -171,10 +131,10 @@ export function ImprovementDialog({ open, onOpenChange, analysisId, version }: I
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="notes">Improvement Notes <span className="text-destructive">*</span></Label>
+                        <Label htmlFor="notes">What should change? <span className="text-destructive">*</span></Label>
                         <Textarea
                             id="notes"
-                            placeholder="Describe what needs to be changed and why..."
+                            placeholder="e.g., Add offline support to the mobile features, strengthen the security requirements section..."
                             className="min-h-[100px]"
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
@@ -190,10 +150,10 @@ export function ImprovementDialog({ open, onOpenChange, analysisId, version }: I
                         {isSubmitting ? (
                             <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Regenerating...
+                                Applying Changes...
                             </>
                         ) : (
-                            "Improve & Regenerate"
+                            "Apply Changes"
                         )}
                     </Button>
                 </DialogFooter>
