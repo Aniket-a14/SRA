@@ -96,7 +96,7 @@ graph TD
 ## ✨ Enterprise Feature Modules
 
 ### 📊 Professional Requirements Engineering
-*   **IEEE-830 v1.1.0 Compliance**: Automated generation with strict identifier governance and academic prose discipline.
+*   **IEEE-830 v2.1.0 Compliance**: Automated generation with strict identifier governance and academic prose discipline.
 *   **6Cs Quality Audit**: Automated scoring for Clarity, Completeness, Conciseness, Consistency, Correctness, and Context.
 *   **RAG Benchmarking**: Real-time evaluation of LLM Faithfulness and Answer Relevancy.
 *   **User Story Evolution**: Generates "Jira-Ready" user stories with granular acceptance criteria.
