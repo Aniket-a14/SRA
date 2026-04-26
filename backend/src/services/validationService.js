@@ -111,11 +111,11 @@ CLARIFICATION_REQUIRED = at least one genuine gap that only the client can answe
 </output_format>
 
 <input>
-__SRS_DATA__
+{{srsData}}
 </input>
 `;
 
-const FILTER_PROMPT = `
+const FILTER_PROMPT_TEMPLATE = `
 You are a precision filter. You will receive a list of validation issues flagged by a first-pass reviewer.
 Your job: for each issue, determine if it is a GENUINE client-specific gap or a FALSE POSITIVE.
 
@@ -136,16 +136,20 @@ Example input: [{"title": "Undefined SSO Provider"}, {"title": "Unclear tag taxo
 Correct output: ["Undefined SSO Provider"]
 Reason: SSO provider is client-specific. Tag taxonomy and reminder channels are design decisions.
 
+<input>
 Issues to filter:
+{{issues}}
+</input>
 `;
 
 async function filterFalsePositives(issues) {
   if (!issues || issues.length === 0) return issues;
 
   try {
-    const response = await analyzeText(JSON.stringify(issues.map(i => ({ title: i.title, description: i.description }))), {
+    const issuesJson = JSON.stringify(issues.map(i => ({ title: i.title, description: i.description })), null, 2);
+    const response = await analyzeText(issuesJson, {
       modelName: process.env.GEMINI_MODEL_NAME || 'gemini-2.5-flash',
-      systemPrompt: FILTER_PROMPT,
+      systemPrompt: FILTER_PROMPT_TEMPLATE.replace('{{issues}}', issuesJson),
       temperature: 0.0,
       zodSchema: null
     });
@@ -175,7 +179,7 @@ export async function validateRequirements(srsData) {
 
   const response = await analyzeText(jsonString, {
     modelName: process.env.GEMINI_MODEL_NAME || 'gemini-2.5-flash',
-    systemPrompt: VALIDATION_PROMPT_TEMPLATE,
+    systemPrompt: VALIDATION_PROMPT_TEMPLATE.replace('{{srsData}}', jsonString),
     temperature: 0.0,
     zodSchema: null
   });

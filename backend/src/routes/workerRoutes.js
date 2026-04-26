@@ -12,10 +12,14 @@ const receiver = new Receiver({
 
 // Middleware to verify QStash signature
 const verifyQStash = async (req, res, next) => {
-    // Skip verification in dev if needed, or if strictly local mocking
+    // In dev without QStash signatures, verify using a shared secret
     if (process.env.NODE_ENV === 'development' && !req.headers['upstash-signature']) {
-        log.warn("Skipping QStash verification in dev (missing header)");
-        return next();
+        const devToken = req.headers['x-worker-secret'];
+        if (devToken === process.env.QSTASH_TOKEN || process.env.MOCK_QSTASH === 'true') {
+            return next();
+        }
+        log.error("Worker endpoint called in dev without valid x-worker-secret header");
+        return res.status(401).send("Unauthorized: Missing worker secret");
     }
 
     const signature = req.headers["upstash-signature"];

@@ -238,22 +238,27 @@ function AnalysisDetailContent() {
                 metadata: { ...analysis?.metadata, draftData, status: 'DRAFT' }
             });
 
-            const result = await runValidation(id, token!);
+            const response = await runValidation(id, token!);
+            const result = response.data; // The returned Analysis object
 
-            if (result.validation_status === 'SERVICE_ERROR') {
-                const errInfo = result.service_error || {};
-                toast.error(errInfo.title || 'Validation Service Error', {
-                    description: errInfo.message || 'Please try again in a few moments.',
-                    duration: 6000
+            if (result.metadata?.validationResult?.validation_status === 'SERVICE_ERROR') {
+                const errInfo = result.metadata.validationResult.service_error || {};
+                toast.error(errInfo.title || 'AI Service Busy', {
+                    description: errInfo.message || 'The AI is currently overloaded. Please try again shortly.',
+                    duration: 5000
                 });
+                mutate(response.data, false); // Update anyway to reflect status=DRAFT if changed
                 return;
             }
 
-            setValidationIssues(result.issues || []);
-            mutate();
+            // Immediately update SWR cache with the new analysis object to trigger UI switch
+            mutate(response.data, false); 
+            
+            setValidationIssues(result.metadata?.validationResult?.issues || []);
             toast.success("Validation Complete");
-        } catch {
-            toast.error("Failed to run validation");
+        } catch (err: unknown) {
+            console.error("Validation failed:", err);
+            toast.error("Failed to run validation. Please check your connection and try again.");
         } finally {
             setIsValidating(false);
         }
@@ -435,11 +440,12 @@ function AnalysisDetailContent() {
     }
 
     // View State Logic
-    const status = analysis?.metadata?.status || 'COMPLETED';
-    const isDraft = status === 'DRAFT';
-    const isValidatingOrValidated = status === 'VALIDATING' || status === 'VALIDATED' || status === 'NEEDS_FIX';
+    const modelStatus = (analysis?.status || '').toUpperCase();
+    const metadataStatus = analysis?.metadata?.status;
+    const isTerminal = modelStatus === 'COMPLETED' || modelStatus === 'FAILED';
+    const isValidatingOrValidated = metadataStatus === 'VALIDATING' || metadataStatus === 'VALIDATED' || metadataStatus === 'NEEDS_FIX';
 
-    if (isDraft) {
+    if (metadataStatus === 'DRAFT' && !isTerminal) {
         return (
             <div className="h-[calc(100vh-64px)] flex flex-col bg-background">
                 <div className="border-b px-6 py-4 flex items-center justify-between sticky top-0 bg-background z-20 shadow-sm">
@@ -485,281 +491,306 @@ function AnalysisDetailContent() {
         )
     }
 
-    // Default: COMPLETE (Layer 3+)
+    if (isTerminal) {
+        return (
+            <div className="h-[calc(100vh-64px)] flex flex-col bg-background">
+                <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+                    <main className="flex-1 overflow-auto h-full bg-muted/5">
+                        <div className="bg-background border-b border-border shadow-sm sticky top-0 z-10">
+                            <div className="container mx-auto px-4 sm:px-6 py-4">
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+
+                                    {/* Title & Meta */}
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-3">
+                                            <h1 className="text-xl sm:text-2xl font-bold tracking-tight truncate max-w-[300px] sm:max-w-md">
+                                                {draftData?.details?.projectName?.content || analysis?.title || "Analysis Result"}
+                                            </h1>
+                                            {analysis?.version && (
+                                                <span className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full font-medium border border-primary/20">
+                                                    v{analysis.version}
+                                                </span>
+                                            )}
+
+                                            {analysis?.metadata?.optimized && (
+                                                <span className="hidden sm:inline-flex px-2 py-0.5 bg-green-500/10 text-green-600 text-xs rounded-full border border-green-200 items-center gap-1">
+                                                    <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                                                    KB Optimized
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                            <span className="flex items-center gap-1">
+                                                <Calendar className="h-3 w-3" />
+                                                {analysis?.createdAt && formatDistanceToNow(new Date(analysis.createdAt), { addSuffix: true })}
+                                            </span>
+
+                                            {/* Version History Trigger */}
+                                            {analysis?.rootId && (
+                                                <>
+                                                    <span className="text-border">|</span>
+                                                    <Sheet>
+                                                        <SheetTrigger asChild>
+                                                            <button className="flex items-center gap-1 hover:text-primary transition-colors">
+                                                                <div className="flex items-center gap-1">
+                                                                    <div className="relative flex h-2 w-2">
+                                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+                                                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500"></span>
+                                                                    </div>
+                                                                    Version History
+                                                                </div>
+                                                            </button>
+                                                        </SheetTrigger>
+                                                        <SheetContent className="w-[400px] sm:w-[540px] p-0 flex flex-col h-full">
+                                                            <SheetHeader className="px-6 py-4 border-b shrink-0">
+                                                                <SheetTitle>Project History</SheetTitle>
+                                                            </SheetHeader>
+                                                            <div className="flex-1 min-h-0 overflow-hidden">
+                                                                <VersionTimeline
+                                                                    rootId={analysis.rootId}
+                                                                    currentId={id}
+                                                                    className="border-0 bg-transparent"
+                                                                    hideHeader={true}
+                                                                />
+                                                            </div>
+                                                        </SheetContent>
+                                                    </Sheet>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Action Toolbar (Layers 4 & 5) */}
+                                    <div className="flex items-center gap-2 pl-12 md:pl-0">
+                                        {/* Pillar 2: Requirement Recycling */}
+                                        <Sheet>
+                                            <SheetTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    className="gap-2 border-primary/20 hover:bg-primary/5 hover:text-primary"
+                                                    disabled={analysis?.isFinalized}
+                                                >
+                                                    <Zap className="h-4 w-4 text-amber-500" />
+                                                    Recycling
+                                                </Button>
+                                            </SheetTrigger>
+                                            <SheetContent className="w-[400px] sm:w-[500px] p-6">
+                                                <SheetHeader className="mb-6">
+                                                    <SheetTitle>Knowledge Recycling</SheetTitle>
+                                                </SheetHeader>
+                                                <RecyclingPanel
+                                                    onApply={async (content: string | SystemFeature) => {
+                                                        const loadingToast = toast.loading("Applying recycled requirement...");
+                                                        try {
+                                                            // 1. Determine if it's a Feature or just a Requirement fragment
+                                                            const newFeature = (typeof content === 'string'
+                                                                ? { name: "Recycled Feature", description: content, functionalRequirements: [] }
+                                                                : content) as unknown as SystemFeature;
+
+                                                            // 2. Optimistic Update (optional, but let's stick to safe API pattern first)
+                                                            const updatedFeatures: SystemFeature[] = [...(analysis?.systemFeatures || []), newFeature];
+
+                                                            // 3. API Call
+                                                            const updatedData = await updateAnalysis(id, token!, {
+                                                                systemFeatures: updatedFeatures,
+                                                                skipAlignment: true, // Keep speed optimization
+                                                                // inPlace: false // Default behavior creates new version
+                                                            });
+
+                                                            // 4. Navigate to New Version
+                                                            // Since we created a new version, we must navigate to it to see changes.
+                                                            toast.success("Requirement applied! Switching to new version...", { id: loadingToast });
+                                                            router.push(`/analysis/${updatedData.data.id}`);
+                                                        } catch (e) {
+                                                            console.error(e);
+                                                            toast.error("Failed to apply requirement", { id: loadingToast });
+                                                        }
+                                                    }}
+                                                />
+                                            </SheetContent>
+                                        </Sheet>
+
+                                        {/* Layer 4: Improve */}
+                                        <Button
+                                            onClick={() => setIsImproveDialogOpen(true)}
+                                            variant="outline"
+                                            className="gap-2 border-primary/20 hover:bg-primary/5 hover:text-primary"
+                                            disabled={analysis?.isFinalized}
+                                        >
+                                            <Sparkles className="h-4 w-4 text-amber-500" />
+                                            Improve SRS
+                                        </Button>
+
+                                        {/* Layer 5: Finalize */}
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button
+                                                    variant={(analysis?.isFinalized) ? "outline" : "default"}
+                                                    className={cn(
+                                                        "gap-2 transition-all",
+                                                        (analysis?.isFinalized)
+                                                            ? "border-green-500/30 text-green-600 bg-green-500/5 hover:bg-green-500/10"
+                                                            : "bg-primary hover:bg-primary/90"
+                                                    )}
+                                                    disabled={isFinalizing || analysis?.isFinalized}
+                                                >
+                                                    {isFinalizing ? <Loader2 className="h-4 w-4 animate-spin" /> :
+                                                        analysis?.isFinalized ? (
+                                                            <>
+                                                                <Database className="h-4 w-4" />
+                                                                Finalized
+                                                            </>
+                                                        ) : "Finalize & Save"}
+                                                </Button>
+                                            </AlertDialogTrigger>
+
+                                            {!analysis?.isFinalized && (
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Finalize SRS Analysis?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            Once you finalize, you cannot &quot;Improve&quot; this specific SRS version again using the AI refinement tools.
+                                                            Further changes will require performing a separate analysis.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={handleFinalize} className="bg-primary hover:bg-primary/90">
+                                                            Yes, Finalize
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            )}
+                                        </AlertDialog>
+
+
+
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="outline" className="gap-2">
+                                                    <Download className="h-4 w-4" />
+                                                    Export
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="start">
+                                                <DropdownMenuItem onClick={async () => {
+                                                    try {
+                                                        if (analysis) {
+                                                            toast.info("Preparing diagrams and PDF...");
+                                                            const { renderMermaidDiagrams } = await import("@/lib/export-utils");
+                                                            const images = await renderMermaidDiagrams(analysis);
+
+                                                            const projectTitle = analysis.projectTitle || analysis.title || "Project_Context";
+                                                            // generateSRS is now async
+                                                            const doc = await generateSRS(analysis, projectTitle, images);
+                                                            doc.save(`${projectTitle.replace(/\s+/g, '_')}_SRS.pdf`);
+                                                            toast.success("SRS Report downloaded");
+                                                        }
+                                                    } catch (err) {
+                                                        console.error("SRS Export Failed", err);
+                                                        toast.error("Failed to generate SRS PDF");
+                                                    }
+                                                }}>
+                                                    Export SRS (PDF)
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => {
+                                                    try {
+                                                        if (analysis) {
+                                                            const md = generateAPI(analysis);
+                                                            const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+                                                            saveAs(blob, "API_Blueprint.md");
+                                                            toast.success("API Blueprint downloaded");
+                                                        }
+                                                    } catch (err) {
+                                                        console.error("API Export Failed", err);
+                                                        toast.error("Failed to generate API Blueprint");
+                                                    }
+                                                }}>
+                                                    Export API Blueprint (MD)
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={async () => {
+                                                    try {
+                                                        if (analysis) {
+                                                            toast.info("Generating bundle...");
+                                                            await downloadBundle(analysis, "Project_Analysis");
+                                                            toast.success("Bundle downloaded successfully");
+                                                        }
+                                                    } catch (err) {
+                                                        console.error("Bundle Export Failed", err);
+                                                        toast.error("Failed to generate Download Bundle");
+                                                    }
+                                                }}>
+                                                    Download Bundle (.zip)
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {analysis && (
+                                <div className="flex flex-col gap-4 mb-4">
+                                    <SourcesPanel sources={analysis.metadata?.ragSources || []} />
+                                    <div className="border p-2 bg-muted rounded-lg">
+                                        <ErrorBoundary name="Results View">
+                                            <ResultsTabs
+                                                data={analysis}
+                                                onDiagramEditChange={memoizedOnDiagramEditChange}
+                                                onRefresh={memoizedOnRefresh}
+                                            />
+                                        </ErrorBoundary>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </main>
+                </div>
+
+                <ProjectChatPanel
+                    analysisId={id}
+                    onAnalysisUpdate={(newId: string) => router.push(`/analysis/${newId}`)}
+                    hidden={isDiagramEditing}
+                    isFinalized={analysis?.isFinalized}
+                />
+
+                {analysis && (
+                    <ImprovementDialog
+                        open={isImproveDialogOpen}
+                        onOpenChange={setIsImproveDialogOpen}
+                        analysisId={id}
+                        version={analysis.version}
+                    />
+                )}
+
+            </div>
+        );
+    }
+
+    // FINAL FALLBACK: DRAFT (Layer 1)
     return (
         <div className="h-[calc(100vh-64px)] flex flex-col bg-background">
-            <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-                {/* Timeline Sidebar - Only if history exists */}
-                {/* Note: This sidebar is local to the analysis, distinct from AppSidebar */}
-
-
-                <main className="flex-1 overflow-auto h-full bg-muted/5">
-                    <div className="bg-background border-b border-border shadow-sm sticky top-0 z-10">
-                        <div className="container mx-auto px-4 sm:px-6 py-4">
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-
-                                {/* Title & Meta */}
-                                <div className="space-y-1">
-                                    <div className="flex items-center gap-3">
-                                        <h1 className="text-xl sm:text-2xl font-bold tracking-tight truncate max-w-[300px] sm:max-w-md">
-                                            {draftData?.details?.projectName?.content || analysis?.title || "Analysis Result"}
-                                        </h1>
-                                        {analysis?.version && (
-                                            <span className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full font-medium border border-primary/20">
-                                                v{analysis.version}
-                                            </span>
-                                        )}
-
-                                        {analysis?.metadata?.optimized && (
-                                            <span className="hidden sm:inline-flex px-2 py-0.5 bg-green-500/10 text-green-600 text-xs rounded-full border border-green-200 items-center gap-1">
-                                                <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-                                                KB Optimized
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                        <span className="flex items-center gap-1">
-                                            <Calendar className="h-3 w-3" />
-                                            {analysis?.createdAt && formatDistanceToNow(new Date(analysis.createdAt), { addSuffix: true })}
-                                        </span>
-
-                                        {/* Version History Trigger */}
-                                        {analysis?.rootId && (
-                                            <>
-                                                <span className="text-border">|</span>
-                                                <Sheet>
-                                                    <SheetTrigger asChild>
-                                                        <button className="flex items-center gap-1 hover:text-primary transition-colors">
-                                                            <div className="flex items-center gap-1">
-                                                                <div className="relative flex h-2 w-2">
-                                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
-                                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500"></span>
-                                                                </div>
-                                                                Version History
-                                                            </div>
-                                                        </button>
-                                                    </SheetTrigger>
-                                                    <SheetContent className="w-[400px] sm:w-[540px] p-0 flex flex-col h-full">
-                                                        <SheetHeader className="px-6 py-4 border-b shrink-0">
-                                                            <SheetTitle>Project History</SheetTitle>
-                                                        </SheetHeader>
-                                                        <div className="flex-1 min-h-0 overflow-hidden">
-                                                            <VersionTimeline
-                                                                rootId={analysis.rootId}
-                                                                currentId={id}
-                                                                className="border-0 bg-transparent"
-                                                                hideHeader={true}
-                                                            />
-                                                        </div>
-                                                    </SheetContent>
-                                                </Sheet>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Action Toolbar (Layers 4 & 5) */}
-                                <div className="flex items-center gap-2 pl-12 md:pl-0">
-                                    {/* Pillar 2: Requirement Recycling */}
-                                    <Sheet>
-                                        <SheetTrigger asChild>
-                                            <Button
-                                                variant="outline"
-                                                className="gap-2 border-primary/20 hover:bg-primary/5 hover:text-primary"
-                                                disabled={analysis?.isFinalized}
-                                            >
-                                                <Zap className="h-4 w-4 text-amber-500" />
-                                                Recycling
-                                            </Button>
-                                        </SheetTrigger>
-                                        <SheetContent className="w-[400px] sm:w-[500px] p-6">
-                                            <SheetHeader className="mb-6">
-                                                <SheetTitle>Knowledge Recycling</SheetTitle>
-                                            </SheetHeader>
-                                            <RecyclingPanel
-                                                onApply={async (content: string | SystemFeature) => {
-                                                    const loadingToast = toast.loading("Applying recycled requirement...");
-                                                    try {
-                                                        // 1. Determine if it's a Feature or just a Requirement fragment
-                                                        const newFeature = (typeof content === 'string'
-                                                            ? { name: "Recycled Feature", description: content, functionalRequirements: [] }
-                                                            : content) as unknown as SystemFeature;
-
-                                                        // 2. Optimistic Update (optional, but let's stick to safe API pattern first)
-                                                        const updatedFeatures: SystemFeature[] = [...(analysis?.systemFeatures || []), newFeature];
-
-                                                        // 3. API Call
-                                                        const updatedData = await updateAnalysis(id, token!, {
-                                                            systemFeatures: updatedFeatures,
-                                                            skipAlignment: true, // Keep speed optimization
-                                                            // inPlace: false // Default behavior creates new version
-                                                        });
-
-                                                        // 4. Navigate to New Version
-                                                        // Since we created a new version, we must navigate to it to see changes.
-                                                        toast.success("Requirement applied! Switching to new version...", { id: loadingToast });
-                                                        router.push(`/analysis/${updatedData.data.id}`);
-                                                    } catch (e) {
-                                                        console.error(e);
-                                                        toast.error("Failed to apply requirement", { id: loadingToast });
-                                                    }
-                                                }}
-                                            />
-                                        </SheetContent>
-                                    </Sheet>
-
-                                    {/* Layer 4: Improve */}
-                                    <Button
-                                        onClick={() => setIsImproveDialogOpen(true)}
-                                        variant="outline"
-                                        className="gap-2 border-primary/20 hover:bg-primary/5 hover:text-primary"
-                                        disabled={analysis?.isFinalized}
-                                    >
-                                        <Sparkles className="h-4 w-4 text-amber-500" />
-                                        Improve SRS
-                                    </Button>
-
-                                    {/* Layer 5: Finalize */}
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                            <Button
-                                                variant={(analysis?.isFinalized) ? "outline" : "default"}
-                                                className={cn(
-                                                    "gap-2 transition-all",
-                                                    (analysis?.isFinalized)
-                                                        ? "border-green-500/30 text-green-600 bg-green-500/5 hover:bg-green-500/10"
-                                                        : "bg-primary hover:bg-primary/90"
-                                                )}
-                                                disabled={isFinalizing || analysis?.isFinalized}
-                                            >
-                                                {isFinalizing ? <Loader2 className="h-4 w-4 animate-spin" /> :
-                                                    analysis?.isFinalized ? (
-                                                        <>
-                                                            <Database className="h-4 w-4" />
-                                                            Finalized
-                                                        </>
-                                                    ) : "Finalize & Save"}
-                                            </Button>
-                                        </AlertDialogTrigger>
-
-                                        {!analysis?.isFinalized && (
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogTitle>Finalize SRS Analysis?</AlertDialogTitle>
-                                                    <AlertDialogDescription>
-                                                        Once you finalize, you cannot &quot;Improve&quot; this specific SRS version again using the AI refinement tools.
-                                                        Further changes will require performing a separate analysis.
-                                                    </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={handleFinalize} className="bg-primary hover:bg-primary/90">
-                                                        Yes, Finalize
-                                                    </AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        )}
-                                    </AlertDialog>
-
-
-
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="outline" className="gap-2">
-                                                <Download className="h-4 w-4" />
-                                                Export
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="start">
-                                            <DropdownMenuItem onClick={async () => {
-                                                try {
-                                                    if (analysis) {
-                                                        toast.info("Preparing diagrams and PDF...");
-                                                        const { renderMermaidDiagrams } = await import("@/lib/export-utils");
-                                                        const images = await renderMermaidDiagrams(analysis);
-
-                                                        const projectTitle = analysis.projectTitle || analysis.title || "Project_Context";
-                                                        // generateSRS is now async
-                                                        const doc = await generateSRS(analysis, projectTitle, images);
-                                                        doc.save(`${projectTitle.replace(/\s+/g, '_')}_SRS.pdf`);
-                                                        toast.success("SRS Report downloaded");
-                                                    }
-                                                } catch (err) {
-                                                    console.error("SRS Export Failed", err);
-                                                    toast.error("Failed to generate SRS PDF");
-                                                }
-                                            }}>
-                                                Export SRS (PDF)
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => {
-                                                try {
-                                                    if (analysis) {
-                                                        const md = generateAPI(analysis);
-                                                        const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
-                                                        saveAs(blob, "API_Blueprint.md");
-                                                        toast.success("API Blueprint downloaded");
-                                                    }
-                                                } catch (err) {
-                                                    console.error("API Export Failed", err);
-                                                    toast.error("Failed to generate API Blueprint");
-                                                }
-                                            }}>
-                                                Export API Blueprint (MD)
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={async () => {
-                                                try {
-                                                    if (analysis) {
-                                                        toast.info("Generating bundle...");
-                                                        await downloadBundle(analysis, "Project_Analysis");
-                                                        toast.success("Bundle downloaded successfully");
-                                                    }
-                                                } catch (err) {
-                                                    console.error("Bundle Export Failed", err);
-                                                    toast.error("Failed to generate Download Bundle");
-                                                }
-                                            }}>
-                                                Download Bundle (.zip)
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </div>
-                            </div>
-                        </div>
-
-                        {analysis && (
-                            <div className="flex flex-col gap-4 mb-4">
-                                <SourcesPanel sources={analysis.metadata?.ragSources || []} />
-                                <div className="border p-2 bg-muted rounded-lg">
-                                    <ErrorBoundary name="Results View">
-                                        <ResultsTabs
-                                            data={analysis}
-                                            onDiagramEditChange={memoizedOnDiagramEditChange}
-                                            onRefresh={memoizedOnRefresh}
-                                        />
-                                    </ErrorBoundary>
-                                </div>
-                            </div>
-                        )}
+            <div className="border-b px-6 py-4 flex items-center justify-between sticky top-0 bg-background z-20 shadow-sm">
+                <div className="flex items-center gap-4">
+                    <Button variant="ghost" size="icon" onClick={() => router.push('/analysis')}><ArrowLeft className="h-4 w-4" /></Button>
+                    <div>
+                        <h1 className="text-xl font-bold">{analysis?.title?.replace(" (Draft)", "") || "New Project Analysis"}</h1>
+                        <span className="text-xs text-muted-foreground">Draft Mode • Layer 1</span>
                     </div>
-                </main>
+                </div>
+                <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={handleSaveDraft}>
+                        <Save className="h-4 w-4 mr-2" /> Save Draft
+                    </Button>
+                </div>
             </div>
-
-            <ProjectChatPanel
-                analysisId={id}
-                onAnalysisUpdate={(newId: string) => router.push(`/analysis/${newId}`)}
-                hidden={isDiagramEditing}
-                isFinalized={analysis?.isFinalized}
-            />
-
-            {analysis && (
-                <ImprovementDialog
-                    open={isImproveDialogOpen}
-                    onOpenChange={setIsImproveDialogOpen}
-                    analysisId={id}
-                    version={analysis.version}
+            <div className="flex-1 overflow-auto bg-muted/5 p-6">
+                <AccordionInput
+                    data={(draftData as unknown as SRSIntakeModel) || {}}
+                    onUpdate={handleDraftUpdate}
+                    onValidate={handleRunValidation}
+                    isValidating={isValidating}
                 />
-            )}
-
+            </div>
         </div>
     )
 }

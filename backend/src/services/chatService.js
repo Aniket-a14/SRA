@@ -43,7 +43,7 @@ ${historyText}
 User: ${userMessage}
 `;
 
-    // 4. Call Gemini
+    // 4. Call Gemini (with retry logic)
     let outputText;
     if (process.env.MOCK_AI === 'true') {
         outputText = JSON.stringify({
@@ -58,8 +58,33 @@ User: ${userMessage}
     } else {
         const modelName = process.env.GEMINI_MODEL_NAME || "gemini-2.5-flash";
         const model = genAI.getGenerativeModel({ model: modelName });
-        const result = await model.generateContent(fullPrompt);
-        outputText = result.response.text();
+        
+        let attempt = 0;
+        const maxRetries = 3;
+        let delay = 2000;
+        
+        while (attempt < maxRetries) {
+            try {
+                const result = await model.generateContent(fullPrompt);
+                outputText = result.response.text();
+                break;
+            } catch (err) {
+                attempt++;
+                const isRetryable = err.message?.includes("429") || err.message?.includes("503") || err.message?.includes("fetch failed") || err.message?.includes("ECONNREFUSED");
+                
+                if (isRetryable && attempt < maxRetries) {
+                    console.warn(`[Chat Service] Retryable error (${err.message}). Retry ${attempt}/${maxRetries} in ${delay}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2;
+                    continue;
+                }
+                throw err;
+            }
+        }
+        
+        if (!outputText) {
+            throw new Error("[Chat Service] All retry attempts exhausted.");
+        }
     }
 
     // 51. Clean markdown

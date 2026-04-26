@@ -129,8 +129,10 @@ export const checkAlignment = async (originalInput, validationContext, srsOutput
     // Construct task-specific prompt (system prompt)
     let systemPrompt = ALIGNMENT_CHECK_PROMPT
         .replace('{{projectName}}', originalInput.projectName || "Unknown")
+        .replace('{{rawInput}}', originalInput.rawText || "N/A")
         .replace('{{domain}}', validationContext.domain || "General Software")
-        .replace('{{purpose}}', validationContext.purpose || "Not Specified");
+        .replace('{{purpose}}', validationContext.purpose || "Not Specified")
+        .replace('{{srsContent}}', JSON.stringify(srsOutput, null, 2));
 
     // Pass the raw input as the message text
     const text = (originalInput.rawText || "").slice(0, 5000) +

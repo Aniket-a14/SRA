@@ -13,7 +13,7 @@ export class DeveloperAgent extends BaseAgent {
    */
   async generateShell(rawInput, requirements, architecture, settings = {}) {
     const { projectName = "Project", version = "latest", ragContext = "" } = settings;
-    const masterPrompt = await constructMasterPrompt({ profile: "default", projectName }, version);
+    const masterPrompt = await constructMasterPrompt(null, { profile: "default", projectName }, version);
 
     const prompt = `
 ${masterPrompt}
@@ -43,7 +43,7 @@ ${ragContext || "No historical context available."}
    */
   async generateFeatures(rawInput, section1, requirements, architecture, featuresChunk, settings = {}) {
     const { projectName = "Project", version = "latest", ragContext = "" } = settings;
-    const masterPrompt = await constructMasterPrompt({ profile: "default", projectName }, version);
+    const masterPrompt = await constructMasterPrompt(null, { profile: "default", projectName }, version);
 
     const prompt = `
 ${masterPrompt}
@@ -63,7 +63,7 @@ ${JSON.stringify(featuresChunk, null, 2)}
 1. For EACH target feature, generate: name, description, stimulusResponseSequences, and functionalRequirements.
 2. The 'description' MUST be a comprehensive, multi-paragraph explanation of the feature's value, behavior, and workflow. Do NOT use one-liners.
 3. Functional requirements must be exhaustive, specifically detailing edge cases, validation, and error handling.
-4. Use the \${projectName}- prefix.
+4. Use the ${projectName}- prefix.
 `;
 
     return this.callLLM(prompt, 0.4, true, SRSFeaturesSchema);
@@ -75,7 +75,7 @@ ${JSON.stringify(featuresChunk, null, 2)}
    */
   async generateRequirements(rawInput, sections1And2, requirements, architecture, settings = {}) {
     const { projectName = "Project", version = "latest", ragContext = "" } = settings;
-    const masterPrompt = await constructMasterPrompt({ profile: "default", projectName }, version);
+    const masterPrompt = await constructMasterPrompt(null, { profile: "default", projectName }, version);
 
     const prompt = `
 ${masterPrompt}
@@ -117,7 +117,7 @@ You are completing the SRS. This section includes the critical technical require
   async generateAppendices(rawInput, previousSections, poOutput, architecture, settings = {}) {
     const { projectName = "Project", version = "latest", ragContext } = settings;
 
-    const masterPrompt = await constructMasterPrompt({
+    const masterPrompt = await constructMasterPrompt(null, {
       profile: "developer",
       projectName,
       noSchema: true

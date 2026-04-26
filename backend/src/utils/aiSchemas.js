@@ -40,35 +40,91 @@ export const RefinedIntentSchema = {
 
 export const ArchitectSchema = {
     type: SchemaType.OBJECT,
-    description: "System architecture and tech stack design.",
+    description: "Technology-agnostic logical architecture and product blueprint.",
     properties: {
-        techStack: {
-            type: SchemaType.OBJECT,
-            properties: {
-                frontend: { type: SchemaType.STRING },
-                backend: { type: SchemaType.STRING },
-                database: { type: SchemaType.STRING }
-            },
-            required: ["frontend", "backend", "database"]
+        logicalComponents: {
+            type: SchemaType.ARRAY,
+            description: "The core logical parts or subsystems of the product.",
+            items: {
+                type: SchemaType.OBJECT,
+                properties: {
+                    name: { type: SchemaType.STRING, description: "e.g., Firmware, Data Engine, UI Shell, Sensor Array" },
+                    role: { type: SchemaType.STRING, description: "The primary responsibility of this component." }
+                },
+                required: ["name", "role"]
+            }
         },
-        databaseSchema: {
+        entityModel: {
+            type: SchemaType.ARRAY,
+            description: "Core logical entities/data objects and their relationships.",
+            items: {
+                type: SchemaType.OBJECT,
+                properties: {
+                    entity: { type: SchemaType.STRING, description: "Entity name (e.g., User, Transaction, SensorReading)" },
+                    attributes: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+                    relationships: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }
+                },
+                required: ["entity", "attributes", "relationships"]
+            }
+        },
+        logicalPrinciples: {
+            type: SchemaType.ARRAY,
+            description: "Agnostic architectural principles and technical requirements.",
+            items: { type: SchemaType.STRING }
+        }
+    },
+    required: ["logicalComponents", "entityModel", "logicalPrinciples"]
+};
+
+export const ArchitectFoundationSchema = {
+    type: SchemaType.OBJECT,
+    description: "Identifies the core logical components of the product.",
+    properties: {
+        logicalComponents: {
             type: SchemaType.ARRAY,
             items: {
                 type: SchemaType.OBJECT,
                 properties: {
-                    table: { type: SchemaType.STRING },
-                    columns: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+                    name: { type: SchemaType.STRING },
+                    role: { type: SchemaType.STRING }
+                },
+                required: ["name", "role"]
+            }
+        }
+    },
+    required: ["logicalComponents"]
+};
+
+export const ArchitectDataSchema = {
+    type: SchemaType.OBJECT,
+    description: "Defines the logical entity structure and data lifecycle.",
+    properties: {
+        entityModel: {
+            type: SchemaType.ARRAY,
+            items: {
+                type: SchemaType.OBJECT,
+                properties: {
+                    entity: { type: SchemaType.STRING },
+                    attributes: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
                     relationships: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }
                 },
-                required: ["table", "columns", "relationships"]
+                required: ["entity", "attributes", "relationships"]
             }
-        },
-        designDecisions: {
+        }
+    },
+    required: ["entityModel"]
+};
+
+export const ArchitectPrinciplesSchema = {
+    type: SchemaType.OBJECT,
+    description: "Identifies product-level technical principles.",
+    properties: {
+        logicalPrinciples: {
             type: SchemaType.ARRAY,
             items: { type: SchemaType.STRING }
         }
     },
-    required: ["techStack", "databaseSchema", "designDecisions"]
+    required: ["logicalPrinciples"]
 };
 
 export const ReviewSchema = {

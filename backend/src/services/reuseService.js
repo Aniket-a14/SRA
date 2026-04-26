@@ -1,5 +1,6 @@
 import prisma from '../config/prisma.js';
 import { embedText } from './embeddingService.js';
+import logger from '../config/logger.js';
 
 export const findReuseCandidate = async (text) => {
     let reuseMetadata = { found: false };
@@ -37,12 +38,12 @@ export const findReuseCandidate = async (text) => {
                 }
 
                 if (reuseMetadata.found) {
-                    console.log(`[Reuse] Found ${reuseMetadata.type} match: ${reuseMetadata.id}`);
+                    logger.info({ msg: `[Reuse] Found ${reuseMetadata.type} match`, id: reuseMetadata.id });
                 }
             }
         }
     } catch (e) {
-        console.warn("Reuse search failed:", e.message);
+        logger.warn({ msg: "[Reuse] Search failed", error: e.message });
     }
 
     return reuseMetadata;

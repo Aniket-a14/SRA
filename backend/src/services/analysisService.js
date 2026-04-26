@@ -44,13 +44,8 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         logger.info("--> Agent: Product Owner");
         const poOutput = await poAgent.refineIntent(text, { projectName, version: promptVersion });
 
-        // 2. Architect: Design System (with RAG)
-        logger.info("--> Agent: Architect");
-        const archOutput = await archAgent.designSystem(poOutput, {
-            projectName,
-            projectId,
-            version: promptVersion
-        });
+        // 2. Architect: Design System (Placeholder - moved after RAG)
+        let archOutput = null;
 
         // 2.5 Pillar 2: Multi-Query RAG (Intelligent Recycling)
         logger.info("--> Pillar 2: Active Requirement Recycling (Multi-Query RAG)");
@@ -75,6 +70,15 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         // De-duplicate by content hash or ID
         const uniqueChunks = Array.from(new Map(allRecyclableChunks.map(c => [c.id || JSON.stringify(c.content), c])).values());
         const ragContext = await formatRagContext(uniqueChunks);
+
+        // 3. Architect: Design System (Logical Sectional Approach)
+        logger.info("--> Agent: Architect");
+        archOutput = await archAgent.designSystem(poOutput, {
+            projectName,
+            projectId,
+            version: promptVersion,
+            ragContext: ragContext // Inject RAG context into Architect
+        });
 
         // --- CONTEXT MONITORING ---
         // Safeguard for Free Tier (250k TPM limit)
@@ -469,7 +473,7 @@ export const getUserAnalyses = async (userId) => {
             SELECT DISTINCT ON ("rootId")
                 id,
                 "createdAt",
-                "inputText",
+                LEFT("inputText", 500) AS "inputText",
                 version,
                 title,
                 "rootId",

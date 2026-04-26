@@ -7,6 +7,7 @@ import fs from 'fs';
 import yaml from 'js-yaml';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
 
 import { authLimiter, aiLimiter, apiLimiter } from './middleware/rateLimiters.js';
 import { requestIdMiddleware } from './middleware/requestIdMiddleware.js';
@@ -77,10 +78,14 @@ app.use('/api/health', healthRoutes);
 app.use(requestIdMiddleware);
 app.use(logger);
 
+// Read version from package.json
+const require = createRequire(import.meta.url);
+const pkg = require('../../package.json');
+
 app.get('/', (req, res) => {
     res.json({
         message: 'Smart Requirements Analyzer Backend Running',
-        version: '3.0.8',
+        version: pkg.version,
         environment: process.env.NODE_ENV || 'development'
     });
 });
@@ -106,7 +111,6 @@ if (swaggerDocument) {
 // Internal AI Endpoint
 app.use('/internal/analyze', aiEndpoint);
 
-// Public/Protected Routes
 // Public/Protected Routes
 app.use((req, res, next) => {
     // console.log(`[RAW REQUEST] ${req.method} ${req.url}`);

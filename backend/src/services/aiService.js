@@ -30,10 +30,10 @@ export async function analyzeText(text, settings = {}) {
 System Context:
 ${masterPrompt}
 
+<input>
 User Input Data:
 ${text}
-
-REMINDER: Return ONLY a valid JSON object.
+</input>
 `;
   } else {
     // Standard SRA generation flow
@@ -81,23 +81,12 @@ REMINDER: Return ONLY a valid JSON object.
     }
     // ---------------------------------------------
 
-    masterPrompt = await constructMasterPrompt({ ...promptSettings, projectName }, promptVersion);
-
-    // Inject RAG Context into the System Prompt
-    if (ragContextString) {
-      masterPrompt += `\n\n${ragContextString}`;
-    }
-
-    if (settings.systemPromptExtension) {
-      masterPrompt += `\n\n${settings.systemPromptExtension}`;
-    }
-
-    finalPrompt = `
-${masterPrompt}
-
-User Input:
-${text}
-`;
+    finalPrompt = await constructMasterPrompt(text, { 
+      ...promptSettings, 
+      projectName, 
+      ragContext: ragContextString,
+      systemPromptExtension: settings.systemPromptExtension
+    }, promptVersion);
   }
 
   let output;

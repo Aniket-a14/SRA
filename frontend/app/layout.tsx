@@ -71,7 +71,7 @@ export default function RootLayout({
       <body className={`${inter.variable} ${outfit.variable} font-sans antialiased bg-background text-foreground`}>
         <Providers>{children}</Providers>
         <VitalsMonitor />
-        <Toaster />
+        <Toaster closeButton />
       </body>
     </html>
   )

@@ -1,6 +1,7 @@
 import { genAI } from "../config/gemini.js";
 import { getRedisClient } from "../config/redis.js";
 import { createHash } from "crypto";
+import logger from "../config/logger.js";
 
 export async function embedText(text, retries = 3, initialDelay = 2000) {
     const redis = getRedisClient();
@@ -16,7 +17,7 @@ export async function embedText(text, retries = 3, initialDelay = 2000) {
                 return JSON.parse(cachedValue);
             }
         } catch (cacheError) {
-            console.warn(`[Embedding Service] Cache read error: ${cacheError.message}`);
+            logger.warn({ msg: "[Embedding Service] Cache read error", error: cacheError.message });
         }
     }
 
@@ -38,25 +39,27 @@ export async function embedText(text, retries = 3, initialDelay = 2000) {
                 try {
                     await redis.set(cacheKey, JSON.stringify(embedding), "EX", 604800);
                 } catch (cacheSetError) {
-                    console.warn(`[Embedding Service] Cache write error: ${cacheSetError.message}`);
+                    logger.warn({ msg: "[Embedding Service] Cache write error", error: cacheSetError.message });
                 }
             }
 
             return embedding;
         } catch (error) {
             attempt++;
-            const isNetworkError = error.message?.includes("fetch failed") || error.message?.includes("ECONNREFUSED") || error.message?.includes("ETIMEDOUT") || error.message?.includes("UND_ERR_CONNECT_TIMEOUT");
+            const isRetryable = error.message?.includes("fetch failed") || error.message?.includes("ECONNREFUSED") || error.message?.includes("ETIMEDOUT") || error.message?.includes("UND_ERR_CONNECT_TIMEOUT") || error.message?.includes("429") || error.message?.includes("503");
 
-            if (isNetworkError && attempt < retries) {
-                console.warn(`[Embedding Service] Network error (${error.message}). Retrying in ${delay}ms... (Attempt ${attempt}/${retries})`);
+            if (isRetryable && attempt < retries) {
+                logger.warn({ msg: `[Embedding Service] Retryable error. Retrying in ${delay}ms...`, error: error.message, attempt, retries });
                 await new Promise(resolve => setTimeout(resolve, delay));
                 delay *= 2;
                 continue;
             }
 
-            console.error("[Embedding Service] FATAL: Persistent connectivity issue with Gemini Embedding endpoint.");
-            console.error("[Embedding Service] Details:", error.message);
+            logger.error({ msg: "[Embedding Service] FATAL: All retries exhausted for Gemini Embedding endpoint.", error: error.message });
             throw error;
         }
     }
+
+    // Safety net: if while loop exits without returning (all retries hit network errors)
+    throw new Error("[Embedding Service] All retry attempts exhausted without a successful response.");
 }

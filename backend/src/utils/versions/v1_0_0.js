@@ -1,10 +1,12 @@
 import { getDiagramAuthorityPrompt } from '../prompt_templates/diagram_authority.js';
 
-export const generate = async (settings = {}) => {
+export const generate = async (text = null, settings = {}) => {
   const {
     profile = "default",
     depth = 3,      // 1-5 (Verbosity)
-    strictness = 3  // 1-5 (Creativity: 5=Creative, 1=Strict/Dry)
+    strictness = 3,  // 1-5 (Creativity: 5=Creative, 1=Strict/Dry)
+    ragContext = "",
+    systemPromptExtension = ""
   } = settings;
 
   // 0. FETCH DYNAMIC AUTHORITY
@@ -43,6 +45,21 @@ Your requirements must explicitly address Authentication, Authorization, Data Pr
   } else {
     creativityInstruction = "STRICTNESS: MEDIUM. Infer standard implicit features (like Login) but do not invent core modules.";
   }
+
+  const contextSection = (ragContext || systemPromptExtension) ? `
+<context>
+${ragContext ? `### HISTORICAL PATTERNS (RAG):\n${ragContext}\n` : ""}
+${systemPromptExtension ? `### SYSTEM EXTENSION:\n${systemPromptExtension}\n` : ""}
+</context>
+` : "";
+
+  const inputSection = text ? `
+<input>
+User Input (Raw Description):
+${text}
+</input>
+` : "";
+
   return `
 ${diagramAuthority}
 
@@ -195,9 +212,9 @@ You MUST return output ONLY in the following exact JSON structure. Do not add ex
     "tbdList": ["Numbered list of TBD items."]
   },
   "promptSettingsUsed": {
-      "profile": "\${profile}",
-      "depth": \${depth},
-      "strictness": \${strictness}
+      "profile": "${profile}",
+      "depth": ${depth},
+      "strictness": ${strictness}
   }
 }
 
@@ -207,6 +224,8 @@ STRICT RULES:
 3. System Features must follow specific structure defined above or output is INVALID.
 4. Output MUST be valid JSON only.
 
-User Input (Raw Description):
+${contextSection}
+
+${inputSection}
 `;
 };

@@ -20,10 +20,6 @@ export const analyze = async (req, res, next) => {
     try {
         let { text, srsData, validationResult, parentId, rootId } = req.body;
 
-
-
-        // Auto-Create Project if missing
-        // Auto-Create Project if missing
         // Auto-Create Project if missing - DEFERRED to Worker Service (performAnalysis)
         // req.body.projectId = await ensureProjectExists(req.user.userId, req.body.projectId, srsData, text);
 
@@ -155,8 +151,13 @@ export const analyze = async (req, res, next) => {
         // For actual analysis (Layer 2+), we usually queue it because Layer 3/4 AI is slow.
         // But if optimization found, we skip queue.
 
-        // LAYER 5: Reuse Strategy (Vector Search)
-        const reuseMetadata = await findReuseCandidate(sanitizedText);
+        // LAYER 5: Reuse Strategy (Vector Search) — Non-blocking
+        let reuseMetadata = { found: false };
+        try {
+            reuseMetadata = await findReuseCandidate(sanitizedText);
+        } catch (reuseErr) {
+            logger.warn({ msg: "[Reuse] Search failed (non-fatal), proceeding without reuse", error: reuseErr.message });
+        }
 
         const job = await addAnalysisJob(req.user.userId, sanitizedText, req.body.projectId, {
             ...req.body.settings,
@@ -434,7 +435,9 @@ export const getChatHistory = async (req, res, next) => {
         // Verify ownership
         const analysis = await prisma.analysis.findUnique({ where: { id } });
         if (!analysis || analysis.userId !== req.user.userId) {
-            return res.status(403).json({ error: "Unauthorized" });
+            const error = new Error('Unauthorized access to this analysis');
+            error.statusCode = 403;
+            throw error;
         }
 
         const rootId = analysis.rootId || analysis.id;
@@ -590,17 +593,25 @@ export const finalizeAnalysis = async (req, res, next) => {
             (result.qualityAudit?.score ? result.qualityAudit.score / 10 : null);
 
         if (result.systemFeatures && Array.isArray(result.systemFeatures)) {
-            for (const feature of result.systemFeatures) {
+            // Prepare all feature chunks first, then batch embed
+            const featureChunkTexts = result.systemFeatures.map(feature => {
+                return `${feature.name}: ${feature.description}\n${feature.functionalRequirements?.join(' ')}`;
+            });
+
+            // Batch embed all features in parallel
+            const featureEmbeddings = await Promise.all(
+                featureChunkTexts.map(async (chunkText) => {
+                    try {
+                        return process.env.MOCK_AI === 'true' ? Array(768).fill(0.01) : await embedText(chunkText);
+                    } catch (err) {
+                        logger.warn({ err }, `[Finalize] Failed to embed feature chunk`);
+                        return null;
+                    }
+                })
+            );
+
+            result.systemFeatures.forEach((feature, idx) => {
                 const contentStr = JSON.stringify(feature);
-                const chunkText = `${feature.name}: ${feature.description}\n${feature.functionalRequirements?.join(' ')}`;
-
-                let embedding = null;
-                try {
-                    embedding = process.env.MOCK_AI === 'true' ? Array(768).fill(0.01) : await embedText(chunkText);
-                } catch (err) {
-                    logger.warn({ err }, `[Finalize] Failed to embed feature chunk: ${feature.name}`);
-                }
-
                 chunks.push({
                     id: crypto.randomUUID(),
                     type: 'FEATURE',
@@ -608,10 +619,10 @@ export const finalizeAnalysis = async (req, res, next) => {
                     hash: crypto.createHash('md5').update(contentStr).digest('hex'),
                     tags: [feature.name, ...(feature.functionalRequirements?.map(f => f.slice(0, 20)) || [])],
                     sourceAnalysisId: id,
-                    embedding: embedding,
+                    embedding: featureEmbeddings[idx],
                     qualityScore: overallScore
                 });
-            }
+            });
         }
 
         if (result.nonFunctionalRequirements) {
@@ -670,15 +681,12 @@ export const finalizeAnalysis = async (req, res, next) => {
 
                 const chunksWithVectors = chunks.filter(c => c.embedding && c.embedding.length > 0);
                 if (chunksWithVectors.length > 0) {
-                
-                const chunksWithVectors = chunks.filter(c => c.embedding && c.embedding.length > 0);
-                if (chunksWithVectors.length > 0) {
                     const payload = chunksWithVectors.map(c => ({
                         id: c.id,
                         em: `[${c.embedding.join(',')}]`
                     }));
 
-                    console.log(`[Layer 5] Executing batch vector update for ${chunksWithVectors.length} chunks at ${new Date().toISOString()}`);
+                    logger.info(`[Layer 5] Executing batch vector update for ${chunksWithVectors.length} chunks`);
 
                     await tx.$executeRaw`
                         UPDATE "KnowledgeChunk" AS k
@@ -689,8 +697,7 @@ export const finalizeAnalysis = async (req, res, next) => {
                         ) AS v
                         WHERE k.id::text = v.v_id::text;
                     `;
-                    console.log("[Layer 5] Batch update successful.");
-                }
+                    logger.info("[Layer 5] Batch update successful.");
                 }
             }
         }, {
@@ -731,7 +738,10 @@ export const validateAnalysis = async (req, res, next) => {
             let friendlyMessage = validationErr.message;
             let friendlyTitle = 'AI Validation Service Unavailable';
 
-            if (validationErr.message.includes('429') || validationErr.message.includes('Quota exceeded') || validationErr.message.includes('quota')) {
+            if (validationErr.message.includes('503') || validationErr.message.toLowerCase().includes('service unavailable') || validationErr.message.toLowerCase().includes('overloaded')) {
+                friendlyTitle = 'AI Service Busy';
+                friendlyMessage = 'The AI is currently processing many requests. Please wait a moment and try again.';
+            } else if (validationErr.message.includes('429') || validationErr.message.includes('Quota exceeded') || validationErr.message.toLowerCase().includes('quota')) {
                 friendlyTitle = 'AI Quota Exceeded';
                 friendlyMessage = 'The AI service is currently rate-limited. Please retry in 30-60 seconds.';
             }
@@ -759,12 +769,25 @@ export const validateAnalysis = async (req, res, next) => {
             validationResult: validationResult
         };
 
-        await prisma.analysis.update({
+        const updatedAnalysis = await prisma.analysis.update({
             where: { id },
             data: { metadata: updatedMetadata }
         });
 
-        return successResponse(res, validationResult);
+        return successResponse(res, {
+            ...updatedAnalysis.resultJson,
+            id: updatedAnalysis.id,
+            title: updatedAnalysis.title,
+            status: updatedAnalysis.status,
+            version: updatedAnalysis.version,
+            projectId: updatedAnalysis.projectId,
+            rootId: updatedAnalysis.rootId,
+            parentId: updatedAnalysis.parentId,
+            isFinalized: updatedAnalysis.isFinalized,
+            metadata: updatedAnalysis.metadata,
+            createdAt: updatedAnalysis.createdAt,
+            resultJson: updatedAnalysis.resultJson
+        });
     } catch (error) {
         next(error);
     }

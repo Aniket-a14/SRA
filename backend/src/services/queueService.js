@@ -16,16 +16,18 @@ export const addAnalysisJob = async (userId, text, projectId, settings, parentId
 
     // 0. IDEMPOTENCY CHECK
     // Prevent duplicate submissions while an identical job is PENDING
+    // Use a hash of the input text for efficient comparison
+    const inputHash = crypto.createHash('md5').update(text).digest('hex');
     const existingJob = await prisma.analysis.findFirst({
         where: {
             userId: userId,
             projectId: projectId,
             parentId: parentId, // Strict lineage check
             status: 'PENDING',
-            // Check text match using a simple hash check on metadata or directly on content?
-            // Since we don't store text hash in a column, we can rely on PENDING + inputs.
-            // But let's verify text content matches too (expensive but safe).
-            inputText: text
+            metadata: {
+                path: ['inputHash'],
+                equals: inputHash
+            }
         },
         select: { id: true }
     });
@@ -70,7 +72,8 @@ export const addAnalysisJob = async (userId, text, projectId, settings, parentId
                 metadata: {
                     trigger: 'initial',
                     source: 'ai',
-                    promptSettings: settings
+                    promptSettings: settings,
+                    inputHash // Store hash for idempotency lookup
                 }
             }
         });
@@ -97,11 +100,22 @@ export const addAnalysisJob = async (userId, text, projectId, settings, parentId
                 await performAnalysis(userId, text, projectId, parentId, finalRootId, settings, newId);
                 log.info({ msg: "MOCK_QSTASH: Local job completed", analysisId: newId });
             } catch (error) {
-                log.error({ msg: "MOCK_QSTASH: Local job failed", error: error.message });
-                await prisma.analysis.update({
-                    where: { id: newId },
-                    data: { status: 'FAILED' }
-                });
+                log.error({ msg: "MOCK_QSTASH: Local job failed", error: error.message, stack: error.stack });
+                try {
+                    await prisma.analysis.update({
+                        where: { id: newId },
+                        data: { 
+                            status: 'FAILED',
+                            metadata: {
+                                trigger: 'initial',
+                                source: 'ai',
+                                failureReason: error.message
+                            }
+                        }
+                    });
+                } catch (updateErr) {
+                    log.error({ msg: "MOCK_QSTASH: Failed to update analysis status to FAILED", error: updateErr.message });
+                }
             }
         })();
 

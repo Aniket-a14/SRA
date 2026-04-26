@@ -159,7 +159,14 @@ export class BaseAgent {
             let openBraces = (cleanText.match(/\{/g) || []).length;
             let closeBraces = (cleanText.match(/\}/g) || []).length;
             if (openBraces > closeBraces) {
-                logger.warn({ msg: `[${this.name}] Detected truncated JSON. Attempting to auto-balance.`, open: openBraces, close: closeBraces });
+                const truncationSnippet = cleanText.substring(cleanText.length - 100);
+                logger.warn({ 
+                    msg: `[${this.name}] Detected truncated JSON. Attempting to auto-balance.`, 
+                    open: openBraces, 
+                    close: closeBraces,
+                    missing: openBraces - closeBraces,
+                    tailContent: `...${truncationSnippet}`
+                });
                 cleanText += '}'.repeat(openBraces - closeBraces);
             }
 

@@ -4,22 +4,35 @@ import logger from '../config/logger.js';
 
 // Graph Extraction Prompt
 const GRAPH_EXTRACTION_PROMPT = `
+<role>
 You are an expert Systems Architect. Your goal is to extract a "Knowledge Graph" from the provided Software Requirements text.
+</role>
 
-Identify the following entities (Nodes):
-1.  **ACTOR**: Users, external systems, or roles (e.g., "Admin", "Stripe API").
-2.  **SYSTEM**: Modules, databases, components, or services (e.g., "Auth Service", "Postgres").
-3.  **FEATURE**: Specific functional requirements or capabilities (e.g., "Login", "Generate Report").
-4.  **DATA_ENTITY**: core business objects (e.g., "User Profile", "Order", "Invoice").
+<task>
+Identify key technical entities (Nodes) and the relationships (Edges) between them based on the provided text.
+</task>
 
-Identify relationships (Edges) between them:
--   **USES**: Actor uses a Feature.
--   **DEPENDS_ON**: Feature depends on System/Feature.
--   **TRIGGERS**: Action triggers another action.
--   **DATA_FLOW_TO**: Data moves from A to B.
--   **UPDATES/READS**: Interaction with Data Entity.
+<constraints>
+[NODE TYPES]
+1. ACTOR: Users, external systems, or roles (e.g., "Admin", "Stripe API").
+2. SYSTEM: Modules, databases, components, or services (e.g., "Auth Service", "Postgres").
+3. FEATURE: Specific functional requirements or capabilities (e.g., "Login", "Generate Report").
+4. DATA_ENTITY: Core business objects (e.g., "User Profile", "Order", "Invoice").
 
-Output strictly JSON in this format:
+[EDGE TYPES]
+- USES: Actor uses a Feature.
+- DEPENDS_ON: Feature depends on System/Feature.
+- TRIGGERS: Action triggers another action.
+- DATA_FLOW_TO: Data moves from A to B.
+- UPDATES/READS: Interaction with Data Entity.
+
+[NAMING RULES]
+- Use concise, singular names (e.g., "User" not "Users").
+- Avoid generic nodes like "System" or "Application".
+</constraints>
+
+<output_format>
+Return strictly JSON matching this schema. No markdown wrappers.
 {
   "nodes": [
     { "name": "Admin", "type": "ACTOR" },
@@ -29,9 +42,12 @@ Output strictly JSON in this format:
     { "source": "Admin", "target": "Login", "relation": "USES" }
   ]
 }
+</output_format>
 
--   Use concise, singular names (e.g., "User" not "Users").
--   Avoid generic nodes like "System" or "Application".
+<input>
+Input Text:
+{{text}}
+</input>
 `;
 
 export const extractGraph = async (text, projectId, prismaClient = prisma) => {
@@ -42,7 +58,7 @@ export const extractGraph = async (text, projectId, prismaClient = prisma) => {
         }
 
         const agent = new BaseAgent("Graph Extractor", "gemini-flash-latest");
-        const prompt = `${GRAPH_EXTRACTION_PROMPT}\n\nInput Text:\n${text}`;
+        const prompt = GRAPH_EXTRACTION_PROMPT.replace("{{text}}", text);
 
         const graphData = await agent.callLLM(prompt, 0.2, true);
 

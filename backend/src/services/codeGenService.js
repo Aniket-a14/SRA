@@ -65,7 +65,7 @@ export const generateCodeFromAnalysis = async (userId, analysisId) => {
         generationConfig: { responseMimeType: "application/json" }
     });
 
-    const prompt = CODE_GEN_PROMPT + JSON.stringify(analysis.resultJson);
+    const prompt = CODE_GEN_PROMPT.replace('{{srsJson}}', JSON.stringify(analysis.resultJson, null, 2));
 
     // 3. Call AI
     const result = await model.generateContent(prompt);

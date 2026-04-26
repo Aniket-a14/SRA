@@ -48,8 +48,8 @@ export const verifyApiKey = async (rawKey) => {
     if (!apiKey) return null;
     if (apiKey.expiresAt && apiKey.expiresAt < new Date()) return null;
 
-    // Update last used (async, don't await)
-    // prisma.apiKey.update({ where: { id: apiKey.id }, data: { lastUsed: new Date() } });
+    // Update last used (fire-and-forget, don't block auth flow)
+    prisma.apiKey.update({ where: { id: apiKey.id }, data: { lastUsed: new Date() } }).catch(() => {});
 
     return apiKey.user;
 };

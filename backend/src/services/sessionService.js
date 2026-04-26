@@ -5,7 +5,7 @@ import crypto from 'crypto';
 const getLocationFromIp = async (ip) => {
     if (!ip || ip === '::1' || ip === '127.0.0.1') return 'Localhost';
     try {
-        const response = await axios.get(`http://ip-api.com/json/${ip}`);
+        const response = await axios.get(`https://ip-api.com/json/${ip}`);
         if (response.data.status === 'success') {
             return `${response.data.city}, ${response.data.country}`;
         }

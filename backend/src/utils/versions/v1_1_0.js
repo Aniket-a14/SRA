@@ -1,11 +1,13 @@
 import { getDiagramAuthorityPrompt } from '../prompt_templates/diagram_authority.js';
 
-export const generate = async (settings = {}) => {
+export const generate = async (text = null, settings = {}) => {
   const {
     profile = "default",
     depth = 3,
     strictness = 3,
-    projectName = "Project"
+    projectName = "Project",
+    ragContext = "",
+    systemPromptExtension = ""
   } = settings;
 
   const diagramAuthority = await getDiagramAuthorityPrompt();
@@ -47,6 +49,20 @@ Your requirements must explicitly address Authentication, Authorization, Data Pr
   } else {
     creativityInstruction = "STRICTNESS: MEDIUM. Infer standard implicit features (like Login) but do not invent core modules.";
   }
+
+  const contextSection = (ragContext || systemPromptExtension) ? `
+<context>
+${ragContext ? `### HISTORICAL PATTERNS (RAG):\n${ragContext}\n` : ""}
+${systemPromptExtension ? `### SYSTEM EXTENSION:\n${systemPromptExtension}\n` : ""}
+</context>
+` : "";
+
+  const inputSection = text ? `
+<input>
+User Input (Raw Description):
+${text}
+</input>
+` : "";
 
   if (settings.noSchema) {
     return `
@@ -232,6 +248,10 @@ You must adhere to the following strict formatting rules. ANY violation will ren
    - No explanations.
 
 *** END CRITICAL INSTRUCTION ***
+
+${contextSection}
+
+${inputSection}
 `;
   }
 
@@ -555,6 +575,8 @@ STRICT RULES:
    - Multiple keys CAN be combined using comma separation (e.g., 'int id PK, FK').
    - Space-separated constraints (e.g., 'FK UK' without comma) are FORBIDDEN.
 
-User Input (Raw Description):
+${contextSection}
+
+${inputSection}
 `;
 };

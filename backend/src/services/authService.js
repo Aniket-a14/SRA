@@ -2,6 +2,7 @@ import prisma from '../config/prisma.js';
 import { hashPassword, comparePassword } from '../utils/passwordUtils.js';
 import { signToken } from '../config/jwt.js';
 import { createSession } from './sessionService.js';
+import { encryptData } from '../utils/dataEncryption.js';
 
 export const registerUser = async (email, password, name, userAgent = null, ip = null) => {
     const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -58,8 +59,8 @@ export const handleGoogleAuth = async (googleUser, tokens, userAgent, ip) => {
                     create: {
                         provider: 'google',
                         providerAccountId: id,
-                        access_token: tokens.access_token,
-                        refresh_token: tokens.refresh_token,
+                        access_token: encryptData(tokens.access_token),
+                        refresh_token: encryptData(tokens.refresh_token),
                     },
                 },
             },
@@ -83,8 +84,8 @@ export const handleGoogleAuth = async (googleUser, tokens, userAgent, ip) => {
                     userId: user.id,
                     provider: 'google',
                     providerAccountId: id,
-                    access_token: tokens.access_token,
-                    refresh_token: tokens.refresh_token,
+                    access_token: encryptData(tokens.access_token),
+                    refresh_token: encryptData(tokens.refresh_token),
                 },
             });
         } else {
@@ -92,8 +93,8 @@ export const handleGoogleAuth = async (googleUser, tokens, userAgent, ip) => {
             await prisma.account.update({
                 where: { id: existingAccount.id },
                 data: {
-                    access_token: tokens.access_token,
-                    refresh_token: tokens.refresh_token,
+                    access_token: encryptData(tokens.access_token),
+                    refresh_token: encryptData(tokens.refresh_token),
                 }
             });
         }
@@ -128,7 +129,7 @@ export const handleGithubAuth = async (githubUser, tokens, userAgent, ip) => {
                     create: {
                         provider: 'github',
                         providerAccountId: id.toString(),
-                        access_token: tokens.access_token,
+                        access_token: encryptData(tokens.access_token),
                     },
                 },
             },
@@ -151,7 +152,7 @@ export const handleGithubAuth = async (githubUser, tokens, userAgent, ip) => {
                     userId: user.id,
                     provider: 'github',
                     providerAccountId: id.toString(),
-                    access_token: tokens.access_token,
+                    access_token: encryptData(tokens.access_token),
                 },
             });
         } else {
@@ -159,7 +160,7 @@ export const handleGithubAuth = async (githubUser, tokens, userAgent, ip) => {
             await prisma.account.update({
                 where: { id: existingAccount.id },
                 data: {
-                    access_token: tokens.access_token,
+                    access_token: encryptData(tokens.access_token),
                 }
             });
         }

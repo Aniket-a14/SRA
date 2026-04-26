@@ -84,10 +84,11 @@ export const retrieveContext = async (queryText, projectId = null, limit = 5) =>
 export const formatRagContext = async (chunks) => {
     if (!chunks || chunks.length === 0) return "";
 
-    const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL_NAME || "gemini-2.5-flash" });
     let contextHeader = "\n[RELEVANT_KNOWLEDGE_BASE_CONTEXT_START]\nThe following sections from similar finalized projects are provided for reference:\n\n";
     let formattedContext = contextHeader;
-    let currentTokens = 0;
+    // Use character-based token estimation (~4 chars/token) to avoid N+1 API calls
+    const estimateTokens = (text) => Math.ceil(text.length / 4);
+    let currentTokens = estimateTokens(contextHeader);
 
     // Prioritization: 1. Graph, 2. Gold Standard, 3. General Similarity
     const sortedChunks = [...chunks].sort((a, b) => {
@@ -97,9 +98,6 @@ export const formatRagContext = async (chunks) => {
     });
 
     try {
-        const { totalTokens: initialTokens } = await model.countTokens(contextHeader);
-        currentTokens = initialTokens;
-
         for (let i = 0; i < sortedChunks.length; i++) {
             const chunk = sortedChunks[i];
             const sourceInfo = chunk.sourceTitle ? ` (from ${chunk.sourceTitle})` : "";
@@ -115,7 +113,7 @@ export const formatRagContext = async (chunks) => {
             
             chunkText += contentStr + "\n\n";
 
-            const { totalTokens: chunkTokens } = await model.countTokens(chunkText);
+            const chunkTokens = estimateTokens(chunkText);
 
             if (currentTokens + chunkTokens > CONTEXT_TOKEN_LIMIT) {
                 formattedContext += "--- [32768 TOKEN BUDGET REACHED: ADDITIONAL CONTEXT OMITTED] ---\n";
@@ -149,7 +147,7 @@ export const searchGoldStandardFragments = async (query, type = null) => {
                 id, type, content, tags, "qualityScore"
             FROM "KnowledgeChunk"
             WHERE embedding IS NOT NULL
-            ${type ? Prisma.sql`AND type = ${type}` : Prisma.empty}
+            ${type ? Prisma.sql`AND type = ${type}` : Prisma.sql``}
             AND "qualityScore" >= 0.70
             ORDER BY embedding <=> ${vectorStr}::vector ASC
             LIMIT 5;
