@@ -204,8 +204,8 @@ ${inputSection}
 
 <output_format>
 ${settings.noSchema
-  ? "Return VALID JSON ONLY. No markdown wrappers (like \`\`\`json). No explanations."
-  : "Output MUST be returned as a structured JSON object according to the requested API schema. Return VALID JSON ONLY. No markdown wrappers (like \`\`\`json). No explanations."
+  ? "Return VALID JSON ONLY. No markdown wrappers (like ```json). No explanations."
+  : "Output MUST be returned as a structured JSON object according to the requested API schema. Return VALID JSON ONLY. No markdown wrappers (like ```json). No explanations."
 }
 </output_format>
 `;
