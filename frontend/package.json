@@ -12,8 +12,8 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@blocknote/core": "^0.46.2",
-    "@blocknote/mantine": "^0.46.2",
+    "@blocknote/core": "^0.49.0",
+    "@blocknote/mantine": "^0.49.0",
     "@blocknote/react": "^0.46.2",
     "@dagrejs/dagre": "^2.0.4",
     "@hookform/resolvers": "^3.10.0",
