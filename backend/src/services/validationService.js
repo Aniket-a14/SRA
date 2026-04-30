@@ -4,15 +4,22 @@ import crypto from 'crypto';
 const normalizeText = (value) => (value || "").toString().trim();
 
 const getIntakeText = (srsData = {}) => {
+  const extract = (val) => {
+    if (typeof val === 'string') return val;
+    if (val && typeof val === 'object' && val.content) return val.content;
+    return "";
+  };
+
   const projectName = normalizeText(
-    srsData.details?.projectName?.content ||
-    srsData.introduction?.projectName?.content ||
-    srsData.projectName
+    extract(srsData.details?.projectName) ||
+    extract(srsData.introduction?.projectName) ||
+    srsData.projectName ||
+    srsData.projectTitle
   );
 
   const description = normalizeText(
-    srsData.details?.fullDescription?.content ||
-    srsData.introduction?.purpose?.content ||
+    extract(srsData.details?.fullDescription) ||
+    extract(srsData.introduction?.purpose) ||
     srsData.description ||
     srsData.text
   );

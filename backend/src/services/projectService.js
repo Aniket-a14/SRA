@@ -7,11 +7,20 @@ export const ensureProjectExists = async (userId, projectId, srsData, text) => {
     logger.info("Analysis started without Project ID. Auto-creating...");
     let projectName = "New Project";
 
+    const extract = (val) => {
+        if (typeof val === 'string') return val;
+        if (val && typeof val === 'object' && val.content) return val.content;
+        return null;
+    };
+
     // Try to extract a meaningful name
-    if (srsData?.details?.projectName?.content) {
-        projectName = srsData.details.projectName.content.trim();
-    } else if (srsData?.details?.fullDescription?.content) {
-        projectName = srsData.details.fullDescription.content.split('\n')[0].slice(0, 50).trim();
+    const fromName = extract(srsData?.details?.projectName);
+    const fromDesc = extract(srsData?.details?.fullDescription);
+
+    if (fromName) {
+        projectName = fromName.trim();
+    } else if (fromDesc) {
+        projectName = fromDesc.split('\n')[0].slice(0, 50).trim();
     } else if (text) {
         projectName = text.split('\n')[0].slice(0, 50).trim();
     }

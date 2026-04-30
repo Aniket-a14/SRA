@@ -84,11 +84,43 @@ export function HomeClient() {
     const [projectName, setProjectName] = useState<string>("")
     const [projectSettings, setProjectSettings] = useState<PromptSettings | null>(null);
 
+    // BUG-005 FIX: Handle OAuth redirect — auth code exchange (production) or legacy token (dev)
     useEffect(() => {
+        const urlCode = searchParams.get("code")
         const urlToken = searchParams.get("token")
         const urlRefreshToken = searchParams.get("refreshToken")
+
+        // Auth code exchange flow (production with Redis)
+        if (urlCode) {
+            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+            fetch(`${backendUrl}/auth/exchange`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ code: urlCode })
+            })
+                .then(res => {
+                    if (!res.ok) throw new Error("Auth code exchange failed");
+                    return res.json();
+                })
+                .then(data => {
+                    authenticateWithToken(data.token, data.refreshToken)
+                })
+                .catch(err => {
+                    console.error("Auth code exchange failed:", err)
+                    toast.error("Authentication failed. Please try logging in again.")
+                })
+                .finally(() => {
+                    // Clean URL to prevent code reuse on refresh
+                    window.history.replaceState({}, "", window.location.pathname)
+                })
+            return
+        }
+
+        // Legacy fallback: Direct token in URL (dev mode without Redis)
         if (urlToken) {
             authenticateWithToken(urlToken, urlRefreshToken || undefined)
+            // Clean URL to prevent token exposure on refresh
+            window.history.replaceState({}, "", window.location.pathname)
         }
     }, [searchParams, authenticateWithToken])
 

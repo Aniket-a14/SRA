@@ -14,6 +14,21 @@ import { retrieveContext, formatRagContext } from './ragService.js';
 
 const CACHE_TTL = 3600; // 1 hour in seconds
 
+/**
+ * BUG-009 FIX: Invalidate the user's analysis list cache after any write operation.
+ * This ensures newly created/completed analyses appear immediately in the history.
+ */
+export const invalidateUserAnalysesCache = async (userId) => {
+    const redis = getRedisClient();
+    if (redis) {
+        try {
+            await redis.del(`user:analyses:${userId}`);
+        } catch (err) {
+            logger.warn({ msg: '[Cache] Failed to invalidate user analyses cache', userId, error: err.message });
+        }
+    }
+};
+
 
 export const performAnalysis = async (userId, text, projectId = null, parentId = null, rootId = null, settings = {}, analysisId = null) => {
     let resultJson;
@@ -300,32 +315,57 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         // we save it so the user doesn't lose the generation.
         if (analysisId && srsDraft) {
             logger.info("[Analysis Service] Failsafe: Saving last-known draft despite error.");
+            
+            const existing = await prisma.analysis.findUnique({ 
+                where: { id: analysisId },
+                select: { version: true }
+            });
+
+            const title = srsDraft.projectTitle || srsDraft.introduction?.purpose?.slice(0, 50) || `Version ${existing?.version || 1}`;
+
             await prisma.analysis.update({
                 where: { id: analysisId },
                 data: {
                     status: 'COMPLETED', // Mark as completed so user can see the draft
+                    title,
                     resultJson: srsDraft,
                     metadata: {
                         ...(analysisMeta || {}),
+                        status: 'COMPLETED', // Explicit: ensure metadata.status matches column status
                         isPartial: true,
                         failureReason: error.message,
                         userFriendlyError: "Analysis finalized early due to rate limits. Global audit was skipped."
                     }
                 }
             });
+            // BUG-009: Also invalidate cache on failsafe write (status changed)
+            await invalidateUserAnalysesCache(userId).catch(() => {});
             return; // Exit early as we've handled the record
         }
 
         // Standard Failure
         if (analysisId) {
+            // Requirement: "if failed it should show draft"
+            // We check the version. If it's v1 (initial promotion), we revert to DRAFT status.
+            // Otherwise, we mark as FAILED but include the draft data in metadata for safety.
+            const existing = await prisma.analysis.findUnique({ 
+                where: { id: analysisId },
+                select: { version: true, metadata: true }
+            });
+
+            const isV1 = existing?.version === 1;
+
             await prisma.analysis.update({
                 where: { id: analysisId },
                 data: { 
-                    status: 'FAILED',
+                    status: isV1 ? 'DRAFT' : 'FAILED',
                     metadata: { 
                         ...(analysisMeta || {}),
+                        status: isV1 ? 'DRAFT' : 'FAILED',
                         failureReason: error.message,
-                        userFriendlyError: failureReason
+                        userFriendlyError: failureReason,
+                        // Preserve draftData if it existed
+                        draftData: existing?.metadata?.draftData || undefined
                     }
                 }
             });
@@ -360,13 +400,19 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
             if (existingAnalysis && existingAnalysis.metadata && existingAnalysis.metadata.draftData) {
                 const draftData = existingAnalysis.metadata.draftData;
 
+                const extract = (val) => {
+                    if (typeof val === 'string') return val;
+                    if (val && typeof val === 'object' && val.content) return val.content;
+                    return null;
+                };
+
                 const layer1Intent = {
-                    projectName: draftData.details?.projectName?.content || "Project",
+                    projectName: extract(draftData.details?.projectName) || "Project",
                     rawText: text // We use the input text passed to this function
                 };
                 const layer2Context = {
                     domain: "inferred", // We could infer from draftData if needed
-                    purpose: draftData.details?.fullDescription?.content || "Purpose"
+                    purpose: extract(draftData.details?.fullDescription) || "Purpose"
                 };
 
                 const alignmentResult = await checkAlignment(layer1Intent, layer2Context, resultJson);
@@ -384,7 +430,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
     }
 
     // Atomic Creation with Transaction
-    return await prisma.$transaction(async (tx) => {
+    const txResult = await prisma.$transaction(async (tx) => {
         // 1. Defer Project Creation if missing and successful
         let finalProjectId = projectId;
         if (!finalProjectId && resultJson.projectTitle) {
@@ -395,9 +441,9 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
             const newProject = await tx.project.create({
                 data: {
                     name: resultJson.projectTitle,
-                    description: (typeof resultJson.introduction?.purpose === 'string'
-                        ? resultJson.introduction.purpose
-                        : (resultJson.introduction?.purpose?.content || "Auto-created from analysis")).slice(0, 100),
+                    description: (resultJson.projectTitle 
+                        || resultJson.introduction?.purpose 
+                        || "Auto-created from analysis").slice(0, 100),
                     userId: userId
                 }
             });
@@ -405,26 +451,17 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
             logger.info(`[Analysis Service] Auto-created Deferred Project: ${finalProjectId}`);
         }
 
-        // 2. Cleanup Draft if converting (moved from Controller)
-        if (parentId) {
-            try {
-                const parent = await tx.analysis.findUnique({ where: { id: parentId } });
-                if (parent && (parent.status === 'DRAFT' || parent.metadata?.status === 'DRAFT')) {
-                    logger.info(`[Analysis Service] Cleaning up successful draft: ${parentId}`);
-                    await tx.analysis.delete({ where: { id: parentId } });
-                }
-            } catch (cleanupErr) {
-                logger.warn({ msg: "[Analysis Service] Failed to cleanup draft (non-fatal)", error: cleanupErr.message });
-            }
-        }
+        // 2. Draft cleanup logic removed: We now reuse the draft record (promotion) 
+        // to maintain version consistency and allow for failure reversion.
 
         // If analysisId is provided (Standard Flow via queueService), we update the existing record
         if (analysisId) {
             const existing = await tx.analysis.findUnique({ where: { id: analysisId } });
             if (!existing) throw new Error("Analysis ID not found during processing");
 
-            // We still need to calculate title if missing
-            const title = resultJson.projectTitle || `Version ${existing.version}`;
+            // Requirement: "if done it should show name and desc"
+            // Prioritize the project title extracted by AI.
+            const title = resultJson.projectTitle || resultJson.introduction?.purpose?.slice(0, 50) || `Version ${existing.version}`;
 
             const result = await tx.analysis.update({
                 where: { id: analysisId },
@@ -456,6 +493,11 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         // DEPRECATED: All analyses should now be created via queueService with an ID upfront.
         throw new Error("performAnalysis called without analysisId. Legacy direct creation is deprecated.");
     });
+
+    // BUG-009: Invalidate the user's analysis list cache after successful write
+    await invalidateUserAnalysesCache(userId);
+
+    return txResult;
 };
 
 export const getUserAnalyses = async (userId) => {
@@ -523,11 +565,11 @@ export const getUserAnalyses = async (userId) => {
                         // Join array elements (e.g. ["Project:", "Name", ...])
                         preview = parsed.map(p => typeof p === 'string' ? p : JSON.stringify(p)).join(' ');
                     } else if (typeof parsed === 'object' && parsed !== null) {
-                        // Extract content from known schema or fallback to values
-                        preview = parsed.introduction?.purpose?.content ||
-                            parsed.introduction?.productScope?.content ||
-                            parsed.projectTitle ||
-                            parsed.details?.projectName?.content ||
+                        // Extract content from known flat schema
+                        preview = parsed.projectTitle ||
+                            parsed.introduction?.purpose ||
+                            parsed.introduction?.productScope ||
+                            parsed.details?.projectName ||
                             // Fallback: values of the object joined
                             Object.values(parsed).filter(v => typeof v === 'string').join(' ') ||
                             "Draft analysis";
@@ -559,7 +601,7 @@ export const getUserAnalyses = async (userId) => {
             try {
                 await redis.set(CACHE_KEY, JSON.stringify(result), 'EX', CACHE_TTL);
             } catch (err) {
-                console.warn("Redis Cache Write Error:", err.message);
+                logger.warn({ msg: 'Redis Cache Write Error', error: err.message });
             }
         }
 
@@ -599,11 +641,13 @@ export const getAnalysisById = async (userId, analysisId) => {
         return null;
     }
     
+    // BUG-012 FIX: Return null instead of throwing for unauthorized access.
+    // This makes the function contract consistent: null = "not accessible to this user".
+    // Callers already handle null as 404, which is the correct HTTP response
+    // (don't reveal that the resource exists but belongs to another user).
     if (analysis.userId !== userId) {
         logger.warn(`[getAnalysisById] Analysis ${analysisId} belongs to ${analysis.userId}, but requested by ${userId}`);
-        const error = new Error('Unauthorized access to this analysis');
-        error.statusCode = 403;
-        throw error;
+        return null;
     }
 
     return analysis;

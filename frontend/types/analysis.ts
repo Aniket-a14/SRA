@@ -167,6 +167,8 @@ export interface Analysis extends AnalysisResult {
         reusedFrom?: string
         ragSources?: string[]
         promptSettings?: Record<string, unknown> | null
+        userFriendlyError?: string
+        failureReason?: string
     }
     reusedFrom?: string
     promptSettings?: Record<string, unknown> | null

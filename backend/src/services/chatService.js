@@ -1,6 +1,7 @@
 import { genAI } from "../config/gemini.js";
 import { CHAT_PROMPT } from "../utils/prompts.js";
 import prisma from "../config/prisma.js";
+import { invalidateUserAnalysesCache } from "./analysisService.js";
 
 const VERSION_CONFLICT_MAX_RETRIES = 5;
 
@@ -159,7 +160,10 @@ User: ${userMessage}
                     });
                     const version = (maxVersionAgg?.version || 0) + 1;
 
-                    const title = parsedResponse.updatedAnalysis.projectTitle || `Version ${version}`;
+                    const title = parsedResponse.updatedAnalysis.projectTitle 
+                        || parsedResponse.updatedAnalysis.introduction?.purpose?.slice(0, 50)
+                        || currentAnalysis.title
+                        || `Version ${version}`;
 
                     return tx.analysis.create({
                         data: {
@@ -199,6 +203,9 @@ User: ${userMessage}
         }
 
         newAnalysisId = created.id;
+
+        // Invalidate cache so the new version appears in the user's history list
+        await invalidateUserAnalysesCache(userId);
     }
 
     return {

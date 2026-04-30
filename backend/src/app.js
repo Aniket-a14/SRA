@@ -63,8 +63,14 @@ app.use(apiLimiter);
 // Global Audit Logger
 app.use(auditLogger);
 
+// BUG-008 FIX: Support multiple CORS origins for staging/preview deployments
+const allowedOrigins = (process.env.CORS_ORIGINS || FRONTEND_URL)
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+
 app.use(cors({
-    origin: FRONTEND_URL,
+    origin: allowedOrigins.length === 1 ? allowedOrigins[0] : allowedOrigins,
     credentials: true,
 }));
 

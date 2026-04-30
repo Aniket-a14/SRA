@@ -35,17 +35,56 @@ export const addAnalysisJob = async (userId, text, projectId, settings, parentId
         return { id: existingJob.id, status: 'PENDING' };
     }
 
-    // 1. Create the Analysis record immediately with PENDING status
-    const newId = crypto.randomUUID();
-    const finalRootId = rootId || newId;
+    // 1. Create or Update the Analysis record immediately with PENDING status
     let analysis = null;
+    const finalRootId = rootId || crypto.randomUUID();
 
     for (let attempt = 1; attempt <= VERSION_CONFLICT_MAX_RETRIES; attempt++) {
         try {
             analysis = await prisma.$transaction(async (tx) => {
                 let version = 1;
+                let targetId = crypto.randomUUID();
+                let isPromotion = false;
 
-                if (rootId) {
+                // Check if we are promoting an existing Draft-like record (Layer 1)
+                if (parentId) {
+                    const parent = await tx.analysis.findUnique({
+                        where: { id: parentId },
+                        select: { id: true, status: true, version: true, rootId: true, metadata: true }
+                    });
+                    
+                    const isDraftState = [
+                        'DRAFT', 
+                        'VALIDATING', 
+                        'VALIDATED', 
+                        'NEEDS_FIX'
+                    ].includes(parent?.status || '') || 
+                    [
+                        'DRAFT', 
+                        'VALIDATING', 
+                        'VALIDATED', 
+                        'NEEDS_FIX'
+                    ].includes((parent?.metadata)?.status || '');
+
+                    if (parent && isDraftState) {
+                        // REUSE the draft record for the AI job (Promotion)
+                        targetId = parent.id;
+                        version = parent.version; // Stay at current version (usually 1)
+                        isPromotion = true;
+
+                        // CLEANUP: Delete any newer versions in this lineage that might be blocking the view
+                        // (These are usually artifacts of previous failed attempts or ghost records)
+                        await tx.analysis.deleteMany({
+                            where: {
+                                rootId: parent.rootId || parent.id,
+                                id: { not: targetId },
+                                version: { gt: version }
+                            }
+                        });
+                    }
+                }
+
+                if (!isPromotion && finalRootId) {
                     const maxVersionAgg = await tx.analysis.findFirst({
                         where: { rootId: finalRootId },
                         orderBy: { version: 'desc' },
@@ -55,28 +94,37 @@ export const addAnalysisJob = async (userId, text, projectId, settings, parentId
                 }
 
                 const title = `Analysis in Progress (v${version})`;
-
-                return tx.analysis.create({
-                    data: {
-                        id: newId,
-                        userId,
-                        inputText: text,
-                        resultJson: {}, // Empty initially
-                        version,
-                        title,
-                        rootId: finalRootId,
-                        parentId,
-                        projectId,
-                        status: 'PENDING',
-                        metadata: {
-                            trigger: 'initial',
-                            source: 'ai',
-                            promptSettings: settings,
-                            validationResult: settings?.validationResult,
-                            inputHash // Store hash for idempotency lookup
-                        }
+                const commonData = {
+                    inputText: text,
+                    resultJson: {},
+                    version,
+                    title,
+                    rootId: finalRootId,
+                    projectId,
+                    status: 'PENDING',
+                    metadata: {
+                        trigger: 'initial',
+                        source: 'ai',
+                        promptSettings: settings,
+                        validationResult: settings?.validationResult,
+                        inputHash
                     }
-                });
+                };
+
+                if (isPromotion) {
+                    return tx.analysis.update({
+                        where: { id: targetId },
+                        data: commonData
+                    });
+                } else {
+                    return tx.analysis.create({
+                        data: {
+                            id: targetId,
+                            userId,
+                            ...commonData
+                        }
+                    });
+                }
             });
             break;
         } catch (error) {
@@ -91,6 +139,8 @@ export const addAnalysisJob = async (userId, text, projectId, settings, parentId
     if (!analysis) {
         throw new Error('Failed to allocate analysis version for queued job');
     }
+
+    const newId = analysis.id;
 
     const payload = {
         analysisId: newId, // Pass the ID we just created
@@ -114,20 +164,8 @@ export const addAnalysisJob = async (userId, text, projectId, settings, parentId
                 log.info({ msg: "MOCK_QSTASH: Local job completed", analysisId: newId });
             } catch (error) {
                 log.error({ msg: "MOCK_QSTASH: Local job failed", error: error.message, stack: error.stack });
-                try {
-                    await prisma.analysis.update({
-                        where: { id: newId },
-                        data: { 
-                            status: 'FAILED',
-                            metadata: {
-                                ...(await prisma.analysis.findUnique({ where: { id: newId }, select: { metadata: true } }).then(a => a?.metadata || {})),
-                                failureReason: error.message
-                            }
-                        }
-                    });
-                } catch (updateErr) {
-                    log.error({ msg: "MOCK_QSTASH: Failed to update analysis status to FAILED", error: updateErr.message });
-                }
+                // Note: performAnalysis now handles its own status updates (e.g. reverting to DRAFT)
+                // We don't need to update the status here.
             }
         })();
 

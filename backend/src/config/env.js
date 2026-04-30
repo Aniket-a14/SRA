@@ -20,6 +20,7 @@ const envSchema = z.object({
     // Auth
     JWT_SECRET: z.string().min(8, "JWT_SECRET must be at least 8 characters"),
     COOKIE_SECRET: z.string().min(8, "COOKIE_SECRET must be at least 8 characters"),
+    ENCRYPTION_KEY: z.string().min(16, "ENCRYPTION_KEY is required and must be at least 16 characters"),
     ENCRYPTION_SALT: z.string().min(1, "ENCRYPTION_SALT is required"),
     BACKUP_ENCRYPTION_SALT: z.string().min(1, "BACKUP_ENCRYPTION_SALT is required"),
 

@@ -60,7 +60,7 @@ export const handleGoogleAuth = async (googleUser, tokens, userAgent, ip) => {
                         provider: 'google',
                         providerAccountId: id,
                         access_token: encryptData(tokens.access_token),
-                        refresh_token: encryptData(tokens.refresh_token),
+                        refresh_token: tokens.refresh_token ? encryptData(tokens.refresh_token) : null,
                     },
                 },
             },
@@ -89,13 +89,17 @@ export const handleGoogleAuth = async (googleUser, tokens, userAgent, ip) => {
                 },
             });
         } else {
-            // Update tokens
+            // BUG-017 FIX: Only update refresh_token if Google actually provided a new one.
+            // Google only returns refresh_token on the FIRST authorization.
+            const updateData = {
+                access_token: encryptData(tokens.access_token),
+            };
+            if (tokens.refresh_token) {
+                updateData.refresh_token = encryptData(tokens.refresh_token);
+            }
             await prisma.account.update({
                 where: { id: existingAccount.id },
-                data: {
-                    access_token: encryptData(tokens.access_token),
-                    refresh_token: encryptData(tokens.refresh_token),
-                }
+                data: updateData
             });
         }
     }

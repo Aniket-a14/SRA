@@ -3,6 +3,31 @@ import { getGoogleAuthURL, getGoogleTokens, getGoogleUser } from '../config/goog
 import { getGithubAuthURL, getGithubTokens, getGithubUser } from '../config/githubOAuth.js';
 import { validateSession, rotateSession, revokeSession, getUserSessions } from '../services/sessionService.js';
 import { signToken } from '../config/jwt.js';
+import crypto from 'crypto';
+import { getRedisClient } from '../config/redis.js';
+import logger from '../config/logger.js';
+
+/**
+ * Generate a short-lived, single-use auth code and store tokens in Redis.
+ * This prevents tokens from appearing in URLs, browser history, and server logs.
+ */
+const generateAuthCode = async (result) => {
+    const code = crypto.randomBytes(32).toString('hex');
+    const redis = getRedisClient();
+
+    if (redis) {
+        await redis.set(
+            `auth_code:${code}`,
+            JSON.stringify({ token: result.token, refreshToken: result.refreshToken }),
+            'EX', 60 // 60 second TTL
+        );
+        return code;
+    }
+
+    // Fallback: If Redis is unavailable (dev only), return tokens directly
+    logger.warn('[Auth] Redis unavailable for auth code exchange, falling back to URL tokens (dev only)');
+    return null;
+};
 
 export const signup = async (req, res, next) => {
     try {
@@ -17,7 +42,9 @@ export const signup = async (req, res, next) => {
         const userAgent = req.headers['user-agent'];
 
         const result = await registerUser(email, password, name, userAgent, ip);
-        res.status(201).json(result);
+        // SEC-006: Exclude password hash from API response
+        const { password: _, ...safeUser } = result.user;
+        res.status(201).json({ ...result, user: safeUser });
     } catch (error) {
         next(error);
     }
@@ -36,7 +63,9 @@ export const login = async (req, res, next) => {
         const userAgent = req.headers['user-agent'];
 
         const result = await loginUser(email, password, userAgent, ip);
-        res.json(result);
+        // SEC-006: Exclude password hash from API response
+        const { password: _, ...safeUser } = result.user;
+        res.json({ ...result, user: safeUser });
     } catch (error) {
         next(error);
     }
@@ -60,10 +89,16 @@ export const googleCallback = async (req, res, next) => {
 
         const result = await handleGoogleAuth(googleUser, tokens, userAgent, ip);
 
-        // Redirect to frontend with token
-        // Update FRONTEND_URL in .env if needed, defaulting to root provided in requirements or same host
+        // BUG-005 FIX: Use auth code exchange instead of passing tokens in URL
         const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:3001').replace(/\/$/, '');
-        res.redirect(`${frontendUrl}/?token=${result.token}&refreshToken=${result.refreshToken}`);
+        const authCode = await generateAuthCode(result);
+
+        if (authCode) {
+            res.redirect(`${frontendUrl}/?code=${authCode}`);
+        } else {
+            // Fallback for dev without Redis
+            res.redirect(`${frontendUrl}/?token=${result.token}&refreshToken=${result.refreshToken}`);
+        }
     } catch (error) {
         next(error);
     }
@@ -87,8 +122,16 @@ export const githubCallback = async (req, res, next) => {
 
         const result = await handleGithubAuth(githubUser, tokens, userAgent, ip);
 
+        // BUG-005 FIX: Use auth code exchange instead of passing tokens in URL
         const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:3001').replace(/\/$/, '');
-        res.redirect(`${frontendUrl}/?token=${result.token}&refreshToken=${result.refreshToken}`);
+        const authCode = await generateAuthCode(result);
+
+        if (authCode) {
+            res.redirect(`${frontendUrl}/?code=${authCode}`);
+        } else {
+            // Fallback for dev without Redis
+            res.redirect(`${frontendUrl}/?token=${result.token}&refreshToken=${result.refreshToken}`);
+        }
     } catch (error) {
         next(error);
     }
@@ -175,6 +218,45 @@ export const revokeSessionEndpoint = async (req, res, next) => {
         const { sessionId } = req.params;
         await revokeSession(sessionId, req.user.userId);
         res.json({ message: "Session revoked" });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * BUG-005: Exchange a short-lived auth code for JWT + refresh tokens.
+ * The auth code is single-use and expires after 60 seconds.
+ */
+export const exchangeCode = async (req, res, next) => {
+    try {
+        const { code } = req.body;
+        if (!code) {
+            const error = new Error('Authorization code is required');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const redis = getRedisClient();
+        if (!redis) {
+            const error = new Error('Auth code exchange requires Redis');
+            error.statusCode = 503;
+            throw error;
+        }
+
+        const key = `auth_code:${code}`;
+        const data = await redis.get(key);
+
+        if (!data) {
+            const error = new Error('Invalid or expired authorization code');
+            error.statusCode = 401;
+            throw error;
+        }
+
+        // Single-use: delete immediately after retrieval
+        await redis.del(key);
+
+        const tokens = JSON.parse(data);
+        res.json(tokens);
     } catch (error) {
         next(error);
     }

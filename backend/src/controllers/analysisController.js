@@ -1,4 +1,4 @@
-import { getUserAnalyses, getAnalysisById, getAnalysisHistory } from '../services/analysisService.js';
+import { getUserAnalyses, getAnalysisById, getAnalysisHistory, invalidateUserAnalysesCache } from '../services/analysisService.js';
 import { processChat } from '../services/chatService.js';
 import { generateCodeFromAnalysis } from '../services/codeGenService.js';
 import { addAnalysisJob, getJobStatus } from '../services/queueService.js';
@@ -44,16 +44,23 @@ const toEmbeddingText = (type, content) => {
     return `${type}: ${raw}`.slice(0, SECTION_EMBEDDING_CHAR_LIMIT);
 };
 
-const buildDraftResultJson = (srsData = {}) => ({
-    projectTitle: srsData.details?.projectName?.content || "Draft Project",
-    introduction: {
-        projectName: srsData.details?.projectName?.content || "",
-        purpose: srsData.details?.fullDescription?.content || "",
-        scope: "",
-        intendedAudience: "",
-        references: [],
-        documentConventions: ""
-    },
+const extract = (val) => {
+    if (typeof val === 'string') return val;
+    if (val && typeof val === 'object' && val.content) return val.content;
+    return "";
+};
+
+const buildDraftResultJson = (srsData = {}) => {
+    return {
+        projectTitle: extract(srsData.details?.projectName) || "Draft Project",
+        introduction: {
+            projectName: extract(srsData.details?.projectName) || "",
+            purpose: extract(srsData.details?.fullDescription) || "",
+            scope: "",
+            intendedAudience: "",
+            references: [],
+            documentConventions: ""
+        },
     overallDescription: {
         productPerspective: "See Introduction",
         productFunctions: [],
@@ -79,7 +86,8 @@ const buildDraftResultJson = (srsData = {}) => ({
     },
     otherRequirements: [],
     status: "DRAFT"
-});
+    };
+};
 
 export const analyze = async (req, res, next) => {
     try {
@@ -98,14 +106,17 @@ export const analyze = async (req, res, next) => {
                 // We store the structured input in metadata.draftData
                 // Persist canonical draft values for required columns (production-safe, no mock data).
                 // inputText stores serialized user input; resultJson stores a schema-compliant draft projection.
+                const draftId = crypto.randomUUID();
                 const newAnalysis = await prisma.analysis.create({
                     data: {
+                        id: draftId,
                         userId: req.user.userId,
                         inputText: JSON.stringify(srsData), // Serialize as input
                         resultJson: buildDraftResultJson(srsData),
                         version: 1,
-                        title: (srsData.details?.projectName?.content || "Draft Analysis") + " (Draft)",
+                        title: (extract(srsData.details?.projectName) || "Draft Analysis") + " (Draft)",
                         projectId: req.body.projectId,
+                        rootId: draftId, // Set rootId to its own ID to establish lineage
                         status: "DRAFT", // Explicit model status
                         metadata: {
                             trigger: 'initial',
@@ -152,8 +163,8 @@ export const analyze = async (req, res, next) => {
 
             // 2. Convert Unified Data to "Text" for Pipeline Compatibility
             // LAYER 2: Tokenization - Encapsulate logic in an array of words
-            projectName = srsData.details?.projectName?.content || "Project";
-            const fullDesc = srsData.details?.fullDescription?.content || "";
+            projectName = extract(srsData.details?.projectName) || "Project";
+            const fullDesc = extract(srsData.details?.fullDescription) || "";
 
             // Combine and Segregate into Word Array
             const combinedText = `Project: ${projectName}\n\nDescription:\n${fullDesc}`;
@@ -196,12 +207,36 @@ export const analyze = async (req, res, next) => {
             logger.warn({ msg: "[Reuse] Search failed (non-fatal), proceeding without reuse", error: reuseErr.message });
         }
 
+        // 3. Lineage Repair: Ensure parent draft has a rootId to prevent history duplication
+        let finalRootId = req.body.rootId;
+        if (req.body.parentId && !finalRootId) {
+            const parent = await prisma.analysis.findUnique({
+                where: { id: req.body.parentId },
+                select: { id: true, rootId: true }
+            });
+            if (parent) {
+                if (!parent.rootId) {
+                    // Self-heal: Update the draft to be its own root
+                    await prisma.analysis.update({
+                        where: { id: parent.id },
+                        data: { rootId: parent.id }
+                    });
+                    finalRootId = parent.id;
+                } else {
+                    finalRootId = parent.rootId;
+                }
+            }
+        }
+
         const job = await addAnalysisJob(req.user.userId, sanitizedText, req.body.projectId, {
             ...req.body.settings,
             projectName, // Force extraction/propagation
             reusePlan,
             validationResult
-        }, req.body.parentId, req.body.rootId);
+        }, req.body.parentId, finalRootId);
+
+        // Invalidate the cache immediately so the new PENDING job appears in history
+        await invalidateUserAnalysesCache(req.user.userId).catch(() => {});
 
         // Auto-delete Draft if converting - DEFERRED to Worker Service (performAnalysis)
         // We only delete the draft if the analysis SUCCEEDS.
@@ -377,7 +412,7 @@ export const updateAnalysis = async (req, res, next) => {
         // LAYER 3: Alignment Check
         // Prepare inputs from preserved context (Layer 1 Intent) + Metadata (Layer 2 Context)
         const layer1Intent = {
-            projectName: currentAnalysis.metadata?.draftData?.details?.projectName?.content || currentAnalysis.title,
+            projectName: extract(currentAnalysis.metadata?.draftData?.details?.projectName) || currentAnalysis.title,
             rawText: currentAnalysis.inputText
         };
         // Assuming Layer 2 context is stored in metadata or inferred
@@ -414,9 +449,15 @@ export const updateAnalysis = async (req, res, next) => {
         const diff = compareAnalyses(currentAnalysis, { inputText: currentAnalysis.inputText, resultJson: newResultJson });
         newResultJson.diff = diff;
 
-        // Create NEW Analysis Version (retry on version conflicts)
+        // Versioning Path (Layer 4+ refinements)
         const rootId = currentAnalysis.rootId || currentAnalysis.id;
         let newAnalysis = null;
+
+        // Extract title from the new resultJson to prevent inheriting "Analysis in Progress"
+        const newTitle = newResultJson.projectTitle 
+            || newResultJson.introduction?.purpose?.slice(0, 50)
+            || currentAnalysis.title 
+            || `Version ${currentAnalysis.version + 1}`;
 
         for (let attempt = 1; attempt <= VERSION_CONFLICT_MAX_RETRIES; attempt++) {
             try {
@@ -434,7 +475,8 @@ export const updateAnalysis = async (req, res, next) => {
                             inputText: currentAnalysis.inputText,
                             resultJson: newResultJson,
                             version: nextVersion,
-                            title: currentAnalysis.title || `Version ${nextVersion}`,
+                            title: newTitle,
+                            status: 'COMPLETED', // Standard for terminal refinements
                             rootId,
                             parentId: currentAnalysis.id,
                             projectId: currentAnalysis.projectId,
@@ -456,10 +498,14 @@ export const updateAnalysis = async (req, res, next) => {
             throw new Error('Failed to create a new analysis version');
         }
 
+        // Invalidate cache so the new version appears in the user's history list
+        await invalidateUserAnalysesCache(req.user.userId);
+
         return successResponse(res, {
             ...newAnalysis.resultJson,
             id: newAnalysis.id,
             title: newAnalysis.title,
+            status: newAnalysis.status,
             version: newAnalysis.version,
             createdAt: newAnalysis.createdAt,
             metadata: newAnalysis.metadata
@@ -593,13 +639,18 @@ export const regenerate = async (req, res, next) => {
                     });
                     const nextVersion = (maxVersionAgg?.version || 0) + 1;
 
+                    const newTitle = mergedResultJson.projectTitle 
+                        || mergedResultJson.introduction?.purpose?.slice(0, 50)
+                        || currentAnalysis.title 
+                        || `Version ${nextVersion}`;
+
                     return tx.analysis.create({
                         data: {
                             userId: req.user.userId,
                             inputText: currentAnalysis.inputText,
                             resultJson: mergedResultJson,
                             version: nextVersion,
-                            title: currentAnalysis.title || `Version ${nextVersion}`,
+                            title: newTitle,
                             status: 'COMPLETED',
                             rootId,
                             parentId: currentAnalysis.id,
@@ -642,10 +693,15 @@ export const regenerate = async (req, res, next) => {
 
         logger.info({ msg: "[Layer 4] Surgical refinement complete", newId: newAnalysis.id, version: newAnalysis.version, modifiedSections: Object.keys(partialUpdate) });
 
+        // Invalidate cache so the refined version appears in the user's history list
+        const { invalidateUserAnalysesCache } = await import('../services/analysisService.js');
+        await invalidateUserAnalysesCache(req.user.userId);
+
         return successResponse(res, {
             ...newAnalysis.resultJson,
             id: newAnalysis.id,
             title: newAnalysis.title,
+            status: newAnalysis.status,
             version: newAnalysis.version,
             createdAt: newAnalysis.createdAt,
             metadata: newAnalysis.metadata
@@ -755,15 +811,16 @@ export const finalizeAnalysis = async (req, res, next) => {
 
         if (Array.isArray(result.systemFeatures)) {
             result.systemFeatures.forEach((feature) => {
+                // BUG-018 FIX: Renamed from 'req' to 'fr' to avoid shadowing Express req
                 const functionalRequirements = (feature.functionalRequirements || [])
-                    .map(req => typeof req === 'string' ? req : req.description || JSON.stringify(req));
+                    .map(fr => typeof fr === 'string' ? fr : fr.description || JSON.stringify(fr));
                 const chunkText = `${feature.name || 'Feature'}: ${feature.description || ''}\n${functionalRequirements.join(' ')}`;
                 queueChunk(
                     'FEATURE',
                     feature,
                     [
                         feature.name,
-                        ...functionalRequirements.map(req => req.slice(0, 24))
+                        ...functionalRequirements.map(fr => fr.slice(0, 24))
                     ],
                     chunkText
                 );
@@ -928,6 +985,9 @@ export const finalizeAnalysis = async (req, res, next) => {
             timeout: 30000 
         });
 
+        // BUG-009: Invalidate cache so finalized status shows immediately in history
+        await invalidateUserAnalysesCache(req.user.userId).catch(() => {});
+
         return successResponse(res, { 
             message: "Analysis finalized and broken into reusable chunks with semantic embeddings", 
             id: id, 
@@ -941,7 +1001,8 @@ export const finalizeAnalysis = async (req, res, next) => {
 export const validateAnalysis = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const analysis = await prisma.analysis.findUnique({ where: { id, userId: req.user.userId } });
+        // BUG-011 FIX: Use findFirst instead of findUnique for compound (non-unique) filters
+        const analysis = await prisma.analysis.findFirst({ where: { id, userId: req.user.userId } });
 
         if (!analysis) {
             const error = new Error('Analysis not found');
@@ -1129,7 +1190,8 @@ export const autoFixValidationIssue = async (req, res, next) => {
             throw error;
         }
 
-        const analysis = await prisma.analysis.findUnique({ where: { id, userId: req.user.userId } });
+        // BUG-011 FIX: Use findFirst for compound (non-unique) filters
+        const analysis = await prisma.analysis.findFirst({ where: { id, userId: req.user.userId } });
         if (!analysis) {
             const error = new Error('Analysis not found');
             error.statusCode = 404;

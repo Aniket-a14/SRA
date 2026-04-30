@@ -133,14 +133,8 @@ function AnalysisDetailContent() {
                 unlockAndNavigate(1);
                 return;
             }
-            // If it failed and has a parent draft, automatically go back to the draft
-            if (analysis.parentId) {
-                toast.error("Analysis generation failed due to service limits. Returning to draft.");
-                router.push(`/analysis/${analysis.parentId}`);
-                return;
-            }
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const msg = (analysis.resultJson as any)?.error || "Analysis generation failed.";
+            // Show the Error view instead of auto-redirecting so the user can read what went wrong (e.g. Rate Limits)
+            const msg = analysis.metadata?.userFriendlyError || analysis.metadata?.failureReason || (analysis.resultJson as any)?.error || "Analysis generation failed.";
             setError(msg);
             setIsLoading(false);
             return;
@@ -338,6 +332,7 @@ function AnalysisDetailContent() {
                     }
                 },
                 parentId: id,
+                rootId: analysis?.rootId || id,
                 draft: false
             });
 
@@ -476,11 +471,24 @@ function AnalysisDetailContent() {
     const metadataStatus = analysis?.metadata?.status;
     const isTerminal = modelStatus === 'COMPLETED' || modelStatus === 'FAILED';
     const isValidatingOrValidated = metadataStatus === 'VALIDATING' || metadataStatus === 'VALIDATED' || metadataStatus === 'NEEDS_FIX';
+    const isProcessing = modelStatus === 'PENDING' || modelStatus === 'IN_PROGRESS';
 
     // If terminal (COMPLETED/FAILED), always show the result view
     if (isTerminal) {
         // Fall through to result view logic below
-    } else if (metadataStatus === 'DRAFT' || !metadataStatus) {
+    } else if (isProcessing) {
+        // Analysis is being processed by the worker — show a progress state, NOT the draft editor
+        return (
+            <div className="h-[calc(100vh-64px)] flex flex-col items-center justify-center bg-background gap-4">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent" />
+                <h2 className="text-xl font-semibold">Analyzing your requirements...</h2>
+                <p className="text-muted-foreground text-sm">
+                    {modelStatus === 'PENDING' ? 'Queued — waiting to start' : 'AI analysis in progress'}
+                </p>
+                <p className="text-muted-foreground text-xs">This page will automatically update when complete.</p>
+            </div>
+        )
+    } else if (metadataStatus === 'DRAFT') {
         return (
             <div className="h-[calc(100vh-64px)] flex flex-col bg-background">
                 <div className="border-b px-6 py-4 flex items-center justify-between sticky top-0 bg-background z-20 shadow-sm">
