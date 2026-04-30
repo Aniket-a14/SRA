@@ -477,7 +477,10 @@ function AnalysisDetailContent() {
     const isTerminal = modelStatus === 'COMPLETED' || modelStatus === 'FAILED';
     const isValidatingOrValidated = metadataStatus === 'VALIDATING' || metadataStatus === 'VALIDATED' || metadataStatus === 'NEEDS_FIX';
 
-    if (metadataStatus === 'DRAFT') {
+    // If terminal (COMPLETED/FAILED), always show the result view
+    if (isTerminal) {
+        // Fall through to result view logic below
+    } else if (metadataStatus === 'DRAFT' || !metadataStatus) {
         return (
             <div className="h-[calc(100vh-64px)] flex flex-col bg-background">
                 <div className="border-b px-6 py-4 flex items-center justify-between sticky top-0 bg-background z-20 shadow-sm">

@@ -436,7 +436,8 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                     projectId: finalProjectId, // Link to the (potentially new) project
                     metadata: {
                         ...(existing.metadata || {}),
-                        ...analysisMeta, // Contains promptVersion
+                        ...analysisMeta,
+                        status: 'COMPLETED', // Ensure metadata status matches column status
                         completionTime: new Date().toISOString()
                     }
                 }
