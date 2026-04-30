@@ -3,7 +3,7 @@
 ![Node.js](https://img.shields.io/badge/Node.js-v20.x-green)
 ![Express](https://img.shields.io/badge/Express-v4.x-lightgrey)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue)
-![Redis](https://img.shields.io/badge/Redis-Upstash-red)
+![Redis](https://img.shields.io/badge/Redis-Upstash-red) 
 
 The SRA Backend is a high-performance Express.js ecosystem powered by Google Gemini, designed to orchestrate the transition from raw project intent to validated IEEE-830 requirements.
 

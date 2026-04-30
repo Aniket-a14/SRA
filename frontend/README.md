@@ -3,7 +3,7 @@
 ![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-cyan)
-![Radix UI](https://img.shields.io/badge/Radix%20UI-Primitives-white)
+![Radix UI](https://img.shields.io/badge/Radix%20UI-Primitives-white) 
 
 The SRA Frontend is a premium, type-safe Next.js 16.1.6 application designed to visualize and refine complex software requirements using a state-of-the-art interactive workspace.
 
