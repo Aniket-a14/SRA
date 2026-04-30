@@ -694,7 +694,6 @@ export const regenerate = async (req, res, next) => {
         logger.info({ msg: "[Layer 4] Surgical refinement complete", newId: newAnalysis.id, version: newAnalysis.version, modifiedSections: Object.keys(partialUpdate) });
 
         // Invalidate cache so the refined version appears in the user's history list
-        const { invalidateUserAnalysesCache } = await import('../services/analysisService.js');
         await invalidateUserAnalysesCache(req.user.userId);
 
         return successResponse(res, {
