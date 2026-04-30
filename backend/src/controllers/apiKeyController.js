@@ -13,7 +13,9 @@ export const createKey = async (req, res, next) => {
 
 export const listKeys = async (req, res, next) => {
     try {
-        const keys = await listApiKeys(req.user.userId);
+        const page = Number.parseInt(req.query.page, 10) || 1;
+        const limit = Number.parseInt(req.query.limit, 10) || 20;
+        const keys = await listApiKeys(req.user.userId, { page, limit });
         res.json(keys);
     } catch (error) {
         next(error);

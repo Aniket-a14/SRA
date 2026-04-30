@@ -128,9 +128,9 @@ export function HomeClient() {
                 body: JSON.stringify({
                     text: requirements,
                     srsData: {
-                        introduction: {
+                        details: {
                             projectName: { content: name },
-                            purpose: { content: requirements },
+                            fullDescription: { content: "" },
                         },
                     },
                     projectId: projectId || undefined,

@@ -3,6 +3,8 @@ import { log } from "../middleware/logger.js";
 import prisma from "../config/prisma.js";
 import crypto from 'crypto';
 
+import { isVersionConflictError, VERSION_CONFLICT_MAX_RETRIES } from '../utils/versionConflict.js';
+
 const qstashClient = new Client({
     token: process.env.QSTASH_TOKEN,
 });
@@ -10,10 +12,6 @@ const qstashClient = new Client({
 const BACKEND_URL = process.env.BACKEND_URL;
 
 export const addAnalysisJob = async (userId, text, projectId, settings, parentId = null, rootId = null) => {
-    if (!BACKEND_URL) {
-        throw new Error("BACKEND_URL is not defined");
-    }
-
     // 0. IDEMPOTENCY CHECK
     // Prevent duplicate submissions while an identical job is PENDING
     // Use a hash of the input text for efficient comparison
@@ -38,46 +36,61 @@ export const addAnalysisJob = async (userId, text, projectId, settings, parentId
     }
 
     // 1. Create the Analysis record immediately with PENDING status
-    let finalRootId = rootId;
-    let version = 1;
     const newId = crypto.randomUUID();
+    const finalRootId = rootId || newId;
+    let analysis = null;
 
-    const analysis = await prisma.$transaction(async (tx) => {
-        // Determine version/root if needed (ATOMICALLY)
-        if (!finalRootId) {
-            finalRootId = newId;
-        } else {
-            const maxVersionAgg = await tx.analysis.findFirst({
-                where: { rootId: finalRootId },
-                orderBy: { version: 'desc' },
-                select: { version: true }
-            });
-            version = (maxVersionAgg?.version || 0) + 1;
-        }
+    for (let attempt = 1; attempt <= VERSION_CONFLICT_MAX_RETRIES; attempt++) {
+        try {
+            analysis = await prisma.$transaction(async (tx) => {
+                let version = 1;
 
-        const title = `Analysis in Progress (v${version})`;
-
-        return await tx.analysis.create({
-            data: {
-                id: newId,
-                userId,
-                inputText: text,
-                resultJson: {}, // Empty initially
-                version,
-                title,
-                rootId: finalRootId,
-                parentId,
-                projectId,
-                status: 'PENDING',
-                metadata: {
-                    trigger: 'initial',
-                    source: 'ai',
-                    promptSettings: settings,
-                    inputHash // Store hash for idempotency lookup
+                if (rootId) {
+                    const maxVersionAgg = await tx.analysis.findFirst({
+                        where: { rootId: finalRootId },
+                        orderBy: { version: 'desc' },
+                        select: { version: true }
+                    });
+                    version = (maxVersionAgg?.version || 0) + 1;
                 }
+
+                const title = `Analysis in Progress (v${version})`;
+
+                return tx.analysis.create({
+                    data: {
+                        id: newId,
+                        userId,
+                        inputText: text,
+                        resultJson: {}, // Empty initially
+                        version,
+                        title,
+                        rootId: finalRootId,
+                        parentId,
+                        projectId,
+                        status: 'PENDING',
+                        metadata: {
+                            trigger: 'initial',
+                            source: 'ai',
+                            promptSettings: settings,
+                            validationResult: settings?.validationResult,
+                            inputHash // Store hash for idempotency lookup
+                        }
+                    }
+                });
+            });
+            break;
+        } catch (error) {
+            if (isVersionConflictError(error) && attempt < VERSION_CONFLICT_MAX_RETRIES) {
+                log.warn({ msg: 'Version conflict while creating queued analysis, retrying', attempt, rootId: finalRootId });
+                continue;
             }
-        });
-    });
+            throw error;
+        }
+    }
+
+    if (!analysis) {
+        throw new Error('Failed to allocate analysis version for queued job');
+    }
 
     const payload = {
         analysisId: newId, // Pass the ID we just created
@@ -89,7 +102,7 @@ export const addAnalysisJob = async (userId, text, projectId, settings, parentId
         rootId: finalRootId
     };
 
-    const useMockQueue = process.env.MOCK_QSTASH === 'true' || process.env.NODE_ENV === 'development';
+    const useMockQueue = process.env.MOCK_QSTASH === 'true';
 
     if (useMockQueue) {
         log.info({ msg: "MOCK_QSTASH enabled: Skipping QStash publish and processing locally", analysisId: newId });
@@ -107,8 +120,7 @@ export const addAnalysisJob = async (userId, text, projectId, settings, parentId
                         data: { 
                             status: 'FAILED',
                             metadata: {
-                                trigger: 'initial',
-                                source: 'ai',
+                                ...(await prisma.analysis.findUnique({ where: { id: newId }, select: { metadata: true } }).then(a => a?.metadata || {})),
                                 failureReason: error.message
                             }
                         }
@@ -120,6 +132,10 @@ export const addAnalysisJob = async (userId, text, projectId, settings, parentId
         })();
 
         return { id: newId, status: 'PENDING' };
+    }
+
+    if (!BACKEND_URL) {
+        throw new Error("BACKEND_URL is not defined");
     }
 
     try {
@@ -143,10 +159,13 @@ export const addAnalysisJob = async (userId, text, projectId, settings, parentId
     }
 };
 
-export const getJobStatus = async (jobId) => {
+export const getJobStatus = async (jobId, userId) => {
     // Now we can actually query the DB!
-    const analysis = await prisma.analysis.findUnique({
-        where: { id: jobId },
+    const analysis = await prisma.analysis.findFirst({
+        where: {
+            id: jobId,
+            userId
+        },
         select: {
             status: true,
             resultJson: true,

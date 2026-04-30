@@ -5,12 +5,12 @@ import crypto from 'crypto';
 const getLocationFromIp = async (ip) => {
     if (!ip || ip === '::1' || ip === '127.0.0.1') return 'Localhost';
     try {
-        const response = await axios.get(`https://ip-api.com/json/${ip}`);
-        if (response.data.status === 'success') {
-            return `${response.data.city}, ${response.data.country}`;
+        const response = await axios.get(`https://ipapi.co/${ip}/json/`, { timeout: 3000 });
+        if (response.data && !response.data.error) {
+            return `${response.data.city || 'Unknown'}, ${response.data.country_name || 'Unknown'}`;
         }
     } catch (error) {
-        console.error('GeoIP lookup failed', error.message);
+        // GeoIP is best-effort — never block auth flow
     }
     return 'Unknown Location';
 };
@@ -105,19 +105,46 @@ export const revokeSession = async (sessionId, userId) => {
     await prisma.session.deleteMany({ where }); // deleteMany works safe
 };
 
-export const getUserSessions = async (userId) => {
-    return await prisma.session.findMany({
-        where: { userId },
-        orderBy: { lastUsedAt: 'desc' },
-        select: {
-            id: true,
-            userAgent: true,
-            ipAddress: true,
-            lastUsedAt: true,
+const normalizePagination = (page = 1, limit = 20) => {
+    const normalizedPage = Number.isFinite(Number(page)) ? Math.max(1, Number(page)) : 1;
+    const normalizedLimit = Number.isFinite(Number(limit))
+        ? Math.min(100, Math.max(1, Number(limit)))
+        : 20;
 
-            createdAt: true,
-            expiresAt: true,
-            location: true
-        }
-    });
+    return {
+        page: normalizedPage,
+        limit: normalizedLimit,
+        skip: (normalizedPage - 1) * normalizedLimit
+    };
+};
+
+export const getUserSessions = async (userId, { page = 1, limit = 20 } = {}) => {
+    const pagination = normalizePagination(page, limit);
+
+    const [items, total] = await prisma.$transaction([
+        prisma.session.findMany({
+            where: { userId },
+            orderBy: { lastUsedAt: 'desc' },
+            skip: pagination.skip,
+            take: pagination.limit,
+            select: {
+                id: true,
+                userAgent: true,
+                ipAddress: true,
+                lastUsedAt: true,
+                createdAt: true,
+                expiresAt: true,
+                location: true
+            }
+        }),
+        prisma.session.count({ where: { userId } })
+    ]);
+
+    return {
+        items,
+        page: pagination.page,
+        limit: pagination.limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / pagination.limit))
+    };
 };

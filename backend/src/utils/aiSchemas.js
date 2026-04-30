@@ -220,7 +220,8 @@ export const SRSShellSchema = {
                 intendedAudience: { type: SchemaType.STRING },
                 productScope: { type: SchemaType.STRING },
                 references: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }
-            }
+            },
+            required: ["purpose", "documentConventions", "intendedAudience", "productScope", "references"]
         },
         overallDescription: {
             type: SchemaType.OBJECT,
@@ -234,14 +235,20 @@ export const SRSShellSchema = {
                         properties: {
                             userClass: { type: SchemaType.STRING },
                             characteristics: { type: SchemaType.STRING }
-                        }
+                        },
+                        required: ["userClass", "characteristics"]
                     }
                 },
                 operatingEnvironment: { type: SchemaType.STRING },
                 designAndImplementationConstraints: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
                 userDocumentation: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
                 assumptionsAndDependencies: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }
-            }
+            },
+            required: [
+                "productPerspective", "productFunctions", "userClassesAndCharacteristics", 
+                "operatingEnvironment", "designAndImplementationConstraints", "userDocumentation", 
+                "assumptionsAndDependencies"
+            ]
         }
     },
     required: [
@@ -385,7 +392,8 @@ export const SRSSchema = {
                 intendedAudience: { type: SchemaType.STRING },
                 productScope: { type: SchemaType.STRING },
                 references: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }
-            }
+            },
+            required: ["purpose", "documentConventions", "intendedAudience", "productScope", "references"]
         },
         overallDescription: {
             type: SchemaType.OBJECT,
@@ -399,14 +407,20 @@ export const SRSSchema = {
                         properties: {
                             userClass: { type: SchemaType.STRING },
                             characteristics: { type: SchemaType.STRING }
-                        }
+                        },
+                        required: ["userClass", "characteristics"]
                     }
                 },
                 operatingEnvironment: { type: SchemaType.STRING },
                 designAndImplementationConstraints: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
                 userDocumentation: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
                 assumptionsAndDependencies: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }
-            }
+            },
+            required: [
+                "productPerspective", "productFunctions", "userClassesAndCharacteristics", 
+                "operatingEnvironment", "designAndImplementationConstraints", "userDocumentation", 
+                "assumptionsAndDependencies"
+            ]
         },
         externalInterfaceRequirements: {
             type: SchemaType.OBJECT,
@@ -483,8 +497,9 @@ export const SRSSchema = {
                     }
                 },
                 tbdList: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }
-            }
+            },
+            required: ["analysisModels", "tbdList"]
         }
     },
-    required: ["projectTitle", "introduction", "overallDescription", "systemFeatures"]
+    required: ["projectTitle", "introduction", "overallDescription", "systemFeatures", "nonFunctionalRequirements", "appendices"]
 };

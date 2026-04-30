@@ -153,6 +153,13 @@ export interface Analysis extends AnalysisResult {
         validationResult?: {
             timestamp: Date | string
             issues: ValidationIssue[]
+            validation_status?: string
+            clarification_questions?: string[]
+            tbd_items?: string[]
+            userOverrides?: {
+                acceptedIssueIds?: string[]
+                acceptedTbdItems?: string[]
+            }
         }
         trigger?: string
         source?: string
@@ -190,6 +197,11 @@ export interface StartAnalysisInput {
         validation_status: string;
         issues?: ValidationIssue[];
         clarification_questions?: string[];
+        tbd_items?: string[];
+        userOverrides?: {
+            acceptedIssueIds?: string[];
+            acceptedTbdItems?: string[];
+        };
     };
 }
 

@@ -100,7 +100,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         logger.info("--> Agent: Developer (Sectional Generation: Shell)");
         const srsShell = await devAgent.generateShell(text, poOutput, archOutput, { projectName, version: promptVersion, ragContext });
         
-        await sleep(3000); // Cooling period
+        await sleep(1500); // Cooling period
 
         logger.info("--> Agent: Developer (Sectional Generation: Features)");
         const CHUNK_SIZE = 2;
@@ -114,17 +114,17 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                 allFeatures = [...allFeatures, ...featuresOutput.systemFeatures];
             }
             if (i + CHUNK_SIZE < featureList.length) {
-                await sleep(3000); // Delay between feature chunks
+                await sleep(1500); // Delay between feature chunks
             }
         }
 
-        await sleep(3000); // Cooling period
+        await sleep(1500); // Cooling period
 
         logger.info("--> Agent: Developer (Sectional Generation: Requirements & Glossary)");
         const sections1And2 = { ...srsShell, systemFeatures: allFeatures };
         const srsRequirements = await devAgent.generateRequirements(text, sections1And2, poOutput, archOutput, { projectName, version: promptVersion, ragContext });
 
-        await sleep(3000); // Cooling period
+        await sleep(1500); // Cooling period
 
         logger.info("--> Agent: Developer (Sectional Generation: Appendices & Diagrams)");
         const sections123 = { ...sections1And2, ...srsRequirements };
@@ -150,17 +150,17 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         let reflectionFeedback = [];
 
         // Mandatory cooling period before starting the heavy Reflection Loop on Free Tier
-        logger.info("    [Pause] Cooling down for 5 seconds before Reflection Loop (GCP Quota Safety)...");
-        await sleep(5000);
+        logger.info("    [Pause] Cooling before Reflection Loop (GCP Quota Safety)...");
+        await sleep(2000);
 
         while (loopCount < MAX_LOOPS) {
             logger.info(`--> Pillar 1: Global Reflection Pass ${loopCount + 1}`);
 
-            // A. Reviewer Audit (Security/Consistency)
-            const review = await qaAgent.reviewSRS(poOutput, srsDraft);
-
-            // B. Critic Audit (6Cs Quality)
-            const audit = await criticAgent.auditSRS(poOutput, srsDraft);
+            // A & B. Parallel Audit (Reviewer + Critic)
+            const [review, audit] = await Promise.all([
+                qaAgent.reviewSRS(poOutput, srsDraft),
+                criticAgent.auditSRS(poOutput, srsDraft)
+            ]);
             finalIndustryAudit = audit; 
 
             logger.info(`    Review Status: ${review.status}, Quality Score: ${audit.overallScore}`);
@@ -234,6 +234,12 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
             }
         }
         
+        // POST-REFLECTION: Auto-repair any diagrams the DeveloperAgent might have broken during refinement
+        if (loopCount > 0) {
+            logger.info("--> Service: Post-Reflection Diagram Repair");
+            await validateAndAutoRepairDiagrams(srsDraft, settings);
+        }
+
         // F. Post-Processing: Enforce Clean Revision History (Initial Release)
         // Overwrite internal reflection versions with a single "Initial Release" entry by the Actual User
         srsDraft.revisionHistory = [{
@@ -476,6 +482,7 @@ export const getUserAnalyses = async (userId) => {
                 LEFT("inputText", 500) AS "inputText",
                 version,
                 title,
+                status,
                 "rootId",
                 "parentId",
                 metadata
@@ -601,9 +608,11 @@ export const getAnalysisById = async (userId, analysisId) => {
     return analysis;
 };
 
-export const getLatestAnalysisByProjectId = async (projectId) => {
+export const getLatestAnalysisByProjectId = async (projectId, userId = null) => {
+    const where = { projectId };
+    if (userId) where.userId = userId;
     return await prisma.analysis.findFirst({
-        where: { projectId },
+        where,
         orderBy: { version: 'desc' }
     });
 };

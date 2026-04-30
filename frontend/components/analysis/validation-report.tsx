@@ -1,10 +1,9 @@
 "use client"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { AlertTriangle, CheckCircle, XCircle, Info, ShieldAlert, FileWarning, HelpCircle, X } from "lucide-react"
+import { AlertTriangle, CheckCircle, XCircle, Info, ShieldAlert, FileWarning, X} from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Textarea } from "@/components/ui/textarea"
 import { ArrowLeft } from "lucide-react"
 
 interface Issue {
@@ -20,85 +19,25 @@ interface Issue {
 
 interface ValidationReportProps {
     issues: Issue[];
-    clarificationQuestions?: string[];
-    onProceed: () => void;
+    tbdItems?: string[];
+    onProceed: (options: { dismissedIssueIds: string[]; tbdItems: string[] }) => void;
     onEdit: () => void;
     isProceeding?: boolean;
-    onSubmitClarifications?: (answers: Record<string, string>) => void;
     onAutoFix?: (issueId: string) => void;
     isFixing?: string | null;
 }
 
-export function ValidationReport({ issues, clarificationQuestions = [], onProceed, onEdit, isProceeding, onSubmitClarifications, onAutoFix, isFixing }: ValidationReportProps) {
+export function ValidationReport({ issues, tbdItems = [], onProceed, onEdit, isProceeding, onAutoFix, isFixing }: ValidationReportProps) {
     const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
     const visibleIssues = issues.filter(i => !dismissedIds.has(i.id));
     const criticalCount = visibleIssues.filter(i => i.severity === 'critical').length;
     const warningCount = visibleIssues.filter(i => i.severity === 'warning').length;
-    const [answers, setAnswers] = useState<Record<string, string>>({});
 
     const isBlocked = criticalCount > 0;
-    const isClarificationNeeded = clarificationQuestions.length > 0;
 
     const handleDismiss = (id: string) => {
         setDismissedIds(prev => new Set(prev).add(id));
     };
-
-    const handleAnswerChange = (idx: number, value: string) => {
-        setAnswers(prev => ({ ...prev, [idx]: value }));
-    }
-
-    const handleSubmitClarifications = () => {
-        if (onSubmitClarifications) {
-            onSubmitClarifications(answers);
-        }
-    }
-
-    if (isClarificationNeeded) {
-        return (
-            <div className="max-w-4xl mx-auto space-y-6 pb-20 p-6">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h2 className="text-2xl font-bold tracking-tight">Clarification Required</h2>
-                        <p className="text-muted-foreground">Layer 2 needs your input to resolve ambiguities.</p>
-                    </div>
-                </div>
-
-                <Card className="border-amber-200 bg-amber-50/50">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <HelpCircle className="h-5 w-5 text-amber-600" />
-                            Questions from the System
-                        </CardTitle>
-                        <CardDescription>
-                            Please answer the following questions to help us understand your requirements better.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        {clarificationQuestions.map((question, idx) => (
-                            <div key={idx} className="space-y-2">
-                                <p className="font-medium text-sm">{idx + 1}. {question}</p>
-                                <Textarea
-                                    placeholder="Type your answer here..."
-                                    value={answers[idx] || ""}
-                                    onChange={(e) => handleAnswerChange(idx, e.target.value)}
-                                    className="bg-white"
-                                />
-                            </div>
-                        ))}
-                    </CardContent>
-                </Card>
-
-                <div className="flex justify-end items-center gap-4 fixed bottom-0 left-0 right-0 p-4 bg-background border-t z-10 md:pl-64">
-                    <Button variant="outline" onClick={onEdit}>
-                        <ArrowLeft className="h-4 w-4 mr-2" /> Back to Inputs
-                    </Button>
-                    <Button onClick={handleSubmitClarifications} disabled={Object.keys(answers).length < clarificationQuestions.length} size="lg">
-                        Submit Clarifications
-                    </Button>
-                </div>
-            </div>
-        )
-    }
 
     return (
         <div className="max-w-4xl mx-auto space-y-6 pb-20 p-6">
@@ -226,11 +165,31 @@ export function ValidationReport({ issues, clarificationQuestions = [], onProcee
                 </CardContent>
             </Card>
 
+            {tbdItems.length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>TBD Items</CardTitle>
+                        <CardDescription>These details will remain explicit in the SRS instead of being inferred.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {tbdItems.map((item, idx) => (
+                            <div key={`${item}-${idx}`} className="flex items-start gap-4 p-4 border rounded-lg bg-card">
+                                <FileWarning className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                <div className="flex-1">
+                                    <h4 className="text-sm font-semibold">TBD {idx + 1}</h4>
+                                    <p className="text-sm text-muted-foreground mt-1">{item}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </CardContent>
+                </Card>
+            )}
+
             <div className="flex justify-end items-center gap-4 fixed bottom-0 left-0 right-0 p-4 bg-background border-t z-10 md:pl-64">
                 <Button variant="outline" onClick={onEdit}>
                     <ArrowLeft className="h-4 w-4 mr-2" /> Back to Inputs
                 </Button>
-                <Button onClick={onProceed} disabled={isBlocked || isProceeding} size="lg">
+                <Button onClick={() => onProceed({ dismissedIssueIds: Array.from(dismissedIds), tbdItems })} disabled={isBlocked || isProceeding} size="lg">
                     {isProceeding ? "Proceeding..." : "Generate SRS Analysis (Layer 3)"}
                 </Button>
             </div>

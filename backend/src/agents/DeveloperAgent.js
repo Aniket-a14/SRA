@@ -63,7 +63,7 @@ ${rawInput}
 </input>
 `;
 
-    return this.callLLM(prompt, 0.4, true, SRSShellSchema);
+    return this.callLLM(prompt, 0.4, true, SRSShellSchema, 3, 5000, true);
   }
 
   /**
@@ -172,22 +172,7 @@ ${rawInput}
       noSchema: true
     }, version);
 
-    const prompt = `
-${masterPrompt}
-
-<role>
-You are the Lead Developer generating the Appendices section of an IEEE 830-1998 SRS. This section contains ONLY analysis models (Mermaid diagrams) and the TBD List.
-</role>
-
-<task>
-Generate the appendices containing:
-1. A flowchart diagram showing the primary system workflow.
-2. A sequence diagram showing a core user interaction flow.
-3. An entity relationship diagram showing the data model.
-4. A TBD list collecting all unresolved items from the SRS.
-Each diagram must include "syntaxExplanation", "code", and "caption".
-</task>
-
+    const commonContext = `
 <constraints>
 1. Diagrams must accurately reflect the content of the previous SRS sections — do not invent new entities or flows.
 2. Each diagram must have a concise caption (4-6 words max).
@@ -208,7 +193,54 @@ ${JSON.stringify(rawInput, null, 2)}
 </input>
 `;
 
-    return this.callLLM(prompt, 0.4, true, SRSAppendicesSchema);
+    const promptPart1 = `
+${masterPrompt}
+
+<role>
+You are the Lead Developer generating Part 1 of the Appendices section of an IEEE 830-1998 SRS.
+</role>
+
+<task>
+Generate ONLY the following items:
+1. A flowchart diagram showing the primary system workflow.
+2. A TBD list collecting all unresolved items from the SRS.
+CRITICAL: Omit the sequenceDiagram and entityRelationshipDiagram fields entirely.
+Each diagram must include "syntaxExplanation", "code", and "caption".
+</task>
+${commonContext}`;
+
+    const promptPart2 = `
+${masterPrompt}
+
+<role>
+You are the Lead Developer generating Part 2 of the Appendices section of an IEEE 830-1998 SRS.
+</role>
+
+<task>
+Generate ONLY the following items:
+1. A sequence diagram showing a core user interaction flow.
+2. An entity relationship diagram showing the data model.
+CRITICAL: Omit the flowchartDiagram and tbdList fields entirely.
+Each diagram must include "syntaxExplanation", "code", and "caption".
+</task>
+${commonContext}`;
+
+    // Run both parts in parallel
+    const [part1, part2] = await Promise.all([
+        this.callLLM(promptPart1, 0.4, true, SRSAppendicesSchema),
+        this.callLLM(promptPart2, 0.4, true, SRSAppendicesSchema)
+    ]);
+
+    // Deep merge the results
+    return {
+        appendices: {
+            analysisModels: {
+                ...(part1?.appendices?.analysisModels || {}),
+                ...(part2?.appendices?.analysisModels || {})
+            },
+            tbdList: part1?.appendices?.tbdList || part2?.appendices?.tbdList || []
+        }
+    };
   }
 
   async generateSRS(requirements, architecture, settings = {}) {

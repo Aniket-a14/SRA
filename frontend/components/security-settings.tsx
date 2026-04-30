@@ -31,7 +31,7 @@ export function SecuritySettings() {
             })
             if (res.ok) {
                 const data = await res.json()
-                setSessions(data)
+                setSessions(Array.isArray(data) ? data : data.items || [])
             }
         } catch (error) {
             console.error(error)

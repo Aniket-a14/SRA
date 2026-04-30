@@ -35,7 +35,7 @@ export function ApiKeyManager() {
             })
             if (res.ok) {
                 const data = await res.json()
-                setKeys(data)
+                setKeys(Array.isArray(data) ? data : data.items || [])
             }
         } catch (error) {
             console.error(error)

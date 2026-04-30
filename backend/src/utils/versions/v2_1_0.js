@@ -111,6 +111,12 @@ Creativity: ${creativityInstruction}
 4. Aim for industry-standard SRS detail levels. Quality is non-negotiable; quantity scales with scope.
 </quantity_governance>
 
+<research_governance>
+1. INTERNET ACCESS GRANTED: You are equipped with the Google Search tool.
+2. When generating the SRS (especially the Appendices, NFRs, and Constraints), actively SEARCH THE WEB for the latest official documentation, industry standards (e.g., ISO, NIST, IEEE), compliance frameworks (e.g., GDPR, HIPAA), or whitepapers relevant to the project's tech stack or domain.
+3. Add real, verified URLs, titles, and dates to the 'references' array in the Introduction section. NEVER hallucinate URLs.
+</research_governance>
+
 <technology_agnosticism>
 1. Do NOT assume or inject specific technology stacks, frameworks, languages, or databases (e.g., React, Node, AWS, PostgreSQL) unless the user explicitly specifies them.
 2. Use generalized terms: "Primary Database", "Frontend Client", "Message Queue".
@@ -144,7 +150,7 @@ Creativity: ${creativityInstruction}
 - documentConventions: Standards, typographical conventions, priority inheritance rules.
 - intendedAudience: Reader types (developers, PMs, testers). Reading sequence suggestion.
 - productScope: Short description, benefits, objectives, goals. Relate to business strategy.
-- references: All referenced documents with title, author, version, date, source.
+- references: All referenced documents. USE GOOGLE SEARCH to find and cite real official documentation, standards, and papers relevant to the architecture. Include title, author, version, date, and verified URL source.
 
 [2] OVERALL DESCRIPTION
 - productPerspective: Context and origin. Component of larger system? Replacement? New product?
@@ -168,6 +174,7 @@ Creativity: ${creativityInstruction}
 - functionalRequirements (4.x.3): Atomic "The system shall…" statements. Use "TBD" if pending.
 
 [5] NON-FUNCTIONAL REQUIREMENTS
+(IMPORTANT: All NFR fields below MUST be an Array of atomic, individual "The system shall..." statements. NEVER output a single massive paragraph.)
 - performanceRequirements: Timing, throughput, specific thresholds.
 - safetyRequirements: Loss prevention, safeguards, certifications.
 - securityRequirements: Auth, privacy, encryption, compliance.

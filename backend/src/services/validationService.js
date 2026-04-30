@@ -1,8 +1,153 @@
 import { analyzeText } from "./aiService.js";
 import crypto from 'crypto';
 
+const normalizeText = (value) => (value || "").toString().trim();
+
+const getIntakeText = (srsData = {}) => {
+  const projectName = normalizeText(
+    srsData.details?.projectName?.content ||
+    srsData.introduction?.projectName?.content ||
+    srsData.projectName
+  );
+
+  const description = normalizeText(
+    srsData.details?.fullDescription?.content ||
+    srsData.introduction?.purpose?.content ||
+    srsData.description ||
+    srsData.text
+  );
+
+  return { projectName, description, combined: `${projectName}\n${description}`.trim() };
+};
+
+const makeIssue = ({
+  section = 'Project Details',
+  title,
+  issue_type = 'OTHER',
+  conflict_type = 'NONE',
+  severity = 'warning',
+  description,
+  suggested_fix,
+  source = 'deterministic'
+}) => {
+  const normalizedSeverity = severity === 'critical' || severity === 'BLOCKER' ? 'critical' : 'warning';
+  const content = `${section}-${title}-${description}`;
+  return {
+    id: `val-${crypto.createHash('md5').update(content).digest('hex').slice(0, 12)}`,
+    section_id: section,
+    section,
+    title,
+    issue_type,
+    conflict_type,
+    severity: normalizedSeverity,
+    description,
+    suggested_fix,
+    source
+  };
+};
+
+const runDeterministicValidation = (srsData) => {
+  const { projectName, description, combined } = getIntakeText(srsData);
+  const lower = combined.toLowerCase();
+  const issues = [];
+  const tbdItems = [];
+
+  if (!projectName) {
+    issues.push(makeIssue({
+      title: 'Missing project name',
+      issue_type: 'INCOMPLETE',
+      severity: 'critical',
+      description: 'The intake does not include a project name, so generated identifiers and document governance would be unstable.',
+      suggested_fix: 'Provide the official project or product name before generation.'
+    }));
+  }
+
+  if (!description || description.length < 30) {
+    issues.push(makeIssue({
+      title: 'Insufficient project description',
+      issue_type: 'INCOMPLETE',
+      severity: 'critical',
+      description: 'The project description is too thin to identify scope, users, and core workflows without guessing.',
+      suggested_fix: 'Add the product purpose, primary users, and at least the core features.'
+    }));
+  }
+
+  const clientSpecificSignals = [
+    { pattern: /\bour existing\b|\bexisting (system|platform|database|erp|crm|ehr|records system)\b/i, question: 'Which existing system must this integrate with, and what data or workflow must be exchanged?' },
+    { pattern: /\bour (rules|policy|policies|process|workflow|approval)\b|\bcompany policy\b|\binternal (rules|process|workflow)\b/i, question: 'What are the organization-specific rules or policies the system must follow?' },
+    { pattern: /\bproprietary\b|\bcustom legacy\b/i, question: 'What proprietary or legacy behavior must be preserved?' }
+  ];
+
+  clientSpecificSignals.forEach(({ pattern, question }) => {
+    if (pattern.test(combined)) {
+      issues.push(makeIssue({
+        title: 'Client-specific dependency is undefined',
+        issue_type: 'AMBIGUITY',
+        conflict_type: 'SOFT_DRIFT',
+        severity: 'critical',
+        description: 'The brief references organization-specific knowledge that the generator cannot safely infer.',
+        suggested_fix: question
+      }));
+      tbdItems.push(question);
+    }
+  });
+
+  const conflictRules = [
+    {
+      a: /\boffline[- ]?only\b|\bno internet\b|\bwithout internet\b/,
+      b: /\breal[- ]?time\b|\blive sync\b|\bcloud sync\b|\bwebsocket\b/,
+      title: 'Offline and real-time cloud behavior conflict',
+      description: 'The brief appears to require offline-only behavior and real-time/cloud synchronization at the same time.'
+    },
+    {
+      a: /\banonymous\b|\bno login\b|\bwithout account\b/,
+      b: /\badmin\b|\brbac\b|\brole[- ]?based\b|\bkyc\b|\bpersonal information\b|\bprofile\b/,
+      title: 'Anonymous usage conflicts with identity-dependent features',
+      description: 'The brief combines anonymous/no-account usage with features that need identity, roles, or personal data.'
+    },
+    {
+      a: /\bno data (storage|retention)\b|\bdo not store\b|\bstateless\b/,
+      b: /\bhistory\b|\banalytics\b|\breporting\b|\baudit trail\b|\bsaved\b|\bretention\b/,
+      title: 'No-storage requirement conflicts with persisted history',
+      description: 'The brief says data should not be stored while also asking for features that require retained data.'
+    }
+  ];
+
+  conflictRules.forEach((rule) => {
+    if (rule.a.test(lower) && rule.b.test(lower)) {
+      issues.push(makeIssue({
+        title: rule.title,
+        issue_type: 'SEMANTIC_MISMATCH',
+        conflict_type: 'HARD_CONFLICT',
+        severity: 'critical',
+        description: rule.description,
+        suggested_fix: 'Clarify which requirement has priority, or define the exception that makes both true.'
+      }));
+    }
+  });
+
+  const vagueTerms = ['fast', 'scalable', 'secure', 'easy', 'efficient', 'robust', 'seamless'];
+  const foundVagueTerms = vagueTerms.filter(term => new RegExp(`\\b${term}\\b`, 'i').test(combined));
+  if (foundVagueTerms.length > 0) {
+    const tbd = `Define measurable targets for vague qualities: ${foundVagueTerms.join(', ')}.`;
+    issues.push(makeIssue({
+      title: 'Vague quality attributes need measurable targets',
+      issue_type: 'UNVERIFIABLE',
+      conflict_type: 'NONE',
+      severity: 'warning',
+      description: `The brief uses quality words (${foundVagueTerms.join(', ')}) that should become measurable NFRs or explicit TBDs.`,
+      suggested_fix: tbd
+    }));
+    tbdItems.push(tbd);
+  }
+
+  return {
+    issues,
+    tbd_items: [...new Set(tbdItems)]
+  };
+};
+
 const VALIDATION_PROMPT_TEMPLATE = `
-<role>
 You are a senior consultant reviewing a client's software project brief before handing it to your engineering team.
 Your default recommendation is PASS. You only raise concerns when the brief references something your team genuinely cannot know — information locked inside the client's organization.
 </role>
@@ -102,10 +247,11 @@ Return ONLY valid JSON:
       "suggested_fix": "string"
     }
   ],
-  "clarification_questions": ["string"]
+  "clarification_questions": ["string"],
+  "tbd_items": ["string"]
 }
 
-PASS = empty issues array and empty clarification_questions array.
+PASS = empty issues array and no clarification questions.
 FAIL = meaningless or infeasible input.
 CLARIFICATION_REQUIRED = at least one genuine gap that only the client can answer.
 </output_format>
@@ -176,28 +322,65 @@ async function filterFalsePositives(issues) {
 
 export async function validateRequirements(srsData) {
   const jsonString = JSON.stringify(srsData, null, 2);
+  const deterministic = runDeterministicValidation(srsData);
 
-  const response = await analyzeText(jsonString, {
-    modelName: process.env.GEMINI_MODEL_NAME || 'gemini-2.5-flash',
-    systemPrompt: VALIDATION_PROMPT_TEMPLATE.replace('{{srsData}}', jsonString),
-    temperature: 0.0,
-    zodSchema: null
-  });
+  let response = null;
+  try {
+    response = await analyzeText(jsonString, {
+      modelName: process.env.GEMINI_MODEL_NAME || 'gemini-2.5-flash',
+      systemPrompt: VALIDATION_PROMPT_TEMPLATE.replace('{{srsData}}', jsonString),
+      temperature: 0.0,
+      zodSchema: null
+    });
+  } catch (error) {
+    if (deterministic.issues.length > 0) {
+      return {
+        validation_status: deterministic.issues.some(i => i.severity === 'critical') ? 'CLARIFICATION_REQUIRED' : 'PASS',
+        issues: deterministic.issues,
+        tbd_items: deterministic.tbd_items,
+        validation_mode: 'DETERMINISTIC_FALLBACK',
+        service_error: error.message
+      };
+    }
+    throw error;
+  }
 
   if (!response || response.success === false) {
     throw new Error(response.error || "AI Validation Failed");
   }
 
   const result = response.srs;
+  result.issues = Array.isArray(result.issues) ? result.issues : [];
+  result.clarification_questions = Array.isArray(result.clarification_questions) ? result.clarification_questions : [];
+  result.tbd_items = Array.isArray(result.tbd_items) ? result.tbd_items : [];
+
+  // Convert AI clarification questions into warning-level issues
+  // so they appear in the ValidationReport UI. User addresses them in Layer 1.
+  if (result.clarification_questions.length > 0) {
+    const questionIssues = result.clarification_questions.map((q) => {
+      const content = `Clarification-${q}`;
+      return {
+        id: `val-${crypto.createHash('md5').update(content).digest('hex').slice(0, 12)}`,
+        section_id: 'Clarification',
+        section: 'Clarification',
+        title: 'AI Clarification Question',
+        issue_type: 'AMBIGUITY',
+        conflict_type: 'NONE',
+        severity: 'warning',
+        description: q,
+        suggested_fix: 'Please clarify this in your project description.',
+        source: 'ai_clarification'
+      };
+    });
+    result.issues.push(...questionIssues);
+  }
 
   if (!result.validation_status) {
     if (result.status) result.validation_status = result.status;
     else if (result.validationStatus) result.validation_status = result.validationStatus;
 
     if (!result.validation_status) {
-      if (result.clarification_questions && result.clarification_questions.length > 0) {
-        result.validation_status = 'CLARIFICATION_REQUIRED';
-      } else if (result.issues && result.issues.some(i => i.severity === 'critical' || i.severity === 'BLOCKER')) {
+      if (result.issues && result.issues.some(i => i.severity === 'critical' || i.severity === 'BLOCKER')) {
         result.validation_status = 'CLARIFICATION_REQUIRED';
       } else {
         result.validation_status = 'PASS';
@@ -215,6 +398,14 @@ export async function validateRequirements(srsData) {
     }
   }
 
+  result.issues = [...deterministic.issues, ...(result.issues || [])];
+  result.tbd_items = [
+    ...new Set([
+      ...deterministic.tbd_items,
+      ...(result.tbd_items || [])
+    ])
+  ];
+
   if (result.issues && Array.isArray(result.issues)) {
     result.issues = result.issues.map((issue, idx) => {
       let severity = (issue.severity || 'info').toLowerCase();
@@ -223,16 +414,26 @@ export async function validateRequirements(srsData) {
       if (severity === 'warning') severity = 'warning';
       if (severity !== 'critical' && severity !== 'warning') severity = 'info';
 
-      const issueContent = `${issue.section_id || 'general'}-${issue.title}-${issue.description.slice(0, 50)}`;
+      const issueContent = `${issue.section_id || issue.section || 'general'}-${issue.title}-${(issue.description || '').slice(0, 50)}`;
       const deterministicId = `val-${crypto.createHash('md5').update(issueContent).digest('hex').slice(0, 12)}`;
 
       return {
         ...issue,
         id: issue.id || deterministicId,
+        section: issue.section || issue.section_id,
         severity: severity
       };
     });
   }
+
+  const hasCritical = result.issues.some(issue => issue.severity === 'critical');
+  if (hasCritical) {
+    result.validation_status = 'CLARIFICATION_REQUIRED';
+  } else if (result.validation_status !== 'FAIL') {
+    result.validation_status = 'PASS';
+  }
+
+  result.validation_mode = 'HYBRID';
 
   return result;
 }
@@ -265,7 +466,7 @@ Suggested Fix: ${targetIssue.suggested_fix}
 
   const response = await analyzeText("Please fix the identified issue.", {
     systemPrompt: AUTO_FIX_PROMPT,
-    modelName: process.env.GEMINI_MODEL_NAME || 'gemini-3-flash-preview',
+    modelName: process.env.GEMINI_MODEL_NAME || 'gemini-2.5-flash',
     temperature: 0.2,
     zodSchema: null
   });

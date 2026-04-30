@@ -76,57 +76,71 @@ export const storeGraph = async (graphData, projectId, prismaClient = prisma) =>
         await prismaClient.$transaction(async (tx) => {
             const nodeMap = new Map(); // Name -> ID mapping
 
-            // Upsert Nodes
-            for (const node of graphData.nodes) {
-                let dbNode = await tx.graphNode.findUnique({
-                    where: {
-                        projectId_name_type: {
-                            projectId,
-                            name: node.name,
-                            type: node.type
-                        }
-                    }
-                });
+            // Batch: Fetch all existing nodes for this project in one query
+            const existingNodes = await tx.graphNode.findMany({
+                where: { projectId },
+                select: { id: true, name: true, type: true }
+            });
+            const existingNodeIndex = new Map(
+                existingNodes.map(n => [`${n.name}::${n.type}`, n.id])
+            );
 
-                if (!dbNode) {
-                    dbNode = await tx.graphNode.create({
-                        data: {
-                            projectId,
-                            name: node.name,
-                            type: node.type,
-                            metadata: node.metadata || {}
-                        }
+            // Separate new vs existing nodes
+            const newNodes = [];
+            for (const node of graphData.nodes) {
+                const key = `${node.name}::${node.type}`;
+                const existingId = existingNodeIndex.get(key);
+                if (existingId) {
+                    nodeMap.set(node.name, existingId);
+                } else {
+                    newNodes.push({
+                        projectId,
+                        name: node.name,
+                        type: node.type,
+                        metadata: node.metadata || {}
                     });
                 }
-                nodeMap.set(node.name, dbNode.id);
             }
 
-            // Create Edges
+            // Batch create new nodes
+            if (newNodes.length > 0) {
+                await tx.graphNode.createMany({ data: newNodes, skipDuplicates: true });
+
+                // Fetch back the newly created nodes to get their IDs
+                const created = await tx.graphNode.findMany({
+                    where: { projectId, name: { in: newNodes.map(n => n.name) } },
+                    select: { id: true, name: true }
+                });
+                created.forEach(n => nodeMap.set(n.name, n.id));
+            }
+
+            // Batch: Fetch existing edges for involved nodes in one query
+            const allNodeIds = Array.from(nodeMap.values());
+            const existingEdges = allNodeIds.length > 0 ? await tx.graphEdge.findMany({
+                where: { sourceId: { in: allNodeIds }, targetId: { in: allNodeIds } },
+                select: { sourceId: true, targetId: true, relation: true }
+            }) : [];
+            const edgeIndex = new Set(
+                existingEdges.map(e => `${e.sourceId}::${e.targetId}::${e.relation}`)
+            );
+
+            // Collect new edges (deduplicated)
+            const newEdges = [];
             for (const edge of graphData.edges) {
                 const sourceId = nodeMap.get(edge.source);
                 const targetId = nodeMap.get(edge.target);
-
                 if (sourceId && targetId) {
-                    // Avoid duplicate edges
-                    const existingEdge = await tx.graphEdge.findFirst({
-                        where: {
-                            sourceId,
-                            targetId,
-                            relation: edge.relation
-                        }
-                    });
-
-                    if (!existingEdge) {
-                        await tx.graphEdge.create({
-                            data: {
-                                sourceId,
-                                targetId,
-                                relation: edge.relation,
-                                metadata: edge.metadata || {}
-                            }
-                        });
+                    const key = `${sourceId}::${targetId}::${edge.relation}`;
+                    if (!edgeIndex.has(key)) {
+                        newEdges.push({ sourceId, targetId, relation: edge.relation, metadata: edge.metadata || {} });
+                        edgeIndex.add(key);
                     }
                 }
+            }
+
+            // Batch create new edges
+            if (newEdges.length > 0) {
+                await tx.graphEdge.createMany({ data: newEdges, skipDuplicates: true });
             }
         }, { timeout: 15000 });
         logger.info(`[GraphService] Stored ${graphData.nodes.length} nodes and ${graphData.edges.length} edges for Project ${projectId}`);
@@ -185,8 +199,24 @@ export const traverseGraph = async (nodeNames, projectId, depth, prismaClient = 
     }
 }
 
-export const getFullProjectGraph = async (projectId) => {
+export const getFullProjectGraph = async (projectId, userId = null) => {
     try {
+        if (userId) {
+            const project = await prisma.project.findFirst({
+                where: {
+                    id: projectId,
+                    userId
+                },
+                select: { id: true }
+            });
+
+            if (!project) {
+                const error = new Error('Project not found or unauthorized');
+                error.statusCode = 404;
+                throw error;
+            }
+        }
+
         const nodes = await prisma.graphNode.findMany({
             where: { projectId }
         });

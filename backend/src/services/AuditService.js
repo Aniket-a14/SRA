@@ -1,5 +1,4 @@
 import prisma from '../config/prisma.js';
-import { getLatestAnalysisByProjectId } from './analysisService.js';
 
 class AuditService {
 
@@ -8,30 +7,39 @@ class AuditService {
      * @param {string} userId
      */
     async getPendingReviews(userId) {
-        // 1. Get all projects for the user
-        const projects = await prisma.project.findMany({
-            where: { userId },
-            select: { id: true, name: true }
-        });
+        const latestAnalyses = await prisma.$queryRaw`
+            WITH latest AS (
+                SELECT DISTINCT ON (a."projectId")
+                    a.id,
+                    a."projectId",
+                    a."resultJson"
+                FROM "Analysis" a
+                JOIN "Project" p ON p.id = a."projectId"
+                WHERE p."userId" = ${userId}
+                ORDER BY a."projectId", a.version DESC, a."createdAt" DESC
+            )
+            SELECT
+                l.id,
+                l."projectId",
+                l."resultJson",
+                p.name AS "projectName"
+            FROM latest l
+            JOIN "Project" p ON p.id = l."projectId";
+        `;
 
         const pending = [];
 
-        // 2. For each project, get the latest analysis
-        // Optimally we could do this in one query, but for now loop is safer for logic
-        for (const project of projects) {
-            const latestAnalysis = await prisma.analysis.findFirst({
-                where: { projectId: project.id },
-                orderBy: { version: 'desc' }
-            });
+        for (const analysis of latestAnalyses) {
+            if (!analysis?.resultJson) continue;
 
-            if (!latestAnalysis || !latestAnalysis.resultJson) continue;
+            const spec = typeof analysis.resultJson === 'string'
+                ? JSON.parse(analysis.resultJson)
+                : analysis.resultJson;
 
-            const spec = latestAnalysis.resultJson;
             if (spec.systemFeatures) {
                 spec.systemFeatures.forEach(feature => {
                     if (feature.functionalRequirements) {
                         feature.functionalRequirements.forEach(r => {
-                            let req = r;
                             let reqId = 'UNKNOWN';
                             let status = 'DRAFT_AI';
                             let description = '';
@@ -54,9 +62,9 @@ class AuditService {
                                     description: description,
                                     metadata: { verification_status: status },
                                     // Context for saving
-                                    analysisId: latestAnalysis.id,
-                                    projectId: project.id,
-                                    projectName: project.name,
+                                    analysisId: analysis.id,
+                                    projectId: analysis.projectId,
+                                    projectName: analysis.projectName,
                                     featureName: feature.name
                                 });
                             }

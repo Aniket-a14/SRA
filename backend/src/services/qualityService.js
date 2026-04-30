@@ -11,8 +11,11 @@ export const lintRequirements = (analysis, semanticAudit = null) => {
     const issues = [];
 
     if (semanticAudit) {
-        // Use Semantic Audit scores (0.0 - 1.0) scaled to 100
-        score = Math.round(semanticAudit.overallScore * 100);
+        // CriticAgent scores on a 0-100 scale. Older callers may still pass
+        // 0-1 scores, so normalize defensively instead of inflating to 9000+.
+        score = semanticAudit.overallScore <= 1
+            ? Math.round(semanticAudit.overallScore * 100)
+            : Math.round(semanticAudit.overallScore);
         if (semanticAudit.criticalIssues) {
             issues.push(...semanticAudit.criticalIssues.map(i => `[CRITICAL] ${i}`));
         }

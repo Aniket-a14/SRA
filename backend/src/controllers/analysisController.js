@@ -1,4 +1,4 @@
-import { performAnalysis, getUserAnalyses, getAnalysisById, getAnalysisHistory } from '../services/analysisService.js';
+import { getUserAnalyses, getAnalysisById, getAnalysisHistory } from '../services/analysisService.js';
 import { processChat } from '../services/chatService.js';
 import { generateCodeFromAnalysis } from '../services/codeGenService.js';
 import { addAnalysisJob, getJobStatus } from '../services/queueService.js';
@@ -8,14 +8,78 @@ import { lintRequirements, checkAlignment } from '../services/qualityService.js'
 import { validateRequirements, autoFixRequirements } from '../services/validationService.js';
 import { analyzeText, repairDiagram as aiRepairDiagram } from '../services/aiService.js';
 import { embedText } from '../services/embeddingService.js';
-import { ensureProjectExists } from '../services/projectService.js';
-import { findReuseCandidate } from '../services/reuseService.js';
+import { buildReusePlan } from '../services/reuseService.js';
 import { FEATURE_EXPANSION_PROMPT, DFD_STRUCT_GEN_PROMPT } from '../utils/prompts.js';
 import { layoutAllDFD } from '../services/dfdLayoutService.js';
+import { extractGraph } from '../services/graphService.js';
 import prisma from '../config/prisma.js';
 import crypto from 'crypto';
 import { successResponse } from '../utils/response.js';
 import logger from '../config/logger.js';
+
+import { isVersionConflictError, VERSION_CONFLICT_MAX_RETRIES } from '../utils/versionConflict.js';
+const SECTION_EMBEDDING_CHAR_LIMIT = 12000;
+
+const isMeaningfulContent = (value) => {
+    if (value === null || value === undefined) return false;
+    if (Array.isArray(value)) return value.length > 0;
+    if (typeof value === 'object') return Object.keys(value).length > 0;
+    if (typeof value === 'string') return value.trim().length > 0;
+    return true;
+};
+
+const normalizeTags = (tags) => {
+    return Array.from(
+        new Set(
+            (tags || [])
+                .filter(Boolean)
+                .map(tag => tag.toString().trim().slice(0, 64))
+                .filter(tag => tag.length > 0)
+        )
+    ).slice(0, 20);
+};
+
+const toEmbeddingText = (type, content) => {
+    const raw = typeof content === 'string' ? content : JSON.stringify(content);
+    return `${type}: ${raw}`.slice(0, SECTION_EMBEDDING_CHAR_LIMIT);
+};
+
+const buildDraftResultJson = (srsData = {}) => ({
+    projectTitle: srsData.details?.projectName?.content || "Draft Project",
+    introduction: {
+        projectName: srsData.details?.projectName?.content || "",
+        purpose: srsData.details?.fullDescription?.content || "",
+        scope: "",
+        intendedAudience: "",
+        references: [],
+        documentConventions: ""
+    },
+    overallDescription: {
+        productPerspective: "See Introduction",
+        productFunctions: [],
+        userClassesAndCharacteristics: [],
+        operatingEnvironment: "",
+        designAndImplementationConstraints: [],
+        userDocumentation: [],
+        assumptionsAndDependencies: []
+    },
+    externalInterfaceRequirements: {
+        userInterfaces: "",
+        hardwareInterfaces: "",
+        softwareInterfaces: "",
+        communicationsInterfaces: ""
+    },
+    systemFeatures: [],
+    nonFunctionalRequirements: {
+        performanceRequirements: [],
+        safetyRequirements: [],
+        securityRequirements: [],
+        softwareQualityAttributes: [],
+        businessRules: []
+    },
+    otherRequirements: [],
+    status: "DRAFT"
+});
 
 export const analyze = async (req, res, next) => {
     try {
@@ -32,48 +96,13 @@ export const analyze = async (req, res, next) => {
             if (req.body.draft) {
                 // Synchronous Draft Creation (No AI)
                 // We store the structured input in metadata.draftData
-                // We use a dummy inputText and resultJson to satisfy schema constraints for now.
+                // Persist canonical draft values for required columns (production-safe, no mock data).
+                // inputText stores serialized user input; resultJson stores a schema-compliant draft projection.
                 const newAnalysis = await prisma.analysis.create({
                     data: {
                         userId: req.user.userId,
                         inputText: JSON.stringify(srsData), // Serialize as input
-                        resultJson: { // Dummy result for schema compliance
-                            projectTitle: srsData.details?.projectName?.content || "Draft Project",
-                            introduction: {
-                                projectName: srsData.details?.projectName?.content || "",
-                                purpose: srsData.details?.fullDescription?.content || "",
-                                scope: "",
-                                intendedAudience: "",
-                                references: [],
-                                documentConventions: ""
-                            },
-                            overallDescription: {
-                                productPerspective: "See Introduction",
-                                productFunctions: [],
-                                userClassesAndCharacteristics: [],
-                                operatingEnvironment: "",
-                                designAndImplementationConstraints: [],
-                                userDocumentation: [],
-                                assumptionsAndDependencies: []
-                            },
-                            externalInterfaceRequirements: {
-                                userInterfaces: "",
-                                hardwareInterfaces: "",
-                                softwareInterfaces: "",
-                                communicationsInterfaces: ""
-                            },
-                            // Unified Input -> No systemFeatures yet (AI generates them)
-                            systemFeatures: [],
-                            nonFunctionalRequirements: {
-                                performanceRequirements: [],
-                                safetyRequirements: [],
-                                securityRequirements: [],
-                                softwareQualityAttributes: [],
-                                businessRules: []
-                            },
-                            otherRequirements: [],
-                            status: "DRAFT"
-                        },
+                        resultJson: buildDraftResultJson(srsData),
                         version: 1,
                         title: (srsData.details?.projectName?.content || "Draft Analysis") + " (Draft)",
                         projectId: req.body.projectId,
@@ -105,12 +134,19 @@ export const analyze = async (req, res, next) => {
                     throw error;
                 }
                 if (validationResult.validation_status === 'CLARIFICATION_REQUIRED') {
-                    // Layer 2 Pause: Return questions to user
-                    return res.status(200).json({
-                        status: 'CLARIFICATION_REQUIRED',
-                        issues: validationResult.issues,
-                        clarification_questions: validationResult.clarification_questions || []
-                    });
+                    // Check if the user has dismissed all critical issues
+                    const dismissedIds = new Set(validationResult.userOverrides?.acceptedIssueIds || []);
+                    const unresolvedCriticals = (validationResult.issues || [])
+                        .filter(i => i.severity === 'critical' && !dismissedIds.has(i.id));
+
+                    if (unresolvedCriticals.length > 0) {
+                        const error = new Error('Analysis blocked: Unresolved critical issues remain. Please fix them in Layer 1 or dismiss them.');
+                        error.statusCode = 400;
+                        error.details = unresolvedCriticals;
+                        throw error;
+                    }
+                    // All criticals dismissed — proceed to queue (fall through)
+                    logger.info({ msg: '[Validation Gate] All critical issues dismissed by user, proceeding to analysis', dismissedCount: dismissedIds.size });
                 }
             }
 
@@ -153,9 +189,9 @@ export const analyze = async (req, res, next) => {
         // But if optimization found, we skip queue.
 
         // LAYER 5: Reuse Strategy (Vector Search) — Non-blocking
-        let reuseMetadata = { found: false };
+        let reusePlan = { found: false, userSpecific: [], globalReference: [] };
         try {
-            reuseMetadata = await findReuseCandidate(sanitizedText);
+            reusePlan = await buildReusePlan({ text: sanitizedText, userId: req.user.userId });
         } catch (reuseErr) {
             logger.warn({ msg: "[Reuse] Search failed (non-fatal), proceeding without reuse", error: reuseErr.message });
         }
@@ -163,7 +199,8 @@ export const analyze = async (req, res, next) => {
         const job = await addAnalysisJob(req.user.userId, sanitizedText, req.body.projectId, {
             ...req.body.settings,
             projectName, // Force extraction/propagation
-            reuseMetadata // Pass tiered reuse info to worker
+            reusePlan,
+            validationResult
         }, req.body.parentId, req.body.rootId);
 
         // Auto-delete Draft if converting - DEFERRED to Worker Service (performAnalysis)
@@ -173,8 +210,8 @@ export const analyze = async (req, res, next) => {
             jobId: job.id,
             id: job.id, // Fix: Frontend expects 'id'
             status: "queued",
-            reuseFound: reuseMetadata.found,
-            reuseType: reuseMetadata.type
+            reuseFound: reusePlan.found,
+            reuseType: reusePlan.userSpecific?.length > 0 ? 'USER_SPECIFIC' : (reusePlan.globalReference?.length > 0 ? 'GLOBAL_REFERENCE' : undefined)
         }, "Analysis queued", 202);
     } catch (error) {
         next(error);
@@ -184,7 +221,7 @@ export const analyze = async (req, res, next) => {
 export const checkJobStatus = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const status = await getJobStatus(id);
+        const status = await getJobStatus(id, req.user.userId);
 
         if (!status) {
             const error = new Error('Job not found');
@@ -377,30 +414,47 @@ export const updateAnalysis = async (req, res, next) => {
         const diff = compareAnalyses(currentAnalysis, { inputText: currentAnalysis.inputText, resultJson: newResultJson });
         newResultJson.diff = diff;
 
-        // Create NEW Analysis Version
-        const newAnalysis = await prisma.$transaction(async (tx) => {
-            const rootId = currentAnalysis.rootId || currentAnalysis.id;
-            const maxVersionAgg = await tx.analysis.findFirst({
-                where: { rootId },
-                orderBy: { version: 'desc' },
-                select: { version: true }
-            });
-            const nextVersion = (maxVersionAgg?.version || 0) + 1;
+        // Create NEW Analysis Version (retry on version conflicts)
+        const rootId = currentAnalysis.rootId || currentAnalysis.id;
+        let newAnalysis = null;
 
-            return await tx.analysis.create({
-                data: {
-                    userId: req.user.userId,
-                    inputText: currentAnalysis.inputText,
-                    resultJson: newResultJson,
-                    version: nextVersion,
-                    title: currentAnalysis.title || `Version ${nextVersion}`,
-                    rootId: rootId,
-                    parentId: currentAnalysis.id,
-                    projectId: currentAnalysis.projectId,
-                    metadata: newMetadata
+        for (let attempt = 1; attempt <= VERSION_CONFLICT_MAX_RETRIES; attempt++) {
+            try {
+                newAnalysis = await prisma.$transaction(async (tx) => {
+                    const maxVersionAgg = await tx.analysis.findFirst({
+                        where: { rootId },
+                        orderBy: { version: 'desc' },
+                        select: { version: true }
+                    });
+                    const nextVersion = (maxVersionAgg?.version || 0) + 1;
+
+                    return tx.analysis.create({
+                        data: {
+                            userId: req.user.userId,
+                            inputText: currentAnalysis.inputText,
+                            resultJson: newResultJson,
+                            version: nextVersion,
+                            title: currentAnalysis.title || `Version ${nextVersion}`,
+                            rootId,
+                            parentId: currentAnalysis.id,
+                            projectId: currentAnalysis.projectId,
+                            metadata: newMetadata
+                        }
+                    });
+                });
+                break;
+            } catch (error) {
+                if (isVersionConflictError(error) && attempt < VERSION_CONFLICT_MAX_RETRIES) {
+                    logger.warn({ msg: '[Layer 4] Version conflict during updateAnalysis, retrying', attempt, rootId });
+                    continue;
                 }
-            });
-        });
+                throw error;
+            }
+        }
+
+        if (!newAnalysis) {
+            throw new Error('Failed to create a new analysis version');
+        }
 
         return successResponse(res, {
             ...newAnalysis.resultJson,
@@ -527,37 +581,64 @@ export const regenerate = async (req, res, next) => {
 
         // 7. Create new version in transaction
         const rootId = currentAnalysis.rootId || currentAnalysis.id;
+        let newAnalysis = null;
 
-        const newAnalysis = await prisma.$transaction(async (tx) => {
-            const maxVersionAgg = await tx.analysis.findFirst({
-                where: { rootId },
-                orderBy: { version: 'desc' },
-                select: { version: true }
-            });
-            const nextVersion = (maxVersionAgg?.version || 0) + 1;
+        for (let attempt = 1; attempt <= VERSION_CONFLICT_MAX_RETRIES; attempt++) {
+            try {
+                newAnalysis = await prisma.$transaction(async (tx) => {
+                    const maxVersionAgg = await tx.analysis.findFirst({
+                        where: { rootId },
+                        orderBy: { version: 'desc' },
+                        select: { version: true }
+                    });
+                    const nextVersion = (maxVersionAgg?.version || 0) + 1;
 
-            return await tx.analysis.create({
-                data: {
-                    userId: req.user.userId,
-                    inputText: currentAnalysis.inputText,
-                    resultJson: mergedResultJson,
-                    version: nextVersion,
-                    title: currentAnalysis.title || `Version ${nextVersion}`,
-                    status: 'COMPLETED',
-                    rootId: rootId,
-                    parentId: currentAnalysis.id,
-                    projectId: currentAnalysis.projectId,
-                    metadata: {
-                        ...currentAnalysis.metadata,
-                        trigger: 'refinement',
-                        source: 'surgical_refine',
-                        refinementNotes: improvementNotes,
-                        refinedSections: Object.keys(partialUpdate),
-                        promptSettings: currentAnalysis.metadata?.promptSettings || {}
-                    }
+                    return tx.analysis.create({
+                        data: {
+                            userId: req.user.userId,
+                            inputText: currentAnalysis.inputText,
+                            resultJson: mergedResultJson,
+                            version: nextVersion,
+                            title: currentAnalysis.title || `Version ${nextVersion}`,
+                            status: 'COMPLETED',
+                            rootId,
+                            parentId: currentAnalysis.id,
+                            projectId: currentAnalysis.projectId,
+                            metadata: {
+                                ...currentAnalysis.metadata,
+                                trigger: 'refinement',
+                                source: 'surgical_refine',
+                                refinementNotes: improvementNotes,
+                                refinedSections: Object.keys(partialUpdate),
+                                promptSettings: currentAnalysis.metadata?.promptSettings || {}
+                            }
+                        }
+                    });
+                });
+                break;
+            } catch (error) {
+                if (isVersionConflictError(error) && attempt < VERSION_CONFLICT_MAX_RETRIES) {
+                    logger.warn({ msg: '[Layer 4] Version conflict during regenerate, retrying', attempt, rootId });
+                    continue;
                 }
+                throw error;
+            }
+        }
+
+        if (!newAnalysis) {
+            throw new Error('Failed to create regenerated analysis version');
+        }
+
+        if (newAnalysis.projectId) {
+            const graphSourceText = JSON.stringify({
+                projectTitle: mergedResultJson.projectTitle,
+                overallDescription: mergedResultJson.overallDescription,
+                systemFeatures: mergedResultJson.systemFeatures,
+                externalInterfaceRequirements: mergedResultJson.externalInterfaceRequirements
             });
-        });
+            extractGraph(graphSourceText, newAnalysis.projectId)
+                .catch(e => logger.error({ msg: 'Async graph refresh failed after regeneration', error: e?.message || e }));
+        }
 
         logger.info({ msg: "[Layer 4] Surgical refinement complete", newId: newAnalysis.id, version: newAnalysis.version, modifiedSections: Object.keys(partialUpdate) });
 
@@ -575,6 +656,27 @@ export const regenerate = async (req, res, next) => {
     }
 };
 
+const normalizeAiScore = (score) => {
+    if (typeof score !== 'number' || Number.isNaN(score)) return null;
+    return score > 1 ? Math.max(0, Math.min(100, score)) / 100 : Math.max(0, Math.min(1, score));
+};
+
+const buildHumanFinalizedTrust = (result) => {
+    const aiScore = normalizeAiScore(
+        result.benchmarks?.qualityAudit?.overallScore ??
+        result.qualityAudit?.score
+    );
+
+    return {
+        tier: 'HUMAN_FINALIZED',
+        priority: 100,
+        source: 'finalize_action',
+        humanApproved: true,
+        aiReviewScore: aiScore,
+        reuseGuidance: 'User-specific consumers may preserve technical intent and rewrite language. Global consumers may use this only as reference knowledge.'
+    };
+};
+
 export const finalizeAnalysis = async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -584,6 +686,18 @@ export const finalizeAnalysis = async (req, res, next) => {
             const error = new Error('Analysis not found');
             error.statusCode = 404;
             throw error;
+        }
+
+        if (analysis.isFinalized) {
+            const existingChunks = await prisma.knowledgeChunk.count({
+                where: { sourceAnalysisId: id }
+            });
+            return successResponse(res, {
+                message: "Analysis was already finalized; existing knowledge chunks were left unchanged",
+                id,
+                chunksStored: existingChunks,
+                alreadyFinalized: true
+            });
         }
 
         let embeddingVector = [];
@@ -609,77 +723,164 @@ export const finalizeAnalysis = async (req, res, next) => {
         };
 
         const chunks = [];
+        const chunkCandidates = [];
         const result = analysis.resultJson;
 
-        const overallScore = result.benchmarks?.qualityAudit?.overallScore ||
-            (result.qualityAudit?.score ? result.qualityAudit.score / 10 : null);
+        const trust = buildHumanFinalizedTrust(result);
+        const overallScore = 1.0;
+        const chunkMetadata = {
+            trust,
+            reuseScope: {
+                userSpecific: 'rewrite_language_preserve_technical_brain',
+                global: 'reference_only'
+            }
+        };
 
-        if (result.systemFeatures && Array.isArray(result.systemFeatures)) {
-            // Prepare all feature chunks first, then batch embed
-            const featureChunkTexts = result.systemFeatures.map(feature => {
-                return `${feature.name}: ${feature.description}\n${feature.functionalRequirements?.join(' ')}`;
+        const queueChunk = (type, content, tags = [], textForEmbedding = null) => {
+            if (!isMeaningfulContent(content)) return;
+
+            const contentStr = JSON.stringify(content);
+            chunkCandidates.push({
+                id: crypto.randomUUID(),
+                type,
+                content,
+                hash: crypto.createHash('md5').update(contentStr).digest('hex'),
+                tags: normalizeTags(tags),
+                sourceAnalysisId: id,
+                qualityScore: overallScore,
+                metadata: chunkMetadata,
+                textForEmbedding: textForEmbedding || toEmbeddingText(type, content)
             });
+        };
 
-            // Batch embed all features in parallel
-            const featureEmbeddings = await Promise.all(
-                featureChunkTexts.map(async (chunkText) => {
-                    try {
-                        return process.env.MOCK_AI === 'true' ? Array(768).fill(0.01) : await embedText(chunkText);
-                    } catch (err) {
-                        logger.warn({ err }, `[Finalize] Failed to embed feature chunk`);
-                        return null;
-                    }
-                })
-            );
-
-            result.systemFeatures.forEach((feature, idx) => {
-                const contentStr = JSON.stringify(feature);
-                chunks.push({
-                    id: crypto.randomUUID(),
-                    type: 'FEATURE',
-                    content: feature,
-                    hash: crypto.createHash('md5').update(contentStr).digest('hex'),
-                    tags: [feature.name, ...(feature.functionalRequirements?.map(f => f.slice(0, 20)) || [])],
-                    sourceAnalysisId: id,
-                    embedding: featureEmbeddings[idx],
-                    qualityScore: overallScore
-                });
+        if (Array.isArray(result.systemFeatures)) {
+            result.systemFeatures.forEach((feature) => {
+                const functionalRequirements = (feature.functionalRequirements || [])
+                    .map(req => typeof req === 'string' ? req : req.description || JSON.stringify(req));
+                const chunkText = `${feature.name || 'Feature'}: ${feature.description || ''}\n${functionalRequirements.join(' ')}`;
+                queueChunk(
+                    'FEATURE',
+                    feature,
+                    [
+                        feature.name,
+                        ...functionalRequirements.map(req => req.slice(0, 24))
+                    ],
+                    chunkText
+                );
             });
         }
 
-        if (result.nonFunctionalRequirements) {
+        if (result.nonFunctionalRequirements && typeof result.nonFunctionalRequirements === 'object') {
             for (const [category, reqs] of Object.entries(result.nonFunctionalRequirements)) {
                 if (Array.isArray(reqs) && reqs.length > 0) {
-                    const contentStr = JSON.stringify(reqs);
                     const chunkText = `Non-Functional Requirement - ${category}: ${reqs.join(' ')}`;
-
-                    let embedding = null;
-                    try {
-                        embedding = process.env.MOCK_AI === 'true' ? Array(768).fill(0.02) : await embedText(chunkText);
-                    } catch (err) {
-                        logger.warn({ err }, `[Finalize] Failed to embed NFR chunk: ${category}`);
-                    }
-
-                    chunks.push({
-                        id: crypto.randomUUID(),
-                        type: `NFR_${category.toUpperCase()}`,
-                        content: reqs,
-                        hash: crypto.createHash('md5').update(contentStr).digest('hex'),
-                        tags: [category],
-                        sourceAnalysisId: id,
-                        embedding: embedding,
-                        qualityScore: overallScore
-                    });
+                    queueChunk(`NFR_${category.toUpperCase()}`, reqs, [category, 'non-functional'], chunkText);
                 }
             }
         }
+
+        // Full-section strategy: persist reusable chunks for every major SRS section, not only features + NFRs.
+        const topLevelSections = [
+            {
+                type: 'PROJECT_OVERVIEW',
+                content: {
+                    projectTitle: result.projectTitle,
+                    introduction: result.introduction
+                },
+                tags: ['project', 'overview', result.projectTitle]
+            },
+            {
+                type: 'SECTION_OVERALL_DESCRIPTION',
+                content: result.overallDescription,
+                tags: ['overall-description']
+            },
+            {
+                type: 'SECTION_EXTERNAL_INTERFACES',
+                content: result.externalInterfaceRequirements,
+                tags: ['interfaces', 'external']
+            },
+            {
+                type: 'SECTION_OTHER_REQUIREMENTS',
+                content: result.otherRequirements,
+                tags: ['other-requirements']
+            },
+            {
+                type: 'SECTION_USER_STORIES',
+                content: result.userStories,
+                tags: ['user-stories']
+            },
+            {
+                type: 'SECTION_ARCHITECTURE',
+                content: result.systemArchitecture,
+                tags: ['architecture']
+            },
+            {
+                type: 'SECTION_FEATURE_SUMMARY',
+                content: result.features,
+                tags: ['feature-summary']
+            },
+            {
+                type: 'SECTION_APPENDICES',
+                content: result.appendices,
+                tags: ['appendices']
+            },
+            {
+                type: 'SECTION_GLOSSARY',
+                content: result.glossary,
+                tags: ['glossary']
+            }
+        ];
+
+        topLevelSections.forEach(section => {
+            queueChunk(section.type, section.content, section.tags);
+        });
+
+        const embeddingBatchSize = process.env.MOCK_AI === 'true'
+            ? Math.max(chunkCandidates.length, 1)
+            : 10;
+
+        for (let i = 0; i < chunkCandidates.length; i += embeddingBatchSize) {
+            const batch = chunkCandidates.slice(i, i + embeddingBatchSize);
+            const batchWithEmbeddings = await Promise.all(batch.map(async (candidate) => {
+                let embedding = null;
+                try {
+                    embedding = process.env.MOCK_AI === 'true'
+                        ? Array(768).fill(0.01)
+                        : await embedText(candidate.textForEmbedding);
+                } catch (err) {
+                    logger.warn({ err, type: candidate.type }, '[Finalize] Failed to embed chunk');
+                }
+
+                return {
+                    ...candidate,
+                    embedding
+                };
+            }));
+
+            chunks.push(...batchWithEmbeddings.map((candidate) => {
+                const chunk = { ...candidate };
+                delete chunk.textForEmbedding;
+                return chunk;
+            }));
+        }
+
+        const dedupedChunkMap = new Map();
+        chunks.forEach(chunk => {
+            if (!dedupedChunkMap.has(chunk.hash)) {
+                dedupedChunkMap.set(chunk.hash, chunk);
+            }
+        });
+        const dedupedChunks = Array.from(dedupedChunkMap.values());
 
         await prisma.$transaction(async (tx) => {
             await tx.analysis.update({
                 where: { id },
                 data: {
                     isFinalized: true,
-                    metadata: updatedMetadata
+                    metadata: {
+                        ...updatedMetadata,
+                        trust
+                    }
                 }
             });
 
@@ -688,20 +889,21 @@ export const finalizeAnalysis = async (req, res, next) => {
                 await tx.$executeRaw`UPDATE "Analysis" SET "vectorSignature" = ${vectorString}::vector WHERE "id" = ${id}`;
             }
 
-            if (chunks.length > 0) {
+            if (dedupedChunks.length > 0) {
                 await tx.knowledgeChunk.createMany({
-                    data: chunks.map(chunk => ({
+                    data: dedupedChunks.map(chunk => ({
                         id: chunk.id,
                         type: chunk.type,
                         content: chunk.content,
                         hash: chunk.hash,
                         tags: chunk.tags,
                         qualityScore: chunk.qualityScore,
+                        metadata: chunk.metadata,
                         sourceAnalysisId: id
                     }))
                 });
 
-                const chunksWithVectors = chunks.filter(c => c.embedding && c.embedding.length > 0);
+                const chunksWithVectors = dedupedChunks.filter(c => c.embedding && c.embedding.length > 0);
                 if (chunksWithVectors.length > 0) {
                     const payload = chunksWithVectors.map(c => ({
                         id: c.id,
@@ -729,7 +931,7 @@ export const finalizeAnalysis = async (req, res, next) => {
         return successResponse(res, { 
             message: "Analysis finalized and broken into reusable chunks with semantic embeddings", 
             id: id, 
-            chunksStored: chunks.length 
+            chunksStored: dedupedChunks.length 
         });
     } catch (error) {
         next(error);
@@ -793,7 +995,10 @@ export const validateAnalysis = async (req, res, next) => {
 
         const updatedAnalysis = await prisma.analysis.update({
             where: { id },
-            data: { metadata: updatedMetadata }
+            data: {
+                status: newStatus,
+                metadata: updatedMetadata
+            }
         });
 
         return successResponse(res, {
@@ -907,7 +1112,7 @@ SRS Content (Reference): ${srsContent || "N/A"}
             result.srs = layoutAllDFD(result.srs);
         }
 
-        res.json(result);
+        return successResponse(res, result.srs || result);
     } catch (error) {
         next(error);
     }
@@ -932,7 +1137,7 @@ export const autoFixValidationIssue = async (req, res, next) => {
         }
 
         const fixedText = await autoFixRequirements(analysis.metadata, issueId);
-        res.json({ fixedText });
+        return successResponse(res, { fixedText });
     } catch (error) {
         next(error);
     }

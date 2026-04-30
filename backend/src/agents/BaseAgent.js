@@ -9,8 +9,8 @@ export class BaseAgent {
         // Default models will be overridden in analysisService based on tiering
     }
 
-    async callLLM(prompt, temperature = 0.7, jsonMode = true, responseSchema = null, retries = 3, initialDelay = 5000) {
-        logger.debug({ msg: `[${this.name}] Calling LLM`, model: this.modelName });
+    async callLLM(prompt, temperature = 0.7, jsonMode = true, responseSchema = null, retries = 3, initialDelay = 5000, useWebSearch = false) {
+        logger.debug({ msg: `[${this.name}] Calling LLM`, model: this.modelName, useWebSearch });
 
         if (process.env.MOCK_AI === 'true') {
             logger.warn(`[${this.name}] MOCK MODE ACTIVE. Returning dummy response.`);
@@ -65,17 +65,28 @@ export class BaseAgent {
 
         while (true) {
             try {
-                const model = genAI.getGenerativeModel({
+                let finalPrompt = prompt;
+                if (useWebSearch && responseSchema) {
+                    finalPrompt += `\n\n<json_schema_requirement>\nYou MUST return ONLY valid JSON matching this exact schema:\n${JSON.stringify(responseSchema, null, 2)}\n</json_schema_requirement>`;
+                }
+
+                const modelConfig = {
                     model: this.modelName,
                     generationConfig: {
                         temperature,
                         maxOutputTokens: 65535,
-                        responseMimeType: jsonMode ? "application/json" : "text/plain",
-                        ...(responseSchema && { responseSchema })
+                        responseMimeType: (jsonMode && !useWebSearch) ? "application/json" : "text/plain",
+                        ...((responseSchema && !useWebSearch) && { responseSchema })
                     }
-                });
+                };
+                
+                if (useWebSearch) {
+                    modelConfig.tools = [{ googleSearch: {} }];
+                }
+                
+                const model = genAI.getGenerativeModel(modelConfig);
 
-                const result = await callWithTimeout(model.generateContent(prompt), TIMEOUT_MS);
+                const result = await callWithTimeout(model.generateContent(finalPrompt), TIMEOUT_MS);
                 const response = result.response;
                 const text = response.text();
 

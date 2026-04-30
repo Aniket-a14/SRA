@@ -25,11 +25,40 @@ export const createApiKey = async (userId, name, expiresInDays = 365) => {
     return { ...apiKey, rawKey };
 };
 
-export const listApiKeys = async (userId) => {
-    return await prisma.apiKey.findMany({
-        where: { userId },
-        select: { id: true, name: true, createdAt: true, lastUsed: true, expiresAt: true } // Don't return key hash
-    });
+const normalizePagination = (page = 1, limit = 20) => {
+    const normalizedPage = Number.isFinite(Number(page)) ? Math.max(1, Number(page)) : 1;
+    const normalizedLimit = Number.isFinite(Number(limit))
+        ? Math.min(100, Math.max(1, Number(limit)))
+        : 20;
+
+    return {
+        page: normalizedPage,
+        limit: normalizedLimit,
+        skip: (normalizedPage - 1) * normalizedLimit
+    };
+};
+
+export const listApiKeys = async (userId, { page = 1, limit = 20 } = {}) => {
+    const pagination = normalizePagination(page, limit);
+
+    const [items, total] = await prisma.$transaction([
+        prisma.apiKey.findMany({
+            where: { userId },
+            orderBy: { createdAt: 'desc' },
+            skip: pagination.skip,
+            take: pagination.limit,
+            select: { id: true, name: true, createdAt: true, lastUsed: true, expiresAt: true }
+        }),
+        prisma.apiKey.count({ where: { userId } })
+    ]);
+
+    return {
+        items,
+        page: pagination.page,
+        limit: pagination.limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / pagination.limit))
+    };
 };
 
 export const revokeApiKey = async (id, userId) => {

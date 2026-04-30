@@ -26,6 +26,11 @@ const verifyQStash = async (req, res, next) => {
     const body = req.rawBody ? req.rawBody.toString() : "";
 
     // Ensure no double slashes if BACKEND_URL ends with /
+    if (!process.env.BACKEND_URL) {
+        log.error("QStash Verification Failed: BACKEND_URL is not configured");
+        return res.status(500).send("Worker verification is not configured");
+    }
+
     const baseUrl = process.env.BACKEND_URL.replace(/\/$/, "");
     const url = `${baseUrl}/api/worker/process`;
 
@@ -37,9 +42,8 @@ const verifyQStash = async (req, res, next) => {
         });
 
         if (!isValid) {
-            // throw new Error("Invalid QStash Signature");
-            // Note: Receiver.verify throws if invalid usually, but returns boolean in some versions.
-            // Let's assume strict verification.
+            log.error({ msg: 'QStash Verification Failed', error: 'Invalid signature payload' });
+            return res.status(401).send('Invalid Signature');
         }
         next();
     } catch (err) {

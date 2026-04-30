@@ -1,5 +1,3 @@
-import prisma from '../config/prisma.js';
-
 /**
  * Audit Logger Middleware
  * Tracks all sensitive operations for compliance and security monitoring
@@ -56,23 +54,13 @@ async function logAuditEvent(event) {
  * Middleware to automatically log API requests
  */
 export const auditLogger = (req, res, next) => {
-    // Capture original methods
-    const originalJson = res.json;
-    const originalSend = res.send;
-
     // Track request start time
     const startTime = Date.now();
 
-    // Override response methods to capture status
-    res.json = function (data) {
-        logRequestAudit(req, res, startTime, data);
-        return originalJson.call(this, data);
-    };
-
-    res.send = function (data) {
-        logRequestAudit(req, res, startTime, data);
-        return originalSend.call(this, data);
-    };
+    // Use the standard 'finish' event instead of monkey-patching res.json/res.send
+    res.on('finish', () => {
+        logRequestAudit(req, res, startTime);
+    });
 
     next();
 };
@@ -80,9 +68,9 @@ export const auditLogger = (req, res, next) => {
 /**
  * Log request audit trail
  */
-function logRequestAudit(req, res, startTime, responseData) {
+function logRequestAudit(req, res, startTime) {
     const duration = Date.now() - startTime;
-    const action = determineAction(req);
+    const action = determineAction(req, res);
 
     // Only log sensitive operations
     if (!SENSITIVE_OPERATIONS.includes(action)) {
@@ -108,7 +96,7 @@ function logRequestAudit(req, res, startTime, responseData) {
 /**
  * Determine action type from request
  */
-function determineAction(req) {
+function determineAction(req, res) {
     const { method, path } = req;
 
     // Project operations
@@ -126,7 +114,7 @@ function determineAction(req) {
 
     // Auth operations
     if (path.includes('/auth/login')) {
-        return req.statusCode === 200 ? 'LOGIN_SUCCESS' : 'LOGIN_FAILURE';
+        return res.statusCode < 400 ? 'LOGIN_SUCCESS' : 'LOGIN_FAILURE';
     }
     if (path.includes('/auth/logout')) return 'LOGOUT';
 

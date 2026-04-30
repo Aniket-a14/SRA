@@ -36,7 +36,7 @@ import saveAs from "file-saver"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { SourcesPanel } from "@/components/analysis/sources-panel"
-import { useTransition } from "react"
+
 
 const ResultsTabs = dynamic(() => import("@/components/results-tabs").then(mod => mod.ResultsTabs), {
     loading: () => <div className="h-[600px] w-full bg-muted/5 animate-pulse rounded-xl" />
@@ -111,7 +111,6 @@ function AnalysisDetailContent() {
     const [isValidating, setIsValidating] = useState(false)
     const [isProceeding, setIsProceeding] = useState(false)
     const [isFixing, setIsFixing] = useState<string | null>(null);
-    const [,] = useTransition()
     const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([]);
 
     // Draft State
@@ -171,7 +170,7 @@ function AnalysisDetailContent() {
                 setLayer(3);
             }
         }
-    }, [analysis, unlockAndNavigate, unlockLayer, setLayer, setIsFinalized]);
+    }, [analysis, unlockAndNavigate, unlockLayer, setLayer, setIsFinalized, router]);
 
     // Handle SWR errors separately
     useEffect(() => {
@@ -237,7 +236,7 @@ function AnalysisDetailContent() {
         const loadingToast = toast.loading("Saving draft to cloud...");
         try {
             await updateAnalysis(id, token!, {
-                metadata: { ...analysis?.metadata, draftData, status: 'DRAFT' }
+                metadata: { draftData, status: 'DRAFT' }
             });
             toast.success("Draft saved", { id: loadingToast });
         } catch (error: unknown) {
@@ -250,7 +249,7 @@ function AnalysisDetailContent() {
         setIsValidating(true);
         try {
             await updateAnalysis(id, token!, {
-                metadata: { ...analysis?.metadata, draftData, status: 'DRAFT' }
+                metadata: { draftData, status: 'DRAFT' }
             });
 
             const response = await runValidation(id, token!);
@@ -267,8 +266,8 @@ function AnalysisDetailContent() {
             }
 
             // Immediately update SWR cache with the new analysis object to trigger UI switch
-            mutate(response.data, false); 
-            
+            mutate(response.data, false);
+
             setValidationIssues(result.metadata?.validationResult?.issues || []);
             toast.success("Validation Complete");
         } catch (err: unknown) {
@@ -289,7 +288,8 @@ function AnalysisDetailContent() {
         const loadingToast = toast.loading("AI is repairing your requirement...");
 
         try {
-            const { fixedText } = await autoFixIssue(id, token, issueId);
+            const response = await autoFixIssue(id, token, issueId);
+            const fixedText = response.data?.fixedText || response.fixedText;
 
             // Find the issue to know WHICH section it belongs to
             const issues: ValidationIssue[] = analysis?.metadata?.validationResult?.issues || [];
@@ -321,14 +321,22 @@ function AnalysisDetailContent() {
         }
     }
 
-    const handleProceedToAnalysis = async () => {
+    const handleProceedToAnalysis = async (options?: { dismissedIssueIds: string[]; tbdItems: string[] }) => {
         setIsProceeding(true);
         try {
             const result = await startAnalysis(token!, {
                 projectId: analysis?.projectId,
                 text: "Generated from Draft",
                 srsData: draftData as unknown as StartAnalysisInput['srsData'],
-                validationResult: { validation_status: 'PASS', issues: validationIssues },
+                validationResult: {
+                    validation_status: analysis?.metadata?.validationResult?.validation_status || 'PASS',
+                    issues: validationIssues,
+                    tbd_items: options?.tbdItems || analysis?.metadata?.validationResult?.tbd_items || [],
+                    userOverrides: {
+                        acceptedIssueIds: options?.dismissedIssueIds || [],
+                        acceptedTbdItems: options?.tbdItems || []
+                    }
+                },
                 parentId: id,
                 draft: false
             });
@@ -346,7 +354,7 @@ function AnalysisDetailContent() {
     const handleBackToEdit = async () => {
         try {
             await updateAnalysis(id, token!, {
-                metadata: { ...analysis?.metadata, status: 'DRAFT' } // Explicit status reset
+                metadata: { status: 'DRAFT', validationResult: null }
             });
             mutate();
         } catch (e) {
@@ -504,6 +512,7 @@ function AnalysisDetailContent() {
                 <div className="flex-1 overflow-auto bg-muted/5 p-6">
                     <ValidationReport
                         issues={analysis?.metadata?.validationResult?.issues || []}
+                        tbdItems={analysis?.metadata?.validationResult?.tbd_items || []}
                         onProceed={handleProceedToAnalysis}
                         onEdit={handleBackToEdit}
                         isProceeding={isProceeding}

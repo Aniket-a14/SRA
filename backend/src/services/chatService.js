@@ -2,6 +2,19 @@ import { genAI } from "../config/gemini.js";
 import { CHAT_PROMPT } from "../utils/prompts.js";
 import prisma from "../config/prisma.js";
 
+const VERSION_CONFLICT_MAX_RETRIES = 5;
+
+const isVersionConflictError = (error) => {
+    if (error?.code === 'P2002') {
+        const target = Array.isArray(error?.meta?.target) ? error.meta.target : [];
+        return target.includes('rootId') && target.includes('version');
+    }
+
+    return typeof error?.message === 'string' &&
+        (error.message.includes('Analysis_rootId_version_key') ||
+            error.message.includes('rootId') && error.message.includes('version'));
+};
+
 export async function processChat(userId, analysisId, userMessage) {
     // 1. Fetch current analysis to get context
     const currentAnalysis = await prisma.analysis.findUnique({
@@ -132,52 +145,60 @@ User: ${userMessage}
 
     // 7. Handle Updates
     if (parsedResponse.updatedAnalysis) {
-        // Create NEW version with Transaction
-        await prisma.$transaction(async (tx) => {
-            let rootId = currentAnalysis.rootId;
-            // If the current analysis didn't have a rootId (legacy), it is its own root. 
-            // BUT for consistency, if we are branching from it, we should probably set the new one's rootId to the currentAnalysis.id.
-            // AND update the OLD one to have rootId = id? No, that's messy side effect.
-            // Better: If parent has no rootId, assume parent is root.
-            if (!rootId) {
-                rootId = currentAnalysis.id;
-                // Ideally we should backfill the parent's rootId, but let's just treat it as the root for the new child.
-            }
+        let created = null;
+        const rootId = currentAnalysis.rootId || currentAnalysis.id;
 
-            // Find max version for this root
-            const maxVersionAgg = await tx.analysis.findFirst({
-                where: { rootId },
-                orderBy: { version: 'desc' },
-                select: { version: true }
-            });
-            const version = (maxVersionAgg?.version || 0) + 1;
+        for (let attempt = 1; attempt <= VERSION_CONFLICT_MAX_RETRIES; attempt++) {
+            try {
+                created = await prisma.$transaction(async (tx) => {
+                    // Find max version for this root
+                    const maxVersionAgg = await tx.analysis.findFirst({
+                        where: { rootId },
+                        orderBy: { version: 'desc' },
+                        select: { version: true }
+                    });
+                    const version = (maxVersionAgg?.version || 0) + 1;
 
-            const title = parsedResponse.updatedAnalysis.projectTitle || `Version ${version}`;
+                    const title = parsedResponse.updatedAnalysis.projectTitle || `Version ${version}`;
 
-            const newAnalysis = await tx.analysis.create({
-                data: {
-                    userId,
-                    inputText: currentAnalysis.inputText, // Keep original input or maybe append user request? Keeping original for now.
-                    resultJson: parsedResponse.updatedAnalysis,
-                    version,
-                    title,
-
-                    rootId,
-                    parentId: currentAnalysis.id,
-                    metadata: {
-                        trigger: 'chat',
-                        source: 'ai',
-                        promptSettings: {
-                            ...(currentAnalysis.metadata?.promptSettings || {}),
-                            // Ensure model info is carried over or defaults
-                            modelName: currentAnalysis.metadata?.promptSettings?.modelName || process.env.GEMINI_MODEL_NAME || "gemini-3-flash-preview",
-                            modelProvider: currentAnalysis.metadata?.promptSettings?.modelProvider || "google"
+                    return tx.analysis.create({
+                        data: {
+                            userId,
+                            inputText: currentAnalysis.inputText,
+                            resultJson: parsedResponse.updatedAnalysis,
+                            version,
+                            title,
+                            status: 'COMPLETED',
+                            projectId: currentAnalysis.projectId,
+                            rootId,
+                            parentId: currentAnalysis.id,
+                            metadata: {
+                                trigger: 'chat',
+                                source: 'ai',
+                                promptSettings: {
+                                    ...(currentAnalysis.metadata?.promptSettings || {}),
+                                    modelName: currentAnalysis.metadata?.promptSettings?.modelName || process.env.GEMINI_MODEL_NAME || "gemini-3-flash-preview",
+                                    modelProvider: currentAnalysis.metadata?.promptSettings?.modelProvider || "google"
+                                }
+                            }
                         }
-                    }
+                    });
+                });
+                break;
+            } catch (error) {
+                if (isVersionConflictError(error) && attempt < VERSION_CONFLICT_MAX_RETRIES) {
+                    console.warn(`[Chat Service] Version conflict while creating chat refinement. Retry ${attempt}/${VERSION_CONFLICT_MAX_RETRIES}`);
+                    continue;
                 }
-            });
-            newAnalysisId = newAnalysis.id;
-        });
+                throw error;
+            }
+        }
+
+        if (!created) {
+            throw new Error("Failed to create chat refinement version after retries");
+        }
+
+        newAnalysisId = created.id;
     }
 
     return {

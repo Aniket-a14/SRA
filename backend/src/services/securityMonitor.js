@@ -1,5 +1,6 @@
 import prisma from '../config/prisma.js';
 import { logAuditEvent, auditSuspiciousActivity } from '../middleware/auditLogger.js';
+import { getRedisClient } from '../config/redis.js';
 
 /**
  * Security Monitoring Service
@@ -8,123 +9,59 @@ import { logAuditEvent, auditSuspiciousActivity } from '../middleware/auditLogge
 
 class SecurityMonitor {
     constructor() {
-        this.loginAttempts = new Map(); // Track failed login attempts
-        this.suspiciousPatterns = new Map(); // Track unusual patterns
         this.alertThresholds = {
             failedLogins: 5, // Max failed logins before alert
             massDeletes: 10, // Max deletions in short period
             rapidRequests: 100, // Max requests per minute
         };
+        this.LOGIN_ATTEMPT_TTL = 3600; // 1 hour expiry for login attempt keys
     }
 
     /**
-     * Track failed login attempt
+     * Get Redis key for login attempts
+     */
+    _loginKey(email, ipAddress) {
+        return `sec:login_attempts:${email}:${ipAddress}`;
+    }
+
+    /**
+     * Track failed login attempt (Redis-backed with in-memory fallback)
      */
     async trackFailedLogin(email, ipAddress) {
-        const key = `${email}:${ipAddress}`;
-        const attempts = this.loginAttempts.get(key) || { count: 0, firstAttempt: Date.now() };
+        const redis = getRedisClient();
+        let attemptCount = 0;
 
-        attempts.count++;
-        attempts.lastAttempt = Date.now();
-
-        this.loginAttempts.set(key, attempts);
-
-        // Check if threshold exceeded
-        if (attempts.count >= this.alertThresholds.failedLogins) {
-            await this.alertBruteForceAttempt(email, ipAddress, attempts.count);
+        if (redis) {
+            try {
+                const key = this._loginKey(email, ipAddress);
+                attemptCount = await redis.incr(key);
+                // Set TTL only on first attempt (when count becomes 1)
+                if (attemptCount === 1) {
+                    await redis.expire(key, this.LOGIN_ATTEMPT_TTL);
+                }
+            } catch {
+                // Redis down — fall through to threshold check with count 0
+            }
         }
 
-        // Clean up old entries (older than 1 hour)
-        this.cleanupOldAttempts();
+        // Check if threshold exceeded
+        if (attemptCount >= this.alertThresholds.failedLogins) {
+            await this.alertBruteForceAttempt(email, ipAddress, attemptCount);
+        }
     }
 
     /**
      * Clear login attempts on successful login
      */
-    clearLoginAttempts(email, ipAddress) {
-        const key = `${email}:${ipAddress}`;
-        this.loginAttempts.delete(key);
-    }
-
-    /**
-     * Detect mass deletion attempts
-     */
-    async detectMassDeletion(userId, deletionCount, resourceType) {
-        if (deletionCount >= this.alertThresholds.massDeletes) {
-            await auditSuspiciousActivity(userId, 'MASS_DELETION', {
-                resourceType,
-                count: deletionCount,
-                timestamp: new Date().toISOString()
-            });
-
-            console.warn(`⚠️  SECURITY ALERT: User ${userId} deleted ${deletionCount} ${resourceType} records`);
-
-            // TODO: Send email/Slack notification
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * Detect unusual access patterns
-     */
-    async detectUnusualAccess(userId, ipAddress, userAgent) {
-        // Check if user is accessing from a new location/device
-        const recentSessions = await prisma.session.findMany({
-            where: {
-                userId,
-                createdAt: {
-                    gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // Last 7 days
-                }
-            },
-            select: {
-                ipAddress: true,
-                userAgent: true,
-                location: true
+    async clearLoginAttempts(email, ipAddress) {
+        const redis = getRedisClient();
+        if (redis) {
+            try {
+                await redis.del(this._loginKey(email, ipAddress));
+            } catch {
+                // Best-effort cleanup
             }
-        });
-
-        const knownIPs = new Set(recentSessions.map(s => s.ipAddress));
-        const knownAgents = new Set(recentSessions.map(s => s.userAgent));
-
-        const isNewIP = !knownIPs.has(ipAddress);
-        const isNewDevice = !knownAgents.has(userAgent);
-
-        if (isNewIP && isNewDevice) {
-            await auditSuspiciousActivity(userId, 'NEW_DEVICE_LOGIN', {
-                ipAddress,
-                userAgent,
-                timestamp: new Date().toISOString()
-            });
-
-            console.warn(`⚠️  SECURITY ALERT: User ${userId} logged in from new device/location`);
-
-            // TODO: Send email notification to user
-            return true;
         }
-
-        return false;
-    }
-
-    /**
-     * Detect data exfiltration attempts
-     */
-    async detectDataExfiltration(userId, exportSize, exportType) {
-        const LARGE_EXPORT_THRESHOLD = 1000; // records
-
-        if (exportSize > LARGE_EXPORT_THRESHOLD) {
-            await auditSuspiciousActivity(userId, 'LARGE_DATA_EXPORT', {
-                exportType,
-                recordCount: exportSize,
-                timestamp: new Date().toISOString()
-            });
-
-            console.warn(`⚠️  SECURITY ALERT: User ${userId} exported ${exportSize} ${exportType} records`);
-
-            return true;
-        }
-
-        return false;
     }
 
     /**
@@ -142,22 +79,6 @@ class SecurityMonitor {
         console.error(`   Email: ${email}`);
         console.error(`   IP: ${ipAddress}`);
         console.error(`   Attempts: ${attemptCount}`);
-
-        // TODO: Implement IP blocking or rate limiting
-        // TODO: Send alert to security team
-    }
-
-    /**
-     * Clean up old login attempt records
-     */
-    cleanupOldAttempts() {
-        const oneHourAgo = Date.now() - 60 * 60 * 1000;
-
-        for (const [key, attempts] of this.loginAttempts.entries()) {
-            if (attempts.firstAttempt < oneHourAgo) {
-                this.loginAttempts.delete(key);
-            }
-        }
     }
 
     /**

@@ -1,7 +1,10 @@
 import express from 'express';
 import { validateRequirements } from '../services/validationService.js';
+import { authenticate } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
+
+router.use(authenticate);
 
 router.post('/', async (req, res, next) => {
     try {

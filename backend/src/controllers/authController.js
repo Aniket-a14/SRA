@@ -151,16 +151,20 @@ export const logout = async (req, res, next) => {
 
 export const getSessions = async (req, res, next) => {
     try {
-        const sessions = await getUserSessions(req.user.userId);
+        const page = Number.parseInt(req.query.page, 10) || 1;
+        const limit = Number.parseInt(req.query.limit, 10) || 20;
+        const sessions = await getUserSessions(req.user.userId, { page, limit });
 
-        // Mark current session
         const currentSessionId = req.user.sessionId;
-        const result = sessions.map(s => ({
-            ...s,
-            isCurrent: s.id === currentSessionId
+        const items = sessions.items.map(session => ({
+            ...session,
+            isCurrent: session.id === currentSessionId
         }));
 
-        res.json(result);
+        res.json({
+            ...sessions,
+            items
+        });
     } catch (error) {
         next(error);
     }

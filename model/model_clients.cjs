@@ -24,7 +24,7 @@ const API_KEYS = {
     "Kimi K2.5": process.env.KIMI_API_KEY,
     "GLM-5": process.env.GLM_API_KEY,
     "Qwen 3.5": process.env.QWEN_API_KEY,
-    "LLaMA 4 Maverick": process.env.LLAMA_API_KEY || "dummy"
+    "LLaMA 4 Maverick": process.env.LLAMA_API_KEY
 };
 
 const MODEL_MAPPING = {
@@ -41,6 +41,10 @@ async function callWithRetry(modelName, messages, temperature = 0.1, retries = 5
     const url = MODEL_ENDPOINTS[modelName];
     const apiKey = API_KEYS[modelName];
     const modelId = MODEL_MAPPING[modelName];
+
+    if (!LOCAL_URL && !apiKey) {
+        throw new Error(`Missing API key for model client: ${modelName}`);
+    }
 
     for (let i = 0; i < retries; i++) {
         try {

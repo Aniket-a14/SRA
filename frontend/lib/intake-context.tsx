@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useAuth } from '@/lib/auth-context';
 import { SRSIntakeModel, IntakeField, ValidationResult } from '../types/srs-intake';
 import { SRS_STRUCTURE, createInitialIntakeState } from './srs-structure';
 
@@ -21,11 +22,12 @@ interface IntakeContextType {
 }
 
 // Helper for backend URL
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000';
 
 const IntakeContext = createContext<IntakeContextType | undefined>(undefined);
 
 export const IntakeProvider = ({ children }: { children: ReactNode }) => {
+    const { token } = useAuth();
     // Try to load from localStorage first (client-side only pattern)
     const [data, setData] = useState<SRSIntakeModel>(createInitialIntakeState());
     const [activeSectionId, setActiveSectionIdState] = useState<string>('1');
@@ -119,6 +121,10 @@ export const IntakeProvider = ({ children }: { children: ReactNode }) => {
     const [isValidating, setIsValidating] = useState(false);
 
     const validateRequirements = async () => {
+        if (!token) {
+            alert("Please sign in to validate requirements.");
+            return;
+        }
         setIsValidating(true);
         // Clear previous result
         setValidationResult(null);
@@ -126,7 +132,10 @@ export const IntakeProvider = ({ children }: { children: ReactNode }) => {
         try {
             const response = await fetch(`${API_URL}/api/validation`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
                 body: JSON.stringify(data)
             });
 

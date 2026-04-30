@@ -40,15 +40,18 @@ import { auditLogger } from './middleware/auditLogger.js';
 
 
 const app = express();
+app.disable('x-powered-by');
 
-// Trust proxy for Render deployment
-app.set('trust proxy', 1);
-
-// CORS setup
-const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:3001').replace(/\/$/, '');
+// Trust proxy - configurable for deployment environment
+app.set('trust proxy', process.env.TRUST_PROXY === 'false' ? false : parseInt(process.env.TRUST_PROXY || '1', 10));
 
 // Dynamic CSP based on environment
 const isDev = process.env.NODE_ENV !== 'production';
+
+// CORS setup
+const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:3001').replace(/\/$/, '');
+const JSON_BODY_LIMIT = process.env.JSON_BODY_LIMIT || (isDev ? '10mb' : '2mb');
+
 app.use(helmet({
     contentSecurityPolicy: getCSP(isDev),
     crossOriginEmbedderPolicy: false,
@@ -66,11 +69,11 @@ app.use(cors({
 }));
 
 app.use(express.json({
-    limit: '10mb',
+    limit: JSON_BODY_LIMIT,
     verify: (req, res, buf) => {
         req.rawBody = buf;
     }
-})); // Increase limit for large SRS data
+}));
 app.use(cookieParser());
 
 app.use('/api/health', healthRoutes);
@@ -111,11 +114,6 @@ if (swaggerDocument) {
 // Internal AI Endpoint
 app.use('/internal/analyze', aiEndpoint);
 
-// Public/Protected Routes
-app.use((req, res, next) => {
-    // console.log(`[RAW REQUEST] ${req.method} ${req.url}`);
-    next();
-});
 
 app.use(['/auth', '/api/auth'], authLimiter, authRoutes);
 app.use(['/analyze', '/api/analyze'], aiLimiter, analysisRoutes);

@@ -8,6 +8,10 @@ const redisClient = getRedisClient();
 
 const createStore = (prefix) => {
     if (!redisClient) {
+        if (process.env.NODE_ENV === 'production') {
+            throw new Error('Redis is required for distributed rate limiting in production');
+        }
+
         log.warn(`Redis client not initialized, falling back to memory rate limiting for ${prefix}.`);
         return undefined;
     }

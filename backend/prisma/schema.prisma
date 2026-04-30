@@ -6,7 +6,7 @@ generator client {
 
 datasource db {
   provider   = "postgresql"
-  extensions = [uuid_ossp(map: "uuid-ossp", schema: "extensions"), vector]
+  extensions = [uuid_ossp(map: "uuid-ossp", schema: "extensions"), vector, pgcrypto, pg_stat_statements, supabase_vault]
 }
 
 model User {
@@ -76,9 +76,11 @@ model Analysis {
   knowledgeChunks KnowledgeChunk[]
 
   @@index([userId])
+  @@index([userId, status])
   @@index([rootId])
   @@index([parentId])
   @@index([projectId])
+  @@unique([rootId, version])
 }
 
 model Account {
@@ -120,7 +122,7 @@ model KnowledgeChunk {
   embedding        Unsupported("vector")?
   metadata         Json?
   qualityScore     Float?
-  sourceAnalysis   Analysis               @relation(fields: [sourceAnalysisId], references: [id])
+  sourceAnalysis   Analysis               @relation(fields: [sourceAnalysisId], references: [id], onDelete: Cascade)
 
   @@index([type])
   @@index([hash])
