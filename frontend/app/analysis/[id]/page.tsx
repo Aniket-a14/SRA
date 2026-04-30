@@ -134,7 +134,7 @@ function AnalysisDetailContent() {
                 return;
             }
             // Show the Error view instead of auto-redirecting so the user can read what went wrong (e.g. Rate Limits)
-            const msg = analysis.metadata?.userFriendlyError || analysis.metadata?.failureReason || (analysis.resultJson as any)?.error || "Analysis generation failed.";
+            const msg = analysis.metadata?.userFriendlyError || analysis.metadata?.failureReason || (analysis.resultJson as { error?: string })?.error || "Analysis generation failed.";
             setError(msg);
             setIsLoading(false);
             return;
