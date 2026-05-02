@@ -6,7 +6,7 @@
     "node": ">=20.19.0"
   },
   "scripts": {
-    "dev": "cross-env NODE_OPTIONS='--max-old-space-size=8192' next dev -p 3001 --turbopack",
+    "dev": "cross-env NODE_OPTIONS='--max-old-space-size=8192' next dev -p 3001",
     "build": "cross-env NODE_OPTIONS='--max-old-space-size=8192' next build",
     "start": "cross-env NODE_OPTIONS='--max-old-space-size=8192' next start",
     "lint": "eslint ."

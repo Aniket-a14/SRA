@@ -3,24 +3,26 @@
   "version": "4.0.3",
   "private": true,
   "description": "SRA Monorepo - Frontend, Backend, and CLI",
-  "workspaces": [
-    "frontend",
-    "backend",
-    "cli",
-    "model"
-  ],
   "scripts": {
-    "dev": "npm run dev --workspace=frontend",
-    "dev:frontend": "npm run dev --workspace=frontend",
-    "dev:backend": "npm run dev --workspace=backend",
-    "dev:all": "npm run dev --workspaces --if-present",
-    "install:all": "npm install",
-    "build:frontend": "npm run build --workspace=frontend",
-    "test:backend": "npm test --workspace=backend",
-    "lint:all": "npm run lint --workspaces"
+    "dev": "pnpm --filter frontend dev",
+    "dev:frontend": "pnpm --filter frontend dev",
+    "dev:backend": "pnpm --filter backend dev",
+    "dev:all": "pnpm -r dev",
+    "install:all": "pnpm install",
+    "build:frontend": "pnpm --filter frontend build",
+    "test:backend": "pnpm --filter backend test",
+    "lint:all": "pnpm -r lint"
   },
   "engines": {
     "node": ">=20.19.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "prisma": "7.8.0",
+      "@prisma/client": "7.8.0",
+      "@prisma/adapter-pg": "7.8.0",
+      "@prisma/client-runtime-utils": "7.8.0"
+    }
   },
   "author": "SRA Team",
   "license": "ISC",
