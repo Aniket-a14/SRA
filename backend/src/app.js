@@ -41,6 +41,15 @@ import { auditLogger } from './middleware/auditLogger.js';
 
 const app = express();
 
+// DEBUG: Log raw request URL as early as possible
+app.use((req, res, next) => {
+    if (req.url.includes('callback')) {
+        console.log('🔍 RAW REQUEST URL:', req.url);
+        console.log('🔍 QUERY PARAMS:', JSON.stringify(req.query));
+    }
+    next();
+});
+
 // Trust proxy for Render deployment
 app.set('trust proxy', 1);
 
