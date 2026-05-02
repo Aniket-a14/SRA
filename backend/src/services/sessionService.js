@@ -5,12 +5,14 @@ import crypto from 'crypto';
 const getLocationFromIp = async (ip) => {
     if (!ip || ip === '::1' || ip === '127.0.0.1') return 'Localhost';
     try {
-        const response = await axios.get(`https://ip-api.com/json/${ip}`);
+        const response = await axios.get(`http://ip-api.com/json/${ip}`);
         if (response.data.status === 'success') {
             return `${response.data.city}, ${response.data.country}`;
         }
     } catch (error) {
-        console.error('GeoIP lookup failed', error.message);
+        // Silently fail - we don't want this error to crash the login.
+        // It's better to log in without a location than to fail entirely.
+        // In production, we might want to log this to Sentry/Datadog, but not here.
     }
     return 'Unknown Location';
 };

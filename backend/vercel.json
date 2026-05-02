@@ -3,15 +3,15 @@
     "rewrites": [
         {
             "source": "/api-docs",
-            "destination": "/api"
+            "destination": "/api/index.js"
         },
         {
             "source": "/api-docs/(.*)",
-            "destination": "/api"
+            "destination": "/api/index.js"
         },
         {
             "source": "/(.*)",
-            "destination": "/api"
+            "destination": "/api/index.js"
         }
     ]
 }

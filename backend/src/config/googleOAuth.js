@@ -33,6 +33,11 @@ export const getGoogleTokens = async (code) => {
         grant_type: 'authorization_code',
     };
 
+    if (!REDIRECT_URI) {
+        logger.error({ msg: 'GOOGLE_REDIRECT_URI is not defined in environment variables' });
+        throw new Error('Google configuration error: Missing Redirect URI');
+    }
+
     try {
         const res = await axios.post(url, new URLSearchParams(values).toString(), {
             headers: {
@@ -41,8 +46,16 @@ export const getGoogleTokens = async (code) => {
         });
         return res.data;
     } catch (error) {
-        logger.error({ msg: 'Failed to fetch Google tokens', error: error.response?.data || error.message });
-        throw new Error(error.response?.data?.error_description || 'Failed to fetch Google tokens');
+        const errorData = error.response?.data || error.message;
+        logger.error({ 
+            msg: 'Failed to fetch Google tokens', 
+            error: errorData,
+            config: {
+                redirect_uri: REDIRECT_URI,
+                client_id: CLIENT_ID ? 'Set' : 'Missing'
+            }
+        });
+        throw new Error(errorData.error_description || 'Failed to fetch Google tokens');
     }
 };
 
