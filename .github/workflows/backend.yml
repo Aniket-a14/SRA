@@ -17,27 +17,31 @@ jobs:
     steps:
     - uses: actions/checkout@v6
 
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 9
+
     - name: Use Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-        cache: 'npm'
-        cache-dependency-path: package-lock.json
+        cache: 'pnpm'
 
     - name: Install dependencies
-      run: npm ci
+      run: pnpm install
       working-directory: .
 
     - name: Run Lint
-      run: npm run lint
+      run: pnpm --filter backend run lint
       working-directory: ./backend
 
     - name: Security Scan
-      run: npm audit --audit-level=high || true
+      run: pnpm audit --audit-level=high || true
       working-directory: ./backend
 
     - name: Run Tests with Coverage
-      run: npm test -- --coverage
+      run: pnpm --filter backend test -- --coverage
       working-directory: ./backend
       env:
         CI: true

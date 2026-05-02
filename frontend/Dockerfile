@@ -2,13 +2,16 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 
+# Install pnpm
+RUN npm install -g pnpm
+
 # Copy root package files
-COPY package*.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # Copy workspace package files
 COPY frontend/package.json ./frontend/
 
 # Install dependencies using workspaces
-RUN npm ci --workspace=frontend --include-workspace-root
+RUN pnpm install --filter frontend... --filter .
 
 # Stage 2: Build
 FROM node:20-alpine AS build
@@ -17,7 +20,7 @@ COPY --from=deps /app ./
 COPY . .
 RUN mkdir -p frontend/public
 ENV NEXT_PRIVATE_STANDALONE=true
-RUN npm run build --workspace=frontend
+RUN pnpm --filter frontend run build
 
 # Stage 3: Runner
 FROM node:20-alpine AS runner

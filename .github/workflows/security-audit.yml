@@ -21,22 +21,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'pnpm'
 
       - name: Audit backend dependencies
         working-directory: ./backend
         run: |
-          npm audit --audit-level=moderate || true
-          npm audit --json > backend-audit.json || true
+          pnpm audit --audit-level=moderate || true
+          pnpm audit --json > backend-audit.json || true
 
       - name: Audit frontend dependencies
         working-directory: ./frontend
         run: |
-          npm audit --audit-level=moderate || true
-          npm audit --json > frontend-audit.json || true
+          pnpm audit --audit-level=moderate || true
+          pnpm audit --json > frontend-audit.json || true
 
       - name: Upload audit results
         uses: actions/upload-artifact@v7

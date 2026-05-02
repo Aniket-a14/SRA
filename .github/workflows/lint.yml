@@ -12,14 +12,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
-      - run: npm ci
+          cache: 'pnpm'
+      - run: pnpm install
         working-directory: .
-      - run: npm run lint
+      - run: pnpm --filter frontend run lint
         working-directory: frontend
 
   lint-backend:
@@ -27,14 +30,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
-      - run: npm ci
+          cache: 'pnpm'
+      - run: pnpm install
         working-directory: .
-      - run: npm run lint
+      - run: pnpm --filter backend run lint
         working-directory: backend
 
   lint-cli:
@@ -42,13 +48,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
-      - run: npm ci
+          cache: 'pnpm'
+      - run: pnpm install
         working-directory: .
-      - run: npm run lint
+      - run: pnpm --filter cli run lint
         working-directory: cli
 
