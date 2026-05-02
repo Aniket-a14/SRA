@@ -603,7 +603,7 @@ function AnalysisDetailContent() {
                                                     <SheetTitle>Knowledge Recycling</SheetTitle>
                                                 </SheetHeader>
                                                 <RecyclingPanel
-                                                    onApply={async (content: string | SystemFeature) => {
+                                                    onApply={async (content: string | Record<string, any>) => {
                                                         const loadingToast = toast.loading("Applying recycled requirement...");
                                                         try {
                                                             // 1. Determine if it's a Feature or just a Requirement fragment

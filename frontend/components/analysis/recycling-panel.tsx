@@ -24,7 +24,7 @@ interface RecyclingCandidate {
 }
 
 interface RecyclingPanelProps {
-    onApply: (content: Record<string, unknown> | string) => void;
+    onApply: (content: Record<string, any> | string) => void | Promise<void>;
 }
 
 export function RecyclingPanel({ onApply }: RecyclingPanelProps) {
