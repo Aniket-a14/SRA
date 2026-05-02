@@ -61,9 +61,10 @@ export const googleCallback = async (req, res, next) => {
         const result = await handleGoogleAuth(googleUser, tokens, userAgent, ip);
 
         // Redirect to frontend with token
-        // Update FRONTEND_URL in .env if needed, defaulting to root provided in requirements or same host
         const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:3001').replace(/\/$/, '');
-        res.redirect(`${frontendUrl}/?token=${result.token}&refreshToken=${result.refreshToken}`);
+        const redirectUrl = `${frontendUrl}/?token=${result.token}&refreshToken=${result.refreshToken}`;
+        console.log('🚀 REDIRECTING TO:', redirectUrl);
+        res.redirect(redirectUrl);
     } catch (error) {
         next(error);
     }
