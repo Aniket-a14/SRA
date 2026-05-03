@@ -1,10 +1,11 @@
-# Stage 1: Dependencies
-FROM node:20-alpine AS deps
+# Base Stage
+FROM node:20-alpine AS base
 RUN apk add --no-cache openssl
+RUN npm install -g pnpm
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm
+# Stage 1: Dependencies
+FROM base AS deps
 
 # Copy root package files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -19,9 +20,7 @@ COPY backend/prisma.config.js ./backend/
 RUN pnpm install --filter backend... --filter .
 
 # Stage 2: Build
-FROM node:20-alpine AS build
-RUN apk add --no-cache openssl
-WORKDIR /app
+FROM base AS build
 COPY --from=deps /app ./
 COPY . .
 RUN pnpm --filter backend exec prisma generate --schema=./backend/prisma/schema.prisma

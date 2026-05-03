@@ -1,9 +1,10 @@
-# Stage 1: Dependencies
-FROM node:20-alpine AS deps
+# Base Stage
+FROM node:20-alpine AS base
+RUN npm install -g pnpm
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm
+# Stage 1: Dependencies
+FROM base AS deps
 
 # Copy root package files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -14,8 +15,7 @@ COPY frontend/package.json ./frontend/
 RUN pnpm install --filter frontend... --filter .
 
 # Stage 2: Build
-FROM node:20-alpine AS build
-WORKDIR /app
+FROM base AS build
 COPY --from=deps /app ./
 COPY . .
 RUN mkdir -p frontend/public

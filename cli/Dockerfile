@@ -1,9 +1,10 @@
-# Stage 1: Build
-FROM node:20-alpine AS builder
+# Base Stage
+FROM node:20-alpine AS base
+RUN npm install -g pnpm
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm
+# Stage 1: Build
+FROM base AS builder
 
 # Copy root package files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -17,10 +18,7 @@ RUN pnpm install --filter @sra-srs/sra-cli... --filter .
 COPY cli ./cli
 
 # Stage 2: Runtime
-FROM node:20-alpine
-WORKDIR /app
-# Install pnpm for linking
-RUN npm install -g pnpm
+FROM base AS runtime
 COPY --from=builder /app /app
 WORKDIR /app/cli
 RUN pnpm link --global
