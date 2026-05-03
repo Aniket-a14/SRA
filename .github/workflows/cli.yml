@@ -48,7 +48,7 @@ jobs:
     - name: Run Lint
       working-directory: ./cli
       run: |
-        if pnpm run lint --if-present; then
+        if pnpm run --if-present lint; then
           echo "Linting passed or no lint script found"
         else
           echo "Linting failed"
@@ -56,4 +56,4 @@ jobs:
         fi
 
     # - name: Run Tests
-    #   run: npm test --if-present
+    #   run: pnpm run --if-present test

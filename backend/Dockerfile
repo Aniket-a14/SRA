@@ -23,7 +23,7 @@ RUN pnpm install --filter backend... --filter .
 FROM base AS build
 COPY --from=deps /app ./
 COPY . .
-RUN pnpm --filter backend exec prisma generate --schema=./backend/prisma/schema.prisma
+RUN pnpm --filter backend run prisma:generate
 
 # Stage 3: Runner
 FROM node:20-alpine AS runner
