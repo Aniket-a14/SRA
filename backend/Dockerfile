@@ -1,6 +1,8 @@
 # Base Stage
 FROM node:20-alpine AS base
 RUN apk add --no-cache openssl
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
 RUN npm install -g pnpm
 WORKDIR /app
 
