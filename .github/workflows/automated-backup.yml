@@ -54,15 +54,6 @@ jobs:
           # Verify version
           pg_dump --version
 
-      - name: Install dependencies
-        run: npm ci
-        working-directory: .
-
-      - name: Install PostgreSQL client
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client
-
       - name: Create backup
         working-directory: ./backend
         env:

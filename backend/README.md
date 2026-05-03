@@ -82,7 +82,7 @@ The backend now supports bi-directional synchronization with the **SRA CLI**:
 ## 🚀 Setup & Deployment
 
 ### Prerequisites
--   Node.js (v20+) & npm
+-   Node.js (v20+) & pnpm
 -   PostgreSQL (Database)
 -   Upstash QStash (Serverless Queue)
 -   Gemini API Key
@@ -91,7 +91,7 @@ The backend now supports bi-directional synchronization with the **SRA CLI**:
 
 1.  **Install Dependencies**:
     ```bash
-    npm install
+    pnpm install
     ```
 
 2.  **Environment Configuration**:
@@ -103,12 +103,12 @@ The backend now supports bi-directional synchronization with the **SRA CLI**:
 
 3.  **Database Migration**:
     ```bash
-    npx prisma migrate dev
+    pnpm prisma migrate dev
     ```
 
 4.  **Start Server**:
     ```bash
-    npm run dev
+    pnpm run dev
     ```
 
 ## 🔒 Security Features

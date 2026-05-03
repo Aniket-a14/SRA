@@ -8,16 +8,16 @@ SRA CLI is a professional-grade command-line tool designed to keep your software
 
 ## 📦 Installation
 
-Install globally via npm:
+Install globally via pnpm:
 
 ```bash
-npm install -g @sra-srs/sra-cli
+pnpm install -g @sra-srs/sra-cli
 ```
 
 Or run instantly without installation:
 
 ```bash
-npx @sra-srs/sra-cli init
+pnpm dlx @sra-srs/sra-cli init
 ```
 
 ---

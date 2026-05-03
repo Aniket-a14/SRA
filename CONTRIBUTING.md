@@ -43,7 +43,7 @@ The frontend is built with **Next.js 16 (App Router)** and **TypeScript**, style
 ### Prerequisites
 Ensure you have the following installed or set up:
 -   **Node.js** (v20 or higher)
--   **npm** (comes with Node.js)
+-   **pnpm** (preferred package manager)
 -   **Supabase Project** (PostgreSQL + pgvector)
 -   **Upstash Account** (Redis + QStash)
 -   A **Google Gemini 2.5 Flash API Key** (Get one [here](https://aistudio.google.com/app/apikey))
@@ -63,16 +63,16 @@ Ensure you have the following installed or set up:
     ```
 2.  Install dependencies:
     ```bash
-    npm install
+    pnpm install
     ```
 3.  Create a `.env` file and add the required variables (see `README.md` for the template).
 4.  Initialize the database:
     ```bash
-    npx prisma migrate dev --name init
+    pnpm prisma migrate dev --name init
     ```
 5.  Start the development server:
     ```bash
-    npm run dev
+    pnpm run dev
     ```
 
 ### Frontend Setup
@@ -82,11 +82,11 @@ Ensure you have the following installed or set up:
     ```
 2.  Install dependencies:
     ```bash
-    npm install
+    pnpm install
     ```
 3.  Start the development server:
     ```bash
-    npm run dev
+    pnpm run dev
     ```
 4.  Open [http://localhost:3001](http://localhost:3001) to view the app.
 

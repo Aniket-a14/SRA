@@ -9,9 +9,9 @@ resource "vercel_project" "sra_frontend" {
   }
 
   root_directory   = "frontend"
-  build_command    = "npm run build"
+  build_command    = "pnpm run build"
   output_directory = ".next"
-  install_command  = "npm ci"
+  install_command  = "pnpm install"
 
   # Note: Environment variables are managed directly in Vercel dashboard
   # to avoid storing secrets in Terraform state
@@ -28,7 +28,7 @@ resource "vercel_project" "sra_backend" {
 
   root_directory  = "backend"
   framework       = null
-  install_command = "npm ci"
+  install_command = "pnpm install"
 
   # Note: Environment variables are managed directly in Vercel dashboard
   # to avoid storing secrets in Terraform state

@@ -305,21 +305,21 @@ docker compose up --build -d
 ### ⌨️ CLI (v4.0.3)
 The SRA toolkit operates cross-workspace for unified project control.
 ```bash
-npm install -g @sra-srs/sra-cli
+pnpm install -g @sra-srs/sra-cli
 sra init
 ```
 
 #### ⚒️ Local Infrastructure Setup
-SRA uses standard **npm workspaces** for monorepo management.
+SRA uses standard **pnpm workspaces** for monorepo management.
 ```bash
 # Install dependencies across all workspaces
-npm install
+pnpm install
 
 # Initialize Identity & Data
-npm run dev:backend
+pnpm run dev:backend
 
 # Or run everything concurrently
-npm run dev:all
+pnpm run dev:all
 ```
 
 #### 🤖 Agentic & CI Workflows

@@ -74,12 +74,12 @@ Integrated directly into the workspace, providing real-time Feedback on:
 
 1.  **Install Dependencies**:
     ```bash
-    cd frontend && npm install
+    cd frontend && pnpm install
     ```
 
 2.  **Start Development Server**:
     ```bash
-    npm run dev
+    pnpm run dev
     ```
 
 3.  **Open Application**:
@@ -91,8 +91,8 @@ Integrated directly into the workspace, providing real-time Feedback on:
 
 **`Error: Can't resolve 'tailwindcss'`**
 -   **Cause**: Node module resolution issues in Windows environments.
--   **Fix**: Ensure `tailwindcss` is listed in your dependencies and try running `npm install` again. If persistent, check for global vs local install conflicts.
+-   **Fix**: Ensure `tailwindcss` is listed in your dependencies and try running `pnpm install` again. If persistent, check for global vs local install conflicts.
 
 **Linting Errors on Build**
 -   **Cause**: We enforce `strict` mode. `any` types and unused variables will fail the build.
--   **Fix**: Run `npm run lint` locally and fix distinct type errors before committing.
+-   **Fix**: Run `pnpm run lint` locally and fix distinct type errors before committing.
