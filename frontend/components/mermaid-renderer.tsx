@@ -49,24 +49,19 @@ export function MermaidRenderer({ chart, title, className, onError, isExport = f
     }, [isExport])
 
     useEffect(() => {
-        setHasError(false)
         if (!chart || !mermaidInstance) return
 
         // Extract code string
         const code = typeof chart === 'string' ? chart : (chart?.code || "");
 
-        // Clean the string:
-        // 1. Replace escaped newlines
-        // 2. Remove any non-printable characters (except newlines and tabs)
-        // 3. Trim whitespace
+        // Clean the string
         const formatted = code
             .replace(/\\n/g, "\n")
             .replace(/[^\x20-\x7E\n\t]/g, "")
             .trim()
 
-
-
         const renderDiagram = async () => {
+            setHasError(false)
             try {
                 // Clear previous content
                 if (ref.current) ref.current.innerHTML = ""
@@ -105,6 +100,7 @@ export function MermaidRenderer({ chart, title, className, onError, isExport = f
                 }
             } catch (err) {
                 console.error("Mermaid Render Error:", err)
+                setHasError(true)
                 const errorMessage = err instanceof Error ? err.message : String(err)
                 onError?.(errorMessage)
             }

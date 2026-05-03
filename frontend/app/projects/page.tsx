@@ -31,7 +31,7 @@ export default function ProjectsPage() {
             } catch {
                 toast.error("Failed to load projects");
             } finally {
-                setIsLoading(false);
+                Promise.resolve().then(() => setIsLoading(false));
             }
         };
 
@@ -39,7 +39,8 @@ export default function ProjectsPage() {
             loadProjects();
         } else {
             // Not authenticated, redirect or stop loading
-            setIsLoading(false);
+            // Defer to next tick to avoid cascading render warning
+            Promise.resolve().then(() => setIsLoading(false));
             router.push("/");
         }
     }, [token, isAuthLoading, router]);

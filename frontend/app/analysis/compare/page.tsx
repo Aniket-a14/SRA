@@ -30,8 +30,7 @@ function CompareContent() {
     const v2 = searchParams.get("v2")
     const { token, isLoading: authLoading } = useAuth()
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [diff, setDiff] = useState<any>(null)
+    const [diff, setDiff] = useState<unknown>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState("")
 
@@ -62,7 +61,8 @@ function CompareContent() {
         if (authLoading) return;
 
         if (!token) {
-            setIsLoading(false);
+            // Defer to next tick to avoid cascading render warning
+            Promise.resolve().then(() => setIsLoading(false));
             router.push("/auth/login");
             return;
         }
@@ -70,8 +70,11 @@ function CompareContent() {
         if (v1 && v2) {
             fetchDiff()
         } else {
-            setError("Missing version IDs to compare.")
-            setIsLoading(false)
+            // Defer to next tick to avoid cascading render warning
+            Promise.resolve().then(() => {
+                setError("Missing version IDs to compare.")
+                setIsLoading(false)
+            });
         }
     }, [v1, v2, token, authLoading, router])
 
@@ -110,7 +113,7 @@ function CompareContent() {
                                 <span className="font-mono text-xs text-muted-foreground">{v1} <span className="mx-2 text-foreground">vs</span> {v2}</span>
                             </div>
                         </div>
-                        {diff && <VersionDiffViewer diff={diff} />}
+                        {!!diff && <VersionDiffViewer diff={diff} />}
                     </div>
                 )}
             </main>

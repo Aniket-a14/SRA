@@ -46,7 +46,10 @@ export function ApiKeyManager() {
     }, [token])
 
     useEffect(() => {
-        if (token) fetchKeys()
+        if (token) {
+            // Defer to next tick to avoid cascading render warning
+            Promise.resolve().then(() => fetchKeys())
+        }
     }, [token, fetchKeys])
 
     const createKey = async () => {

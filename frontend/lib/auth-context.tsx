@@ -22,9 +22,34 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const [user, setUser] = useState<User | null>(null)
-    const [token, setToken] = useState<string | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
+    const [token, setToken] = useState<string | null>(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem("token")
+        }
+        return null
+    })
+
+    const [user, setUser] = useState<User | null>(() => {
+        if (typeof window !== 'undefined') {
+            const storedUser = localStorage.getItem("user")
+            if (storedUser) {
+                try {
+                    return JSON.parse(storedUser)
+                } catch (e) {
+                    console.error("Failed to parse cached user", e)
+                }
+            }
+        }
+        return null
+    })
+
+    const [isLoading, setIsLoading] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return !!localStorage.getItem("token")
+        }
+        return true
+    })
+
     const router = useRouter()
 
     const logout = React.useCallback(async () => {
@@ -77,7 +102,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         localStorage.setItem("refreshToken", data.refreshToken) // rotation
                         setToken(data.token)
                         // Retry fetching user with new token
-                        await fetchUser(data.token)
+                        const retryRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/me`, {
+                            headers: { Authorization: `Bearer ${data.token}` }
+                        })
+                        if (retryRes.ok) {
+                            const retryUser = await retryRes.json()
+                            setUser(retryUser)
+                        }
                         return
                     }
                 }
@@ -94,32 +125,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [logout])
 
     useEffect(() => {
-
-
-        // Check local storage on mount
-        const storedToken = localStorage.getItem("token")
-        const storedUser = localStorage.getItem("user")
-
-        if (storedToken) {
-            setToken(storedToken)
-
-            // Optimization: If we have cached user data, load it immediately
-            if (storedUser) {
-                try {
-                    const parsedUser = JSON.parse(storedUser)
-                    setUser(parsedUser)
-                    setIsLoading(false) // Instant load!
-                } catch (e) {
-                    console.error("Failed to parse cached user", e)
-                }
-            }
-
-            // Always validate/refresh in background
-            fetchUser(storedToken)
-        } else {
-            setIsLoading(false)
+        if (token) {
+            // Move to next tick to avoid "setState synchronously in effect" warning
+            Promise.resolve().then(() => fetchUser(token))
         }
-    }, [fetchUser])
+    }, [fetchUser, token])
 
     const login = React.useCallback((newToken: string, newRefreshToken: string, newUser: User) => {
         localStorage.setItem("token", newToken)

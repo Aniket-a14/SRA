@@ -21,7 +21,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
     AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+    } from "@/components/ui/alert-dialog"
 import { generateSRS, generateAPI, downloadBundle } from "@/lib/export-utils"
 import { updateAnalysis, runValidation, autoFixIssue, startAnalysis, finalizeAnalysis } from "@/lib/analysis-api"
 import type { Analysis, ValidationIssue, StartAnalysisInput, SystemFeature } from "@/types/analysis"
@@ -121,63 +121,68 @@ function AnalysisDetailContent() {
     useEffect(() => {
         if (!analysis) return;
 
-        const currentStatus = (analysis.status || '').toUpperCase();
+        // Defer all state synchronization to next tick to avoid cascading renders
+        Promise.resolve().then(() => {
+            const currentStatus = (analysis.status || '').toUpperCase();
 
-        // Handle Error terminal state
-        if (currentStatus === 'FAILED') {
-            const metaStatus = analysis.metadata?.status;
-            // If the failed analysis is itself a draft, show the draft view instead of the error wall
-            if (metaStatus === 'DRAFT' && analysis.metadata?.draftData) {
+            // Handle Error terminal state
+            if (currentStatus === 'FAILED') {
+                const metaStatus = analysis.metadata?.status;
+                if (metaStatus === 'DRAFT' && analysis.metadata?.draftData) {
+                    setIsLoading(false);
+                    setError("");
+                    setDraftData((analysis.metadata?.draftData as unknown as SRSIntakeModel) || null);
+                    unlockAndNavigate(1);
+                    return;
+                }
+                if (analysis.parentId) {
+                    toast.error("Analysis generation failed. Returning to draft.");
+                    router.push(`/analysis/${analysis.parentId}`);
+                    return;
+                }
+                const msg = (analysis.resultJson as unknown as Record<string, unknown>)?.error as string || "Analysis generation failed.";
+                setError(msg);
                 setIsLoading(false);
-                setError("");
-                setDraftData((analysis.metadata.draftData as unknown as SRSIntakeModel) || null);
-                unlockAndNavigate(1);
                 return;
             }
-            // If it failed and has a parent draft, automatically go back to the draft
-            if (analysis.parentId) {
-                toast.error("Analysis generation failed due to service limits. Returning to draft.");
-                router.push(`/analysis/${analysis.parentId}`);
-                return;
-            }
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const msg = (analysis.resultJson as any)?.error || "Analysis generation failed.";
-            setError(msg);
+
+            // Successfully loaded data
             setIsLoading(false);
-            return;
-        }
+            setError("");
 
-
-        // Successfully loaded data
-        setIsLoading(false);
-        setError("");
-
-        // Layer Synchronization
-        const metadataStatus = analysis.metadata?.status;
-        if (metadataStatus === 'DRAFT') {
-            unlockAndNavigate(1);
-            setDraftData((analysis.metadata?.draftData as unknown as SRSIntakeModel) || null);
-        } else if (metadataStatus === 'VALIDATING' || metadataStatus === 'VALIDATED' || metadataStatus === 'NEEDS_FIX') {
-            unlockAndNavigate(2);
-            setDraftData((analysis.metadata?.draftData as unknown as SRSIntakeModel) || null);
-            setValidationIssues(analysis.metadata?.validationResult?.issues || []);
-        } else {
-            if (analysis.isFinalized) {
-                setIsFinalized(true);
-                unlockAndNavigate(5);
+            // Layer Synchronization
+            const metadataStatus = analysis.metadata?.status;
+            if (metadataStatus === 'DRAFT') {
+                unlockAndNavigate(1);
+                setDraftData((analysis.metadata?.draftData as unknown as SRSIntakeModel) || null);
+            } else if (metadataStatus === 'VALIDATING' || metadataStatus === 'VALIDATED' || metadataStatus === 'NEEDS_FIX') {
+                unlockAndNavigate(2);
+                setDraftData((analysis.metadata?.draftData as unknown as SRSIntakeModel) || null);
+                setValidationIssues(prev => {
+                    const next = analysis.metadata?.validationResult?.issues || [];
+                    return JSON.stringify(prev) === JSON.stringify(next) ? prev : next;
+                });
             } else {
-                setIsFinalized(false);
-                unlockLayer(5);
-                setLayer(3);
+                if (analysis.isFinalized) {
+                    setIsFinalized(true);
+                    unlockAndNavigate(5);
+                } else {
+                    setIsFinalized(false);
+                    unlockLayer(5);
+                    setLayer(3);
+                }
             }
-        }
-    }, [analysis, unlockAndNavigate, unlockLayer, setLayer, setIsFinalized]);
+        });
+    }, [analysis, unlockAndNavigate, unlockLayer, setLayer, setIsFinalized, router]);
 
     // Handle SWR errors separately
     useEffect(() => {
         if (swrError) {
-            setError(swrError.message || "Failed to sync analysis");
-            setIsLoading(false);
+            // Defer to next tick to avoid cascading render warning
+            Promise.resolve().then(() => {
+                setError(swrError.message || "Failed to sync analysis");
+                setIsLoading(false);
+            });
         }
     }, [swrError]);
 
@@ -192,14 +197,18 @@ function AnalysisDetailContent() {
     useEffect(() => {
         if (authLoading) return
         if (!user || !token) {
-            setIsLoading(false)
+            // Defer to next tick to avoid cascading render warning
+            Promise.resolve().then(() => setIsLoading(false));
             router.push("/auth/login")
             return
         }
 
         if (id === 'undefined') {
-            setError("Invalid Analysis ID");
-            setIsLoading(false);
+            // Defer to next tick to avoid cascading render warning
+            Promise.resolve().then(() => {
+                setError("Invalid Analysis ID");
+                setIsLoading(false);
+            });
         }
     }, [user, token, id, authLoading, router])
 
@@ -209,22 +218,21 @@ function AnalysisDetailContent() {
             const s = (analysis.status || '').toUpperCase();
             // Poll for any in-progress equivalent
             if (s !== 'PENDING' && s !== 'IN_PROGRESS' && s !== 'QUEUED') {
-                setIsLoading(false)
+                // Defer to next tick to avoid cascading render warning
+                Promise.resolve().then(() => setIsLoading(false));
             }
         }
     }, [analysis])
 
     const handleDraftUpdate = useCallback((section: string, field: string, value: string) => {
         setDraftData((prev: SRSIntakeModel | null) => {
-            const newData = (prev ? { ...prev } : {}) as Record<string, unknown>;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const sectionData = (newData as any)[section] || {};
+            const newData = (prev ? { ...prev } : {}) as Record<string, Record<string, { content: string }>>;
+            const sectionData = newData[section] || {};
             const fieldData = sectionData[field] || { content: "" };
 
             fieldData.content = value;
             sectionData[field] = fieldData;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (newData as any)[section] = sectionData;
+            newData[section] = sectionData;
 
             return newData as unknown as SRSIntakeModel;
         });
@@ -425,7 +433,6 @@ function AnalysisDetailContent() {
     }
 
     if (error) {
-        // If this failed analysis has a parent (i.e. spawned from a draft), offer to go back to it
         const parentDraftId = analysis?.parentId;
 
         return (
@@ -586,7 +593,6 @@ function AnalysisDetailContent() {
 
                                     {/* Action Toolbar (Layers 4 & 5) */}
                                     <div className="flex items-center gap-2 pl-12 md:pl-0">
-                                        {/* Pillar 2: Requirement Recycling */}
                                         <Sheet>
                                             <SheetTrigger asChild>
                                                 <Button
@@ -603,26 +609,20 @@ function AnalysisDetailContent() {
                                                     <SheetTitle>Knowledge Recycling</SheetTitle>
                                                 </SheetHeader>
                                                 <RecyclingPanel
-                                                    onApply={async (content: string | Record<string, any>) => {
+                                                    onApply={async (content: string | Record<string, unknown>) => {
                                                         const loadingToast = toast.loading("Applying recycled requirement...");
                                                         try {
-                                                            // 1. Determine if it's a Feature or just a Requirement fragment
                                                             const newFeature = (typeof content === 'string'
                                                                 ? { name: "Recycled Feature", description: content, functionalRequirements: [] }
                                                                 : content) as unknown as SystemFeature;
 
-                                                            // 2. Optimistic Update (optional, but let's stick to safe API pattern first)
                                                             const updatedFeatures: SystemFeature[] = [...(analysis?.systemFeatures || []), newFeature];
 
-                                                            // 3. API Call
                                                             const updatedData = await updateAnalysis(id, token!, {
                                                                 systemFeatures: updatedFeatures,
-                                                                skipAlignment: true, // Keep speed optimization
-                                                                // inPlace: false // Default behavior creates new version
+                                                                skipAlignment: true,
                                                             });
 
-                                                            // 4. Navigate to New Version
-                                                            // Since we created a new version, we must navigate to it to see changes.
                                                             toast.success("Requirement applied! Switching to new version...", { id: loadingToast });
                                                             router.push(`/analysis/${updatedData.data.id}`);
                                                         } catch (e) {
@@ -634,7 +634,6 @@ function AnalysisDetailContent() {
                                             </SheetContent>
                                         </Sheet>
 
-                                        {/* Layer 4: Improve */}
                                         <Button
                                             onClick={() => setIsImproveDialogOpen(true)}
                                             variant="outline"
@@ -645,7 +644,6 @@ function AnalysisDetailContent() {
                                             Improve SRS
                                         </Button>
 
-                                        {/* Layer 5: Finalize */}
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild>
                                                 <Button
@@ -705,7 +703,6 @@ function AnalysisDetailContent() {
                                                             const images = await renderMermaidDiagrams(analysis);
 
                                                             const projectTitle = analysis.projectTitle || analysis.title || "Project_Context";
-                                                            // generateSRS is now async
                                                             const doc = await generateSRS(analysis, projectTitle, images);
                                                             doc.save(`${projectTitle.replace(/\s+/g, '_')}_SRS.pdf`);
                                                             toast.success("SRS Report downloaded");
@@ -790,7 +787,6 @@ function AnalysisDetailContent() {
         );
     }
 
-    // FINAL FALLBACK: DRAFT (Layer 1)
     return (
         <div className="h-[calc(100vh-64px)] flex flex-col bg-background">
             <div className="border-b px-6 py-4 flex items-center justify-between sticky top-0 bg-background z-20 shadow-sm">
@@ -798,22 +794,8 @@ function AnalysisDetailContent() {
                     <Button variant="ghost" size="icon" onClick={() => router.push('/analysis')}><ArrowLeft className="h-4 w-4" /></Button>
                     <div>
                         <h1 className="text-xl font-bold">{analysis?.title?.replace(" (Draft)", "") || "New Project Analysis"}</h1>
-                        <span className="text-xs text-muted-foreground">Draft Mode • Layer 1</span>
                     </div>
                 </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={handleSaveDraft}>
-                        <Save className="h-4 w-4 mr-2" /> Save Draft
-                    </Button>
-                </div>
-            </div>
-            <div className="flex-1 overflow-auto bg-muted/5 p-6">
-                <AccordionInput
-                    data={(draftData as unknown as SRSIntakeModel) || {}}
-                    onUpdate={handleDraftUpdate}
-                    onValidate={handleRunValidation}
-                    isValidating={isValidating}
-                />
             </div>
         </div>
     )

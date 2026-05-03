@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Plus, GripVertical, Trash2 } from "lucide-react"
@@ -16,10 +16,6 @@ interface EditableSectionProps {
 
 export function EditableSection({ items, isEditing, onUpdate, prefix = "ITEM", badgeColor = "text-primary" }: EditableSectionProps) {
     const [localItems, setLocalItems] = useState(items)
-
-    useEffect(() => {
-        setLocalItems(items)
-    }, [items])
 
     const handleChange = (index: number, value: string) => {
         const newItems = [...localItems]

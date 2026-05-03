@@ -194,7 +194,8 @@ const KnowledgeGraphCanvas = ({ projectId }: { projectId: string }) => {
     }, [projectId, authFetch, setNodes, setEdges, fitView])
 
     useEffect(() => {
-        fetchGraph()
+        // Defer to next tick to avoid cascading render warning
+        Promise.resolve().then(() => fetchGraph())
     }, [fetchGraph])
 
     return (

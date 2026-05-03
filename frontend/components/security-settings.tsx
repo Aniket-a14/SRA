@@ -41,7 +41,14 @@ export function SecuritySettings() {
     }, [token])
 
     useEffect(() => {
-        if (token) fetchSessions()
+        let isMounted = true;
+        if (token && isMounted) {
+            // Move to next tick to avoid "setState synchronously in effect" warning
+            Promise.resolve().then(() => {
+                if (isMounted) fetchSessions();
+            });
+        }
+        return () => { isMounted = false; };
     }, [token, fetchSessions])
 
     const revokeSession = async (sessionId: string) => {

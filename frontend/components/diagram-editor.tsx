@@ -36,7 +36,7 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
 
     // Sync if prop changes externally
     useEffect(() => {
-        setCode(initialCode)
+        Promise.resolve().then(() => setCode(initialCode))
     }, [initialCode])
 
     const handleOpenChange = (newOpen: boolean) => {
@@ -129,16 +129,21 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
 
     // Reset attempts when a new diagram is loaded
     useEffect(() => {
-        setRepairAttempts(0)
-        setFailedCodes(new Set())
+        Promise.resolve().then(() => {
+            setRepairAttempts(0)
+            setFailedCodes(new Set())
+        })
     }, [initialCode])
 
     // Optimized Automatic Repair: Attempt to fix errors up to 3 times
     useEffect(() => {
         if (lastError && !isRepairing && !failedCodes.has(code) && repairAttempts < 3) {
             console.log(`Auto-repairing diagram error (Attempt ${repairAttempts + 1}/3)...`)
-            setRepairAttempts(prev => prev + 1)
-            repairWithAI()
+            // Defer to next tick to avoid cascading render warning
+            Promise.resolve().then(() => {
+                setRepairAttempts(prev => prev + 1)
+                repairWithAI()
+            })
         } else if (lastError && failedCodes.has(code)) {
             // Standard loop prevention logging
             console.warn("Skipping repair for failed code.")

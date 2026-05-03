@@ -27,29 +27,24 @@ const IntakeContext = createContext<IntakeContextType | undefined>(undefined);
 
 export const IntakeProvider = ({ children }: { children: ReactNode }) => {
     // Try to load from localStorage first (client-side only pattern)
-    const [data, setData] = useState<SRSIntakeModel>(createInitialIntakeState());
-    const [activeSectionId, setActiveSectionIdState] = useState<string>('1');
-    const [isLoaded, setIsLoaded] = useState(false);
-
-    useEffect(() => {
-        const savedData = localStorage.getItem('sra_intake_draft');
-        if (savedData) {
-            try {
-                // Deep merge or specific parsing could be safer, but for now strict parse
-                const parsed = JSON.parse(savedData);
-                setData(parsed);
-            } catch (e) {
-                console.error("Failed to load draft", e);
+    const [data, setData] = useState<SRSIntakeModel>(() => {
+        if (typeof window !== 'undefined') {
+            const savedData = localStorage.getItem('sra_intake_draft');
+            if (savedData) {
+                try {
+                    return JSON.parse(savedData);
+                } catch (e) {
+                    console.error("Failed to load draft", e);
+                }
             }
         }
-        setIsLoaded(true);
-    }, []);
+        return createInitialIntakeState();
+    });
+    const [activeSectionId, setActiveSectionIdState] = useState<string>('1');
 
     useEffect(() => {
-        if (isLoaded) {
-            localStorage.setItem('sra_intake_draft', JSON.stringify(data));
-        }
-    }, [data, isLoaded]);
+        localStorage.setItem('sra_intake_draft', JSON.stringify(data));
+    }, [data]);
 
     const activeSectionIndex = SRS_STRUCTURE.findIndex(s => s.id === activeSectionId);
     const activeSectionConfig = SRS_STRUCTURE[activeSectionIndex];

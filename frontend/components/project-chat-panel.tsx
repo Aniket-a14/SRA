@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
@@ -62,18 +62,10 @@ export function ProjectChatPanel({ analysisId, onAnalysisUpdate, hidden, isFinal
     }, [messages])
 
 
-    // Safety check: Don't render if critical data is missing
-    if (!analysisId) return null;
-
-    const handleSend = throttle(async () => {
-        if (!input.trim() || isLoading) return
-
-        const userMsg = input
-        setInput("")
+    const handleSend = useMemo(() => throttle(async (userMsg: string, tempId: string) => {
+        if (!userMsg.trim()) return
         setIsLoading(true)
-
-        // Optimistic UI
-        const tempId = Date.now().toString()
+        
         setMessages(prev => [...prev, { id: tempId, role: "user", content: userMsg }])
 
         try {
@@ -110,7 +102,20 @@ export function ProjectChatPanel({ analysisId, onAnalysisUpdate, hidden, isFinal
         } finally {
             setIsLoading(false)
         }
-    }, 1000)
+    }, 1000), [analysisId, token, onAnalysisUpdate])
+
+    // We need a wrapper to handle the state-dependent parts
+    const onSendSubmit = (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        if (!input.trim() || isLoading) return;
+        const currentInput = input;
+        const tempId = Date.now().toString();
+        setInput("");
+        handleSend(currentInput, tempId);
+    };
+
+    // Safety check: Don't render if critical data is missing
+    if (!analysisId) return null;
 
     return (
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -191,7 +196,7 @@ export function ProjectChatPanel({ analysisId, onAnalysisUpdate, hidden, isFinal
 
                 <div className="p-4 border-t mt-auto">
                     <form
-                        onSubmit={(e) => { e.preventDefault(); handleSend(); }}
+                        onSubmit={onSendSubmit}
                         className="flex gap-2"
                     >
                         <Input

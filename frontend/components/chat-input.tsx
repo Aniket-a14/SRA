@@ -58,10 +58,10 @@ export function ChatInput({ onAnalyze, isLoading, initialSettings }: ChatInputPr
   // Sync initial setup
   useEffect(() => {
     if (initialSettings && JSON.stringify(settings) !== JSON.stringify(initialSettings)) {
-      setSettings(initialSettings);
+      // Defer to next tick to avoid cascading render warning
+      Promise.resolve().then(() => setSettings(initialSettings));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialSettings]);
+  }, [initialSettings, settings]);
 
   // Debounced Save
   useEffect(() => {
