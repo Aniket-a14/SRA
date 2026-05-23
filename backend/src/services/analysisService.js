@@ -14,6 +14,16 @@ import { retrieveContext, formatRagContext } from './ragService.js';
 
 const CACHE_TTL = 3600; // 1 hour in seconds
 
+const invalidateUserAnalysesCache = async (userId) => {
+    const redis = getRedisClient();
+    if (!redis) return;
+    try {
+        await redis.del(`user:analyses:${userId}`);
+    } catch (error) {
+        logger.warn({ msg: "Redis Cache Invalidation Error", error: error.message, userId });
+    }
+};
+
 
 export const performAnalysis = async (userId, text, projectId = null, parentId = null, rootId = null, settings = {}, analysisId = null) => {
     let resultJson;
@@ -378,7 +388,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
     }
 
     // Atomic Creation with Transaction
-    return await prisma.$transaction(async (tx) => {
+    const analysisResult = await prisma.$transaction(async (tx) => {
         // 1. Defer Project Creation if missing and successful
         let finalProjectId = projectId;
         if (!finalProjectId && resultJson.projectTitle) {
@@ -449,6 +459,9 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         // DEPRECATED: All analyses should now be created via queueService with an ID upfront.
         throw new Error("performAnalysis called without analysisId. Legacy direct creation is deprecated.");
     });
+
+    await invalidateUserAnalysesCache(userId);
+    return analysisResult;
 };
 
 export const getUserAnalyses = async (userId) => {
