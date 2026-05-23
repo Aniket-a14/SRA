@@ -20,7 +20,7 @@ const invalidateUserAnalysesCache = async (userId) => {
     try {
         await redis.del(`user:analyses:${userId}`);
     } catch (error) {
-        logger.warn({ msg: "Redis Cache Invalidation Error", error: error.message, userId });
+        logger.warn({ msg: "Failed to invalidate user analyses cache", error: error.message, userId });
     }
 };
 
