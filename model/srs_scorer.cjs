@@ -1,26 +1,26 @@
 /**
  * SRA-PRO SRS SCORER (Automated Quality Rubric)
- * 
+ *
  * Scores generated SRS output on 4 pillars derived from IEEE quality attributes:
- * 
+ *
  * 1. STRUCTURAL COMPLETENESS (0-100)
  *    - Are all expected skeleton keys present and populated?
  *    - Based on IEEE 830 §4.3: "A complete SRS should include all significant requirements"
- * 
+ *
  * 2. REQUIREMENT QUALITY (0-100)
  *    - Do requirements use correct prefix ("The system shall")?
  *    - Are they specific (no forbidden vague terms)?
  *    - Are acceptance criteria testable / fit criteria measurable?
- * 
+ *
  * 3. QUANTIFICATION DENSITY (0-100)
  *    - Ratio of quantified requirements (containing numbers, units, thresholds)
  *    - Based on IEEE 830 §4.7: "Verifiable requirements can be measured"
- * 
+ *
  * 4. CONSISTENCY (0-100)
  *    - Does content reference the correct project name?
  *    - Are there contradictions (e.g., two different response time claims)?
  *    - Does terminology stay uniform?
- * 
+ *
  * Final Score = weighted average of the 4 pillars.
  */
 
@@ -28,7 +28,7 @@ const { TEMPLATES, FORBIDDEN_TERMS } = require('./srs_templates.cjs');
 
 /**
  * Scores a complete, generated SRS document.
- * 
+ *
  * @param {object} srsDocument - The full SRS JSON (all sections combined)
  * @param {string} templateId - Template used (e.g., "IEEE_830")
  * @param {string} projectName - Original project name

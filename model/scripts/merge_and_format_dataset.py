@@ -34,10 +34,10 @@ def main():
         if not os.path.exists(split_path):
             print(f"⚠️ Warning: {split_path} not found.")
             return
-            
+
         split_data = load_jsonl(split_path)
         formatted_data = []
-        
+
         for item in split_data:
             source_file = item['source']
             if source_file in raw_map:

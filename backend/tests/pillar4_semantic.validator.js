@@ -4,7 +4,7 @@ dotenv.config();
 
 /**
  * Pillar 4 Validation: Semantic Audit Test
- * Tests if the Critic Agent can detect logical contradictions 
+ * Tests if the Critic Agent can detect logical contradictions
  * and missing IEEE-830 sections that regex would miss.
  */
 async function validatePillar4() {

@@ -101,4 +101,3 @@ export const StoryCard = memo(function StoryCard({ role, feature, benefit, story
     </Card>
   )
 });
-

@@ -361,7 +361,7 @@ export const updateAnalysis = async (req, res, next) => {
                     // Attach mismatches to the result so backend/frontend knows
                     newResultJson.alignmentResult = alignmentResult;
 
-                    // If BLOCKER exists, we might reject the update entirely, 
+                    // If BLOCKER exists, we might reject the update entirely,
                     // BUT for "Regeneration" flow, passing it back with error flags is often better UI.
                     // We will attach it to metadata for frontend to display "Layer 3 Rejection"
                     newResultJson.layer3Status = 'MISMATCH';
@@ -723,13 +723,13 @@ export const finalizeAnalysis = async (req, res, next) => {
                 }
             }
         }, {
-            timeout: 30000 
+            timeout: 30000
         });
 
-        return successResponse(res, { 
-            message: "Analysis finalized and broken into reusable chunks with semantic embeddings", 
-            id: id, 
-            chunksStored: chunks.length 
+        return successResponse(res, {
+            message: "Analysis finalized and broken into reusable chunks with semantic embeddings",
+            id: id,
+            chunksStored: chunks.length
         });
     } catch (error) {
         next(error);
@@ -752,7 +752,7 @@ export const validateAnalysis = async (req, res, next) => {
         // CALL LAYER 2 AI VALIDATION
         let validationResult;
         try {
-            // Transform draftData into format expected by validationService if needed, 
+            // Transform draftData into format expected by validationService if needed,
             // but validateRequirements handles the raw structure mostly.
             validationResult = await validateRequirements(draftData);
         } catch (validationErr) {

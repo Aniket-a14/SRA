@@ -9,10 +9,10 @@ This directory contains Terraform configuration for managing SRA infrastructure 
    # Install Terraform
    # Windows (Chocolatey):
    choco install terraform
-   
+
    # macOS (Homebrew):
    brew install terraform
-   
+
    # Or download from: https://www.terraform.io/downloads
    ```
 

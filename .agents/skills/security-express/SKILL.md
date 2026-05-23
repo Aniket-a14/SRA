@@ -54,9 +54,9 @@ app.use(cors());
 app.use(cors({ origin: '*' }));
 
 // ❌ HIGH: Reflect origin with credentials
-app.use(cors({ 
+app.use(cors({
   origin: true,  // Reflects any origin!
-  credentials: true 
+  credentials: true
 }));
 
 // ✓ Explicit allowlist

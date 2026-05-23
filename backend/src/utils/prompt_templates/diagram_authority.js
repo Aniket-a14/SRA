@@ -126,8 +126,8 @@ If a user request implies such a type, you MUST adapt it to one of the 3 allowed
    - Messages: Avoid special chars like '{}' in message labels.
 5. ERD Keys: ONLY 'PK', 'FK', and 'UK' are allowed. Multiple keys MUST be comma-separated (e.g., 'PK, FK'). FORBIDDEN: 'NN', 'NOT NULL', or any non-standard constraint.
 6. ERD Relationships: 'ENTITY1 ||--o{ ENTITY2 : "label"'. Label MUST always be quoted.
-7. ERD Logic: 
-   - FK implies Many-to-One: If Entity A has a Foreign Key to Entity B, use 'Entity A }|--|| Entity B'. 
+7. ERD Logic:
+   - FK implies Many-to-One: If Entity A has a Foreign Key to Entity B, use 'Entity A }|--|| Entity B'.
    - No Hidden M2M: Never use Many-to-Many ('}|--|{') without a junction table.
 </constraints>
 

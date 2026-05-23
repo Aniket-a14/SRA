@@ -48,7 +48,7 @@ export const createSession = async (userId, userAgent, ipAddress) => {
 
 /**
  * Validates a refresh token and returns the session if valid.
- * @param {string} refreshToken 
+ * @param {string} refreshToken
  * @returns {Promise<Object|null>}
  */
 export const validateSession = async (refreshToken) => {
@@ -66,9 +66,9 @@ export const validateSession = async (refreshToken) => {
 
 /**
  * Rotates a refresh token (Delete old, create new) to prevent replay attacks.
- * @param {Object} oldSession 
- * @param {string} newUserAgent 
- * @param {string} newIp 
+ * @param {Object} oldSession
+ * @param {string} newUserAgent
+ * @param {string} newIp
  * @returns {Promise<string>} New Refresh Token
  */
 export const rotateSession = async (oldSession, newUserAgent, newIp) => {

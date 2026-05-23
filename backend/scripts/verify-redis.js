@@ -7,7 +7,7 @@ async function verifyRedis() {
     console.log(`\n🔍 Verifying Redis Connection and Cache Operations...\n`);
 
     const redis = getRedisClient();
-    
+
     if (!redis) {
         console.error("❌ Redis client not initialized. Check your REDIS_URL in .env");
         process.exit(1);
@@ -21,7 +21,7 @@ async function verifyRedis() {
         // 2. Test Set/Get
         const testKey = 'verify:test:key';
         const testValue = JSON.stringify({ status: 'success', timestamp: Date.now() });
-        
+
         await redis.set(testKey, testValue, 'EX', 10);
         const retrieved = await redis.get(testKey);
 
@@ -34,7 +34,7 @@ async function verifyRedis() {
 
         // 3. Cleanup
         await redis.del(testKey);
-        
+
         console.log("\n✅ Redis Infrastructure Verified Successfully.");
         process.exit(0);
     } catch (error) {

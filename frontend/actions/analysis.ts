@@ -104,7 +104,7 @@ export async function createAnalysisAction(
         const data = json.data || json;
 
         if (data.status === "draft" && data.id) {
-            // We don't redirect inside the action if we want to handle it in the component 
+            // We don't redirect inside the action if we want to handle it in the component
             // OR we can use redirect() but it throws an error that Next.js catches.
             // For better UX with toast, we return the ID.
             return { success: true, id: data.id };

@@ -3,10 +3,10 @@ extends: spectral:oas
 rules:
   # Enforce operation IDs for better code generation
   operation-operationId: warn
-  
+
   # Require descriptions for better documentation
   info-description: warn
   operation-description: warn
-  
+
   # Ensure all operations have tags for organization
   operation-tags: warn

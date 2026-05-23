@@ -2,7 +2,7 @@
 
 ## Status: Deferred Until Production Scale
 
-**Decision Date:** 2026-02-01  
+**Decision Date:** 2026-02-01
 **Rationale:** SRA is currently in development/portfolio phase. Automated backup restore testing is more critical when the application has real users and production data at scale.
 
 ---
@@ -162,6 +162,6 @@ When ready to implement, refer to:
 
 ---
 
-**Last Updated:** 2026-02-01  
-**Status:** Documented for future implementation  
+**Last Updated:** 2026-02-01
+**Status:** Documented for future implementation
 **Priority:** Low (until production scale)

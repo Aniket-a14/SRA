@@ -96,7 +96,7 @@ jobs:
       - name: Check security headers configuration
         run: |
           echo "Verifying security headers in next.config.ts..."
-          
+
           # Check for required headers
           REQUIRED_HEADERS=(
             "Content-Security-Policy"
@@ -105,7 +105,7 @@ jobs:
             "Referrer-Policy"
             "Strict-Transport-Security"
           )
-          
+
           for header in "${REQUIRED_HEADERS[@]}"; do
             if grep -q "$header" frontend/next.config.ts; then
               echo "✅ $header configured"
@@ -126,10 +126,10 @@ jobs:
       - name: Check for overly permissive files
         run: |
           echo "Checking for files with dangerous permissions..."
-          
+
           # Check for world-writable files
           WRITABLE=$(find . -type f -perm -002 2>/dev/null | grep -v ".git" || true)
-          
+
           if [ -n "$WRITABLE" ]; then
             echo "❌ Found world-writable files:"
             echo "$WRITABLE"
@@ -149,7 +149,7 @@ jobs:
       - name: Check for hardcoded secrets
         run: |
           echo "Scanning for potential hardcoded secrets..."
-          
+
           # Patterns to search for
           PATTERNS=(
             "password\s*=\s*['\"][^'\"]+['\"]"
@@ -157,7 +157,7 @@ jobs:
             "secret\s*=\s*['\"][^'\"]+['\"]"
             "token\s*=\s*['\"][^'\"]+['\"]"
           )
-          
+
           FOUND=0
           for pattern in "${PATTERNS[@]}"; do
             # Exclude backupService.js which has legitimate dynamic password usage in shell commands
@@ -174,7 +174,7 @@ jobs:
               FOUND=1
             fi
           done
-          
+
           if [ $FOUND -eq 1 ]; then
             echo "❌ Security audit failed: Potential secrets found"
             echo "Note: backupService.js is excluded as it uses dynamic password extraction from env vars"
@@ -201,15 +201,15 @@ jobs:
               permissions_audit: '${{ needs.permissions-audit.result }}',
               env_validation: '${{ needs.env-validation.result }}'
             };
-            
+
             const failed = Object.entries(results).filter(([_, status]) => status === 'failure');
-            
+
             if (failed.length > 0) {
               const body = `## 🚨 Security Audit Failed\n\n` +
                 `The following checks failed:\n\n` +
                 failed.map(([check, _]) => `- ❌ ${check}`).join('\n') +
                 `\n\nWorkflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-              
+
               await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,

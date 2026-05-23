@@ -17,8 +17,8 @@ async function runBenchmark() {
 
     const testPrompt = `
     Project: TaskFlow
-    Description: I need a project management tool for small teams. It should have user authentication, 
-    task creation, boards (like Trello), and automated email notifications when a task is due. 
+    Description: I need a project management tool for small teams. It should have user authentication,
+    task creation, boards (like Trello), and automated email notifications when a task is due.
     It must be highly secure and support real-time updates.
     `;
 

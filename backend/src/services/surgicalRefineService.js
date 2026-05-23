@@ -3,11 +3,11 @@ import logger from "../config/logger.js";
 
 /**
  * Surgical Refine Service — Layer 4
- * 
+ *
  * Instead of re-running the full multi-agent pipeline (PO → Arch → Dev → QA → Critic),
  * this service makes a SINGLE focused AI call that edits only the affected sections
  * of an existing SRS, preserving everything else.
- * 
+ *
  * Typical response time: 5-10s (vs 30-60s for full pipeline)
  */
 

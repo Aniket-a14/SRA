@@ -206,7 +206,7 @@ export function ApiKeyManager() {
                                     <span>Last used {formatDistanceToNow(new Date(key.lastUsed))} ago</span>
                                 </div>
                                 <div className="text-xs font-mono text-muted-foreground">
-                                    sra_live_...{key.id.slice(0, 4)} 
+                                    sra_live_...{key.id.slice(0, 4)}
                                 </div>
                             </div>
                             <Button

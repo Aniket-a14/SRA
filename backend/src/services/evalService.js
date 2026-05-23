@@ -49,7 +49,7 @@ Return ONLY a valid JSON object matching this schema. No markdown wrappers.
 </output_format>
 
 <input>
-Context: 
+Context:
 ${typeof context === 'string' ? context : JSON.stringify(context, null, 2)}
 
 Generated Response:

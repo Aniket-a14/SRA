@@ -1,12 +1,12 @@
 /**
  * SRA-PRO PROMPT FACTORY (Industry-Grade)
- * 
+ *
  * Generates system and user prompts for section-wise SRS generation.
- * 
+ *
  * Architecture:
  *   System Prompt = Standard-specific persona + rules + forbidden terms
  *   User Prompt   = SECTION INSTRUCTION + SCHEMA + CONTEXT + ACTION
- * 
+ *
  * Mirrors the backend's Layer 1 (ProductOwnerAgent) prompt architecture.
  */
 

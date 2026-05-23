@@ -5,7 +5,7 @@ const dagre = require('@dagrejs/dagre');
 /**
  * Layouts DFD nodes using Dagre in the backend.
  * Converts Dagre center positions to React Flow top-left positions.
- * 
+ *
  * @param {Object} dfdLevel - Object with { nodes, flows }
  * @param {string} direction - 'LR' (horizontal) or 'TB' (vertical)
  * @returns {Object} Layouted DFD level
@@ -56,7 +56,7 @@ export function layoutDFDLevel(dfdLevel, direction = 'LR') {
 
 /**
  * Layouts all levels in a DFD input.
- * 
+ *
  * @param {Object} dfdInput - { dfd_level_0, dfd_level_1 }
  * @returns {Object} Layouted DFD input
  */

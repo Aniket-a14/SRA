@@ -245,9 +245,9 @@ export const SRSShellSchema = {
         }
     },
     required: [
-        "projectTitle", 
-        "revisionHistory", 
-        "introduction", 
+        "projectTitle",
+        "revisionHistory",
+        "introduction",
         "overallDescription"
     ]
 };

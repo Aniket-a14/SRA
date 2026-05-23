@@ -5,7 +5,7 @@ import { CODE_GEN_PROMPT } from '../utils/prompts.js';
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 /**
- * Robustly extracts the FIRST valid JSON object from a string, 
+ * Robustly extracts the FIRST valid JSON object from a string,
  * handling nested braces and ignoring trailing text/garbage.
  */
 function extractJson(text) {

@@ -118,7 +118,7 @@ const decrypted = decryptData(encryptedData);
    ```bash
    # Add new key to environment
    export ENCRYPTION_KEY_NEW=<new-key>
-   
+
    # Update Vercel secrets
    vercel env add ENCRYPTION_KEY production
    ```
@@ -182,15 +182,15 @@ logger.info('Data encrypted', {
 ### Common Issues
 
 #### "ENCRYPTION_KEY environment variable is required"
-**Cause:** Missing or empty `ENCRYPTION_KEY` in environment  
+**Cause:** Missing or empty `ENCRYPTION_KEY` in environment
 **Solution:** Set the environment variable with a valid 64-character hex string
 
 #### "Invalid authentication tag"
-**Cause:** Data tampered with or wrong decryption key  
+**Cause:** Data tampered with or wrong decryption key
 **Solution:** Verify key is correct, check data integrity
 
 #### "Cannot decrypt data"
-**Cause:** Key rotation without data migration  
+**Cause:** Key rotation without data migration
 **Solution:** Use old key to decrypt, then re-encrypt with new key
 
 ## Related Documentation

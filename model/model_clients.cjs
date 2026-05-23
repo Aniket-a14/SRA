@@ -1,6 +1,6 @@
 /**
  * HARDENED MODEL CLIENT ADAPTERS
- * Includes: 
+ * Includes:
  * 1. Exponential Backoff for 429s.
  * 2. Usage Tracking (Tokens/Costs).
  * 3. Robust Error Logging.

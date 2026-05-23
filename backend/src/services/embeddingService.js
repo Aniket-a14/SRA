@@ -31,7 +31,7 @@ export async function embedText(text, retries = 3, initialDelay = 2000) {
                 content: { parts: [{ text }] },
                 outputDimensionality: 768
             });
-            
+
             const embedding = result.embedding.values;
 
             // 2. Store in Cache for future use (7 Day TTL)

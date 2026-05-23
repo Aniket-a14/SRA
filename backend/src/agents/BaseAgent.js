@@ -160,9 +160,9 @@ export class BaseAgent {
             let closeBraces = (cleanText.match(/\}/g) || []).length;
             if (openBraces > closeBraces) {
                 const truncationSnippet = cleanText.substring(cleanText.length - 100);
-                logger.warn({ 
-                    msg: `[${this.name}] Detected truncated JSON. Attempting to auto-balance.`, 
-                    open: openBraces, 
+                logger.warn({
+                    msg: `[${this.name}] Detected truncated JSON. Attempting to auto-balance.`,
+                    open: openBraces,
                     close: closeBraces,
                     missing: openBraces - closeBraces,
                     tailContent: `...${truncationSnippet}`

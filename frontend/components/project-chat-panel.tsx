@@ -65,7 +65,7 @@ export function ProjectChatPanel({ analysisId, onAnalysisUpdate, hidden, isFinal
     const handleSend = useMemo(() => throttle(async (userMsg: string, tempId: string) => {
         if (!userMsg.trim()) return
         setIsLoading(true)
-        
+
         setMessages(prev => [...prev, { id: tempId, role: "user", content: userMsg }])
 
         try {

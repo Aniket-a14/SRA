@@ -31,5 +31,3 @@ Templates are your primary tool for writing READMEs. References provide depth - 
 Examples:
 - `references/standard-readme-example-minimal.md` - Bare minimum compliant README
 - `references/standard-readme-example-maximal.md` - Full-featured with badges, ToC, all optional sections
-
-

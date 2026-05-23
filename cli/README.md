@@ -66,7 +66,7 @@ pnpm dlx @sra-srs/sra-cli init
 ## 📖 Command Reference
 
 ### `sra init`
-Connects your local environment to the SRA Platform. 
+Connects your local environment to the SRA Platform.
 - Verifies your `SRA_API_KEY`.
 - Fetches available projects from your account.
 - Interactively lets you select which project to link.

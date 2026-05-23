@@ -1,13 +1,13 @@
 /**
  * SRA-PRO FEW-SHOT EXAMPLES
- * 
+ *
  * One GOOD and one BAD example per template type.
  * Used by the prompt factory to inject into the system prompt.
- * 
+ *
  * Purpose: Show the model exactly what quality output looks like
  * vs. what to avoid. This is the single highest-impact prompt
  * engineering technique for structured output quality.
- * 
+ *
  * Each example is kept minimal (one requirement) to avoid
  * consuming too many tokens in the system prompt.
  */
@@ -280,7 +280,7 @@ const FEW_SHOT_EXAMPLES = {
 /**
  * Formats few-shot examples for injection into the system prompt.
  * Returns a string block ready to append.
- * 
+ *
  * @param {string} templateId - Template identifier
  * @param {string} sectionId - (Optional) Current section ID for adaptive examples
  * @returns {string} Formatted few-shot block or empty string

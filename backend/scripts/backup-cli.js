@@ -3,7 +3,7 @@
 /**
  * Backup CLI Tool
  * Command-line interface for manual backup operations
- * 
+ *
  * Usage:
  *   node backup-cli.js create           - Create new backup
  *   node backup-cli.js list             - List all backups

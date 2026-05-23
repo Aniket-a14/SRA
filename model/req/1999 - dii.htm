@@ -57,28 +57,28 @@
 
 <li><b><a name="_Toc336235426"></a><a name="_Toc444423237">IDENTIFICATION OF FUNCTIONAL AREA</a></b></li>
 <b></b><p>This Software Requirements Specification (SRS) establishes the
- functional, performance, and verification requirements for the XML 
-Services (XS) functional area of the Defense Information Infrastructure 
-(DII) Common Operating Environment (COE). The XS functional area 
-includes Registration of terms (tags and structures), Design of XML 
+ functional, performance, and verification requirements for the XML
+Services (XS) functional area of the Defense Information Infrastructure
+(DII) Common Operating Environment (COE). The XS functional area
+includes Registration of terms (tags and structures), Design of XML
 schemas, Generation and Consumption of XML documents.</p>
 <p>&nbsp;</p>
 <li><a name="_Toc336235427"></a><a name="_Toc444423238"><b>FUNCTIONAL AREA OVERVIEW</b></a><b></b></li>
-<b></b><p>XML Services provide infrastructure services for mission and 
-support applications using XML technology.  These services isolate 
-vendor-unique implementations of data access and provide applications a 
-means of avoiding dependencies on physical access models.  These 
-services also provide data management functions for access to 
+<b></b><p>XML Services provide infrastructure services for mission and
+support applications using XML technology.  These services isolate
+vendor-unique implementations of data access and provide applications a
+means of avoiding dependencies on physical access models.  These
+services also provide data management functions for access to
 distributed (local and remote) database management systems as one of the
  solutions for interoperablity.</p>
 <p>&nbsp;</p>
 <li><a name="_Toc336235428"></a><a name="_Toc444423241"><b>DOCUMENT OVERVIEW</b></a><b></b></li></ol>
 
-<b></b><p>This document outlines the software capabilities required for 
-the XS components for the DII COE.  Section 2 lists the documents that 
-are applicable to this specification.  Section 3 provides a list of 
-functional capabilities.  Section 4 identifies the qualification 
-requirements.  Section 5 outlines the requirements and verification 
+<b></b><p>This document outlines the software capabilities required for
+the XS components for the DII COE.  Section 2 lists the documents that
+are applicable to this specification.  Section 3 provides a list of
+functional capabilities.  Section 4 identifies the qualification
+requirements.  Section 5 outlines the requirements and verification
 traceability matrix.  Section 6 contains the applicable notes associated
  with the XS component.</p>
 <li><a name="_Toc336235429"></a><a name="_Toc444423242"><b>APPLICABLE DOCUMENTS</b></a><b></b></li>
@@ -93,8 +93,8 @@ traceability matrix.  Section 6 contains the applicable notes associated
 <b><i></i></b><i></i><p>&nbsp;</p>
 <p>	ACCS-A1-100-006	System Specification for ATCCS, 22 March 1995</p>
 
-<p align="JUSTIFY">	ATCCS-A1-302-001A Army Tactical Command and Control 
-System Common ATCCS 					Support Software (CASS) Systems/Segment 
+<p align="JUSTIFY">	ATCCS-A1-302-001A Army Tactical Command and Control
+System Common ATCCS 					Support Software (CASS) Systems/Segment
 Specification</p>
 <p align="JUSTIFY"></p>
 <p>	CDRL A142		AWIS Software Requirements Specification (ASRD), July 1992</p>
@@ -105,7 +105,7 @@ Specification</p>
 
 <p>	D18664A		Standard Theater Army Command and Control System (STACCS) 					System Design Document Version 1.1/As Built, 1 Oct. 93</p>
 
-<p>	AAN-SDA001A	Standard Theater Army Command and Control System 						
+<p>	AAN-SDA001A	Standard Theater Army Command and Control System
 (STACCS) System Specification, Version 1.1/As Built, 1 Oct. 93</p>
 
 <p>				Standard Theater Army Command and Control System (STACCS) 					System Software Programmers Manual, Draft.</p>
@@ -117,8 +117,8 @@ Specification</p>
 
 <p>				User Interface Specifications for Global Command and Control 					System (GCCS), Version 1.0, October 1994.</p>
 
-<p>				Draft Architectural Design Document for the Global Command 					
-and Control System (GCCS) Common Operating Environment 					(COE), 
+<p>				Draft Architectural Design Document for the Global Command
+and Control System (GCCS) Common Operating Environment 					(COE),
 Version 3, 24 July, 1994.</p>
 
 <p>&nbsp;</p>
@@ -135,8 +135,8 @@ Version 3, 24 July, 1994.</p>
 <p>&nbsp;</p>
 <li><a name="_Toc336235431"></a><a name="_Toc444423244"><b>NON-GOVERNMENT DOCUMENTS</b></a><b></b></li></ol>
 
-<b></b><p>Petrucci, Steve, "Cross-Platform Power Tools, Application 
-Developers for the Macintosh, Windows, and Windows NT", Random House 
+<b></b><p>Petrucci, Steve, "Cross-Platform Power Tools, Application
+Developers for the Macintosh, Windows, and Windows NT", Random House
 Electronic Publishing, 1993.</p>
 
 <p>Donald Lewine,"POSIX Programmer's Guide", O'Reilly &amp; Associates, Inc. 1991.</p>
@@ -149,54 +149,54 @@ Electronic Publishing, 1993.</p>
 <b></b><p>&nbsp;</p>
 <ol>
 
-<li> Environmental Mode: This is the real-time operations that must 
-react to varying degrees of readiness to full scale wartime operations 
-such as crisis planning with the use of heterogeneous data types and 
+<li> Environmental Mode: This is the real-time operations that must
+react to varying degrees of readiness to full scale wartime operations
+such as crisis planning with the use of heterogeneous data types and
 sources, transfer capabilities,  data management services. </li>
-<li>COE Compliance.  XML Services shall be segmented.  COE sponsors 
-shall adhere to compliance level requirements described in the 
+<li>COE Compliance.  XML Services shall be segmented.  COE sponsors
+shall adhere to compliance level requirements described in the
 I&amp;RTS. </li>
-<li>In the fixed (static) mode of operation (base or data processing 
-megacenter), the data management services shall have the capability of 
-being tuned by on-site personnel to adjust for varying workloads and 
-sizes of associated databases.  These workloads and databases are 
-expected to change more frequently and to a greater extent than for 
+<li>In the fixed (static) mode of operation (base or data processing
+megacenter), the data management services shall have the capability of
+being tuned by on-site personnel to adjust for varying workloads and
+sizes of associated databases.  These workloads and databases are
+expected to change more frequently and to a greater extent than for
 processing associated with deployed units</li>
-<li>In a changing (dynamic) environment, such as with deployed units, 
-the workload and database sizes may be more predetermined (given a more 
-precise mission) and require access to fewer data management 
-administrative capabilities than needed in a fixed environment. The XS 
+<li>In a changing (dynamic) environment, such as with deployed units,
+the workload and database sizes may be more predetermined (given a more
+precise mission) and require access to fewer data management
+administrative capabilities than needed in a fixed environment. The XS
 shall have the ability to redefine or reset names of connect descriptors
- to database server instances.  Connect descriptors are fully qualified 
+ to database server instances.  Connect descriptors are fully qualified
 object names and include address (protocol/host/port) and instance name.
  </li>
-<li>  In a degraded communications environment, there is a need, for 
-example, to be able to reset session time-out values if the data 
-management services are being accessed by users affected by the 
-communications degradation. At a minimum, the session time-out values 
-shall be user definable and be able to be reset prior to initialization 
-of a user session.  The goal is to provide the option of dynamically 
+<li>  In a degraded communications environment, there is a need, for
+example, to be able to reset session time-out values if the data
+management services are being accessed by users affected by the
+communications degradation. At a minimum, the session time-out values
+shall be user definable and be able to be reset prior to initialization
+of a user session.  The goal is to provide the option of dynamically
 changing session time values based on current communications performance
  identified by capabilities of the network management or DBMS. </li>
 <p>&nbsp;</p>
-<li>End User Mode: Portion of XS services shall be used by various 
-classes of users: data consumers, data and database managers, network 
+<li>End User Mode: Portion of XS services shall be used by various
+classes of users: data consumers, data and database managers, network
 information infrastructure resource managers.  Some of these uses of the
- data management services will entail unique requirements that shall be 
+ data management services will entail unique requirements that shall be
 fulfilled within the capability of XS services.</li>
 <p>&nbsp;</p>
-<li>Maintenance  Mode: This mode includes modification and/or addition 
-of application data segments, user permission, privileges, and 
-restructuring storage and memory areas. In addition, maintenance also 
-shall pertain to shutdown, open not-mounted and online/off-line 
-implementations, modifications, upgrade, or other related actions. The 
-data management services shall support managing various types of data, 
+<li>Maintenance  Mode: This mode includes modification and/or addition
+of application data segments, user permission, privileges, and
+restructuring storage and memory areas. In addition, maintenance also
+shall pertain to shutdown, open not-mounted and online/off-line
+implementations, modifications, upgrade, or other related actions. The
+data management services shall support managing various types of data,
 database architectures and platforms that includes hardware and software
  at the specified sites.  </li>
-<li>Training Mode. In support of <u>training activities</u>, the data 
-management services shall provide for the same processing as would be 
-encountered in a production environment.   However, access to the 
-database may be via a training application access to the DBMS rather 
+<li>Training Mode. In support of <u>training activities</u>, the data
+management services shall provide for the same processing as would be
+encountered in a production environment.   However, access to the
+database may be via a training application access to the DBMS rather
 than from the production mission application.</li></ol>
 
 <p>&nbsp;</p>
@@ -226,31 +226,31 @@ than from the production mission application.</li></ol>
 <b></b><li><b>Register Terms and Structures (e.g., tags, DTDs, DCDs)</b></li>
 <ol>
 
-<li><b> Producer services</b>.<b>  </b>A producer is an agent that 
+<li><b> Producer services</b>.<b>  </b>A producer is an agent that
 contributes metadata for inclusion into an XML Registry for the purposes
- of ensuring maximum semantic understanding of a term as it appears in 
-an XML document.  To contribute metadata to a registry, the producer 
-must be able to receive XML registry forms, submit metadata and the 
+ of ensuring maximum semantic understanding of a term as it appears in
+an XML document.  To contribute metadata to a registry, the producer
+must be able to receive XML registry forms, submit metadata and the
 related information resource artifacts, and notify.</li>
 <b></b><p><b>&nbsp;</b></p>
 <ol>
 
-<b></b><li>Produce and display submittal forms as part of the 
-Information Resource Submittal Package from the web containing the 
-following Information Resource artifacts: XML Tag Specification, XML 
-Spec (i.e. DTD, DCD etc.), Sample of XML document of the tag to be 
+<b></b><li>Produce and display submittal forms as part of the
+Information Resource Submittal Package from the web containing the
+following Information Resource artifacts: XML Tag Specification, XML
+Spec (i.e. DTD, DCD etc.), Sample of XML document of the tag to be
 submitted. The Package is to be compressed and emailed or sent ftp to an
  addressee.</li>
-<li>Download Information Resource Submittal Package from the web 
-containing forms, instructions, and tools for submission to XML 
+<li>Download Information Resource Submittal Package from the web
+containing forms, instructions, and tools for submission to XML
 Registry.</li>
-<li>Submit prescribed metadata related to information resource type, 
-information resource association, status code, data types specified and 
-other related information specified in <i>Appendix A</i> within a 
-combination of forms.  These forms are part of the Information Resource 
-Submittal Package containing the following Information Resource 
-artifacts: XML Tag Specification, XML Spec (i.e. DTD, DCD etc.), Sample 
-of XML document of the tag to be submitted. The Package is to be 
+<li>Submit prescribed metadata related to information resource type,
+information resource association, status code, data types specified and
+other related information specified in <i>Appendix A</i> within a
+combination of forms.  These forms are part of the Information Resource
+Submittal Package containing the following Information Resource
+artifacts: XML Tag Specification, XML Spec (i.e. DTD, DCD etc.), Sample
+of XML document of the tag to be submitted. The Package is to be
 compressed and emailed or sent ftp to an addressee.</li>
 <p>&nbsp;</p>
 <li></li>
@@ -273,7 +273,7 @@ compressed and emailed or sent ftp to an addressee.</li>
 <li>Forward request to different registry</li></ol>
 
 <b></b><li><b> Consumer services</b>.  A consumer examines a registry to
- select a tag structure for reuse in one or more applications that will 
+ select a tag structure for reuse in one or more applications that will
 exchange data according to a pre-defined agreement.</li>
 <ol>
 
@@ -286,7 +286,7 @@ exchange data according to a pre-defined agreement.</li>
 <li>Data type information: Provide the capability to view a tag’s data type and related information.</li>
 <li>Versioning relationship: Provide the capability to view an Information resource’s versions</li>
 <li>Reference Sets: Provide the capability to view text related to the domain values or the related reference set</li>
-<li> Amplifying information: Provide the capability to view other 
+<li> Amplifying information: Provide the capability to view other
 information resources such as ERwin models, DTDs, documents, etc., which
  describe or otherwise provide amplifying information.</li>
 <font face="Helv" size="3"><p>&nbsp;</p>
@@ -294,15 +294,15 @@ information resources such as ERwin models, DTDs, documents, etc., which
 <li>  View the XML Tags by giving the user multiple search options to find a specific Tag.</li>
 <li>  View the XML tags by giving the user the search option to find all tags of a given subscriber/author.</li></ol>
 
-<li>Each Information Resource will have its own web page to allow the 
-user to view all pertinent information, according to its information 
+<li>Each Information Resource will have its own web page to allow the
+user to view all pertinent information, according to its information
 resource type.</li>
-<li>View the Information Resource Submittal Package containing the 
-following Information Resource artifacts: XML Tag Specification, XML 
-Spec (i.e. DTD, DCD etc.), Sample of XML document of the tag to be 
+<li>View the Information Resource Submittal Package containing the
+following Information Resource artifacts: XML Tag Specification, XML
+Spec (i.e. DTD, DCD etc.), Sample of XML document of the tag to be
 submitted.</li>
 <font face="Helv"><p>&nbsp;</p>
-</font><li>Display an XML Tag Specification form to the author of a 
+</font><li>Display an XML Tag Specification form to the author of a
 given information resource. This XML Tag Spec will be used for inputting
  the requesting information for a specific Information Resource. </li>
 <font face="Helv">
@@ -323,15 +323,15 @@ given information resource. This XML Tag Spec will be used for inputting
 
 <b></b><li>create and manage usernames, superusers</li>
 <p>&nbsp;</p>
-<li>Establish acceptable naming convention not to be in conflict with 
-the DOD data standards convention and establish a relationship to other 
+<li>Establish acceptable naming convention not to be in conflict with
+the DOD data standards convention and establish a relationship to other
 naming conventions.</li>
 <p>&nbsp;</p>
 <li>Create a naming structure within the COE architecture to express the
- context and relationship of the naming convention to other naming 
+ context and relationship of the naming convention to other naming
 conventions specified in the I&amp;RTS.</li>
-<li>Define a set of metadata tags, information attributed to metadata 
-tags (meta-metadata) and other related terms for the maintenance and 
+<li>Define a set of metadata tags, information attributed to metadata
+tags (meta-metadata) and other related terms for the maintenance and
 control of XML tags.</li>
 
 <p>&nbsp;</p>
@@ -426,7 +426,7 @@ control of XML tags.</li>
 <ol>
 
 <li><b><a name="_Toc337008254"></a><a name="_Toc337959828"></a><a name="_Toc444402524"></a><a name="_Toc444402691"></a><a name="_Toc444423257"></a></b><a name="_Toc444423257">The
- XS shall internally interface (transparent to the operator) with the 
+ XS shall internally interface (transparent to the operator) with the
 existing data elements of the DBIF, DAC, and COTS RDBMS products.</a></li></ol>
 
 <li><a name="_Toc336235459"></a><a name="_Toc444423258"><b>REGISTRY SERVICES ENVIRONMENT REQUIREMENTS</b></a><b></b></li>
@@ -441,9 +441,9 @@ existing data elements of the DBIF, DAC, and COTS RDBMS products.</a></li></ol>
 <b></b><p align="JUSTIFY">Not applicable.  Training requirements shall be determined by the developers of the system in which the XS module is embedded.</p>
 <p align="JUSTIFY">&nbsp;</p>
 <li><a name="_Toc336235465"></a><a name="_Toc444423262"><b>LOGISTICS-RELATED REQUIREMENTS</b></a><b></b></li>
-<b></b><p align="JUSTIFY">The XS developer is responsible for software 
-maintenance, software support, and software updates.  The DISA 
-Configuration Manager (CM) is responsible for distribution of the XS 
+<b></b><p align="JUSTIFY">The XS developer is responsible for software
+maintenance, software support, and software updates.  The DISA
+Configuration Manager (CM) is responsible for distribution of the XS
 product to system developers.</p>
 <li><a name="_Toc336235466"></a><a name="_Toc444423263"><b>OTHER REQUIREMENTS</b></a><b></b></li>
 <b></b><p align="JUSTIFY">None.</p>
@@ -456,9 +456,9 @@ product to system developers.</p>
 </ol>
 
 <b></b><p align="JUSTIFY"></p>
-<p align="JUSTIFY">The following table depicts the mapping of the 
-requirements in Section 3 to their corresponding precedence and 
-criticality code and to other related requirements within the XS SRS.  
+<p align="JUSTIFY">The following table depicts the mapping of the
+requirements in Section 3 to their corresponding precedence and
+criticality code and to other related requirements within the XS SRS.
 The precedence and criticality codes are the following:</p>
 <p align="JUSTIFY"></p>
 
@@ -502,7 +502,7 @@ The precedence and criticality codes are the following:</p>
 <li><a name="_Toc336235469"></a></li>
 <a name="_Toc336235469"><b></b></a><li><a name="_Toc444423266"><b>QUALIFICATION PROVISIONS</b></a><b></b></li>
 <b></b><p>COE Software will be qualified through formal validation tests
- of the SRS level requirements.  The Qualification Methods applied to 
+ of the SRS level requirements.  The Qualification Methods applied to
 the software shall include test, demonstration, analysis, and inspection
  (T, D, A, I).</p>
 <p>&nbsp;</p>
@@ -510,28 +510,28 @@ the software shall include test, demonstration, analysis, and inspection
 
 <li><a name="_Toc336235470"></a><a name="_Toc444423267"><b>TEST</b></a><b></b></li>
 <b></b><p>A qualification method that is carried out by operation of the
- item/component/I/F (or some part of the computer S/W configuration 
+ item/component/I/F (or some part of the computer S/W configuration
 item, etc.) and that relies on the collection and subsequent examination
  of data.</p>
 <p>&nbsp;</p>
 <li><a name="_Toc336235471"></a><a name="_Toc444423268"><b>DEMONSTRATION</b></a><b></b></li>
 <b></b><p>A qualification method that is carried out by operation of the
- item/component/I/F (or some part of the computer S/W configuration 
-item, etc.), and that relies on observable functional operation not 
-requiring the use of elaborate instrumentation or special test 
+ item/component/I/F (or some part of the computer S/W configuration
+item, etc.), and that relies on observable functional operation not
+requiring the use of elaborate instrumentation or special test
 equipment.</p>
 <p>&nbsp;</p>
 <li><a name="_Toc336235472"></a><a name="_Toc444423269"><b>ANALYSIS</b></a><b></b></li>
-<b></b><p>A qualification method that is carried out by the processing 
-of accumulated data.  An example of accumulated data is the compilation 
-of data obtained from other qualification methods.  Examples of the 
-processing of accumulated data are interpretations or extrapolations 
+<b></b><p>A qualification method that is carried out by the processing
+of accumulated data.  An example of accumulated data is the compilation
+of data obtained from other qualification methods.  Examples of the
+processing of accumulated data are interpretations or extrapolations
 made from the data.</p>
 <p>&nbsp;</p>
 <li><a name="_Toc336235473"></a><a name="_Toc444423270"><b>INSPECTION</b></a><b></b></li></ol>
 
-<b></b><p>A qualification method that is carried out by visual 
-examination, physical manipulation, or measurement to verify that the 
+<b></b><p>A qualification method that is carried out by visual
+examination, physical manipulation, or measurement to verify that the
 requirements have been satisfied.</p>
 <p align="JUSTIFY">&nbsp;</p>
 <li><a name="_Toc336235474"></a></li>
@@ -631,17 +631,17 @@ requirements have been satisfied.</p>
 <li><a name="_Toc444423274"><b>GLOSSARY OF TERMS</b></a><b></b></li></ol>
 
 <b></b><p><a name="_Toc336235476"></a></p>
-<p align="JUSTIFY"><a name="_Toc336235476">Automatically:  Indicates 
-processing initiated during execution of other processes, but dependent 
-on information and/or parameters to be generated or supplied to these 
-other processes. The information / parameters may be data dependent, or 
- application dependent, or dependent on a manual process/human 
-intervention.  It will include controls qualifying the processing 
+<p align="JUSTIFY"><a name="_Toc336235476">Automatically:  Indicates
+processing initiated during execution of other processes, but dependent
+on information and/or parameters to be generated or supplied to these
+other processes. The information / parameters may be data dependent, or
+ application dependent, or dependent on a manual process/human
+intervention.  It will include controls qualifying the processing
 involved.</a></p>
 <p align="JUSTIFY"></p>
-<p align="JUSTIFY"><a name="_Toc336235476">Business Rule:  A narrative 
-description of policies, procedures, or principles within an 
-organization.   Business rules can be divided in to four categories:  
+<p align="JUSTIFY"><a name="_Toc336235476">Business Rule:  A narrative
+description of policies, procedures, or principles within an
+organization.   Business rules can be divided in to four categories:
 definitions, facts, constraints, and derivations.</a></p>
 <p><a name="_Toc336235476"> </a></p>
 <p><a name="_Toc336235476">Definitions are business rules that define entities and attributes.</a></p>
@@ -649,127 +649,127 @@ definitions, facts, constraints, and derivations.</a></p>
 <p><a name="_Toc336235476">Facts are either links (relationships) between entities or associations </a></p>
 <p><a name="_Toc336235476">between an entity and attributes</a></p>
 <p><a name="_Toc336235476"> </a></p>
-<p><a name="_Toc336235476">Constraints are conditions about the data 
-that must always be true.  They  are the integrity rules that protect 
+<p><a name="_Toc336235476">Constraints are conditions about the data
+that must always be true.  They  are the integrity rules that protect
 the data in the eventual database.</a></p>
 <p><a name="_Toc336235476"> </a></p>
-<p align="JUSTIFY"><a name="_Toc336235476">Derivations are business 
-rules that materialize a new piece of information (often attribute 
-values) from other pieces of information.  For example, a mathematical 
-derivation might specify that you can obtain a person's age by 
+<p align="JUSTIFY"><a name="_Toc336235476">Derivations are business
+rules that materialize a new piece of information (often attribute
+values) from other pieces of information.  For example, a mathematical
+derivation might specify that you can obtain a person's age by
 subtracting his or her birth date from the current date.</a></p>
 <p align="JUSTIFY"></p>
-<p align="JUSTIFY"><a name="_Toc336235476">Commit/Rollback:  An 
-individual transaction is processed (commit) or discarded (rollback) by 
+<p align="JUSTIFY"><a name="_Toc336235476">Commit/Rollback:  An
+individual transaction is processed (commit) or discarded (rollback) by
 the proponent maintainer of the data items involved.</a></p>
 <p align="JUSTIFY"></p>
 <p align="JUSTIFY"><a name="_Toc336235476">Discretionary Access Controls
- (DAC):  A means of restricting access to objects based on the identity 
-of subjects or groups to which they belong.  The controls are 
-discretionary in the sense that a subject with a certain access 
-permission is capable of passing that permission on to any other 
+ (DAC):  A means of restricting access to objects based on the identity
+of subjects or groups to which they belong.  The controls are
+discretionary in the sense that a subject with a certain access
+permission is capable of passing that permission on to any other
 subject.</a></p>
 
-<p align="JUSTIFY"><a name="_Toc336235476">Dynamically Generated 
-Processing:  Indicates processing initiated during execution of other 
-processes, but dependent upon information and/or parameters to be 
-generated or supplied to these other processes.  The 
-information/parameters may be data dependent, or application dependent, 
-or dependent on a manual process/human intervention.  It will include 
+<p align="JUSTIFY"><a name="_Toc336235476">Dynamically Generated
+Processing:  Indicates processing initiated during execution of other
+processes, but dependent upon information and/or parameters to be
+generated or supplied to these other processes.  The
+information/parameters may be data dependent, or application dependent,
+or dependent on a manual process/human intervention.  It will include
 controls qualifying the processing involved.</a></p>
 
-<p align="JUSTIFY"><a name="_Toc336235476">Location Transparency:  
-occurs when the physical location of data is transparent to the 
+<p align="JUSTIFY"><a name="_Toc336235476">Location Transparency:
+occurs when the physical location of data is transparent to the
 applications and users of the database system.  For example, a view that
- joins table data from several databases provides location transparency 
-because the user of the view does not need to know where the data 
+ joins table data from several databases provides location transparency
+because the user of the view does not need to know where the data
 originates from.</a></p>
 
 <p><a name="_Toc336235476">&nbsp;</a></p>
-<p align="JUSTIFY"><a name="_Toc336235476">Mandatory Access Control 
+<p align="JUSTIFY"><a name="_Toc336235476">Mandatory Access Control
 (MAC):  mediates access to an object based on the clearance level of the
- subject (user) and the sensitivity label of the object.  (These 
+ subject (user) and the sensitivity label of the object.  (These
 controls are always enforced above any discretionary control implemented
  by users).</a></p>
 <p align="JUSTIFY"></p>
-<p align="JUSTIFY"><a name="_Toc336235476">Mirrored Databases:  
+<p align="JUSTIFY"><a name="_Toc336235476">Mirrored Databases:
 Replication and maintenance of a database on a transaction basis for the
  purpose of rapid error or failure recovery as supported by the resident
  COTS RDBMS own system utilities and operating system.</a></p>
 <p align="JUSTIFY"></p>
 <p align="JUSTIFY"><a name="_Toc336235476">Object: A passive entity that
- contains or receives information.  Access to an object potentially 
-implies access to the information it contains. Examples of objects are 
-records, blocks, pages, segments, files, directories, directory trees, 
-and programs, as well as bits, bytes, words, fields, processors, video 
+ contains or receives information.  Access to an object potentially
+implies access to the information it contains. Examples of objects are
+records, blocks, pages, segments, files, directories, directory trees,
+and programs, as well as bits, bytes, words, fields, processors, video
 displays, keyboards, clocks, printers, and network nodes.</a></p>
 <p align="JUSTIFY"></p>
-<p align="JUSTIFY"><a name="_Toc336235476">Proponent Scheme:  Describes 
-the sites at which databases are replicated and also who owns and has 
-update authority with respect to the data at each site.  It refers to 
+<p align="JUSTIFY"><a name="_Toc336235476">Proponent Scheme:  Describes
+the sites at which databases are replicated and also who owns and has
+update authority with respect to the data at each site.  It refers to
 proponency at the source and record level.</a></p>
 
-<p align="JUSTIFY"><a name="_Toc336235476">Redundant Array of 
-Inexpensive Disks (RAID):  A RAID system appears as one very large, 
+<p align="JUSTIFY"><a name="_Toc336235476">Redundant Array of
+Inexpensive Disks (RAID):  A RAID system appears as one very large,
 reliable disk to the CPU.  The main reason for using RAID storage is its
  reliability.  RAID has the same advantages as shadowing and striping at
- a lower cost.  There are several types/levels of RAID implementations, 
-including:  RAID 0 (known as disk striping), RAID 1 (known as disk 
-shadowing), RAID 3 (in which data is distributed in small increments 
-across all data disks and adds a parity value to a separate disk for 
-recovery if any disk fails, RAID 4 (in which data is distributed in 
-large chunks across all data disks and also has a single parity disk.  
-RAID 4 intended to overcome performance penalties of RAID 3 for small 
-transfers.  RAID 5 (in which parity over RAID 3 or RAID 4 
-implementations), and RAID 6 ( in which two parity disks in addition to 
+ a lower cost.  There are several types/levels of RAID implementations,
+including:  RAID 0 (known as disk striping), RAID 1 (known as disk
+shadowing), RAID 3 (in which data is distributed in small increments
+across all data disks and adds a parity value to a separate disk for
+recovery if any disk fails, RAID 4 (in which data is distributed in
+large chunks across all data disks and also has a single parity disk.
+RAID 4 intended to overcome performance penalties of RAID 3 for small
+transfers.  RAID 5 (in which parity over RAID 3 or RAID 4
+implementations), and RAID 6 ( in which two parity disks in addition to
 data disks are used in an attempt to further improve performance).   In a
- RAID 5 implementation, the data is stored as are check sums and other 
-information about the contents of each disk in the array.  If one disk 
-is lost, the others can use the check sums and other stored information 
-to recreate the lost data.  Storage system vendors may provide 
-additional enhancements to RAID level implementations to improve 
+ RAID 5 implementation, the data is stored as are check sums and other
+information about the contents of each disk in the array.  If one disk
+is lost, the others can use the check sums and other stored information
+to recreate the lost data.  Storage system vendors may provide
+additional enhancements to RAID level implementations to improve
 performance and reliability.</a></p>
 
-<p align="JUSTIFY"><a name="_Toc336235476">Remote Data Access (RDA): is 
-an ISO (9579) application layer interoperability standard (protocol and 
+<p align="JUSTIFY"><a name="_Toc336235476">Remote Data Access (RDA): is
+an ISO (9579) application layer interoperability standard (protocol and
 formats) to support access by an application to a (remote) DBMSs over an
- OSI network. The goal of RDA is to allow interoperability between 
-applications (clients) and databases (servers) of different 
-manufacturers so that an application is able to read and update data in 
+ OSI network. The goal of RDA is to allow interoperability between
+applications (clients) and databases (servers) of different
+manufacturers so that an application is able to read and update data in
 remote databases via well defined standards. RDA defines a set of client
- and server standards and a mapping of SQL commands to these services. 
-RDA also defines an interface to ISO (transaction processing) two phase 
-commit TP services in the case where updates to multiple remote 
-databases need to be coordinated. RDA does not yet define 
+ and server standards and a mapping of SQL commands to these services.
+RDA also defines an interface to ISO (transaction processing) two phase
+commit TP services in the case where updates to multiple remote
+databases need to be coordinated. RDA does not yet define
 interoperability between server databases (i.e. it is not yet a standard
  for distributed database management).</a></p>
 
 <p><a name="_Toc336235476">&nbsp;</a></p>
-<p align="JUSTIFY"><a name="_Toc336235476">Replication Scheme:  
-Information that precisely identifies DBs, or partitions of DBs, to be 
-copied and/or distributed, replication schedules, and master/remote 
+<p align="JUSTIFY"><a name="_Toc336235476">Replication Scheme:
+Information that precisely identifies DBs, or partitions of DBs, to be
+copied and/or distributed, replication schedules, and master/remote
 sites that are to receive the copies.</a></p>
 <p align="JUSTIFY"></p>
-<p align="JUSTIFY"><a name="_Toc336235476">Spatial DBMS:  Geographic 
-information system that organizes and maintains spatial data (i.e. data 
+<p align="JUSTIFY"><a name="_Toc336235476">Spatial DBMS:  Geographic
+information system that organizes and maintains spatial data (i.e. data
 with graphical attributes) in terms of type, scale, location(s), extent,
- topology and geometry.  Supports queries of spatial data where the 
+ topology and geometry.  Supports queries of spatial data where the
 selection criteria are defined by spatial attributes.</a></p>
 <p align="JUSTIFY"></p>
-<p align="JUSTIFY"><a name="_Toc336235476">SRI:  A Standing Request For 
-Information (SRI) is a capability in which CASS  monitors for the 
-occurrence of conditions established by an application program, and 
-notifies the calling or establishing application program when the 
-conditions are satisfied.  An SRI may be one of three types:  
+<p align="JUSTIFY"><a name="_Toc336235476">SRI:  A Standing Request For
+Information (SRI) is a capability in which CASS  monitors for the
+occurrence of conditions established by an application program, and
+notifies the calling or establishing application program when the
+conditions are satisfied.  An SRI may be one of three types:
 timer-based, data-based, or message-based.</a></p>
 <p align="JUSTIFY"></p>
-<p align="JUSTIFY"><a name="_Toc336235476">Subject:  An active entity, 
-generally in the form of a person, process, or device that causes 
-information to flow among objects or changes the system state.  
+<p align="JUSTIFY"><a name="_Toc336235476">Subject:  An active entity,
+generally in the form of a person, process, or device that causes
+information to flow among objects or changes the system state.
 Technically, a process/domain pair.</a></p>
 <p align="JUSTIFY"></p>
-<p align="JUSTIFY"><a name="_Toc336235476">Transaction Journalling:  
-Individual messages or database transactions are stored in a journal 
+<p align="JUSTIFY"><a name="_Toc336235476">Transaction Journalling:
+Individual messages or database transactions are stored in a journal
 file, which may be a linear log file or a circular file.</a></p>
 <a name="_Toc336235476"><u>
 </u></a><p></p>
@@ -804,48 +804,48 @@ file, which may be a linear log file or a circular file.</a></p>
 </font><p><a name="REQ"></a>The metadata and procedures are described for the current Information Resource Submittal Package .</p>
 <p></p><div align="center"></div> <p></p>
 <b></b><p><b>Metadata and Related Information</b><br>
-An XML tag may be described as any object and is easily created by 
+An XML tag may be described as any object and is easily created by
 anyone using a text editor. Although XML is a relatively new technology,
- many developers are already using XML in operational COE systems and 
-have already created tags and specifications, many of which may be 
-inconsistent with tags used in other systems. So far, the burgeoning 
-sets of XML tags have created redundancy and irrelevancy, and they lack 
+ many developers are already using XML in operational COE systems and
+have already created tags and specifications, many of which may be
+inconsistent with tags used in other systems. So far, the burgeoning
+sets of XML tags have created redundancy and irrelevancy, and they lack
 validity.</p>
 
 <b></b><p><b>XML Registry. </b><br>
-To ensure interoperability, this registry provides a baseline set of 
-tags developed through coordination and approval among the Community. 
-The Registry allows a user to browse, search, and retrieve data that 
-satisfy your requirements. The Registry has a substring search 
-capability so that the user may easily find information resources that 
-meet the criteria. The user may specify whether to search for the term 
+To ensure interoperability, this registry provides a baseline set of
+tags developed through coordination and approval among the Community.
+The Registry allows a user to browse, search, and retrieve data that
+satisfy your requirements. The Registry has a substring search
+capability so that the user may easily find information resources that
+meet the criteria. The user may specify whether to search for the term
 within the name of the information resource or the definition or both.</p>
 
 <b></b><p><b>Developer's Role</b>.<br>
-Developers are urged to review the baseline tags, adopt them where 
-possible, and subscribe to future notifications about the tags. If, 
-after reviewing the tags in the Registry, you cannot reuse an existing 
-specification (a.k.a. Document Type Definition (DTD)) or existing tags, 
-you may submit your proposed tag to a Community of Interest (COI) and 
-provide amplifying information for all to understand the semantics for 
+Developers are urged to review the baseline tags, adopt them where
+possible, and subscribe to future notifications about the tags. If,
+after reviewing the tags in the Registry, you cannot reuse an existing
+specification (a.k.a. Document Type Definition (DTD)) or existing tags,
+you may submit your proposed tag to a Community of Interest (COI) and
+provide amplifying information for all to understand the semantics for
 its proper use. </p>
 
 <b></b><p><b>COE Chief Engineer's Role. </b><br>
 The COE Chief Engineer will approve a single Point of Contact (POC) for a
- COI to manage the tags within that COI. The COE Chief Engineer will 
+ COI to manage the tags within that COI. The COE Chief Engineer will
 reserve ultimate authority to mediate any unresolved disputes within all
  COIs. </p>
 
 <b></b><p><b>The COE Data Engineering Team's Role</b>.<br>
-Tags and semantics will be analyzed to identify opportunities to 
-consolidate tags towards a single or a minimal number of 
-representations. A "market forces" model can also guide COE Data 
+Tags and semantics will be analyzed to identify opportunities to
+consolidate tags towards a single or a minimal number of
+representations. A "market forces" model can also guide COE Data
 Engineering in identifying the weak candidates from the strong.</p>
 
 <b></b><p><b>The Community of Interest's POC's Role</b>.<br>
 (The information in the following section is current as of 17 May, 1999.
- Please consult the Registry for the most authoritative list of 
-information resources types.) The POC responsibilities will include the 
+ Please consult the Registry for the most authoritative list of
+information resources types.) The POC responsibilities will include the
 transitioning of information resources from one status to another. Table
  1 lists the valid types of information resources. The status levels are
  developmental, candidate, approved, rejected, and retired. </p>
@@ -882,8 +882,8 @@ transitioning of information resources from one status to another. Table
 <tr><td valign="TOP" width="32%">
 <p>Domain</p></td>
 <td valign="TOP" width="68%">
-<p>the valid values for an element or attribute; expressed as a valid 
-SQL expression or by reference to a separately available set (e.g., XML 
+<p>the valid values for an element or attribute; expressed as a valid
+SQL expression or by reference to a separately available set (e.g., XML
 doc of current CTRY values)</p></td>
 </tr>
 <tr><td valign="TOP" width="32%">
@@ -964,7 +964,7 @@ doc of current CTRY values)</p></td>
 <p align="JUSTIFY">&nbsp;</p>
 <p align="JUSTIFY">&nbsp;</p>
 <b><p>Procedures</p>
-</b><p>For Developers may submit and use information resources within 
+</b><p>For Developers may submit and use information resources within
 the Registry constitutes guidance in the generation and use of XML as an
  authoritative source for approved XML data and metadata components. </p>
 
@@ -983,27 +983,27 @@ Establishing a new Information Resource. Follow these conventions for creating n
 
 <b></b><li><b>Use "XML_Attributes" sparingly</b><br>
 <br>
-If the term is well recognized outside its container term, designate it 
-as an element. Example: CTRY_CD, CTRY_NM, CTRY_ABBRD_NM, CTRY_OFF_NM, 
+If the term is well recognized outside its container term, designate it
+as an element. Example: CTRY_CD, CTRY_NM, CTRY_ABBRD_NM, CTRY_OFF_NM,
 CTRY_SCP_NT_TX, and CTRY_PSTL_NM are all characteristics (ER-attributes)
- for the entity CTRY. In the relational world, they are columns within 
+ for the entity CTRY. In the relational world, they are columns within
 the table ctry, attributes of the entity ctry in er-modeling, and member
- attributes in object modeling. It would be expected that a submitter 
+ attributes in object modeling. It would be expected that a submitter
 would identify them as attributes rather than elements. But if they were
- identified as attributes of the element ctry, then the additional 
-baggage (other attributes) must be carried, or submitted as separate 
-elements. We wish to limit the proliferation of tags, so we strongly 
+ identified as attributes of the element ctry, then the additional
+baggage (other attributes) must be carried, or submitted as separate
+elements. We wish to limit the proliferation of tags, so we strongly
 urge folks to use XML_Attributes sparingly. <br>
 </li></ol>
 
 <b></b><p align="JUSTIFY"><b>Include descriptive definitions AND synonyms for the Information Resource Definition.</b> <br>
 <br>
-Initially, the Registry will not have keyword, thesaurus, or ontology 
-support but it will have a substring search for a number of fields, 
-including definition. Therefore, we urge submitters to include enough 
-expressive terms so that COE developers would easily find the term they 
-might consider "natural" in the definition and find the desirable tag 
-for expressing that concept. Example: If the registered tag is ORG_ID, 
+Initially, the Registry will not have keyword, thesaurus, or ontology
+support but it will have a substring search for a number of fields,
+including definition. Therefore, we urge submitters to include enough
+expressive terms so that COE developers would easily find the term they
+might consider "natural" in the definition and find the desirable tag
+for expressing that concept. Example: If the registered tag is ORG_ID,
 the description that includes references</p>
 <p align="JUSTIFY"></p>
 <p align="JUSTIFY">&nbsp;</p>
@@ -1044,7 +1044,7 @@ the description that includes references</p>
 <p align="JUSTIFY">&nbsp;</p>
 <p align="JUSTIFY">The External Interfaces for the XS SRS are defined as
  interfaces to non-COE components. Detailed information (as specified in
- paragraph 3.3 of the Data Item Description DI-IPSC-81433) defining 
+ paragraph 3.3 of the Data Item Description DI-IPSC-81433) defining
 these interfaces will be specified during the design phase of the COE XS
   architecture.  At this time such detailed information is unavailable.</p>
 <p align="JUSTIFY"></p>
@@ -1058,9 +1058,9 @@ these interfaces will be specified during the design phase of the COE XS
 <b></b><p align="JUSTIFY"></p>
 <p align="JUSTIFY">&nbsp;</p>
 <p align="JUSTIFY">The Internal Interfaces for the XS SRS are defined as
- interfaces to COE components.  Detailed information (as specified in 
+ interfaces to COE components.  Detailed information (as specified in
 paragraph 3.4 of the Data Item Description DI-IPSC-81433) defining these
- interfaces will be specified during the design phase of the COE XS  
+ interfaces will be specified during the design phase of the COE XS
 architecture.  At this time such detailed information is unavailable.</p>
 <p align="JUSTIFY"></p>
 <p align="JUSTIFY">The COE components identified to-date are listed below.</p>
@@ -1199,10 +1199,10 @@ architecture.  At this time such detailed information is unavailable.</p>
 
 <b></b><p align="JUSTIFY"></p>
 <p align="JUSTIFY">&nbsp;</p>
-<p align="JUSTIFY">The Interfaces to Commercial Products for the XS SRS 
-are identified below.  Detailed information (as specified in paragraph 
-3.3 of the Data Item Description DI-IPSC-81433) defining these 
-interfaces will be specified during the design phase of the COE XS 
+<p align="JUSTIFY">The Interfaces to Commercial Products for the XS SRS
+are identified below.  Detailed information (as specified in paragraph
+3.3 of the Data Item Description DI-IPSC-81433) defining these
+interfaces will be specified during the design phase of the COE XS
 architecture.  At this time such detailed information is unavailable.</p>
 <p align="JUSTIFY"></p>
 <p align="JUSTIFY">The three commercial products or environments identified for the COE are the following Relational Database engines:</p>

@@ -59,13 +59,13 @@ export class ArchitectAgent extends BaseAgent {
     const { projectName = "Project", projectId = null, version = "latest" } = settings;
 
     logger.info(`[Architect] Blueprinting Product Architecture (Sectional Approach)...`);
-    
+
     // 1. System Components
     const components = await this.analyzeSystemComponents(poOutput, settings);
-    
+
     // 2. Logical Data Model
     const model = await this.modelEntities(poOutput, components, settings);
-    
+
     // 3. Technical Principles
     const principles = await this.identifyPrinciples(poOutput, components, model, settings);
 

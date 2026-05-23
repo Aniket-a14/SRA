@@ -20,14 +20,14 @@ from trl import SFTTrainer
 import wandb
 
 # --- CONFIGURATION ---
-MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-7B-Instruct") 
+MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-7B-Instruct")
 OUTPUT_DIR = "./sra_model_output"
 DATASET_TRAIN = "train_sft.jsonl"
 MAX_SEQ_LENGTH = 65536 # Enterprise scale
 
 def main():
     print(f"🚀 Starting SRA Lab Training for: {MODEL_NAME}")
-    
+
     # 1. Load Dataset
     dataset = load_dataset("json", data_files={"train": DATASET_TRAIN}, split="train")
 
@@ -73,7 +73,7 @@ def main():
         trust_remote_code=True,
         attn_implementation="flash_attention_2", # Use Flash Attention
     )
-    
+
     model.gradient_checkpointing_enable() # Critical for 16k context
     model = prepare_model_for_kbit_training(model)
 
@@ -82,7 +82,7 @@ def main():
         r=64,
         lora_alpha=128,
         # Targeting all linear layers ensures compatibility across models
-        target_modules="all-linear", 
+        target_modules="all-linear",
         lora_dropout=0.05,
         bias="none",
         task_type="CAUSAL_LM",
@@ -95,7 +95,7 @@ def main():
         per_device_train_batch_size=2,
         gradient_accumulation_steps=4,
         warmup_ratio=0.03,
-        max_steps=100, 
+        max_steps=100,
         learning_rate=2e-4,
         bf16=True, # Use BF16 for NVIDIA Labs
         logging_steps=1,

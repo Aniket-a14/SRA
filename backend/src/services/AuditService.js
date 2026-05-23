@@ -71,8 +71,8 @@ class AuditService {
     /**
      * Stamps a requirement with human verification in the DB.
      * @param {string} analysisId
-     * @param {string} reqId 
-     * @param {string} userId 
+     * @param {string} reqId
+     * @param {string} userId
      * @param {string} status - 'APPROVED_HUMAN' | 'REJECTED_HUMAN'
      */
     async verifyRequirement(analysisId, reqId, userId, status = 'APPROVED_HUMAN') {
@@ -142,7 +142,7 @@ class AuditService {
 
         // 4. Log to Audit Table (if we had one separate, but we store in metadata for now)
         // const action = { action: 'VERIFICATION', actor: userId, reqId, status, timestamp: new Date() };
-        // await prisma.auditLog.create(...) 
+        // await prisma.auditLog.create(...)
 
         return { success: true };
     }

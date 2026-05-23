@@ -68,7 +68,7 @@ After drafting, ask: **"Anything else to highlight or include that I might have 
 Every README needs at minimum:
 
 1. **Name** - Self-explanatory title
-2. **Description** - What + why in 1-2 sentences  
+2. **Description** - What + why in 1-2 sentences
 3. **Usage** - How to use it (examples help)
 
 ## References

@@ -143,15 +143,15 @@ Group related nodes:
 ```mermaid
 flowchart TB
     A[Start]
-    
+
     subgraph Processing
         B[Step 1]
         C[Step 2]
         D[Step 3]
     end
-    
+
     E[End]
-    
+
     A --> B
     D --> E
 ```
@@ -161,7 +161,7 @@ flowchart TB
 flowchart TB
     subgraph Outer
         A[Node A]
-        
+
         subgraph Inner
             B[Node B]
             C[Node C]
@@ -176,12 +176,12 @@ flowchart LR
         direction TB
         A1 --> A2
     end
-    
+
     subgraph two
         direction TB
         B1 --> B2
     end
-    
+
     one --> two
 ```
 
@@ -192,7 +192,7 @@ flowchart LR
 flowchart LR
     A[Normal]
     B[Styled]
-    
+
     style B fill:#ff6b6b,stroke:#333,stroke-width:4px,color:#fff
 ```
 
@@ -202,7 +202,7 @@ flowchart LR
     A[Node 1]:::className
     B[Node 2]:::className
     C[Node 3]
-    
+
     classDef className fill:#f9f,stroke:#333,stroke-width:2px
 ```
 
@@ -220,15 +220,15 @@ flowchart TD
     Start([User visits registration page]) --> Form[Show registration form]
     Form --> Input[User enters details]
     Input --> Validate{Valid input?}
-    
+
     Validate -->|No| ShowError[Show validation errors]
     ShowError --> Form
-    
+
     Validate -->|Yes| CheckEmail{Email exists?}
-    
+
     CheckEmail -->|Yes| EmailError[Show 'Email already registered']
     EmailError --> Form
-    
+
     CheckEmail -->|No| CreateAccount[Create user account]
     CreateAccount --> Hash[Hash password]
     Hash --> SaveDB[(Save to database)]
@@ -236,7 +236,7 @@ flowchart TD
     GenerateToken --> SendEmail[Send verification email]
     SendEmail --> ShowSuccess[Show success message]
     ShowSuccess --> End([Redirect to login])
-    
+
     style Start fill:#90EE90,stroke:#333,stroke-width:2px
     style End fill:#90EE90,stroke:#333,stroke-width:2px
     style CreateAccount fill:#87CEEB,stroke:#333,stroke-width:2px
@@ -249,24 +249,24 @@ flowchart TD
 flowchart TD
     Start([Start Binary Search]) --> Init[Set low = 0, high = array.length - 1]
     Init --> Check{low <= high?}
-    
+
     Check -->|No| NotFound[Return -1: Not found]
     NotFound --> End([End])
-    
+
     Check -->|Yes| CalcMid[mid = low + (high - low) / 2]
     CalcMid --> Compare{array[mid] == target?}
-    
+
     Compare -->|Yes| Found[Return mid: Found]
     Found --> End
-    
+
     Compare -->|No| CheckLess{array[mid] < target?}
-    
+
     CheckLess -->|Yes| MoveLow[low = mid + 1]
     MoveLow --> Check
-    
+
     CheckLess -->|No| MoveHigh[high = mid - 1]
     MoveHigh --> Check
-    
+
     style Start fill:#90EE90
     style End fill:#90EE90
     style Found fill:#FFD700
@@ -280,7 +280,7 @@ flowchart LR
     subgraph Development
         Commit[Developer commits code] --> Push[Push to repository]
     end
-    
+
     subgraph CI
         Push --> Trigger[Trigger CI pipeline]
         Trigger --> Checkout[Checkout code]
@@ -289,13 +289,13 @@ flowchart LR
         Lint --> Test[Run tests]
         Test --> Build[Build application]
     end
-    
+
     subgraph QA
         Build --> DeployStaging[Deploy to staging]
         DeployStaging --> E2E[Run E2E tests]
         E2E --> ManualQA{Manual QA approval?}
     end
-    
+
     subgraph Production
         ManualQA -->|Approved| DeployProd[Deploy to production]
         DeployProd --> HealthCheck{Health check passed?}
@@ -303,10 +303,10 @@ flowchart LR
         HealthCheck -->|No| Rollback[Rollback deployment]
         Rollback --> Alert[Alert team]
     end
-    
+
     ManualQA -->|Rejected| FixIssues[Fix issues]
     FixIssues --> Development
-    
+
     Test -->|Failed| NotifyDev[Notify developer]
     NotifyDev --> FixIssues
 ```
@@ -316,44 +316,44 @@ flowchart LR
 ```mermaid
 flowchart TD
     Start([User clicks Checkout]) --> Auth{Authenticated?}
-    
+
     Auth -->|No| Login[Redirect to login]
     Login --> Auth
-    
+
     Auth -->|Yes| Cart{Cart empty?}
     Cart -->|Yes| EmptyCart[Show empty cart message]
     EmptyCart --> Browse[Redirect to products]
-    
+
     Cart -->|No| Address[Show shipping address form]
     Address --> ValidateAddr{Valid address?}
     ValidateAddr -->|No| Address
     ValidateAddr -->|Yes| Shipping[Select shipping method]
-    
+
     Shipping --> Payment[Enter payment details]
     Payment --> ValidatePayment{Valid payment info?}
     ValidatePayment -->|No| Payment
-    
+
     ValidatePayment -->|Yes| Review[Show order review]
     Review --> Confirm{Confirm order?}
-    
+
     Confirm -->|No| Edit{Edit what?}
     Edit -->|Address| Address
     Edit -->|Shipping| Shipping
     Edit -->|Payment| Payment
-    
+
     Confirm -->|Yes| ProcessPayment[Process payment]
     ProcessPayment --> PaymentResult{Payment successful?}
-    
+
     PaymentResult -->|No| PaymentError[Show payment error]
     PaymentError --> RetryPayment{Retry?}
     RetryPayment -->|Yes| Payment
     RetryPayment -->|No| Cancel([Order cancelled])
-    
+
     PaymentResult -->|Yes| CreateOrder[(Create order record)]
     CreateOrder --> ReduceStock[Reduce inventory]
     ReduceStock --> SendConfirmation[Send confirmation email]
     SendConfirmation --> Success([Order complete - Show confirmation])
-    
+
     style Start fill:#90EE90
     style Success fill:#90EE90
     style Cancel fill:#FF6B6B
@@ -365,35 +365,35 @@ flowchart TD
 ```mermaid
 flowchart TD
     Start([Select deployment strategy]) --> Env{Environment?}
-    
+
     Env -->|Development| DevDecision{Automated tests?}
     DevDecision -->|Pass| DevDeploy[Auto-deploy to dev]
     DevDecision -->|Fail| Block[Block deployment]
-    
+
     Env -->|Staging| StageDecision{All checks pass?}
     StageDecision -->|Yes| StageDeploy[Deploy to staging]
     StageDecision -->|No| Block
-    
+
     Env -->|Production| ProdDecision{Change type?}
-    
+
     ProdDecision -->|Hotfix| Urgent{Critical bug?}
     Urgent -->|Yes| FastTrack[Emergency approval + deploy]
     Urgent -->|No| NormalProcess
-    
+
     ProdDecision -->|Feature| NormalProcess{Approval status?}
     NormalProcess -->|Approved| Schedule{Deploy window?}
     NormalProcess -->|Pending| Wait[Wait for approval]
     NormalProcess -->|Rejected| Block
-    
+
     Schedule -->|Now| ImmediateDeploy[Deploy immediately]
     Schedule -->|Scheduled| QueueDeploy[Queue for deploy window]
-    
+
     DevDeploy --> Monitor[Monitor metrics]
     StageDeploy --> Monitor
     FastTrack --> Monitor
     ImmediateDeploy --> Monitor
     QueueDeploy --> Monitor
-    
+
     Monitor --> End([Deployment complete])
     Block --> End
     Wait --> End

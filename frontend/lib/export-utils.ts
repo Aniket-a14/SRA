@@ -121,7 +121,7 @@ export const renderMermaidDiagrams = async (data: AnalysisResult): Promise<Recor
         container.style.width = '10000px';
         container.style.height = '10000px';
         container.style.backgroundColor = 'white';
-        // CRITICAL: Opacity 1 ensures browser renders it cheaply but fully. 
+        // CRITICAL: Opacity 1 ensures browser renders it cheaply but fully.
         container.style.opacity = '1';
         container.style.pointerEvents = 'none';
         document.body.appendChild(container);
@@ -417,7 +417,7 @@ export const generateSRS = async (data: AnalysisResult, title: string, diagramIm
     const { default: jsPDF } = await import('jspdf');
     const { default: autoTable } = await import('jspdf-autotable');
 
-    // We use unknown cast for jsPDF because its types are augmented by plugins in ways 
+    // We use unknown cast for jsPDF because its types are augmented by plugins in ways
     // that the base compiler sometimes misses during complex builds.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const doc: any = new jsPDF({ compress: true });
@@ -655,7 +655,7 @@ export const generateSRS = async (data: AnalysisResult, title: string, diagramIm
                     // Response
                     doc.setFont("times", "bold");
                     doc.text("Response:", margins.left + 10, yPos); // Indented slightly more? Or aligned.
-                    // User said "Stimulus/Response Sequences" -> usually pairs. 
+                    // User said "Stimulus/Response Sequences" -> usually pairs.
                     // Let's keep alignment consistent.
                     const rLabelWidth = doc.getTextWidth("Response: ");
 
@@ -1075,7 +1075,7 @@ export const generateSRS = async (data: AnalysisResult, title: string, diagramIm
         });
 
         // Ensure yPos is updated for next section if table didn't break page weirdly
-        // autoTable hook updates yPos but we need to ensure it persists 
+        // autoTable hook updates yPos but we need to ensure it persists
         // Actually, doc.lastAutoTable.finalY is the standard way
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         yPos = (doc as any).lastAutoTable?.finalY + 10 || yPos;
@@ -1099,7 +1099,7 @@ export const generateSRS = async (data: AnalysisResult, title: string, diagramIm
                 if (imgHeight > pageHeight - margins.bottom - margins.top) {
                     // Resize to fit page height if too tall
                     imgHeight = pageHeight - margins.bottom - margins.top - 40; // 40 for header/caption
-                    // Re-calculate width? No, 'contain' logic. 
+                    // Re-calculate width? No, 'contain' logic.
                     // Simple logic: max width = contentWidth
                 }
 
@@ -1445,17 +1445,17 @@ export const generateSRS = async (data: AnalysisResult, title: string, diagramIm
     });
 
     // Update Revision History page number in ToC items (which we just rendered? No, we rendered ToC lines but not values?)
-    // Actually we just WROTE the ToC lines. 
+    // Actually we just WROTE the ToC lines.
     // The "Revision History" line was written with page 0 or whatever was in tocItems.
     // If we want the page number to be correct in the line we just drew, we needed it BEFORE loop.
-    // Circular dependency? 
+    // Circular dependency?
     // Yes. But Revision History is usually Page ii or similar.
     // If we assume it follows ToC, we can update it for NEXT time or try to patch it.
-    // But since we are WRITING it now... 
+    // But since we are WRITING it now...
     // Ideally we update the 'page' property in tocItems and THEN loop to draw.
     // But we are drawing inside the loop.
     // It's acceptable if the page number shown FOR Revision History is approximate or we accept it might be 1 off if it moved.
-    // BUT, since we are moving it, let's update it in tocItems *before* the loop? 
+    // BUT, since we are moving it, let's update it in tocItems *before* the loop?
     // No, we don't know where it lands until we run the loop.
 
     // Compromise: We render Rev Hist. The Page Number listing in ToC for "Revision History" might be the *reserved* one.
@@ -1469,18 +1469,18 @@ export const generateSRS = async (data: AnalysisResult, title: string, diagramIm
     // Logic removed as revisionHistoryPage tracking is no longer used.
     // if (tocItems.length > 0) {
     //    const revItem = tocItems.find(t => t.title === "Revision History");
-    //    if (revItem) revItem.page = 0; 
+    //    if (revItem) revItem.page = 0;
     // }
 
     // --- BLANK PAGE CLEANUP ---
     // Previous logic to delete unused pages causes crashes if links point to them.
     // Disabling deletePage to prevent "objId undefined" error.
-    /* 
+    /*
     const reservedEndPage = tocStartPage + tocNeedsPages - 1;
     const actuallyUsedPage = currentTocPage;
-    
+
     if (actuallyUsedPage < reservedEndPage) {
-        // Safe cleanup not possible easily with existing links. 
+        // Safe cleanup not possible easily with existing links.
         // Better to leave blank page than crash.
     }
     */
@@ -1640,4 +1640,3 @@ export const downloadCodebase = async (codeData: CodebaseData, title: string) =>
     const content = await zip.generateAsync({ type: "blob" });
     saveAs(content, `${title.replace(/\s+/g, '_')}_Codebase.zip`);
 };
-

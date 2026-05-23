@@ -61,7 +61,7 @@ graph TD
         L3[<b>Layer 3: Objective Review</b><br/>6Cs Audit & RAG Evaluation]
         L4[<b>Layer 4: Refinement Hub</b><br/>Live Workspace & Diff Tracking]
         L5[<b>Layer 5: Knowledge Persistence</b><br/>Semantic Indexing & Hybrid Search]
-        
+
         Reliability[(<b>Reliability Layer</b><br/>360s Timeout & Jittered Retries)]
         L2 & L3 -.-> Reliability
     end
@@ -137,7 +137,7 @@ SRA is engineered for stability, security, and enterprise-grade performance.
 - **HSTS & Frame Protection**: Production-grade `Strict-Transport-Security` and `X-Frame-Options` (DENY/SAMEORIGIN) enforcement.
 - **Secure Session Management**: JWT-based authentication with secure cookie handling.
 - **Privacy Sanitization**: Integrated `sanitizer.js` layer to prevent data leakage to LLM providers.
-- **Distributed Rate Limiting**: Redis-backed throttling ensures global protection across all server instances. 
+- **Distributed Rate Limiting**: Redis-backed throttling ensures global protection across all server instances.
 
 ### 🔍 AI Reliability & Performance optimization
 - **AI Reliability Layer**: Implemented a standardized `BaseAgent` with a 6-minute timeout, jittered retries, and high-fidelity JSON parsing logs for stable long-form document generation.

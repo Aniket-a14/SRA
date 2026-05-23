@@ -26,7 +26,7 @@ def analyze_tokens(file_path):
     max_tokens = max(stats)
     min_tokens = min(stats)
     avg_tokens = sum(stats) / len(stats)
-    
+
     over_4k = len([s for s in stats if s > 4096])
     over_8k = len([s for s in stats if s > 8192])
     over_16k = len([s for s in stats if s > 16384])

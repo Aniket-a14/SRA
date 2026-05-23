@@ -1,14 +1,14 @@
 /**
  * HARDENED BENCHMARK ORCHESTRATOR (Industry-Grade)
- * 
+ *
  * 5-Layer Pipeline (mirrors backend architecture):
- * 
+ *
  * Layer 1: Prompt Generation (srs_prompt_factory.cjs → section instructions)
  * Layer 2: Model Call + JSON Parse
  * Layer 3: Validation Gate (srs_validator.cjs → schema + rules)
  * Layer 4: Alignment Check (srs_validator.cjs → hallucination detection)
  * Layer 5: Reflection Retry (inject errors into regeneration prompt)
- * 
+ *
  * Features:
  *   - Multi-Template Support (IEEE, ISO, Volere, Agile)
  *   - Contextual Chain-of-Generation

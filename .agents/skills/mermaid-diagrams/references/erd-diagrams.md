@@ -61,15 +61,15 @@ erDiagram
 erDiagram
     %% One-to-One
     USER ||--|| PROFILE : has
-    
+
     %% One-to-Many
     CUSTOMER ||--o{ ORDER : places
-    
+
     %% Many-to-Many (with junction table)
     STUDENT }o--o{ COURSE : enrolls
     STUDENT ||--o{ ENROLLMENT : has
     COURSE ||--o{ ENROLLMENT : includes
-    
+
     %% Optional Relationships
     EMPLOYEE |o--o{ DEPARTMENT : manages
 ```
@@ -109,7 +109,7 @@ erDiagram
     PRODUCT ||--o{ INVENTORY : tracks
     ORDER ||--|| PAYMENT : "paid by"
     ORDER ||--o| SHIPMENT : "shipped via"
-    
+
     CUSTOMER {
         uuid id PK
         varchar email UK "NOT NULL"
@@ -118,7 +118,7 @@ erDiagram
         timestamp created_at "DEFAULT NOW()"
         timestamp updated_at
     }
-    
+
     ADDRESS {
         uuid id PK
         uuid customer_id FK
@@ -129,7 +129,7 @@ erDiagram
         varchar country "NOT NULL"
         boolean is_default
     }
-    
+
     ORDER {
         uuid id PK
         uuid customer_id FK "NOT NULL"
@@ -139,7 +139,7 @@ erDiagram
         timestamp shipped_date
         timestamp delivered_date
     }
-    
+
     LINE_ITEM {
         uuid id PK
         uuid order_id FK "NOT NULL"
@@ -148,7 +148,7 @@ erDiagram
         decimal price_per_unit "NOT NULL"
         decimal subtotal "COMPUTED"
     }
-    
+
     PRODUCT {
         uuid id PK
         varchar sku UK "NOT NULL"
@@ -159,14 +159,14 @@ erDiagram
         boolean is_active "DEFAULT TRUE"
         timestamp created_at "DEFAULT NOW()"
     }
-    
+
     CATEGORY {
         uuid id PK
         varchar name UK "NOT NULL"
         text description
         uuid parent_category_id FK
     }
-    
+
     INVENTORY {
         uuid id PK
         uuid product_id FK "NOT NULL"
@@ -174,7 +174,7 @@ erDiagram
         varchar warehouse_location
         timestamp last_updated
     }
-    
+
     REVIEW {
         uuid id PK
         uuid customer_id FK "NOT NULL"
@@ -183,7 +183,7 @@ erDiagram
         text comment
         timestamp created_at "DEFAULT NOW()"
     }
-    
+
     PAYMENT {
         uuid id PK
         uuid order_id FK "NOT NULL"
@@ -193,7 +193,7 @@ erDiagram
         varchar transaction_id UK
         timestamp processed_at
     }
-    
+
     SHIPMENT {
         uuid id PK
         uuid order_id FK "NOT NULL"
@@ -219,7 +219,7 @@ erDiagram
     USER ||--o{ LIKE : gives
     POST ||--o{ LIKE : receives
     COMMENT ||--o{ LIKE : receives
-    
+
     USER {
         bigint id PK "AUTO_INCREMENT"
         varchar email UK "NOT NULL"
@@ -231,7 +231,7 @@ erDiagram
         timestamp created_at "DEFAULT NOW()"
         timestamp last_login
     }
-    
+
     POST {
         bigint id PK "AUTO_INCREMENT"
         bigint user_id FK "NOT NULL"
@@ -247,7 +247,7 @@ erDiagram
         timestamp created_at "DEFAULT NOW()"
         timestamp updated_at
     }
-    
+
     COMMENT {
         bigint id PK "AUTO_INCREMENT"
         bigint user_id FK "NOT NULL"
@@ -257,7 +257,7 @@ erDiagram
         varchar status "DEFAULT 'pending'"
         timestamp created_at "DEFAULT NOW()"
     }
-    
+
     CATEGORY {
         bigint id PK "AUTO_INCREMENT"
         varchar name UK "NOT NULL"
@@ -265,18 +265,18 @@ erDiagram
         text description
         bigint parent_id FK
     }
-    
+
     TAG {
         bigint id PK "AUTO_INCREMENT"
         varchar name UK "NOT NULL"
         varchar slug UK "NOT NULL"
     }
-    
+
     POST_TAG {
         bigint post_id FK "NOT NULL"
         bigint tag_id FK "NOT NULL"
     }
-    
+
     LIKE {
         bigint id PK "AUTO_INCREMENT"
         bigint user_id FK "NOT NULL"
@@ -302,7 +302,7 @@ erDiagram
     USER }o--o{ GROUP : "member of"
     USER ||--o{ MESSAGE : sends
     USER ||--o{ MESSAGE : receives
-    
+
     USER {
         uuid id PK
         varchar username UK "NOT NULL"
@@ -316,7 +316,7 @@ erDiagram
         boolean is_private "DEFAULT FALSE"
         timestamp created_at "DEFAULT NOW()"
     }
-    
+
     POST {
         uuid id PK
         uuid user_id FK "NOT NULL"
@@ -328,7 +328,7 @@ erDiagram
         timestamp created_at "DEFAULT NOW()"
         timestamp edited_at
     }
-    
+
     POST_MEDIA {
         uuid id PK
         uuid post_id FK "NOT NULL"
@@ -336,21 +336,21 @@ erDiagram
         varchar media_url "NOT NULL"
         int display_order
     }
-    
+
     FOLLOW {
         uuid id PK
         uuid follower_id FK "NOT NULL"
         uuid following_id FK "NOT NULL"
         timestamp created_at "DEFAULT NOW()"
     }
-    
+
     LIKE {
         uuid id PK
         uuid user_id FK "NOT NULL"
         uuid post_id FK "NOT NULL"
         timestamp created_at "DEFAULT NOW()"
     }
-    
+
     COMMENT {
         uuid id PK
         uuid user_id FK "NOT NULL"
@@ -360,7 +360,7 @@ erDiagram
         int likes_count "DEFAULT 0"
         timestamp created_at "DEFAULT NOW()"
     }
-    
+
     MESSAGE {
         uuid id PK
         uuid sender_id FK "NOT NULL"
@@ -370,7 +370,7 @@ erDiagram
         timestamp created_at "DEFAULT NOW()"
         timestamp read_at
     }
-    
+
     NOTIFICATION {
         uuid id PK
         uuid user_id FK "NOT NULL"
@@ -381,7 +381,7 @@ erDiagram
         uuid related_entity_id
         timestamp created_at "DEFAULT NOW()"
     }
-    
+
     GROUP {
         uuid id PK
         varchar name "NOT NULL"
@@ -411,7 +411,7 @@ erDiagram
 ```mermaid
 erDiagram
     CATEGORY ||--o{ CATEGORY : "parent of"
-    
+
     CATEGORY {
         uuid id PK
         varchar name "NOT NULL"
@@ -425,19 +425,19 @@ erDiagram
     STUDENT }o--o{ COURSE : enrolls
     STUDENT ||--o{ ENROLLMENT : has
     COURSE ||--o{ ENROLLMENT : includes
-    
+
     STUDENT {
         uuid id PK
         varchar name "NOT NULL"
     }
-    
+
     ENROLLMENT {
         uuid student_id FK PK
         uuid course_id FK PK
         date enrolled_date
         varchar grade
     }
-    
+
     COURSE {
         uuid id PK
         varchar title "NOT NULL"
@@ -454,12 +454,12 @@ erDiagram
         uuid commentable_id "NOT NULL"
         text content
     }
-    
+
     POST {
         uuid id PK
         varchar title
     }
-    
+
     VIDEO {
         uuid id PK
         varchar title
@@ -481,13 +481,13 @@ erDiagram
 ```mermaid
 erDiagram
     DOCUMENT ||--o{ DOCUMENT_VERSION : has
-    
+
     DOCUMENT {
         uuid id PK
         varchar title "NOT NULL"
         int current_version "DEFAULT 1"
     }
-    
+
     DOCUMENT_VERSION {
         uuid id PK
         uuid document_id FK "NOT NULL"

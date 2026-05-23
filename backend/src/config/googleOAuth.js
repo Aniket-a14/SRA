@@ -47,8 +47,8 @@ export const getGoogleTokens = async (code) => {
         return res.data;
     } catch (error) {
         const errorData = error.response?.data || error.message;
-        logger.error({ 
-            msg: 'Failed to fetch Google tokens', 
+        logger.error({
+            msg: 'Failed to fetch Google tokens',
             error: errorData,
             config: {
                 redirect_uri: REDIRECT_URI,

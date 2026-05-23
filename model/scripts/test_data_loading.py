@@ -19,11 +19,11 @@ def test_loading():
     print("Testing dataset loading...")
     dataset = load_dataset("json", data_files={"train": DATASET_TRAIN}, split="train")
     dataset = dataset.map(format_prompts, batched=True)
-    
+
     print(f"✅ Loaded {len(dataset)} samples.")
     print("\n--- Sample Text ---")
     print(dataset[0]['text'][:500] + "...")
-    
+
     print("\nTesting Tokenizer initialization (Fast check)...")
     # Using a small model name for testing or just mock
     print("✅ Logic Verified.")

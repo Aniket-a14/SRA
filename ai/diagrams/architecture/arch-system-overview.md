@@ -17,22 +17,22 @@ Maps the end-to-end flow from raw user input to professional SRS generation, hig
 graph TD
     User(["User Input (Idea)"]) -->|Form Submission| FE[Frontend Dashboard]
     FE -->|API Request| AC[Analysis Controller]
-    
+
     subgraph "SRA Multi-Agent Pipeline (Back-Stage)"
         AC -->|Orchestrate| MAS[MAS Orchestrator]
         MAS --> PO["Product Owner Agent (Scope)"]
         MAS --> Arch["Architect Agent (Tech Stack + RAG)"]
         MAS --> Dev["Lead Developer Agent (IEEE-830)"]
-        
+
         subgraph "Objective Quality Loop"
             Dev --> Critic["Critic Agent (6Cs Audit)"]
             Dev --> Eval["Evaluation Service (RAGAS)"]
         end
-        
+
         Critic -->|Scores/Issues| MAS
         Eval -->|Faithfulness| MAS
     end
-    
+
     MAS -->|Verified SRS JSON| FE
     FE -->|Interactive View| DFD[DFD Viewer]
     FE -->|Document View| SRS[SRS Document]

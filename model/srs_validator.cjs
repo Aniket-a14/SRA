@@ -1,14 +1,14 @@
 /**
  * SRA-PRO VALIDATOR (Industry-Grade)
- * 
+ *
  * Two-tier validation mirroring the backend pipeline:
- * 
+ *
  * Layer 2 (Gate): Schema validation, required keys, prefix checks,
  *                 ambiguity audit, quantification enforcement.
- * 
+ *
  * Layer 3 (Alignment): Cross-checks generated content against
  *                      project name/description for hallucination detection.
- * 
+ *
  * Updated to match corrected template structures:
  * - IEEE 830 (Wiegers variant): SystemFeatures, OtherNonfunctionalRequirements
  * - ISO 29148 SRS/StRS/SyRS (three separate specs with clause numbers)
@@ -20,7 +20,7 @@ const { TEMPLATES, FORBIDDEN_TERMS } = require('./srs_templates.cjs');
 
 /**
  * Layer 2: Validates a generated SRS section against template rules.
- * 
+ *
  * @param {string} section - Section key (e.g., "Introduction")
  * @param {object} content - The generated JSON content for this section
  * @param {string} templateId - Template ID (e.g., "IEEE_830")
@@ -79,7 +79,7 @@ function validateSection(section, content, templateId) {
 
 /**
  * Layer 3: Alignment check — ensures content matches the project context.
- * 
+ *
  * @param {string} section - Section key
  * @param {object} content - Generated content
  * @param {string} projectName - Original project name

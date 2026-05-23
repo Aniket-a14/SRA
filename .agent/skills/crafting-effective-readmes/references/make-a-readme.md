@@ -1,7 +1,7 @@
 # Make a README
 
 > Source: [makeareadme.com](https://www.makeareadme.com) by Danny Guo
-> 
+>
 > "Because no one can read your mind (yet)"
 
 ## README 101

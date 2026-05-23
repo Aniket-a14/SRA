@@ -47,7 +47,7 @@ export const compareAnalyses = (v1, v2) => {
     if (overallDiff) changes.overallDescription = overallDiff;
 
     // System Features (The most complex one)
-    // For now, simpler object diff. 
+    // For now, simpler object diff.
     // Ideally we match by 'name' and diff internals, but atomic replacement view is also fine for V1.
     const featuresDiff = getArrayDiff(r1.systemFeatures, r2.systemFeatures);
     if (featuresDiff) changes.systemFeatures = featuresDiff;

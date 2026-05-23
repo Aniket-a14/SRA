@@ -1,12 +1,12 @@
 /**
  * SRA-PRO TEMPLATE REGISTRY (Industry-Grade)
- * 
+ *
  * Each template follows the EXACT structure from official sources:
  * - IEEE 830-1998 (from IEEE Recommended Practice)
  * - ISO/IEC/IEEE 29148:2018 (from ISO standard)
  * - Volere (from Robertson & Robertson, Atlantic Systems Guild)
  * - Agile (from Connextra format, INVEST criteria, BDD)
- * 
+ *
  * Each template contains:
  *   - sections: ordered list of top-level section keys
  *   - sectionInstructions: official guidance text per section (what to write)
@@ -572,7 +572,7 @@ const TEMPLATES = {
         name: "Volere Requirements Template (Edition 16)",
         description: "The definitive Robertson & Robertson template for requirements engineering. 27 discrete sections providing a complete framework for project drivers, constraints, functional/non-functional requirements, and project issues.",
 
-        systemPromptDirective: `You are a requirements analyst specializing in the Volere methodology (Edition 16) by James and Suzanne Robertson. Every atomic requirement MUST be written using the Volere Requirement Shell format. This shell is mandatory for all functional and non-functional requirements. 
+        systemPromptDirective: `You are a requirements analyst specializing in the Volere methodology (Edition 16) by James and Suzanne Robertson. Every atomic requirement MUST be written using the Volere Requirement Shell format. This shell is mandatory for all functional and non-functional requirements.
 
 Key Shell Components:
 1. Requirement #: Unique ID.

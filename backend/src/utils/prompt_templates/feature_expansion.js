@@ -1,6 +1,6 @@
 export const FEATURE_EXPANSION_PROMPT = `
 <role>
-You are an expert Software Requirements Analyst. 
+You are an expert Software Requirements Analyst.
 Your goal is to expand a feature name and brief description into a detailed, structured IEEE 830-1998 compliant section.
 </role>
 

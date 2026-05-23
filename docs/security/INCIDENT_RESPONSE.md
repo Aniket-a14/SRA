@@ -38,7 +38,7 @@
    # Rotate all secrets immediately
    cd backend
    node scripts/rotate-secrets.js --emergency
-   
+
    # Revoke all active sessions
    node scripts/revoke-all-sessions.js
    ```

@@ -1,6 +1,6 @@
 /**
  * IEEE Industrial Compliance Verification
- * 
+ *
  * Verifies:
  * 1. SRS contains 4.x.1, 4.x.2, 4.x.3 sub-structures.
  * 2. Critic audits for Section 5.4 Quality Attributes.

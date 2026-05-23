@@ -58,11 +58,11 @@ User: ${userMessage}
     } else {
         const modelName = process.env.GEMINI_MODEL_NAME || "gemini-2.5-flash";
         const model = genAI.getGenerativeModel({ model: modelName });
-        
+
         let attempt = 0;
         const maxRetries = 3;
         let delay = 2000;
-        
+
         while (attempt < maxRetries) {
             try {
                 const result = await model.generateContent(fullPrompt);
@@ -71,7 +71,7 @@ User: ${userMessage}
             } catch (err) {
                 attempt++;
                 const isRetryable = err.message?.includes("429") || err.message?.includes("503") || err.message?.includes("fetch failed") || err.message?.includes("ECONNREFUSED");
-                
+
                 if (isRetryable && attempt < maxRetries) {
                     console.warn(`[Chat Service] Retryable error (${err.message}). Retry ${attempt}/${maxRetries} in ${delay}ms...`);
                     await new Promise(resolve => setTimeout(resolve, delay));
@@ -81,7 +81,7 @@ User: ${userMessage}
                 throw err;
             }
         }
-        
+
         if (!outputText) {
             throw new Error("[Chat Service] All retry attempts exhausted.");
         }
@@ -135,7 +135,7 @@ User: ${userMessage}
         // Create NEW version with Transaction
         await prisma.$transaction(async (tx) => {
             let rootId = currentAnalysis.rootId;
-            // If the current analysis didn't have a rootId (legacy), it is its own root. 
+            // If the current analysis didn't have a rootId (legacy), it is its own root.
             // BUT for consistency, if we are branching from it, we should probably set the new one's rootId to the currentAnalysis.id.
             // AND update the OLD one to have rootId = id? No, that's messy side effect.
             // Better: If parent has no rootId, assume parent is root.

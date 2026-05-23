@@ -18,7 +18,7 @@ services:
     restart: always
     env_file:
       - ./backend/.env
-    # ports: 
+    # ports:
     #   - "3000:3000" # Commented out to force traffic through Nginx (Load Balancer)
     environment:
       - NODE_ENV=development

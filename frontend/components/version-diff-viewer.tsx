@@ -262,4 +262,3 @@ function DiffList({ oldList, newList }: { oldList: string[], newList: string[] }
         </div>
     )
 }
-

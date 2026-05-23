@@ -133,9 +133,9 @@ IDENTIFIER GOVERNANCE (STRICT)
 QUANTITY GOVERNANCE (UPDATED)
 ================================================================
 
-1. CONTENT VOLUME IS DYNAMIC: You MUST judge the appropriate quantity of information (paragraphs, points, and detail depth) based on your understanding of the project's complexity. 
+1. CONTENT VOLUME IS DYNAMIC: You MUST judge the appropriate quantity of information (paragraphs, points, and detail depth) based on your understanding of the project's complexity.
 
-2. NO ARBITRARY LIMITS: Do NOT limit yourself to a fixed number of items in JSON arrays (e.g., 2 features) or a fixed number of sentences in paragraphs. 
+2. NO ARBITRARY LIMITS: Do NOT limit yourself to a fixed number of items in JSON arrays (e.g., 2 features) or a fixed number of sentences in paragraphs.
 
 3. ELABORATE WHERE NECESSARY: For complex systems (e.g., "Enterprise ERP", "Embedded Avionics"), provide deep, exhaustive technical prose and numerous requirements. For simple systems (e.g., "Counter App"), be concise but thorough.
 
@@ -323,9 +323,9 @@ IDENTIFIER GOVERNANCE (STRICT)
 QUANTITY GOVERNANCE (UPDATED)
 ================================================================
 
-1. CONTENT VOLUME IS DYNAMIC: You MUST judge the appropriate quantity of information (paragraphs, points, and detail depth) based on your understanding of the project's complexity. 
+1. CONTENT VOLUME IS DYNAMIC: You MUST judge the appropriate quantity of information (paragraphs, points, and detail depth) based on your understanding of the project's complexity.
 
-2. NO ARBITRARY LIMITS: Do NOT limit yourself to a fixed number of items in JSON arrays (e.g., 2 features) or a fixed number of sentences in paragraphs. 
+2. NO ARBITRARY LIMITS: Do NOT limit yourself to a fixed number of items in JSON arrays (e.g., 2 features) or a fixed number of sentences in paragraphs.
 
 3. ELABORATE WHERE NECESSARY: For complex systems (e.g., "Enterprise ERP", "Embedded Avionics"), provide deep, exhaustive technical prose and numerous requirements. For simple systems (e.g., "Counter App"), be concise but thorough.
 

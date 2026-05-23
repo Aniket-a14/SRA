@@ -1,12 +1,12 @@
 # Zod
 
-**Version 1.0.0**  
-community  
+**Version 1.0.0**
+community
 January 2026
 
-> **Note:**  
-> This document is mainly for agents and LLMs to follow when maintaining,  
-> generating, or refactoring codebases. Humans may also find it useful,  
+> **Note:**
+> This document is mainly for agents and LLMs to follow when maintaining,
+> generating, or refactoring codebases. Humans may also find it useful,
 > but guidance here is optimized for automation and consistency by AI-assisted workflows.
 
 ---

@@ -137,7 +137,7 @@ export const logout = async (req, res, next) => {
         if (refreshToken) {
             // Find session by token and delete
             // Note: revokeSession expects ID, but we can look it up first inside service or just find by token here.
-            // Simplified: let's modify sessionService to allow find by token? 
+            // Simplified: let's modify sessionService to allow find by token?
             // Better: validateSession returns session object, use session.id
             const session = await validateSession(refreshToken);
             if (session) {

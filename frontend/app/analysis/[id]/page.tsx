@@ -275,8 +275,8 @@ function AnalysisDetailContent() {
             }
 
             // Immediately update SWR cache with the new analysis object to trigger UI switch
-            mutate(response.data, false); 
-            
+            mutate(response.data, false);
+
             setValidationIssues(result.metadata?.validationResult?.issues || []);
             toast.success("Validation Complete");
         } catch (err: unknown) {

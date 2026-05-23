@@ -438,4 +438,3 @@ context = combine_multimodal(text_results, image_results)
 5. **Build pipeline**: Implement retrieval and generation
 6. **Evaluate**: Test on sample questions and iterate
 7. **Monitor**: Track quality metrics in production
-

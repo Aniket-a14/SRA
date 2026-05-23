@@ -1,6 +1,6 @@
 /**
  * SRA-PRO SKELETON CONFIGURATION
- * 
+ *
  * Dynamic template configuration loader.
  * Returns the skeleton, sections, sectionInstructions, and rules
  * for the requested template ID.

@@ -193,20 +193,20 @@ You MUST return output ONLY in the following exact JSON structure. Do not add ex
   ],
   "appendices": {
     "analysisModels": {
-      "flowchartDiagram": { 
-          "syntaxExplanation": "FORMAL SPECIFICATION: Explanation of flow grammar and rules.", 
-          "code": "Mermaid flowchart TD code...", 
-          "caption": "System process flow and decisions." 
+      "flowchartDiagram": {
+          "syntaxExplanation": "FORMAL SPECIFICATION: Explanation of flow grammar and rules.",
+          "code": "Mermaid flowchart TD code...",
+          "caption": "System process flow and decisions."
       },
-      "sequenceDiagram": { 
-          "syntaxExplanation": "FORMAL SPECIFICATION: Explanation of participants and time flow.", 
-          "code": "Mermaid sequenceDiagram code...", 
-          "caption": "Core workflow sequence interaction." 
+      "sequenceDiagram": {
+          "syntaxExplanation": "FORMAL SPECIFICATION: Explanation of participants and time flow.",
+          "code": "Mermaid sequenceDiagram code...",
+          "caption": "Core workflow sequence interaction."
       },
-      "entityRelationshipDiagram": { 
-          "syntaxExplanation": "FORMAL SPECIFICATION: ER Entity and Cardinality rules.", 
-          "code": "Mermaid erDiagram code...", 
-          "caption": "Entity relationship diagram with attributes." 
+      "entityRelationshipDiagram": {
+          "syntaxExplanation": "FORMAL SPECIFICATION: ER Entity and Cardinality rules.",
+          "code": "Mermaid erDiagram code...",
+          "caption": "Entity relationship diagram with attributes."
       }
     },
     "tbdList": ["Numbered list of TBD items."]

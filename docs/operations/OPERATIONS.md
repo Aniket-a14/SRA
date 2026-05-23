@@ -79,7 +79,7 @@ The operational stability of our database backup and restore subsystem is verifi
 ### Scenario A: Database Corruption/Loss
 1. **Identify:** Detect via health checks or error logs.
 2. **Assess:** Determine the last known good state via Supabase dashboard.
-3. **Recover:** 
+3. **Recover:**
    - Navigate to Supabase > Database > Backups.
    - Select "Restore" and choose the point in time before corruption.
    - Verify connectivity via `/api/health`.

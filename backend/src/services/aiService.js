@@ -81,9 +81,9 @@ ${text}
     }
     // ---------------------------------------------
 
-    finalPrompt = await constructMasterPrompt(text, { 
-      ...promptSettings, 
-      projectName, 
+    finalPrompt = await constructMasterPrompt(text, {
+      ...promptSettings,
+      projectName,
       ragContext: ragContextString,
       systemPromptExtension: settings.systemPromptExtension
     }, promptVersion);

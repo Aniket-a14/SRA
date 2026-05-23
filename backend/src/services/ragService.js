@@ -7,7 +7,7 @@ import { genAI } from '../config/gemini.js';
 
 // Global token limit for context injection (Layer 5 policy)
 // Increased to 32k tokens to leverage Gemini 2.5 Pro/Flash capacity while staying within Free Tier TPM limits.
-const CONTEXT_TOKEN_LIMIT = 32768; 
+const CONTEXT_TOKEN_LIMIT = 32768;
 
 /**
  * Retrieves granular knowledge chunks based on semantic similarity and keywords.
@@ -23,10 +23,10 @@ export const retrieveContext = async (queryText, projectId = null, limit = 5) =>
         const vectorStr = `[${embedding.join(',')}]`;
 
         const matches = await prisma.$queryRaw`
-            SELECT 
-                kc.id, 
-                kc.type, 
-                kc.content, 
+            SELECT
+                kc.id,
+                kc.type,
+                kc.content,
                 kc.tags,
                 kc."qualityScore",
                 1 - (kc.embedding <=> ${vectorStr}::vector) as similarity,
@@ -35,7 +35,7 @@ export const retrieveContext = async (queryText, projectId = null, limit = 5) =>
             JOIN "Analysis" a ON kc."sourceAnalysisId" = a.id
             LEFT JOIN "Project" p ON a."projectId" = p.id
             WHERE kc.embedding IS NOT NULL
-            ORDER BY 
+            ORDER BY
                 CASE WHEN kc."qualityScore" >= 0.85 THEN 1 ELSE 0 END DESC,
                 kc.embedding <=> ${vectorStr}::vector ASC
             LIMIT ${limit};
@@ -62,7 +62,7 @@ export const retrieveContext = async (queryText, projectId = null, limit = 5) =>
                     vectorResults.push({
                         type: 'GRAPH_RELATIONSHIPS',
                         content: graphContext,
-                        similarity: 1.0, 
+                        similarity: 1.0,
                         sourceTitle: 'System Knowledge Graph'
                     });
                 }
@@ -102,15 +102,15 @@ export const formatRagContext = async (chunks) => {
             const chunk = sortedChunks[i];
             const sourceInfo = chunk.sourceTitle ? ` (from ${chunk.sourceTitle})` : "";
             const qualityLabel = (chunk.qualityScore && chunk.qualityScore >= 0.85) ? " [GOLD STANDARD]" : "";
-            
+
             let chunkText = `--- REFERENCE ${i + 1} (${chunk.type}${sourceInfo})${qualityLabel} ---\n`;
             let contentStr = JSON.stringify(chunk.content, null, 2);
-            
+
             // Per-chunk safety cap before token check
             if (contentStr.length > 10000) {
                 contentStr = contentStr.substring(0, 10000) + "... [DOC_SLICE] ...";
             }
-            
+
             chunkText += contentStr + "\n\n";
 
             const chunkTokens = estimateTokens(chunkText);
@@ -123,7 +123,7 @@ export const formatRagContext = async (chunks) => {
             formattedContext += chunkText;
             currentTokens += chunkTokens;
         }
-        
+
     } catch (tokenError) {
         logger.warn({ msg: "[RAG Service] Token counting failed, falling back to simple slicing", error: tokenError.message });
         return chunks.map(c => JSON.stringify(c.content)).join("\n\n").substring(0, 100000);
@@ -143,7 +143,7 @@ export const searchGoldStandardFragments = async (query, type = null) => {
         const vectorStr = `[${embedding.join(',')}]`;
 
         const matches = await prisma.$queryRaw`
-            SELECT 
+            SELECT
                 id, type, content, tags, "qualityScore"
             FROM "KnowledgeChunk"
             WHERE embedding IS NOT NULL

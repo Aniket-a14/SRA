@@ -93,7 +93,7 @@ export const lintRequirements = (analysis, semanticAudit = null) => {
             if (!requirements) return;
             requirements.forEach((req, idx) => {
                 if (!measureRegex.test(req)) {
-                    // Only penalize strict measurability for Performance. 
+                    // Only penalize strict measurability for Performance.
                     // Security/Safety might be policy-based.
                     if (categoryName === 'Performance') {
                         issues.push(`NFR (${categoryName}) #${idx + 1} is not measurable. Add metrics (e.g., "load < 200ms").`);

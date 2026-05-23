@@ -69,8 +69,8 @@ async function runLayer5Test() {
         console.log(`Finalized. Chunks stored according to API: ${chunksStored}`);
 
         // 4. Verify DB State (Atomic Check)
-        const updatedAnalysis = await prisma.analysis.findUnique({ 
-            where: { id: analysis.id } 
+        const updatedAnalysis = await prisma.analysis.findUnique({
+            where: { id: analysis.id }
         });
 
         console.log("Verification - Analysis State:");
@@ -85,7 +85,7 @@ async function runLayer5Test() {
         });
 
         console.log(`Verification - KnowledgeChunks: Found ${chunks.length} chunks in DB.`);
-        
+
         if (chunks.length !== res.data.data.chunksStored) {
             throw new Error(`Mismatch! API reported ${res.data.data.chunksStored} but found ${chunks.length} in DB.`);
         }
@@ -94,9 +94,9 @@ async function runLayer5Test() {
         // Since Prisma doesn't support 'vector' type in findMany, we check one via Raw SQL
         if (chunks.length > 0) {
             const vectorCheck = await prisma.$queryRaw`
-                SELECT id, (embedding IS NOT NULL) as has_vector 
-                FROM "KnowledgeChunk" 
-                WHERE "sourceAnalysisId" = ${analysis.id} 
+                SELECT id, (embedding IS NOT NULL) as has_vector
+                FROM "KnowledgeChunk"
+                WHERE "sourceAnalysisId" = ${analysis.id}
                 LIMIT 1;
             `;
             console.log(`Verification - Vector Check: ${vectorCheck[0].has_vector ? "SUCCESS (Vector stored)" : "FAILURE (No vector found)"}`);

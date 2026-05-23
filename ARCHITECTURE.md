@@ -40,7 +40,7 @@ graph TD
         P2 --> Dev["Developer Agent (IEEE)"]
         P3 --> Critic["Critic Agent (6Cs Audit)"]
         P3 --> Eval["RAG Eval (Faithfulness)"]
-        
+
         subgraph "Reliability Layer"
             PO & Arch & Dev & Critic & Eval -.->|Timeout / Retry| LLM[Gemini 2.5 Flash]
         end
@@ -73,7 +73,7 @@ The core innovation of SRA is its rigid, automated pipeline that ensures require
 
 ### Layer 3: Objective Review & Benchmarking
 *   **Purpose**: Automated quality assurance.
-*   **Action**: 
+*   **Action**:
     *   **6Cs Audit**: Scores SRS against Clarity, Completeness, Conciseness, Consistency, Correctness, and Context.
     *   **RAG Evaluation**: LLM-as-a-judge scoring of **Faithfulness** (context grounding) and **Relevancy**.
 
@@ -357,4 +357,3 @@ curl -X DELETE "https://api.vercel.com/v1/deployments/[deployment-id]/cache" \
 - Static assets served from nearest edge location
 - API requests routed to optimal serverless region
 - Database queries optimized via connection pooling (Supabase)
-

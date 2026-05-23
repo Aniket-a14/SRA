@@ -255,5 +255,3 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
     JSON.stringify(p.metadata) === JSON.stringify(n.metadata) &&
     p.version === n.version;
 });
-
-

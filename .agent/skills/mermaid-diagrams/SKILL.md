@@ -68,13 +68,13 @@ classDiagram
     Title *-- Season
     Title *-- Review
     User --> Review : creates
-    
+
     class Title {
         +string name
         +int releaseYear
         +play()
     }
-    
+
     class Genre {
         +string name
         +getTopTitles()
@@ -87,7 +87,7 @@ sequenceDiagram
     participant User
     participant API
     participant Database
-    
+
     User->>API: POST /login
     API->>Database: Query credentials
     Database-->>API: Return user data
@@ -117,14 +117,14 @@ erDiagram
     USER ||--o{ ORDER : places
     ORDER ||--|{ LINE_ITEM : contains
     PRODUCT ||--o{ LINE_ITEM : includes
-    
+
     USER {
         int id PK
         string email
         string name
         datetime created_at
     }
-    
+
     ORDER {
         int id PK
         int user_id FK
@@ -232,4 +232,3 @@ flowchart LR
 **ER Diagrams (ERD):**
 1. **Attribute Keys**: ONLY use `PK`, `FK`, and `UK`. **FORBIDDEN**: `NN` (Not Null), `NOT NULL`.
 2. **Relationship Labels**: `ENTITY1 ||--o{ ENTITY2 : "label"`. Label MUST be strictly quoted.
-

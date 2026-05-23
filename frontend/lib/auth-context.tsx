@@ -138,7 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setToken(newToken)
         setUser(newUser)
         // router.push("/") // Optional: Assume login component handles redirect or keep it? Original had it.
-        // Let's keep strict API: login function updates state. Redirect might be handled by caller or here. 
+        // Let's keep strict API: login function updates state. Redirect might be handled by caller or here.
         // Original code: router.push("/")
         router.push("/")
     }, [router])
