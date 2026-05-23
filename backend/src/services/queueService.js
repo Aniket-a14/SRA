@@ -104,7 +104,7 @@ export const addAnalysisJob = async (userId, text, projectId, settings, parentId
                 try {
                     await prisma.analysis.update({
                         where: { id: newId },
-                        data: { 
+                        data: {
                             status: 'FAILED',
                             metadata: {
                                 trigger: 'initial',

@@ -14,6 +14,16 @@ import { retrieveContext, formatRagContext } from './ragService.js';
 
 const CACHE_TTL = 3600; // 1 hour in seconds
 
+/** Invalidate the cached dashboard list so the UI reflects mutations immediately. */
+const invalidateUserAnalysesCache = async (userId) => {
+    try {
+        const redis = getRedisClient();
+        if (redis) await redis.del(`user:analyses:${userId}`);
+    } catch (err) {
+        logger.warn({ msg: "Redis cache invalidation failed", userId, error: err.message });
+    }
+};
+
 
 export const performAnalysis = async (userId, text, projectId = null, parentId = null, rootId = null, settings = {}, analysisId = null) => {
     let resultJson;
@@ -28,7 +38,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         const devAgent = new DeveloperAgent();
         const qaAgent = new ReviewerAgent();
         const criticAgent = new CriticAgent();
-        
+
         // 0.0 Fetch User Profile for Attribution
         const userProfile = await prisma.user.findUnique({
             where: { id: userId },
@@ -86,8 +96,8 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         logger.debug(`[Analysis Service] Current orchestration state: ~${totalEstimatedTokens} tokens`);
 
         if (totalEstimatedTokens > 180000) {
-             logger.warn("[Analysis Service] State approaching TPM ceiling (180k+). Applying aggressive pruning to RAG context.");
-             // Non-essential pruning if we are hitting limits
+            logger.warn("[Analysis Service] State approaching TPM ceiling (180k+). Applying aggressive pruning to RAG context.");
+            // Non-essential pruning if we are hitting limits
         }
 
         // Optimized sleep context for tests/mock mode
@@ -99,13 +109,13 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         // 3. Developer: Write initial draft (SECTIONAL GENERATION)
         logger.info("--> Agent: Developer (Sectional Generation: Shell)");
         const srsShell = await devAgent.generateShell(text, poOutput, archOutput, { projectName, version: promptVersion, ragContext });
-        
+
         await sleep(3000); // Cooling period
 
         logger.info("--> Agent: Developer (Sectional Generation: Features)");
         const CHUNK_SIZE = 2;
         let allFeatures = [];
-        
+
         for (let i = 0; i < featureList.length; i += CHUNK_SIZE) {
             const chunk = featureList.slice(i, i + CHUNK_SIZE);
             logger.info(`    [Features] Processing chunk ${Math.floor(i / CHUNK_SIZE) + 1}/${Math.ceil(featureList.length / CHUNK_SIZE)}`);
@@ -161,7 +171,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
 
             // B. Critic Audit (6Cs Quality)
             const audit = await criticAgent.auditSRS(poOutput, srsDraft);
-            finalIndustryAudit = audit; 
+            finalIndustryAudit = audit;
 
             logger.info(`    Review Status: ${review.status}, Quality Score: ${audit.overallScore}`);
 
@@ -178,7 +188,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
 
             // D. Threshold not met: Surgical Refinement
             loopCount++;
-            
+
             const reason = review.status !== "APPROVED"
                 ? `QA Status: ${review.status}`
                 : `Quality Score: ${audit.overallScore} < ${QUALITY_THRESHOLD}`;
@@ -194,7 +204,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
             const hasAppendicesFeedback = reflectionFeedback.some(f => f.issue.toLowerCase().includes('diagram') || f.issue.toLowerCase().includes('flowchart') || f.issue.toLowerCase().includes('erd'));
             const hasNFRFeedback = reflectionFeedback.some(f => f.issue.toLowerCase().includes('requirement') || f.issue.toLowerCase().includes('security') || f.category === 'Security');
             const hasFeatureFeedback = reflectionFeedback.some(f => f.issue.toLowerCase().includes('feature') || f.issue.toLowerCase().includes('function'));
-            
+
             let targetSectionName = "Shell";
             let targetDraft = { ...srsShell };
 
@@ -233,7 +243,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                 srsDraft = { ...srsDraft, ...refinedSection };
             }
         }
-        
+
         // F. Post-Processing: Enforce Clean Revision History (Initial Release)
         // Overwrite internal reflection versions with a single "Initial Release" entry by the Actual User
         srsDraft.revisionHistory = [{
@@ -285,7 +295,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         }
     } catch (error) {
         logger.error({ msg: "AI Analysis execution failed", error: error.message, stack: error.stack });
-        
+
         const failureReason = error.message.includes("429") || error.message.includes("Quota exceeded")
             ? "AI Rate Limit Exceeded. Please wait a few minutes and try again."
             : `Analysis Error: ${error.message}`;
@@ -307,6 +317,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                     }
                 }
             });
+            await invalidateUserAnalysesCache(userId);
             return; // Exit early as we've handled the record
         }
 
@@ -314,15 +325,16 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         if (analysisId) {
             await prisma.analysis.update({
                 where: { id: analysisId },
-                data: { 
+                data: {
                     status: 'FAILED',
-                    metadata: { 
+                    metadata: {
                         ...(analysisMeta || {}),
                         failureReason: error.message,
                         userFriendlyError: failureReason
                     }
                 }
             });
+            await invalidateUserAnalysesCache(userId);
         }
         throw new Error(failureReason);
     }
@@ -378,7 +390,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
     }
 
     // Atomic Creation with Transaction
-    return await prisma.$transaction(async (tx) => {
+    const transactionResult = await prisma.$transaction(async (tx) => {
         // 1. Defer Project Creation if missing and successful
         let finalProjectId = projectId;
         if (!finalProjectId && resultJson.projectTitle) {
@@ -436,19 +448,25 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                 }
             });
 
-            // Synchronize Knowledge Graph (Async)
-            if (finalProjectId) {
-                logger.info(`[Analysis Service] Triggering Graph Extraction for Project: ${finalProjectId}`);
-                extractGraph(text, finalProjectId).catch(e => logger.error({ msg: "Async Graph Extraction failed", error: e }));
-            }
-
-            return result;
+            return { result, text, finalProjectId };
         }
 
         // --- LEGACY / DIRECT SYNC FLOW ---
         // DEPRECATED: All analyses should now be created via queueService with an ID upfront.
         throw new Error("performAnalysis called without analysisId. Legacy direct creation is deprecated.");
     });
+
+    if (transactionResult) {
+        await invalidateUserAnalysesCache(userId);
+
+        // Synchronize Knowledge Graph (Async)
+        if (transactionResult.finalProjectId) {
+            logger.info(`[Analysis Service] Triggering Graph Extraction for Project: ${transactionResult.finalProjectId}`);
+            extractGraph(transactionResult.text, transactionResult.finalProjectId).catch(e => logger.error({ msg: "Async Graph Extraction failed", error: e }));
+        }
+
+        return transactionResult.result;
+    }
 };
 
 export const getUserAnalyses = async (userId) => {
@@ -551,7 +569,7 @@ export const getUserAnalyses = async (userId) => {
             try {
                 await redis.set(CACHE_KEY, JSON.stringify(result), 'EX', CACHE_TTL);
             } catch (err) {
-                console.warn("Redis Cache Write Error:", err.message);
+                logger.warn({ msg: "Redis Cache Write Error", error: err.message });
             }
         }
 
@@ -590,7 +608,7 @@ export const getAnalysisById = async (userId, analysisId) => {
         logger.warn(`[getAnalysisById] Analysis ${analysisId} not found in database.`);
         return null;
     }
-    
+
     if (analysis.userId !== userId) {
         logger.warn(`[getAnalysisById] Analysis ${analysisId} belongs to ${analysis.userId}, but requested by ${userId}`);
         const error = new Error('Unauthorized access to this analysis');
