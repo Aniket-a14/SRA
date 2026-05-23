@@ -11,16 +11,16 @@ import { ReviewerAgent } from '../agents/ReviewerAgent.js';
 import { CriticAgent } from '../agents/CriticAgent.js';
 import { evalService } from './evalService.js';
 import { retrieveContext, formatRagContext } from './ragService.js';
-
 const CACHE_TTL = 3600; // 1 hour in seconds
 
 /** Invalidate the cached dashboard list so the UI reflects mutations immediately. */
 const invalidateUserAnalysesCache = async (userId) => {
+    const redis = getRedisClient();
+    if (!redis) return;
     try {
-        const redis = getRedisClient();
-        if (redis) await redis.del(`user:analyses:${userId}`);
-    } catch (err) {
-        logger.warn({ msg: "Redis cache invalidation failed", userId, error: err.message });
+        await redis.del(`user:analyses:${userId}`);
+    } catch (error) {
+        logger.warn({ msg: "Non-critical: failed to invalidate user analyses cache", error: error.message, userId });
     }
 };
 
