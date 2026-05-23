@@ -32,9 +32,11 @@ class BackupService {
             // Ensure backup directory exists
             await fs.mkdir(this.backupDir, { recursive: true });
 
-            // Extract database connection details
-            const dbUrl = new URL(process.env.DATABASE_URL);
+            // Extract database connection details (prefer direct URL if available)
+            const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
+            const dbUrl = new URL(connectionString);
             const host = dbUrl.hostname;
+            const port = dbUrl.port || '5432';
             const database = dbUrl.pathname.slice(1);
             const user = dbUrl.username;
             const password = decodeURIComponent(dbUrl.password);
@@ -49,7 +51,7 @@ class BackupService {
             if (isWindows) {
                 // Create temporary pgpass file for Windows
                 pgpassFile = path.join(os.tmpdir(), '.pgpass');
-                const pgpassContent = `${host}:*:${database}:${user}:${password}`;
+                const pgpassContent = `${host}:${port}:${database}:${user}:${password}`;
                 await fs.writeFile(pgpassFile, pgpassContent, { mode: 0o600 });
 
                 // Set PGPASSFILE environment variable
@@ -57,10 +59,10 @@ class BackupService {
             }
 
             // nosemgrep: javascript.lang.security.audit.detect-non-literal-fs-filename
-            // Password is dynamically extracted from DATABASE_URL env var, not hardcoded
+            // Password is dynamically extracted from connectionString, not hardcoded
             const dumpCommand = isWindows
-                ? `pg_dump -h ${host} -U ${user} -d ${database} -F c -f "${backupPath}"`
-                : `PGPASSWORD="${password}" pg_dump -h ${host} -U ${user} -d ${database} -F c -f ${backupPath}`;
+                ? `pg_dump -h ${host} -p ${port} -U ${user} -d ${database} -F c -f "${backupPath}"`
+                : `PGPASSWORD="${password}" pg_dump -h ${host} -p ${port} -U ${user} -d ${database} -F c -f ${backupPath}`;
 
             await execAsync(dumpCommand);
 
@@ -253,9 +255,11 @@ class BackupService {
                 restorePath = decryptedPath;
             }
 
-            // Extract database connection details
-            const dbUrl = new URL(process.env.DATABASE_URL);
+            // Extract database connection details (prefer direct URL if available)
+            const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
+            const dbUrl = new URL(connectionString);
             const host = dbUrl.hostname;
+            const port = dbUrl.port || '5432';
             const database = dbUrl.pathname.slice(1);
             const user = dbUrl.username;
             const password = decodeURIComponent(dbUrl.password);
@@ -268,16 +272,16 @@ class BackupService {
 
             if (isWindows) {
                 pgpassFile = path.join(os.tmpdir(), '.pgpass');
-                const pgpassContent = `${host}:*:${database}:${user}:${password}`;
+                const pgpassContent = `${host}:${port}:${database}:${user}:${password}`;
                 await fs.writeFile(pgpassFile, pgpassContent, { mode: 0o600 });
                 process.env.PGPASSFILE = pgpassFile;
             }
 
             // nosemgrep: javascript.lang.security.audit.detect-non-literal-fs-filename
-            // Password is dynamically extracted from DATABASE_URL env var, not hardcoded
+            // Password is dynamically extracted from connectionString, not hardcoded
             const restoreCommand = isWindows
-                ? `pg_restore -h ${host} -U ${user} -d ${database} -c "${restorePath}"`
-                : `PGPASSWORD="${password}" pg_restore -h ${host} -U ${user} -d ${database} -c ${restorePath}`;
+                ? `pg_restore -h ${host} -p ${port} -U ${user} -d ${database} -c "${restorePath}"`
+                : `PGPASSWORD="${password}" pg_restore -h ${host} -p ${port} -U ${user} -d ${database} -c ${restorePath}`;
 
             await execAsync(restoreCommand);
 

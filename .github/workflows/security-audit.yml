@@ -12,6 +12,10 @@ on:
       - 'frontend/**'
       - '.github/workflows/security-audit.yml'
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   dependency-audit:
     name: Dependency Vulnerability Scan

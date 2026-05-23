@@ -58,6 +58,7 @@ jobs:
         working-directory: ./backend
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
           BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
           BACKUP_ENCRYPTION_SALT: ${{ secrets.BACKUP_ENCRYPTION_SALT }}
           BACKUP_DIR: ./backups
