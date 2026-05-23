@@ -22,6 +22,10 @@ export const retrieveContext = async (queryText, projectId = null, limit = 5) =>
         const embedding = await embedText(queryText);
         const vectorStr = `[${embedding.join(',')}]`;
 
+        // Over-fetch by 3x to compensate for post-filter attrition from the similarity threshold
+        const parsedLimit = Math.floor(Number(limit));
+        const safeLimit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 5;
+        const overfetchLimit = safeLimit * 3;
         const matches = await prisma.$queryRaw`
             SELECT
                 kc.id,
@@ -38,17 +42,22 @@ export const retrieveContext = async (queryText, projectId = null, limit = 5) =>
             ORDER BY
                 CASE WHEN kc."qualityScore" >= 0.85 THEN 1 ELSE 0 END DESC,
                 kc.embedding <=> ${vectorStr}::vector ASC
-            LIMIT ${limit};
+            LIMIT ${overfetchLimit};
         `;
 
-        const vectorResults = matches.map(m => ({
-            type: m.type,
-            content: m.content,
-            similarity: m.similarity,
-            qualityScore: m.qualityScore,
-            tags: m.tags,
-            sourceTitle: m.source_title
-        }));
+        // Filter out low-relevance results, then cap at the requested limit
+        const SIMILARITY_THRESHOLD = 0.25;
+        const vectorResults = matches
+            .filter(m => m.similarity >= SIMILARITY_THRESHOLD)
+            .slice(0, safeLimit)
+            .map(m => ({
+                type: m.type,
+                content: m.content,
+                similarity: m.similarity,
+                qualityScore: m.qualityScore,
+                tags: m.tags,
+                sourceTitle: m.source_title
+            }));
 
         // 2. Graph Retrieval (If Project Context exists)
         if (projectId) {

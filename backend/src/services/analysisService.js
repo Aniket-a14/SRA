@@ -14,6 +14,16 @@ import { retrieveContext, formatRagContext } from './ragService.js';
 
 const CACHE_TTL = 3600; // 1 hour in seconds
 
+/** Invalidate the cached dashboard list so the UI reflects mutations immediately. */
+const invalidateUserAnalysesCache = async (userId) => {
+    try {
+        const redis = getRedisClient();
+        if (redis) await redis.del(`user:analyses:${userId}`);
+    } catch (err) {
+        logger.warn({ msg: "Redis cache invalidation failed", userId, error: err.message });
+    }
+};
+
 
 export const performAnalysis = async (userId, text, projectId = null, parentId = null, rootId = null, settings = {}, analysisId = null) => {
     let resultJson;
@@ -86,8 +96,8 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         logger.debug(`[Analysis Service] Current orchestration state: ~${totalEstimatedTokens} tokens`);
 
         if (totalEstimatedTokens > 180000) {
-             logger.warn("[Analysis Service] State approaching TPM ceiling (180k+). Applying aggressive pruning to RAG context.");
-             // Non-essential pruning if we are hitting limits
+            logger.warn("[Analysis Service] State approaching TPM ceiling (180k+). Applying aggressive pruning to RAG context.");
+            // Non-essential pruning if we are hitting limits
         }
 
         // Optimized sleep context for tests/mock mode
@@ -307,6 +317,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                     }
                 }
             });
+            await invalidateUserAnalysesCache(userId);
             return; // Exit early as we've handled the record
         }
 
@@ -323,6 +334,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                     }
                 }
             });
+            await invalidateUserAnalysesCache(userId);
         }
         throw new Error(failureReason);
     }
@@ -378,7 +390,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
     }
 
     // Atomic Creation with Transaction
-    return await prisma.$transaction(async (tx) => {
+    const transactionResult = await prisma.$transaction(async (tx) => {
         // 1. Defer Project Creation if missing and successful
         let finalProjectId = projectId;
         if (!finalProjectId && resultJson.projectTitle) {
@@ -436,19 +448,25 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                 }
             });
 
-            // Synchronize Knowledge Graph (Async)
-            if (finalProjectId) {
-                logger.info(`[Analysis Service] Triggering Graph Extraction for Project: ${finalProjectId}`);
-                extractGraph(text, finalProjectId).catch(e => logger.error({ msg: "Async Graph Extraction failed", error: e }));
-            }
-
-            return result;
+            return { result, text, finalProjectId };
         }
 
         // --- LEGACY / DIRECT SYNC FLOW ---
         // DEPRECATED: All analyses should now be created via queueService with an ID upfront.
         throw new Error("performAnalysis called without analysisId. Legacy direct creation is deprecated.");
     });
+
+    if (transactionResult) {
+        await invalidateUserAnalysesCache(userId);
+
+        // Synchronize Knowledge Graph (Async)
+        if (transactionResult.finalProjectId) {
+            logger.info(`[Analysis Service] Triggering Graph Extraction for Project: ${transactionResult.finalProjectId}`);
+            extractGraph(transactionResult.text, transactionResult.finalProjectId).catch(e => logger.error({ msg: "Async Graph Extraction failed", error: e }));
+        }
+
+        return transactionResult.result;
+    }
 };
 
 export const getUserAnalyses = async (userId) => {
@@ -551,7 +569,7 @@ export const getUserAnalyses = async (userId) => {
             try {
                 await redis.set(CACHE_KEY, JSON.stringify(result), 'EX', CACHE_TTL);
             } catch (err) {
-                console.warn("Redis Cache Write Error:", err.message);
+                logger.warn({ msg: "Redis Cache Write Error", error: err.message });
             }
         }
 

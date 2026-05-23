@@ -13,6 +13,7 @@ const mockPrisma = {
             if (!args || !args.data) return {};
             return args.data; // Return data as if updated
         }),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
     project: {
         findFirst: jest.fn(),
@@ -119,6 +120,7 @@ describe('E2E Golden Path: Request -> Queue(Mock) -> Worker(Local) -> DB', () =>
         // Mock findUnique for the update phase
         mockPrisma.analysis.findUnique.mockResolvedValue({
             id: 'generated-id',
+            userId: 'e2e-user',
             version: 1,
             metadata: { draftData: {} },
             inputText: "Test Input"
