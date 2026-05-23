@@ -3,13 +3,17 @@ import prisma from '../config/prisma.js';
 import { embedText } from './embeddingService.js';
 import logger from '../config/logger.js';
 import { traverseGraph } from './graphService.js';
-import { genAI } from '../config/gemini.js';
+// Note: genAI is intentionally not imported here; this service only performs retrieval logic.
 
 // Global token limit for context injection (Layer 5 policy)
 // Increased to 32k tokens to leverage Gemini 2.5 Pro/Flash capacity while staying within Free Tier TPM limits.
 const CONTEXT_TOKEN_LIMIT = 32768;
 const DEFAULT_RETRIEVAL_LIMIT = 5;
-const SIMILARITY_THRESHOLD = 0.25;
+// Allow tuning the similarity threshold via env var while falling back to a safe default.
+const SIMILARITY_THRESHOLD = (() => {
+    const v = parseFloat(process.env.RAG_SIMILARITY_THRESHOLD ?? '');
+    return Number.isFinite(v) ? v : 0.25;
+})();
 
 /**
  * Retrieves granular knowledge chunks based on semantic similarity and keywords.
@@ -23,21 +27,14 @@ export const retrieveContext = async (queryText, projectId = null, limit = 5) =>
         // 1. Vector Search (Standard RAG)
         const embedding = await embedText(queryText);
         const vectorStr = `[${embedding.join(',')}]`;
-        const parsedLimit = Number(limit);
-        const safeLimit = Number.isFinite(parsedLimit)
-            ? Math.max(1, Math.floor(parsedLimit))
+        // Normalize and validate the requested limit. Use DEFAULT_RETRIEVAL_LIMIT when input is invalid.
+        const parsedLimit = Math.floor(Number(limit));
+        const safeLimit = (Number.isFinite(parsedLimit) && parsedLimit > 0)
+            ? parsedLimit
             : DEFAULT_RETRIEVAL_LIMIT;
 
-<<<<<<< HEAD
         // Over-fetch by 3x to compensate for post-filter attrition from the similarity threshold
         const overfetchLimit = safeLimit * 3;
-=======
-        // Over-fetch by 3x and apply a similarity threshold to avoid low-quality junk
-        const parsedLimit = Math.floor(Number(limit));
-        const safeLimit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 5;
-        const overfetchLimit = safeLimit * 3;
-
->>>>>>> c0646f2 (fix(rag): filter low-similarity results by threshold and overfetch to ensure quality)
         const matches = await prisma.$queryRaw`
             SELECT
                 kc.id,
@@ -56,12 +53,7 @@ export const retrieveContext = async (queryText, projectId = null, limit = 5) =>
                 kc.embedding <=> ${vectorStr}::vector ASC
             LIMIT ${overfetchLimit};
         `;
-
-<<<<<<< HEAD
-        // Filter out low-relevance results, then cap at the requested limit
-=======
-        const SIMILARITY_THRESHOLD = 0.25;
->>>>>>> c0646f2 (fix(rag): filter low-similarity results by threshold and overfetch to ensure quality)
+    // Filter out low-relevance results, then cap at the requested limit
         const vectorResults = matches
             .filter(m => m.similarity >= SIMILARITY_THRESHOLD)
             .slice(0, safeLimit)
