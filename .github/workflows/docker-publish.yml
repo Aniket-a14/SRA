@@ -33,7 +33,7 @@ jobs:
 
       - name: Extract metadata (tags, labels) for Backend
         id: meta-backend
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_REPOSITORY }}-backend
 
@@ -48,7 +48,7 @@ jobs:
 
       - name: Extract metadata (tags, labels) for Frontend
         id: meta-frontend
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_REPOSITORY }}-frontend
 
@@ -63,7 +63,7 @@ jobs:
 
       - name: Extract metadata (tags, labels) for CLI
         id: meta-cli
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_REPOSITORY }}-cli
 
