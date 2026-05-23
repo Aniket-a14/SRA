@@ -28,8 +28,16 @@ export const retrieveContext = async (queryText, projectId = null, limit = 5) =>
             ? Math.max(1, Math.floor(parsedLimit))
             : DEFAULT_RETRIEVAL_LIMIT;
 
+<<<<<<< HEAD
         // Over-fetch by 3x to compensate for post-filter attrition from the similarity threshold
         const overfetchLimit = safeLimit * 3;
+=======
+        // Over-fetch by 3x and apply a similarity threshold to avoid low-quality junk
+        const parsedLimit = Math.floor(Number(limit));
+        const safeLimit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 5;
+        const overfetchLimit = safeLimit * 3;
+
+>>>>>>> c0646f2 (fix(rag): filter low-similarity results by threshold and overfetch to ensure quality)
         const matches = await prisma.$queryRaw`
             SELECT
                 kc.id,
@@ -49,7 +57,11 @@ export const retrieveContext = async (queryText, projectId = null, limit = 5) =>
             LIMIT ${overfetchLimit};
         `;
 
+<<<<<<< HEAD
         // Filter out low-relevance results, then cap at the requested limit
+=======
+        const SIMILARITY_THRESHOLD = 0.25;
+>>>>>>> c0646f2 (fix(rag): filter low-similarity results by threshold and overfetch to ensure quality)
         const vectorResults = matches
             .filter(m => m.similarity >= SIMILARITY_THRESHOLD)
             .slice(0, safeLimit)
