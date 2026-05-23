@@ -11,6 +11,8 @@
 [![Lighthouse CI](https://github.com/Aniket-a14/SRA/actions/workflows/lighthouse.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/lighthouse.yml)
 [![Bundle Size Check](https://github.com/Aniket-a14/SRA/actions/workflows/bundle-size.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/bundle-size.yml)
 [![Health Check](https://github.com/Aniket-a14/SRA/actions/workflows/health-check.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/health-check.yml)
+[![Pre-Commit Checks](https://github.com/Aniket-a14/SRA/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/pre-commit.yml)
+[![PR Labeler](https://github.com/Aniket-a14/SRA/actions/workflows/pr-labeler.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/pr-labeler.yml)
 [![IEEE-830](https://img.shields.io/badge/Compliance-IEEE--830-blue)](https://ieeexplore.ieee.org/document/720577)
 [![Dependabot](https://img.shields.io/badge/Dependabot-enabled-success)](https://github.com/Aniket-a14/SRA/blob/main/.github/dependabot.yml)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/Aniket-a14/SRA/graphs/commit-activity)
@@ -271,8 +273,8 @@ Ensure the following variables are defined in your infrastructure (see `.env.exa
 
 | Group | Key | Required | Description |
 |-------|-----|:--------:|-------------|
-| **Database** | `DATABASE_URL` | Yes | Postgres connection string with pooling. |
-| **Database** | `DIRECT_URL` | Yes | Direct connection string for Prisma migrations. |
+| **Database** | `DATABASE_URL` | Yes | Postgres connection string with transaction pooling (typically port `6543`). |
+| **Database** | `DIRECT_URL` | Yes | Direct connection string bypassing transaction pooler (typically port `5432`) for Prisma migrations and heavy-duty database backup/restore operations. |
 | **Database** | `REDIS_URL` | Optional | Redis connection string for rate limiting/caching. |
 | **AI (Gemini)** | `GEMINI_API_KEY` | Yes | API key for Google Gemini 2.5 Flash (Primary). |
 | **AI (OpenAI)**| `OPENAI_API_KEY` | Optional | API key for OpenAI (Secondary/Internal). |
@@ -309,21 +311,51 @@ pnpm install -g @sra-srs/sra-cli
 sra init
 ```
 
-#### ⚒️ Local Infrastructure Setup
+#### ⚒️ Local Infrastructure & Testing Setup
 SRA uses standard **pnpm workspaces** for monorepo management.
+
+##### 1. Initial Dependency Sync
 ```bash
 # Install dependencies across all workspaces
 pnpm install
+```
 
+##### 2. Run Quality Gates (Pre-Commit Setup)
+To configure local quality gating checks (which will run standard cleanups and monorepo linting automatically before every git commit):
+```bash
+# Install the pre-commit CLI framework
+pip install pre-commit
+
+# Install the git hooks defined in our .pre-commit-config.yaml
+pre-commit install
+
+# Optional: Run all quality checks manually against all files
+pre-commit run --all-files
+```
+
+##### 3. Run Backend Jest Unit Tests
+SRA has a comprehensive unit and E2E testing suite in the backend workspace. To run them locally:
+```bash
+# Run all tests using pnpm filter
+pnpm --filter backend test
+
+# Or run tests using monorepo root npm script
+pnpm test:backend
+```
+
+##### 4. Launch Local Development Services
+```bash
 # Initialize Identity & Data
 pnpm run dev:backend
 
-# Or run everything concurrently
+# Or run frontend and backend concurrently
 pnpm run dev:all
 ```
 
-#### 🤖 Agentic & CI Workflows
-SRA leverages professional GitHub Actions for continuous quality assurance:
+#### 🤖 Agentic & CI/CD Workflows
+SRA leverages professional GitHub Actions for continuous quality assurance and codebase health:
+*   **Pre-Commit Checks**: Remote validation hook runner on push and Pull Requests targeting main/master.
+*   **PR Labeler**: Automatically tags incoming Pull Requests based on the modified files' directory pathways.
 *   **Publish Docker**: Automated image pushes to GHCR.
 *   **Bundle Size**: Continuous monitoring of Next.js JS payloads on every branch.
 *   **Health Checks**: Hourly automated uptime verification of the entire pipeline.
