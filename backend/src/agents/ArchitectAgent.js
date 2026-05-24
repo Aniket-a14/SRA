@@ -73,13 +73,13 @@ export class ArchitectAgent extends BaseAgent {
       // settings may include a ragContexts object with domain-specific RAG strings
       // e.g. settings.ragContexts = { components: '...', entities: '...', principles: '...' }
       // 1. System Components
-      const components = await this.analyzeSystemComponents(poOutput, { ...settings, ragContext: settings.ragContexts?.components || settings.ragContext });
+      const components = await this.analyzeSystemComponents(poOutput, { ...agentSettings, ragContext: settings.ragContexts?.components || settings.ragContext });
 
     // 2. Logical Data Model
-      const model = await this.modelEntities(poOutput, components, { ...settings, ragContext: settings.ragContexts?.entities || settings.ragContext });
+      const model = await this.modelEntities(poOutput, components, { ...agentSettings, ragContext: settings.ragContexts?.entities || settings.ragContext });
 
     // 3. Technical Principles
-      const principles = await this.identifyPrinciples(poOutput, components, model, { ...settings, ragContext: settings.ragContexts?.principles || settings.ragContext });
+      const principles = await this.identifyPrinciples(poOutput, components, model, { ...agentSettings, ragContext: settings.ragContexts?.principles || settings.ragContext });
 
     return {
       ...components,
