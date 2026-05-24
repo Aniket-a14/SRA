@@ -9,7 +9,14 @@ const truncate = (value, max = MAX_TEXT) => {
 };
 
 export const stringifyForPrompt = (value, maxChars = null) => {
-    const text = typeof value === 'string' ? value : JSON.stringify(value);
+    if (value === undefined) return '';
+    let text;
+    try {
+        text = typeof value === 'string' ? value : JSON.stringify(value);
+    } catch {
+        text = String(value);
+    }
+    if (text === undefined) return '';
     if (!maxChars || text.length <= maxChars) return text;
     return `${text.slice(0, maxChars)}... [truncated ${text.length - maxChars} chars]`;
 };
@@ -26,7 +33,7 @@ const compactFeature = (feature) => ({
 });
 
 const compactRequirementGroup = (requirements = {}) => Object.fromEntries(
-    Object.entries(requirements).map(([key, value]) => [
+    Object.entries(requirements && typeof requirements === 'object' ? requirements : {}).map(([key, value]) => [
         key,
         {
             count: Array.isArray(value) ? value.length : (value ? 1 : 0),
