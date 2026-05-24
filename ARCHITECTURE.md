@@ -127,7 +127,8 @@ SRA implements a **Recursive Versioning Tree**, ensuring that every change is no
 - **JWT Auth**: Secure, stateless authentication using JSON Web Tokens.
 - **Unified API Bridge**: All client-side API interactions are consolidated through the `useAuthFetch` hook, which automatically manages bearer tokens for all requests.
 - **Error Boundaries**: Granular React boundaries to isolate Mermaid rendering or Flowchart failures from the main UI.
-- **Direct Database Backups**: Bypasses transaction poolers (such as PgBouncer on port `6543`) to connect directly to the database via `DIRECT_URL` (port `5432` or custom unpooled port), preventing timeout, connection drops, and lock contention during bulk data operations.
+- **Hydration-Safe Client Resiliency**: To eliminate Next.js SSR hydration mismatches, client-side state hooks (such as the authentication token and cached user profiles) are deferred from inspecting `localStorage` during initial hydration. State is lazily initialized inside a client-side `useEffect` block. Theme state is securely bound via a customized local `ThemeProvider` managing smooth view-transitions.
+- **Direct Database Backups**: Bypasses transaction poolers (such as PgBouncer on port `6543`) to connect directly to the database via `DIRECT_URL` (port `5432` or custom unpooled port), preventing timeout, connection drops, and lock contention during large exports/restores.
 
 ### 🛡️ Quality Gating & Codebase Maintenance
 To maintain code consistency and enforce quality standards automatically across the monorepo, SRA implements a dual-layer validation framework:
@@ -145,6 +146,11 @@ The system utilizes a **Prompt Factory** pattern to maintain consistent AI outpu
 2.  **Strict JSON Schemas**: AI outputs are validated against **Zod** schemas before being committed.
 3.  **Benchmark Loops**: Each analysis calculates an `industryScore` based on the 6Cs audit, enabling data-driven refinement.
 4.  **AI Reliability Layer**: Implemented central timeout (360s) and retry policies in `BaseAgent` to handle network jitter and AI service rate-limits gracefully.
+5.  **Sectional Prompt & Persona Parallelization**: Multi-agent document generation steps dynamically load role personas concurrently. The system utilizes `Promise.all` to fetch standard developer instructions and layout rules in parallel, bypassing linear database queries and cutting I/O latency.
+6.  **Unified AI Persona Governance (`llmGenerationConfig.js`)**: Personnel generation models are governanced via a central configuration matrix. Scoring and evaluation parameters are highly deterministic (`0.2` temperature, `smallJson` tokens), technical blueprinting is repeatable (`0.4` temperature), and product discovery operates at safe flexibility (`0.7` temperature).
+7.  **Conversational Chat Agent & Prompt Compaction Engine (`ChatAgent.js` / `promptCompaction.js`)**:
+    - **Dedicated Conversational Persona**: Conversational refinement queries and targeted patches are handled via `ChatAgent`, inheriting robust retry and dynamic JSON repair from `BaseAgent`.
+    - **Prompt Compaction**: Bypasses the overhead of passing full 50KB+ requirement files to the LLM during chat turns. It generates highly specialized, sub-10K token snapshots (`createChatSnapshot()` for conversational Q&A, `createReviewSnapshot()` for evaluator metrics) utilizing fast character-based token counters to ensure light, cost-effective context payloads.
 
 ### 🧪 Unit Testing Architecture & Dynamic ESM Mocking
 SRA establishes a rigorous, ESM-compliant testing suite powered by **Jest** (`cross-env NODE_OPTIONS=--experimental-vm-modules jest`). Testing in a native ES Module environment introduces read-only binding constraints, which SRA resolves using advanced asynchronous dynamic mock orchestration:

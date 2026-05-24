@@ -56,6 +56,7 @@ npm run backup:cleanup --workspace=backend
 - `BACKUP_DIR`: Directory for backup storage (default: `./backups`).
 - `BACKUP_RETENTION_DAYS`: Number of days to retain backups (default: 30).
 - `BACKUP_ENCRYPTION_SALT`: Unique salt string used for derived keys during encryption.
+- `RAG_SIMILARITY_THRESHOLD`: Floating-point cosine similarity threshold (e.g. `0.25`) for vector match filtering, falling back to a safe default of `0.25` if not supplied or invalid.
 
 #### Direct Connection & Port Extraction Architecture
 The `BackupService` utilizes a robust connection string parsing algorithm:
