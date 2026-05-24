@@ -31,6 +31,8 @@ Review the generated SRS draft against the original user requirements. Evaluate 
 9. TBD Auditing: Flag "TBD" items not correctly mirrored in the TBD List.
 10. Security & Logic: Flag obvious logical contradictions or massive security oversights.
 11. Mermaid Syntax: No activation bars (+/-) in sequence diagrams. No colons in ERD field blocks.
+12. Keep feedback concise: return at most 3 feedback items, and keep each issue/suggestion to plain text without code fences or quoted examples.
+13. Avoid double quotes inside string fields unless they are absolutely necessary for a technical reason.
 </constraints>
 
 <examples>
@@ -73,7 +75,7 @@ ${stringifyForPrompt(ReviewSchema)}
 `;
 
     return this.callLLM(prompt, TEMPERATURES.critic, true, ReviewSchema, 3, 5000, {
-      maxOutputTokens: OUTPUT_TOKEN_LIMITS.smallJson
+      maxOutputTokens: OUTPUT_TOKEN_LIMITS.mediumJson
     });
   }
 }
