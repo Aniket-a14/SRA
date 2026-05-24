@@ -24,7 +24,7 @@ pnpm dlx @sra-srs/sra-cli init
 
 ## 🛠️ Prerequisites
 
-- **Node.js**: v18.0.0 or higher.
+- **Node.js**: >= 20.19.0 (harmonized with monorepo engine specifications).
 - **API Key**: Generate one from your SRA Platform Dashboard.
 - **Environment**: Create a `.env` file in your project root:
   ```env
@@ -106,6 +106,18 @@ Built with a modular, layered architecture for maximum reliability:
 - **`src/config`**: Centralized configuration management.
 - **`src/utils`**: Professional logging with `ora` spinners and `chalk` themes.
 - **`src/commands`**: Decoupled command logic for high testability.
+
+### 🛠️ Monorepo Workspace Development Execution
+
+When working directly inside this monorepo codebase, you can execute or test the CLI commands locally without installing it globally:
+1.  **Execute from monorepo root**:
+    ```bash
+    pnpm --filter cli start -- <command>
+    ```
+2.  **Execute inside cli workspace subdirectory**:
+    ```bash
+    cd cli && pnpm start -- <command>
+    ```
 
 ---
 

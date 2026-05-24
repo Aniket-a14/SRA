@@ -18,8 +18,8 @@ We provide security updates for the following versions:
 
 | Version | Lifecycle Stage | Security Support |
 | :--- | :--- | :---: |
-| **3.2.x** | **Current Release (MAS/Audit)** | :white_check_mark: |
-| 3.1.x | Legacy Production | :white_check_mark: |
+| **4.0.x** | **Current Release (CLI/Traceability)** | :white_check_mark: |
+| 3.2.x | Legacy Production | :white_check_mark: |
 | 2.2.x | Active Maintenance | :white_check_mark: |
 | 2.0.x | Legacy Stable | :warning: |
 | < 2.0.0 | Deprecated | :x: |
@@ -85,7 +85,7 @@ For full incident response procedures, see [docs/security/INCIDENT_RESPONSE.md](
 
 - [ENCRYPTION.md](docs/security/ENCRYPTION.md) - Field-level encryption implementation
 - [INCIDENT_RESPONSE.md](docs/security/INCIDENT_RESPONSE.md) - Security incident procedures
-- [OPERATIONS.md](OPERATIONS.md) - Backup, disaster recovery, and secrets rotation
+- [OPERATIONS.md](docs/operations/OPERATIONS.md) - Backup, disaster recovery, and secrets rotation
 - [ARCHITECTURE.md](ARCHITECTURE.md) - System architecture and security design
 
 ---

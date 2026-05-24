@@ -14,6 +14,8 @@ The frontend emphasizes **Visual Excellence** and **Absolute Type Safety**, ensu
 -   **Zero-Error Standard**: The project maintains 100% clean linting (Zero errors, zero warnings in critical paths).
 -   **Strict Typing**: Generic `any` types have been systematically replaced with precise interfaces derived from the backend's `SRSIntakeModel` and `Analysis` schemas.
 -   **Responsive Aesthetics**: built with Tailwind CSS v4 and Framer Motion for fluid, high-fidelity transitions.
+-   **Client-Side Hydration Resiliency**: Built to support Next.js SSR securely. Initial authentication and cached user state evaluations are deferred from reading `localStorage` immediately upon initialization (which would cause server-client hydration mismatches). Instead, they are lazily loaded inside a client-side `useEffect` block.
+-   **Custom Theme Orchestration**: Uses a custom-built, hydration-safe `ThemeProvider` context mapping dynamic light/dark/system states with fluid `@view-transition` CSS capabilities.
 
 ## 🛠️ Feature Breakdown
 
@@ -61,8 +63,8 @@ Integrated directly into the workspace, providing real-time Feedback on:
 
 ### Prerequisites
 
--   Node.js (v18+)
--   Backend running on port 3000
+-   **Node.js**: >= 20.19.0 (harmonized with monorepo engine parameters).
+-   **Backend**: Running api service on port `3000` (`http://localhost:3000/api`).
 
 ### Environment Variables
 
@@ -70,20 +72,31 @@ Integrated directly into the workspace, providing real-time Feedback on:
 |----------|-------------|
 | `NEXT_PUBLIC_BACKEND_URL` | URL of the backend API (e.g., `http://localhost:3000/api`) |
 
-### Installation
+### Installation & Execution (Recommended)
 
-1.  **Install Dependencies**:
+1.  **Root Setup**: Navigate to the monorepo root and install all dependencies:
+    ```bash
+    pnpm install
+    ```
+2.  **Start Workspace**: Launch the frontend dev server from the monorepo root:
+    ```bash
+    pnpm dev:frontend
+    ```
+3.  **Open Application**: Visit `http://localhost:3001` in your browser.
+
+---
+
+### Alternative Local Execution (Subdirectory Only)
+
+If you explicitly need to initialize inside the frontend directory directly:
+1.  **Install**:
     ```bash
     cd frontend && pnpm install
     ```
-
-2.  **Start Development Server**:
+2.  **Start**:
     ```bash
     pnpm run dev
     ```
-
-3.  **Open Application**:
-    Visit [http://localhost:3001](http://localhost:3001)
 
 ## 🔧 Troubleshooting
 

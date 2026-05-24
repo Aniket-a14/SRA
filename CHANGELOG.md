@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.0.3] - 2026-05-24
+
+### 📚 Documentation Alignment & Harmonization (v4.0.3)
+- **Harmonized** all documentation files across the monorepo to target SRA v4.0.3 release version.
+- **Audited** and updated Node.js prerequisite constraints to strictly enforce >= 20.19.0 engine requirements.
+- **Refined** all setup, test, and operational manuals to use `pnpm` monorepo workspace command structures instead of localized `npm` executions.
+- **Fixed** broken relative documentation links in `ENCRYPTION.md`, `INCIDENT_RESPONSE.md`, and `terraform/README.md`.
+
 ## [4.0.0] - 2026-02-18
 
 ### 🚀 SRA CLI Toolkit (Major Release)

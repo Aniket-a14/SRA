@@ -66,7 +66,7 @@ The core innovation of SRA is its rigid, automated pipeline that ensures require
 
 ### Layer 2: Multi-Agent Analysis (MAS)
 *   **Purpose**: Parallelize technical and business reasoning.
-*   **Implementation**: A Multi-Agent System using the **v1.1.0 Gold Standard** prompt registry.
+*   **Implementation**: A Multi-Agent System using the **v2.1.0 Gold Standard** prompt registry.
     *   **PO Agent**: Business value and scope refinement.
     *   **Architect Agent**: Technical stack and schema design with RAG context.
     *   **Developer Agent**: IEEE 830-1998 document synthesis.

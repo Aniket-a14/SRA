@@ -42,7 +42,7 @@ graph TD
 ## Key Insights
 
 - **Front-Stage**: Interactive dashboard allowing rapid iteration on project ideas.
-- **Back-Stage**: Decoupled prompt registry allowing versioning (V1.0.0, V1.1.0) without service downtime.
+- **Back-Stage**: Decoupled prompt registry allowing versioning (V1.0.0, V1.1.0, V2.1.0) without service downtime.
 - **Impact**: Transformation of informal prose into structured, verifiable technical requirements (IEEE-830).
 
 ## Change History

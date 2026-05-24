@@ -17,7 +17,7 @@ The backend is built with **Node.js** and designed for **Vercel Serverless**, or
 -   **`src/controllers/`**: Logic for handling API requests.
 -   **`src/services/`**: Business logic and orchestrators.
 -   **`src/agents/`**: **NEW**. Multi-Agent System (MAS) implementations (PO, Architect, Developer, Critic).
--   **`src/utils/versions/`**: **CRITICAL**. Versioned "Gold Standard" prompt generators (IEEE-830 v1.1.0).
+-   **`src/utils/versions/`**: **CRITICAL**. Versioned "Gold Standard" prompt generators (IEEE-830 v2.1.0).
 -   **`src/utils/prompt_templates/`**: Supplemental templates and the **Diagram Syntax Authority**.
 -   **`src/workers/`**: Background workers for handling async tasks triggered by QStash (Layer 5 knowledge shredding).
 -   **`src/middleware/`**: Middleware for auth, validation, and error handling.

@@ -32,22 +32,22 @@ This document outlines the operational procedures, backup strategies, and disast
 
 #### Manual Backup Commands
 ```bash
-# Run backup commands from the monorepo root via workspace
+# Run backup commands from the monorepo root via workspace filters
 
 # Create encrypted backup
-npm run backup:create --workspace=backend
+pnpm --filter backend backup:create
 
 # List all backups
-npm run backup:list --workspace=backend
+pnpm --filter backend backup:list
 
 # Restore from backup
-npm run backup:restore --workspace=backend -- <filename> --yes
+pnpm --filter backend backup:restore -- <filename> --yes
 
 # Verify backup integrity
-npm run backup:verify --workspace=backend -- <filename>
+pnpm --filter backend backup:verify -- <filename>
 
 # Cleanup old backups
-npm run backup:cleanup --workspace=backend
+pnpm --filter backend backup:cleanup
 ```
 #### Required Environment Variables
 - `DATABASE_URL`: PostgreSQL connection string (typically transaction-pooled connection on port `6543`).

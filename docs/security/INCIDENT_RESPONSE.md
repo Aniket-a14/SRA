@@ -34,14 +34,13 @@
    - Enable additional logging
 
 2. **For data breaches:**
-   ```bash
-   # Rotate all secrets immediately
-   cd backend
-   node scripts/rotate-secrets.js --emergency
+    ```bash
+    # Rotate all secrets immediately from monorepo root
+    pnpm --filter backend exec node scripts/rotate-secrets.js --emergency
 
-   # Revoke all active sessions
-   node scripts/revoke-all-sessions.js
-   ```
+    # Revoke all active sessions from monorepo root
+    pnpm --filter backend exec node scripts/revoke-all-sessions.js
+    ```
 
 3. **For system compromise:**
    - Take snapshots before changes
@@ -57,7 +56,7 @@
 2. **Verify clean state**
    ```bash
    # Run security scans
-   npm audit --audit-level=high
+   pnpm audit --audit-level=high
    docker scan sra-backend:latest
    ```
 
@@ -69,9 +68,8 @@
 
 2. **Database recovery (if needed)**
    ```bash
-   # Restore from encrypted backup
-   cd backend
-   node scripts/backup-cli.js restore <backup-file> --yes
+   # Restore from encrypted backup from monorepo root
+   pnpm --filter backend exec node scripts/backup-cli.js restore <backup-file> --yes
    ```
 
 ### Phase 5: Post-Incident (24-72 hours)
@@ -151,8 +149,8 @@ SRA Security Team
 
 ### Emergency Rotation (Breach Scenario)
 ```bash
-# 1. Generate new secrets
-node scripts/generate-secrets.js --output .env.new
+# 1. Generate new secrets from monorepo root
+pnpm --filter backend exec node scripts/generate-secrets.js --output .env.new
 
 # 2. Update Vercel secrets
 vercel env add JWT_SECRET production < .env.new
@@ -164,12 +162,12 @@ vercel env add CSRF_SECRET production < .env.new
 # 4. Redeploy applications
 vercel --prod
 
-# 5. Revoke old sessions
-node scripts/revoke-all-sessions.js
+# 5. Revoke old sessions from monorepo root
+pnpm --filter backend exec node scripts/revoke-all-sessions.js
 ```
 
 ### Scheduled Rotation (90-day policy)
-See [OPERATIONS.md](../../OPERATIONS.md) "Secrets Rotation Policy"
+See [OPERATIONS.md](../operations/OPERATIONS.md) "Secrets Rotation Policy"
 
 ## Escalation Contacts
 
@@ -195,4 +193,4 @@ See [OPERATIONS.md](../../OPERATIONS.md) "Secrets Rotation Policy"
 ## Related Documentation
 - [SECURITY.md](../../SECURITY.md) - Overall security policy
 - [ENCRYPTION.md](./ENCRYPTION.md) - Encryption procedures
-- [OPERATIONS.md](../../OPERATIONS.md) - Operational procedures
+- [OPERATIONS.md](../operations/OPERATIONS.md) - Operational procedures

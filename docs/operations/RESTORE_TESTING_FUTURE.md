@@ -24,7 +24,7 @@ Implement automated backup restore testing when:
 
 ### ✅ What's Already Implemented:
 - Automated weekly encrypted backups (GitHub Actions)
-- Manual backup CLI tool (`backend/scripts/backup.js`)
+- Manual backup CLI tool (`backend/scripts/backup-cli.js`)
 - AES-256-GCM encryption
 - SHA-256 integrity verification
 - 30-day retention policy
@@ -48,8 +48,10 @@ If you need to verify backups work before implementing full automation:
 # 2. Set TEST_DATABASE_URL in .env
 
 # 3. Run manual restore test
-cd backend
-node scripts/restore.js --backup=latest --database=$TEST_DATABASE_URL --verify
+# From monorepo root:
+pnpm --filter backend backup:restore -- latest --database=$TEST_DATABASE_URL --verify
+# Or navigate to backend/ and run:
+node scripts/backup-cli.js restore latest --database=$TEST_DATABASE_URL --verify
 
 # 4. Check if data was restored correctly
 # 5. Drop test database when done
@@ -101,8 +103,10 @@ ls c:\3rd Year\SRA\backups\
 ### Monthly Check (15 minutes):
 ```powershell
 # 1. Run manual backup
-cd backend
-node scripts/backup.js
+# From monorepo root:
+pnpm --filter backend backup:create
+# Or navigate to backend/ and run:
+node scripts/backup-cli.js create
 
 # 2. Verify backup completes successfully
 # 3. Check backup file was created
@@ -112,10 +116,16 @@ node scripts/backup.js
 ### Before Major Changes (30 minutes):
 ```powershell
 # 1. Create manual backup
-cd backend
-node scripts/backup.js
+# From monorepo root:
+pnpm --filter backend backup:create
+# Or navigate to backend/ and run:
+node scripts/backup-cli.js create
 
-# 2. Test decryption (don't restore, just decrypt)
+# 2. Test decryption (don't restore, just decrypt/verify)
+# From monorepo root:
+pnpm --filter backend backup:verify -- <backup-file>
+# Or navigate to backend/ and run:
+node scripts/backup-cli.js verify <backup-file>
 # 3. Verify SQL content looks correct
 # 4. Keep backup safe during changes
 ```
@@ -157,7 +167,7 @@ node scripts/backup.js
 When ready to implement, refer to:
 - Implementation plan in artifacts
 - Backup service code: `backend/src/services/backupService.js`
-- Existing backup CLI: `backend/scripts/backup.js`
+- Existing backup CLI: `backend/scripts/backup-cli.js`
 - Operations manual: `docs/operations/OPERATIONS.md`
 
 ---

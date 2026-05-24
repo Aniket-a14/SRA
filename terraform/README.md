@@ -261,6 +261,6 @@ Copy-Item terraform.tfstate -Destination ("terraform.tfstate.backup-" + (Get-Dat
 ## Support
 
 For issues or questions:
-- Check [OPERATIONS.md](../OPERATIONS.md) for operational procedures
+- Check [OPERATIONS.md](../docs/operations/OPERATIONS.md) for operational procedures
 - Review [ARCHITECTURE.md](../ARCHITECTURE.md) for infrastructure design
 - Contact: aniketsahaworkspace@gmail.com

@@ -1,6 +1,6 @@
 # SRA Backend: 5-Layer Analysis Engine
 
-![Node.js](https://img.shields.io/badge/Node.js-v20.x-green)
+![Node.js](https://img.shields.io/badge/Node.js-%3E%3D20.19.0-green)
 ![Express](https://img.shields.io/badge/Express-v4.x-lightgrey)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue)
 ![Redis](https://img.shields.io/badge/Redis-Upstash-red)
@@ -18,7 +18,7 @@ graph TD
 
     subgraph "The Analysis Pipeline"
         W --> L1[IntakeService<br/>Technical Mapping]
-        L1 --> L2[Multi-Agent System<br/>PO, Arch & Dev]
+        W --> L2[Multi-Agent System<br/>PO, Arch & Dev]
         L2 --> L3[Objective Quality Loop<br/>6Cs Audit & RAG Eval]
         L3 -->|PASS| L4[RefinementHub<br/>Diff & Patch Engine]
         L4 --> L5[Knowledge persistence<br/>Vector & Graph Shredder]
@@ -29,7 +29,7 @@ graph TD
 Translates unstructured text into the `SRSIntakeModel` with strict schema validation.
 
 ### 2. **Multi-Agent System** (MAS Analysis)
-Orchestrates specialized AI roles (Product Owner, Architect, Lead Developer) using the **v1.1.0 Gold Standard** prompt registry for consistent IEEE-830 output.
+Orchestrates specialized AI roles (Product Owner, Architect, Lead Developer) using the **v2.1.0 Gold Standard** prompt registry for consistent IEEE-830 output.
 
 ### 3. **Objective Quality Loop** (Audit & Benchmarking)
 Gates output via automated auditing:
@@ -44,7 +44,7 @@ Shreds finalized requirements into **PostgreSQL + pgvector** and extracts semant
 
 ---
 
-## 🛠️ CLI & Local Environment Sync (v4.0)
+## 🛠️ CLI & Local Environment Sync (v4.0.3)
 The backend now supports bi-directional synchronization with the **SRA CLI**:
 - **Verification Metadata**: Handlers in `analysisController` specifically manage `verification_files` and `status` updates pushed from the CLI.
 - **Data Integrity Layer**: Robust merge logic ensures that local implementation audits do not overwrite requirement refinements.
@@ -82,7 +82,7 @@ The backend now supports bi-directional synchronization with the **SRA CLI**:
 ## 🚀 Setup & Deployment
 
 ### Prerequisites
--   Node.js (v20+) & pnpm
+-   Node.js (>=20.19.0) & pnpm
 -   PostgreSQL (Database)
 -   Upstash QStash (Serverless Queue)
 -   Gemini API Key
@@ -90,25 +90,37 @@ The backend now supports bi-directional synchronization with the **SRA CLI**:
 ### Installation
 
 1.  **Install Dependencies**:
+    From the monorepo root:
     ```bash
     pnpm install
     ```
 
 2.  **Environment Configuration**:
-    Configure `.env` (see `.env.example`).
+    Configure `backend/.env` (see `backend/.env.example`).
     **Crucial**: Generate a secure `JWT_SECRET` for production:
     ```bash
     openssl rand -base64 32
     ```
 
 3.  **Database Migration**:
+    From the monorepo root:
+    ```bash
+    pnpm --filter backend exec prisma migrate dev
+    ```
+    Or inside the `backend/` directory:
     ```bash
     pnpm prisma migrate dev
     ```
 
 4.  **Start Server**:
+    From the monorepo root:
+    ```bash
+    pnpm dev:backend
+    ```
+    Or inside the `backend/` directory:
     ```bash
     pnpm run dev
+    ```pnpm run dev
     ```
 
 ## 🔒 Security Features

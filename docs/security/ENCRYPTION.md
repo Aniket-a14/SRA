@@ -195,5 +195,5 @@ logger.info('Data encrypted', {
 
 ## Related Documentation
 - [SECURITY.md](../../SECURITY.md) - Overall security policy
-- [OPERATIONS.md](../../OPERATIONS.md) - Key rotation procedures
+- [OPERATIONS.md](../operations/OPERATIONS.md) - Key rotation procedures
 - [INCIDENT_RESPONSE.md](./INCIDENT_RESPONSE.md) - Breach response procedures

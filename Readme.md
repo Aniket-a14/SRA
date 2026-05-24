@@ -86,7 +86,7 @@ graph TD
 <summary><strong>📐 Click to Expand Layer Details</strong></summary>
 
 1.  **Strategic Intake**: Translates free-text into a mapped JSON model aligned with IEEE section hierarchies.
-2.  **Multi-Agent Analysis**: Orchestrates specialized AI agents (Product Owner, Architect, Developer) using the **v1.1.0 Gold Standard** prompt registry.
+2.  **Multi-Agent Analysis**: Orchestrates specialized AI agents (Product Owner, Architect, Developer) using the **v2.1.0 Gold Standard** prompt registry.
 3.  **Objective Review**: Automated auditing of SRS content against the 6Cs and RAG evaluation for contextual faithfulness.
 4.  **Iterative Refinement**: A modular Workspace UI for manual adjustments, version branching, and intelligent diagram repair.
 5.  **Knowledge Persistence**: Finalized requirements are "shredded" and indexed into a **PostgreSQL + pgvector** graph for cross-project intelligence.
@@ -114,7 +114,7 @@ graph TD
 *   **Revision History**: Complete versioning system with visual diff tracking between requirement updates.
 *   **Audit-Ready Exports**: One-click professional PDF generation with table of contents and revision logs.
 
-### 🛠️ SRA CLI Toolkit (v4.0)
+### 🛠️ SRA CLI Toolkit (v4.0.3)
 *   **Spec-to-Code Traceability**: Direct link between cloud requirements and local source code implementations.
 *   **Local Compliance Engine**: Run `sra check` locally to verify that your code matches the official specification.
 *   **Automated Sync**: One-command synchronization of requirements into your developer workspace.
@@ -277,6 +277,7 @@ Ensure the following variables are defined in your infrastructure (see `.env.exa
 | **Database** | `DIRECT_URL` | Yes | Direct connection string bypassing transaction pooler (typically port `5432`) for Prisma migrations and heavy-duty database backup/restore operations. |
 | **Database** | `REDIS_URL` | Optional | Redis connection string for rate limiting/caching. |
 | **AI (Gemini)** | `GEMINI_API_KEY` | Yes | API key for Google Gemini 2.5 Flash (Primary). |
+| **AI (Gemini)** | `RAG_SIMILARITY_THRESHOLD` | Optional | Cosine similarity threshold for RAG retrieval matching, defaults to `0.25`. |
 | **AI (OpenAI)**| `OPENAI_API_KEY` | Optional | API key for OpenAI (Secondary/Internal). |
 | **Async** | `QSTASH_TOKEN` | Yes | Bearer token for Upstash QStash job publishing. |
 | **Async** | `QSTASH_SIGNING_KEYS` | Yes | Signing keys for verifying QStash webhooks. |

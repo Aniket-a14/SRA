@@ -2,37 +2,47 @@
 description: Set up the SRA project for local development
 ---
 
-Follow these steps to set up the SRA project:
+Follow these steps to set up the SRA project in your local development environment:
 
-1. **Install Dependencies**:
-   - Navigate to the `backend` directory and run:
+1. **Install Prerequisites**:
+   - Ensure **Node.js >= 20.19.0** is installed (governed by monorepo engine requirements).
+   - Ensure **pnpm** (preferred package manager) is installed:
      ```bash
-     npm install
-     ```
-   - Navigate to the `frontend` directory and run:
-     ```bash
-     npm install
+     npm install -g pnpm
      ```
 
-2. **Configure Environment Variables**:
-   - Create a `.env` file in the `backend` directory based on `.env.example`.
-   - Create a `.env.local` file in the `frontend` directory based on `.env.example`.
+2. **Initialize Monorepo Dependencies**:
+   - Navigate to the monorepo root directory and run the standard install:
+     ```bash
+     pnpm install
+     ```
+     *This will configure, resolve, and link all workspace dependencies across backend, frontend, model, cli, and terraform.*
 
-3. **Database Setup**:
+3. **Configure Environment Variables**:
+   - Create a `.env` file in the `backend/` directory based on `.env.example`.
+   - Create a `.env.local` file in the `frontend/` directory based on `.env.example`.
+   - Ensure `DATABASE_URL` (pooled connection on port `6543`) and `DIRECT_URL` (direct unpooled on port `5432`) are properly specified for Prisma.
+
+4. **Database Setup**:
    - Ensure PostgreSQL is running.
-   - Run Prisma migrations in the `backend` directory:
+   - Run Prisma migrations from the monorepo root:
      ```bash
-     npx prisma migrate dev
+     pnpm --filter backend exec prisma migrate dev
      ```
 
-4. **Start Development Servers**:
-   - In the `backend` directory:
-     ```bash
-     npm run dev
-     ```
-   - In the `frontend` directory:
-     ```bash
-     npm run dev
-     ```
+5. **Start Development Servers**:
+   - Start the backend and frontend concurrently using the root workspace commands:
+     - In the monorepo root, start the backend:
+       ```bash
+       pnpm dev:backend
+       ```
+     - In the monorepo root, start the frontend:
+       ```bash
+       pnpm dev:frontend
+       ```
+     - Or launch all active workspaces in dev mode:
+       ```bash
+       pnpm dev:all
+       ```
 
-Your application should now be running with the frontend at `http://localhost:3000` (or `3001` as configured) and the backend at `http://localhost:5000`.
+Your application should now be running with the frontend at `http://localhost:3001` and the backend api gateway at `http://localhost:3000/api`.
