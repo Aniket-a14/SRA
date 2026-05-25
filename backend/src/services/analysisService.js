@@ -84,12 +84,43 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
 
         // 3. Architect: Design System (Logical Sectional Approach)
         logger.info("--> Agent: Architect");
+
+        // Generate focused search queries for components/entities/principles
+        let ragContexts = {};
+        try {
+            const featureListShort = featureList.slice(0, 8);
+            const queries = await archAgent.generateQueries(featureListShort.length ? featureListShort : [{ name: projectName }]);
+            // queries.queries expected as array of 3; fall back to feature names
+            const rawQueries = (queries && queries.queries) || (featureListShort.map(f => f.name || f).slice(0,3));
+            const qArr = rawQueries
+                .map(q => (typeof q === 'string' ? q : (q?.name || JSON.stringify(q))).trim())
+                .filter(q => q.length > 0)
+                .slice(0, 3);
+
+            const fetchPromises = qArr.map((q) => retrieveContext(q, projectId, 5));
+            const fetched = await Promise.all(fetchPromises);
+
+            ragContexts = {
+                components: await formatRagContext(fetched[0] || []),
+                entities: await formatRagContext(fetched[1] || []),
+                principles: await formatRagContext(fetched[2] || [])
+            };
+        } catch (e) {
+            logger.warn({
+                msg: "Failed to generate domain-specific RAG queries, falling back to generic context",
+                error: e,
+                errorMessage: e instanceof Error ? e.message : String(e),
+                errorStack: e instanceof Error ? e.stack : undefined
+            });
+            ragContexts = { components: ragContext, entities: ragContext, principles: ragContext };
+        }
+
         archOutput = await archAgent.designSystem(poOutput, {
-            projectName,
-            projectId,
-            version: promptVersion,
-            ragContext: ragContext // Inject RAG context into Architect
-        });
+                projectName,
+                projectId,
+                version: promptVersion,
+                ragContexts // Pass domain-specific RAG contexts
+            });
 
         // --- CONTEXT MONITORING ---
         // Safeguard for Free Tier (250k TPM limit)
