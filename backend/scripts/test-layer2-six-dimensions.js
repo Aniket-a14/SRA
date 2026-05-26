@@ -192,7 +192,7 @@ async function runTest(title, inputData) {
         }
 
         console.log(`\nResult Validation Status: ${result.validation_status}`);
-        
+
         console.log(`\nIssues Found (${result.issues?.length || 0}):`);
         if (result.issues && result.issues.length > 0) {
             console.table(result.issues.map(i => ({
