@@ -67,10 +67,10 @@ async function testValidation() {
             })));
         }
 
-        if (result.validation_status === "PASS" || result.validation_status === "FAIL") {
-            console.log("Validation Service Verification: PASSED (Result structure is correct)");
+        if (result.validation_status === "PASS" || result.validation_status === "FAIL" || result.validation_status === "CLARIFICATION_REQUIRED") {
+            console.log("Validation Service Verification: PASSED (Result status is valid: " + result.validation_status + ")");
         } else {
-            console.error("Validation Service Verification: FAILED - Missing status");
+            console.error("Validation Service Verification: FAILED - Invalid status: " + result.validation_status);
         }
 
     } catch (e) {
