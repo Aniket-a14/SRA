@@ -32,51 +32,61 @@ class BackupService {
             // Ensure backup directory exists
             await fs.mkdir(this.backupDir, { recursive: true });
 
-            // Extract database connection details (prefer direct URL if available)
-            const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
-            const dbUrl = new URL(connectionString);
-            const host = dbUrl.hostname;
-            const port = dbUrl.port || '5432';
-            const database = dbUrl.pathname.slice(1);
-            const user = dbUrl.username;
-            const password = decodeURIComponent(dbUrl.password);
-
             // Create database dump (Windows-compatible approach)
             console.log(`Creating backup: ${backupFileName}`);
 
-            // For Windows, we need to use a pgpass file instead of PGPASSWORD env var
-            const isWindows = process.platform === 'win32';
-            let pgpassFile = null;
-
-            if (isWindows) {
-                // Create temporary pgpass file for Windows
-                pgpassFile = path.join(os.tmpdir(), '.pgpass');
-                const pgpassContent = `${host}:${port}:${database}:${user}:${password}`;
-                await fs.writeFile(pgpassFile, pgpassContent, { mode: 0o600 });
-
-                // Set PGPASSFILE environment variable
-                process.env.PGPASSFILE = pgpassFile;
+            const connectionStrings = [...new Set([process.env.DIRECT_URL, process.env.DATABASE_URL].filter(Boolean))];
+            if (connectionStrings.length === 0) {
+                throw new Error('Neither DIRECT_URL nor DATABASE_URL is configured');
             }
 
-            // nosemgrep: javascript.lang.security.audit.detect-non-literal-fs-filename
-            // Password is dynamically extracted from connectionString, not hardcoded
-            const dumpCommand = isWindows
-                ? `pg_dump -h ${host} -p ${port} -U ${user} -d ${database} -F c -f "${backupPath}"`
-                : `PGPASSWORD="${password}" pg_dump -h ${host} -p ${port} -U ${user} -d ${database} -F c -f ${backupPath}`;
+            let dumpSuccessful = false;
+            let lastError = null;
 
-            await execAsync(dumpCommand);
+            for (const connectionString of connectionStrings) {
+                const dbUrl = new URL(connectionString);
+                const host = dbUrl.hostname;
+                const port = dbUrl.port || '5432';
+                const database = dbUrl.pathname.slice(1);
+                const user = dbUrl.username;
+                const password = decodeURIComponent(dbUrl.password);
+                const isWindows = process.platform === 'win32';
+                let pgpassFile = null;
 
-            // Clean up pgpass file on Windows
-            if (isWindows && pgpassFile) {
                 try {
-                    await fs.unlink(pgpassFile);
-                } catch (err) {
-                    // Ignore cleanup errors
+                    if (isWindows) {
+                        // Create temporary pgpass file for Windows
+                        pgpassFile = path.join(os.tmpdir(), '.pgpass');
+                        const pgpassContent = `${host}:${port}:${database}:${user}:${password}`;
+                        await fs.writeFile(pgpassFile, pgpassContent, { mode: 0o600 });
+
+                        // Set PGPASSFILE environment variable
+                        process.env.PGPASSFILE = pgpassFile;
+                    }
+
+                    const dumpCommand = `pg_dump -h ${host} -p ${port} -U ${user} -d ${database} -F c -f "${backupPath}"`;
+                    const execOptions = isWindows ? undefined : { env: { ...process.env, PGPASSWORD: password } };
+                    await execAsync(dumpCommand, execOptions);
+                    dumpSuccessful = true;
+                    break;
+                } catch (error) {
+                    lastError = error;
                 } finally {
-                    // Unset PGPASSFILE environment variable
-                    delete process.env.PGPASSFILE;
+                    // Clean up pgpass file on Windows
+                    if (isWindows && pgpassFile) {
+                        try {
+                            await fs.unlink(pgpassFile);
+                        } catch (err) {
+                            // Ignore cleanup errors
+                        } finally {
+                            // Unset PGPASSFILE environment variable
+                            delete process.env.PGPASSFILE;
+                        }
+                    }
                 }
             }
+
+            if (!dumpSuccessful) throw lastError;
 
             // Encrypt backup if encryption key is provided
             let finalPath = backupPath;
@@ -255,44 +265,55 @@ class BackupService {
                 restorePath = decryptedPath;
             }
 
-            // Extract database connection details (prefer direct URL if available)
-            const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
-            const dbUrl = new URL(connectionString);
-            const host = dbUrl.hostname;
-            const port = dbUrl.port || '5432';
-            const database = dbUrl.pathname.slice(1);
-            const user = dbUrl.username;
-            const password = decodeURIComponent(dbUrl.password);
-
             // Restore database (Windows-compatible)
             console.log(`🔄 Restoring backup: ${backupFileName}`);
-
-            const isWindows = process.platform === 'win32';
-            let pgpassFile = null;
-
-            if (isWindows) {
-                pgpassFile = path.join(os.tmpdir(), '.pgpass');
-                const pgpassContent = `${host}:${port}:${database}:${user}:${password}`;
-                await fs.writeFile(pgpassFile, pgpassContent, { mode: 0o600 });
-                process.env.PGPASSFILE = pgpassFile;
+            const connectionStrings = [...new Set([process.env.DIRECT_URL, process.env.DATABASE_URL].filter(Boolean))];
+            if (connectionStrings.length === 0) {
+                throw new Error('Neither DIRECT_URL nor DATABASE_URL is configured');
             }
 
-            // nosemgrep: javascript.lang.security.audit.detect-non-literal-fs-filename
-            // Password is dynamically extracted from connectionString, not hardcoded
-            const restoreCommand = isWindows
-                ? `pg_restore -h ${host} -p ${port} -U ${user} -d ${database} -c "${restorePath}"`
-                : `PGPASSWORD="${password}" pg_restore -h ${host} -p ${port} -U ${user} -d ${database} -c ${restorePath}`;
+            let restoreSuccessful = false;
+            let lastError = null;
 
-            await execAsync(restoreCommand);
+            for (const connectionString of connectionStrings) {
+                const dbUrl = new URL(connectionString);
+                const host = dbUrl.hostname;
+                const port = dbUrl.port || '5432';
+                const database = dbUrl.pathname.slice(1);
+                const user = dbUrl.username;
+                const password = decodeURIComponent(dbUrl.password);
+                const isWindows = process.platform === 'win32';
+                let pgpassFile = null;
 
-            // Clean up pgpass file on Windows
-            if (isWindows && pgpassFile) {
                 try {
-                    await fs.unlink(pgpassFile);
-                } catch (err) {
-                    // Ignore cleanup errors
+                    if (isWindows) {
+                        pgpassFile = path.join(os.tmpdir(), '.pgpass');
+                        const pgpassContent = `${host}:${port}:${database}:${user}:${password}`;
+                        await fs.writeFile(pgpassFile, pgpassContent, { mode: 0o600 });
+                        process.env.PGPASSFILE = pgpassFile;
+                    }
+
+                    const restoreCommand = `pg_restore -h ${host} -p ${port} -U ${user} -d ${database} -c "${restorePath}"`;
+                    const execOptions = isWindows ? undefined : { env: { ...process.env, PGPASSWORD: password } };
+                    await execAsync(restoreCommand, execOptions);
+                    restoreSuccessful = true;
+                    break;
+                } catch (error) {
+                    lastError = error;
+                } finally {
+                    if (isWindows && pgpassFile) {
+                        try {
+                            await fs.unlink(pgpassFile);
+                        } catch (err) {
+                            // Ignore cleanup errors
+                        } finally {
+                            delete process.env.PGPASSFILE;
+                        }
+                    }
                 }
             }
+
+            if (!restoreSuccessful) throw lastError;
 
             // Clean up decrypted file if it was encrypted
             if (backupFileName.endsWith('.enc')) {
