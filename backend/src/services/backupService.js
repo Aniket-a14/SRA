@@ -1,12 +1,12 @@
 import prisma from '../config/prisma.js';
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { promisify } from 'util';
 import fs from 'fs/promises';
 import path from 'path';
 import crypto from 'crypto';
 import os from 'os';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 /**
  * Automated Backup Service
@@ -64,9 +64,12 @@ class BackupService {
                         process.env.PGPASSFILE = pgpassFile;
                     }
 
-                    const dumpCommand = `pg_dump -h ${host} -p ${port} -U ${user} -d ${database} -F c -f "${backupPath}"`;
                     const execOptions = isWindows ? undefined : { env: { ...process.env, PGPASSWORD: password } };
-                    await execAsync(dumpCommand, execOptions);
+                    await execFileAsync(
+                        'pg_dump',
+                        ['-h', host, '-p', port, '-U', user, '-d', database, '-F', 'c', '-f', backupPath],
+                        execOptions
+                    );
                     dumpSuccessful = true;
                     break;
                 } catch (error) {
@@ -76,7 +79,7 @@ class BackupService {
                     if (isWindows && pgpassFile) {
                         try {
                             await fs.unlink(pgpassFile);
-                        } catch (err) {
+                        } catch {
                             // Ignore cleanup errors
                         } finally {
                             // Unset PGPASSFILE environment variable
@@ -293,9 +296,12 @@ class BackupService {
                         process.env.PGPASSFILE = pgpassFile;
                     }
 
-                    const restoreCommand = `pg_restore -h ${host} -p ${port} -U ${user} -d ${database} -c "${restorePath}"`;
                     const execOptions = isWindows ? undefined : { env: { ...process.env, PGPASSWORD: password } };
-                    await execAsync(restoreCommand, execOptions);
+                    await execFileAsync(
+                        'pg_restore',
+                        ['-h', host, '-p', port, '-U', user, '-d', database, '-c', restorePath],
+                        execOptions
+                    );
                     restoreSuccessful = true;
                     break;
                 } catch (error) {
@@ -304,7 +310,7 @@ class BackupService {
                     if (isWindows && pgpassFile) {
                         try {
                             await fs.unlink(pgpassFile);
-                        } catch (err) {
+                        } catch {
                             // Ignore cleanup errors
                         } finally {
                             delete process.env.PGPASSFILE;
