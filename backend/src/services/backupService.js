@@ -21,6 +21,37 @@ class BackupService {
     }
 
     /**
+     * Build prioritized database connection URLs for backup/restore operations.
+     * Falls back to a derived Supabase direct connection when only a pooler URL is available.
+     */
+    getConnectionStrings() {
+        const configuredConnections = [process.env.DIRECT_URL, process.env.DATABASE_URL].filter(Boolean);
+        const fallbackConnections = [];
+
+        for (const connectionString of configuredConnections) {
+            try {
+                const dbUrl = new URL(connectionString);
+                const hasSupabasePoolerHost = dbUrl.hostname.endsWith('.pooler.supabase.com');
+                const tenantUserMatch = /^([^.]+)\.([^.]+)$/.exec(dbUrl.username);
+
+                if (!hasSupabasePoolerHost || !tenantUserMatch) continue;
+
+                const [, baseUser, projectRef] = tenantUserMatch;
+                const directUrl = new URL(connectionString);
+                directUrl.hostname = `db.${projectRef}.supabase.co`;
+                directUrl.port = '5432';
+                directUrl.username = baseUser;
+                directUrl.search = '';
+                fallbackConnections.push(directUrl.toString());
+            } catch {
+                // Ignore invalid URL values and rely on existing connection strings
+            }
+        }
+
+        return [...new Set([...configuredConnections, ...fallbackConnections])];
+    }
+
+    /**
      * Create encrypted database backup
      */
     async createBackup() {
@@ -35,7 +66,7 @@ class BackupService {
             // Create database dump (Windows-compatible approach)
             console.log(`Creating backup: ${backupFileName}`);
 
-            const connectionStrings = [...new Set([process.env.DIRECT_URL, process.env.DATABASE_URL].filter(Boolean))];
+            const connectionStrings = this.getConnectionStrings();
             if (connectionStrings.length === 0) {
                 throw new Error('Neither DIRECT_URL nor DATABASE_URL is configured');
             }
@@ -270,7 +301,7 @@ class BackupService {
 
             // Restore database (Windows-compatible)
             console.log(`🔄 Restoring backup: ${backupFileName}`);
-            const connectionStrings = [...new Set([process.env.DIRECT_URL, process.env.DATABASE_URL].filter(Boolean))];
+            const connectionStrings = this.getConnectionStrings();
             if (connectionStrings.length === 0) {
                 throw new Error('Neither DIRECT_URL nor DATABASE_URL is configured');
             }

@@ -133,4 +133,35 @@ describe('BackupService Unit Tests', () => {
         expect(execFile.mock.calls[1][1]).toEqual(expect.arrayContaining(['-h', 'aws-1.supabase.com']));
         expect(execFile.mock.calls[1][1]).toEqual(expect.arrayContaining(['-p', '6543']));
     });
+
+    it('should retry with derived direct Supabase URL when pooler connection fails', async () => {
+        Object.defineProperty(process, 'platform', { value: 'linux' });
+        const mockPassword = 'pwd';
+        process.env.DATABASE_URL = `postgresql://postgres.testref:${mockPassword}@aws-1-ap-south-1.pooler.supabase.com:6543/postgres?pgbouncer=true`;
+        delete process.env.DIRECT_URL;
+
+        execFile
+            .mockImplementationOnce((cmd, args, options, cb) => {
+                if (typeof args === 'function') cb = args;
+                else if (typeof options === 'function') cb = options;
+                cb(new Error('tenant/user not found'));
+            })
+            .mockImplementation((cmd, args, options, cb) => {
+                if (typeof args === 'function') cb = args;
+                else if (typeof options === 'function') cb = options;
+                cb(null, { stdout: 'mock_stdout', stderr: '' });
+            });
+
+        jest.spyOn(backupService, 'logBackupMetadata').mockImplementation(() => Promise.resolve());
+        jest.spyOn(backupService, 'calculateChecksum').mockImplementation(() => Promise.resolve('mock_checksum'));
+
+        await backupService.createBackup();
+
+        expect(execFile).toHaveBeenCalledTimes(2);
+        expect(execFile.mock.calls[0][1]).toEqual(expect.arrayContaining(['-h', 'aws-1-ap-south-1.pooler.supabase.com']));
+        expect(execFile.mock.calls[0][1]).toEqual(expect.arrayContaining(['-U', 'postgres.testref']));
+        expect(execFile.mock.calls[1][1]).toEqual(expect.arrayContaining(['-h', 'db.testref.supabase.co']));
+        expect(execFile.mock.calls[1][1]).toEqual(expect.arrayContaining(['-p', '5432']));
+        expect(execFile.mock.calls[1][1]).toEqual(expect.arrayContaining(['-U', 'postgres']));
+    });
 });
