@@ -23,6 +23,7 @@ export default function LoginPage() {
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login`, {
                 method: "POST",
+                credentials: "include",
                 headers: {
                     "Content-Type": "application/json"
                 },
@@ -35,7 +36,7 @@ export default function LoginPage() {
                 throw new Error(data.error || "Login failed")
             }
 
-            login(data.token, data.refreshToken, data.user)
+            login(data.token, data.user)
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "Login failed")
         } finally {

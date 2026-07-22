@@ -5,12 +5,13 @@ const CLIENT_ID = process.env.GITHUB_CLIENT_ID;
 const CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET;
 const CALLBACK_URL = process.env.GITHUB_CALLBACK_URL;
 
-export const getGithubAuthURL = () => {
+export const getGithubAuthURL = (state) => {
     const rootUrl = 'https://github.com/login/oauth/authorize';
     const options = {
         client_id: CLIENT_ID,
         redirect_uri: CALLBACK_URL,
         scope: 'user:email', // Request email access
+        state,
     };
 
     const qs = new URLSearchParams(options);

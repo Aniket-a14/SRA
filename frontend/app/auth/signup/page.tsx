@@ -24,6 +24,7 @@ export default function SignupPage() {
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/signup`, {
                 method: "POST",
+                credentials: "include",
                 headers: {
                     "Content-Type": "application/json"
                 },
@@ -36,7 +37,7 @@ export default function SignupPage() {
                 throw new Error(data.error || "Signup failed")
             }
 
-            login(data.token, data.refreshToken, data.user)
+            login(data.token, data.user)
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "Signup failed")
         } finally {

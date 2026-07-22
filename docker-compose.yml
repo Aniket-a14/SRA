@@ -12,8 +12,8 @@ services:
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     # container_name: sra-backend  <-- Removed to allow scaling
     restart: always
     env_file:
@@ -40,8 +40,8 @@ services:
 
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: frontend/Dockerfile
     container_name: sra-frontend
     restart: always
     env_file:
@@ -70,8 +70,8 @@ services:
 
   cli:
     build:
-      context: ./cli
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: cli/Dockerfile
     container_name: sra-cli
     volumes:
       - .:/app/workspace # Mount the root to allow CLI to scan the whole project

@@ -22,6 +22,7 @@ import aiEndpoint from './routes/aiEndpoint.js';
 import healthRoutes from './routes/healthRoutes.js';
 import workerRoutes from './routes/workerRoutes.js';
 import reuseRoutes from './routes/reuseRoutes.js';
+import settingsRoutes from './routes/settingsRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -41,20 +42,45 @@ import { auditLogger } from './middleware/auditLogger.js';
 
 const app = express();
 
-// DEBUG: Log raw request URL as early as possible
-app.use((req, res, next) => {
-    if (req.url.includes('callback')) {
-        console.log('🔍 RAW REQUEST URL:', req.url);
-        console.log('🔍 QUERY PARAMS:', JSON.stringify(req.query));
-    }
-    next();
-});
+if (process.env.NODE_ENV !== 'production') {
+    // DEBUG: Log raw request URL as early as possible (dev only — this previously ran
+    // unconditionally and captured OAuth `code`/`state` query params to stdout in prod).
+    app.use((req, res, next) => {
+        if (req.url.includes('callback')) {
+            console.log('🔍 RAW REQUEST URL:', req.url);
+            console.log('🔍 QUERY PARAMS:', JSON.stringify(req.query));
+        }
+        next();
+    });
+}
 
 // Trust proxy for Render deployment
 app.set('trust proxy', 1);
 
 // CORS setup
 const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:3001').replace(/\/$/, '');
+// ALLOWED_ORIGINS previously only fed the CSP connect-src — multi-origin deployments
+// (preview URLs, staging) relying on it for CORS were silently rejected by the browser.
+const ADDITIONAL_ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
+    .split(',')
+    .map(o => o.trim())
+    .filter(Boolean);
+const ALLOWED_ORIGIN_LIST = [FRONTEND_URL, ...ADDITIONAL_ALLOWED_ORIGINS];
+
+// Supports simple `*` wildcard entries (e.g. "https://*.vercel.app") in addition to exact origins.
+const originMatches = (origin, pattern) => {
+    if (!pattern.includes('*')) return origin === pattern;
+    const regex = new RegExp('^' + pattern.split('*').map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$');
+    return regex.test(origin);
+};
+
+const corsOriginCallback = (origin, callback) => {
+    if (!origin) return callback(null, true); // non-browser requests (curl, server-to-server)
+    if (ALLOWED_ORIGIN_LIST.some(pattern => originMatches(origin, pattern))) {
+        return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+};
 
 // Dynamic CSP based on environment
 const isDev = process.env.NODE_ENV !== 'production';
@@ -70,7 +96,7 @@ app.use(apiLimiter);
 app.use(auditLogger);
 
 app.use(cors({
-    origin: FRONTEND_URL,
+    origin: corsOriginCallback,
     credentials: true,
 }));
 
@@ -80,7 +106,7 @@ app.use(express.json({
         req.rawBody = buf;
     }
 })); // Increase limit for large SRS data
-app.use(cookieParser());
+app.use(cookieParser(process.env.COOKIE_SECRET));
 
 app.use('/api/health', healthRoutes);
 
@@ -132,6 +158,7 @@ app.use(['/projects', '/api/projects'], projectRoutes);
 app.use(['/validation', '/api/validation'], validationRoutes);
 app.use(['/worker', '/api/worker'], workerRoutes);
 app.use(['/reuse', '/api/reuse'], reuseRoutes);
+app.use(['/settings', '/api/settings'], settingsRoutes);
 
 
 // Error Handler

@@ -72,7 +72,7 @@ export async function init() {
             projectId
         });
         logger.success('Connected! Configuration saved to sra.config.json');
-        logger.debug('Tip: Add sra.config.json to .gitignore');
+        logger.warn('sra.config.json contains your API token — it has been added to .gitignore automatically. Do not commit it.');
 
         // Trigger Sync
         logger.info('Auto-syncing spec...');

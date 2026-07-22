@@ -13,8 +13,8 @@ interface User {
 interface AuthContextType {
     user: User | null
     token: string | null
-    login: (token: string, refreshToken: string, user: User) => void
-    authenticateWithToken: (token: string, refreshToken?: string) => Promise<void>
+    login: (token: string, user: User) => void
+    authenticateWithToken: (token: string) => Promise<void>
     logout: () => void
     isLoading: boolean
 }
@@ -29,21 +29,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const router = useRouter()
 
     const logout = React.useCallback(async () => {
-        const rfToken = localStorage.getItem("refreshToken")
-        if (rfToken) {
-            try {
-                await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/logout`, {
-                    method: "POST",
-                    credentials: "include",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ refreshToken: rfToken })
-                })
-            } catch (e) {
-                console.error("Logout failed", e)
-            }
+        try {
+            // Refresh token now lives only in an httpOnly cookie, sent automatically —
+            // no need to read/send it from localStorage.
+            await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/logout`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+            })
+        } catch (e) {
+            console.error("Logout failed", e)
         }
         localStorage.removeItem("token")
-        localStorage.removeItem("refreshToken")
         localStorage.removeItem("user")
         setToken(null)
         setUser(null)
@@ -62,31 +59,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setUser(userData)
                 localStorage.setItem("user", JSON.stringify(userData))
             } else if (res.status === 401) {
-                // Try refreshing token
-                const rfToken = localStorage.getItem("refreshToken")
-                if (rfToken) {
-                    const refreshRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/refresh`, {
-                        method: "POST",
-                        credentials: "include",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ refreshToken: rfToken })
-                    })
+                // Try refreshing — the refresh token lives in an httpOnly cookie sent
+                // automatically with credentials:"include", nothing to read from localStorage.
+                const refreshRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/refresh`, {
+                    method: "POST",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                })
 
-                    if (refreshRes.ok) {
-                        const data = await refreshRes.json()
-                        localStorage.setItem("token", data.token)
-                        localStorage.setItem("refreshToken", data.refreshToken) // rotation
-                        setToken(data.token)
-                        // Retry fetching user with new token
-                        const retryRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/me`, {
-                            headers: { Authorization: `Bearer ${data.token}` }
-                        })
-                        if (retryRes.ok) {
-                            const retryUser = await retryRes.json()
-                            setUser(retryUser)
-                        }
-                        return
+                if (refreshRes.ok) {
+                    const data = await refreshRes.json()
+                    localStorage.setItem("token", data.token)
+                    setToken(data.token)
+                    // Retry fetching user with new token
+                    const retryRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/me`, {
+                        headers: { Authorization: `Bearer ${data.token}` }
+                    })
+                    if (retryRes.ok) {
+                        const retryUser = await retryRes.json()
+                        setUser(retryUser)
                     }
+                    return
                 }
                 logout()
             } else {
@@ -128,23 +121,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         })
     }, [])
 
-    const login = React.useCallback((newToken: string, newRefreshToken: string, newUser: User) => {
+    const login = React.useCallback((newToken: string, newUser: User) => {
         localStorage.setItem("token", newToken)
-        localStorage.setItem("refreshToken", newRefreshToken)
         localStorage.setItem("user", JSON.stringify(newUser))
         setToken(newToken)
         setUser(newUser)
-        // router.push("/") // Optional: Assume login component handles redirect or keep it? Original had it.
-        // Let's keep strict API: login function updates state. Redirect might be handled by caller or here.
-        // Original code: router.push("/")
         router.push("/")
     }, [router])
 
-    const authenticateWithToken = React.useCallback(async (newToken: string, newRefreshToken?: string) => {
+    const authenticateWithToken = React.useCallback(async (newToken: string) => {
         localStorage.setItem("token", newToken)
-        if (newRefreshToken) {
-            localStorage.setItem("refreshToken", newRefreshToken)
-        }
         setToken(newToken)
         await fetchUser(newToken)
         router.push("/")

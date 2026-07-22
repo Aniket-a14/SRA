@@ -82,7 +82,7 @@ export const auditLogger = (req, res, next) => {
  */
 function logRequestAudit(req, res, startTime, responseData) {
     const duration = Date.now() - startTime;
-    const action = determineAction(req);
+    const action = determineAction(req, res);
 
     // Only log sensitive operations
     if (!SENSITIVE_OPERATIONS.includes(action)) {
@@ -108,7 +108,7 @@ function logRequestAudit(req, res, startTime, responseData) {
 /**
  * Determine action type from request
  */
-function determineAction(req) {
+function determineAction(req, res) {
     const { method, path } = req;
 
     // Project operations
@@ -126,7 +126,7 @@ function determineAction(req) {
 
     // Auth operations
     if (path.includes('/auth/login')) {
-        return req.statusCode === 200 ? 'LOGIN_SUCCESS' : 'LOGIN_FAILURE';
+        return res.statusCode === 200 ? 'LOGIN_SUCCESS' : 'LOGIN_FAILURE';
     }
     if (path.includes('/auth/logout')) return 'LOGOUT';
 

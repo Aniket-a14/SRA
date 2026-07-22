@@ -40,7 +40,7 @@ export function MermaidRenderer({ chart, title, className, onError, isExport = f
                     textColor: '#000000',
                     lineColor: '#000000'
                 } : undefined,
-                securityLevel: 'loose',
+                securityLevel: 'strict',
                 fontFamily: 'arial, sans-serif',
                 flowchart: { useMaxWidth: !isExport, htmlLabels: true }
             })

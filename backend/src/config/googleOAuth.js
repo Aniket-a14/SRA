@@ -5,7 +5,7 @@ const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI;
 
-export const getGoogleAuthURL = () => {
+export const getGoogleAuthURL = (state) => {
     const rootUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
     const options = {
         redirect_uri: REDIRECT_URI,
@@ -13,6 +13,7 @@ export const getGoogleAuthURL = () => {
         access_type: 'offline',
         response_type: 'code',
         prompt: 'consent',
+        state,
         scope: [
             'https://www.googleapis.com/auth/userinfo.profile',
             'https://www.googleapis.com/auth/userinfo.email',
