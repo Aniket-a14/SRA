@@ -40,9 +40,7 @@
         "dotenv": "^17.3.1",
         "figlet": "^1.10.0",
         "inquirer": "^9.2.12",
-        "open": "^11.0.0",
-        "ora": "^5.4.1",
-        "update-notifier": "^7.0.0"
+        "ora": "^5.4.1"
     },
     "devDependencies": {
         "@eslint/js": "^9.39.2",

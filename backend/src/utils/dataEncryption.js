@@ -204,19 +204,3 @@ export function maskSensitiveData(data, visibleChars = 4) {
 
     return `${start}${masked}${end}`;
 }
-
-/**
- * Example usage for encrypting user PII
- */
-export function encryptUserPII(user) {
-    const sensitiveFields = ['email', 'phone', 'address'];
-    return encryptObjectFields(user, sensitiveFields);
-}
-
-/**
- * Example usage for decrypting user PII
- */
-export function decryptUserPII(encryptedUser) {
-    const sensitiveFields = ['email', 'phone', 'address'];
-    return decryptObjectFields(encryptedUser, sensitiveFields);
-}
