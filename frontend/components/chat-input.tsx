@@ -43,16 +43,45 @@ const MODELS = [
   { provider: "google", value: "gemini-2.5-flash", label: "Gemini 2.5 Flash (Fast)" },
   { provider: "openai", value: "gpt-4o", label: "GPT-4o (Smartest)" },
   { provider: "openai", value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo (Fast)" },
+  { provider: "claude", value: "claude-opus-4-8", label: "Claude Opus 4.8" },
+  { provider: "grok", value: "grok-2-latest", label: "Grok 2" },
 ];
+
+// Gemini runs on the platform's own key — every other provider requires the
+// user to have added their own key in Settings (see providerKeyService.js).
+const PROVIDER_TO_ENUM: Record<string, string> = {
+  google: "GEMINI",
+  openai: "OPENAI",
+  claude: "CLAUDE",
+  grok: "GROK",
+};
 
 export function ChatInput({ onAnalyze, isLoading, initialSettings }: ChatInputProps) {
   const sectionRef = useRef<HTMLElement>(null)
 
   const [projectName, setProjectName] = useState("")
   const [settings, setSettings] = useState<PromptSettings>(initialSettings || DEFAULT_SETTINGS);
+  const [configuredProviders, setConfiguredProviders] = useState<Set<string>>(new Set(["GEMINI"]));
   const { token } = useAuth();
   const searchParams = useSearchParams();
   const projectId = searchParams.get("projectId");
+
+  // Only offer providers the user has actually configured a key for (Gemini always
+  // works via the platform key) — avoids picking a model that's guaranteed to fail
+  // with "no API key configured" once the analysis is submitted.
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/settings/provider-keys`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.ok ? res.json() : { data: [] })
+      .then(json => {
+        const keys = (json.data || json) as { provider: string; isActive: boolean }[]
+        const active = keys.filter(k => k.isActive).map(k => k.provider)
+        setConfiguredProviders(new Set(["GEMINI", ...active]))
+      })
+      .catch(() => { /* non-fatal — falls back to Gemini-only */ })
+  }, [token]);
 
   // Sync initial setup
   // Sync initial setup
@@ -157,7 +186,7 @@ export function ChatInput({ onAnalyze, isLoading, initialSettings }: ChatInputPr
                             setSettings(prev => ({
                               ...prev,
                               modelName: val,
-                              modelProvider: model?.provider as 'google' | 'openai'
+                              modelProvider: model?.provider as 'google' | 'openai' | 'claude' | 'grok'
                             }));
                           }}
                         >
@@ -165,11 +194,16 @@ export function ChatInput({ onAnalyze, isLoading, initialSettings }: ChatInputPr
                             <SelectValue placeholder="Select model" />
                           </SelectTrigger>
                           <SelectContent>
-                            {MODELS.map(m => (
+                            {MODELS.filter(m => configuredProviders.has(PROVIDER_TO_ENUM[m.provider])).map(m => (
                               <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
+                        {configuredProviders.size === 1 && (
+                          <p className="text-[10px] text-muted-foreground">
+                            Add an OpenAI, Claude, or Grok key in Settings to unlock more models.
+                          </p>
+                        )}
                       </div>
 
                       {/* PROFILE SELECT */}
