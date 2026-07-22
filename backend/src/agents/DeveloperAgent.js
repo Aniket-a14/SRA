@@ -22,8 +22,8 @@ These rules govern ALL Mermaid diagram generation. Violations will produce inval
 `;
 
 export class DeveloperAgent extends BaseAgent {
-  constructor() {
-    super("Lead Developer");
+  constructor(providerConfig = {}) {
+    super("Lead Developer", providerConfig);
   }
 
   async getSystemInstruction(settings = {}, overrides = {}) {

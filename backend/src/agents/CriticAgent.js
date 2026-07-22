@@ -9,8 +9,8 @@ import { OUTPUT_TOKEN_LIMITS, TEMPERATURES } from '../utils/llmGenerationConfig.
  */
 
 export class CriticAgent extends BaseAgent {
-    constructor() {
-        super("Senior QA Critic");
+    constructor(providerConfig = {}) {
+        super("Senior QA Critic", providerConfig);
     }
 
     async auditSRS(originalRequirements, srsContent) {

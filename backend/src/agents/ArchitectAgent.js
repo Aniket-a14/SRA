@@ -33,8 +33,8 @@ Features:
 `;
 
 export class ArchitectAgent extends BaseAgent {
-  constructor() {
-    super("System Architect");
+  constructor(providerConfig = {}) {
+    super("System Architect", providerConfig);
   }
 
   async generateQueries(features) {

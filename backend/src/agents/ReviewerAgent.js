@@ -4,8 +4,8 @@ import { createReviewSnapshot, stringifyForPrompt } from '../utils/promptCompact
 import { OUTPUT_TOKEN_LIMITS, TEMPERATURES } from '../utils/llmGenerationConfig.js';
 
 export class ReviewerAgent extends BaseAgent {
-  constructor() {
-    super("QA Reviewer");
+  constructor(providerConfig = {}) {
+    super("QA Reviewer", providerConfig);
   }
 
   async reviewSRS(originalRequirements, srsJson) {

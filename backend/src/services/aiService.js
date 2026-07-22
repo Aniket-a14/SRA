@@ -1,7 +1,7 @@
 import { getLatestVersion } from "../utils/promptRegistry.js";
 import { constructMasterPrompt, DIAGRAM_REPAIR_PROMPT } from "../utils/prompts.js";
 import { genAI } from "../config/gemini.js";
-import { openai } from "../config/openai.js";
+import { getAdapter, normalizeProvider } from "./providers/index.js";
 import { AnalysisResultSchema } from "../utils/schemas.js";
 import { sanitizePII } from "../utils/sanitizer.js";
 import logger from "../config/logger.js";
@@ -68,7 +68,7 @@ ${text}
     try {
       // Use text as query, and current projectId for graph context
       const ragResults = await retrieveContext(text, projectId);
-      ragContextString = formatRagContext(ragResults);
+      ragContextString = await formatRagContext(ragResults);
 
       if (ragContextString) {
         logger.info(`[AI Service] Injected RAG Context (${ragResults.length} chunks) for project: ${projectName}`);
@@ -123,25 +123,16 @@ ${text}
         };
       }
 
-      logger.info(`[AI Service] Using Provider: ${modelProvider}, Model: ${modelName} (Attempt ${attempt}/${maxAttempts})`);
+      const normalizedProvider = normalizeProvider(modelProvider);
+      logger.info(`[AI Service] Using Provider: ${normalizedProvider}, Model: ${modelName} (Attempt ${attempt}/${maxAttempts})`);
 
       const targetSchema = settings.zodSchema === null ? null : (settings.zodSchema || AnalysisResultSchema);
 
-      if (modelProvider === "openai") {
-        if (!openai) {
-          throw new Error("OpenAI API Key is missing. Please configure OPENAI_API_KEY in .env.");
-        }
-        const completion = await callWithTimeout(openai.chat.completions.create({
-          messages: [
-            { role: "system", content: masterPrompt || "Return valid JSON that satisfies the requested task." },
-            { role: "user", content: systemPrompt ? text : finalPrompt }
-          ],
-          model: modelName,
-          temperature: settings.temperature ?? TEMPERATURES.developer,
-          response_format: targetSchema ? { type: "json_object" } : undefined
-        }), timeoutMs);
-        output = completion.choices[0].message.content;
-      } else {
+      if (normalizedProvider === "GEMINI") {
+        // Gemini keeps its own direct path (native SchemaType responseSchema support,
+        // shared platform genAI client) rather than going through GeminiAdapter here —
+        // this call site pre-dates the adapter registry and doesn't yet thread a
+        // per-request responseSchema the way BaseAgent.callLLM does.
         const model = genAI.getGenerativeModel({
           model: modelName || process.env.GEMINI_MODEL_NAME || "gemini-3-flash-preview",
           ...(masterPrompt && { systemInstruction: masterPrompt }),
@@ -162,6 +153,21 @@ ${text}
         } else {
           output = JSON.stringify(result);
         }
+      } else {
+        // OpenAI/Claude/Grok all require the caller's own key (settings.apiKey) — resolved
+        // upstream by providerKeyService for the main analysis pipeline. Previously this
+        // branch only special-cased "openai" and silently fell through to Gemini for any
+        // other provider string (e.g. "claude", "grok"); the adapter registry now throws a
+        // clear "API key is required" error instead of mis-routing to a different provider.
+        const adapter = getAdapter(normalizedProvider, settings.apiKey);
+        output = await callWithTimeout(adapter.generateContent({
+          prompt: systemPrompt ? text : finalPrompt,
+          systemInstruction: masterPrompt || "Return valid JSON that satisfies the requested task.",
+          temperature: settings.temperature ?? TEMPERATURES.developer,
+          maxOutputTokens: settings.maxOutputTokens || OUTPUT_TOKEN_LIMITS.mediumJson,
+          jsonMode: !!targetSchema,
+          modelName
+        }), timeoutMs);
       }
       break;
     } catch (error) {

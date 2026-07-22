@@ -1,13 +1,31 @@
-import { genAI } from '../config/gemini.js';
 import { jsonrepair } from 'jsonrepair';
 import logger from '../config/logger.js';
 import { OUTPUT_TOKEN_LIMITS } from '../utils/llmGenerationConfig.js';
+import { getAdapter, DEFAULT_MODELS, normalizeProvider } from '../services/providers/index.js';
 
 export class BaseAgent {
-    constructor(name, modelName = process.env.GEMINI_MODEL_NAME || "gemini-3-flash-preview") {
+    /**
+     * @param {string} name - agent display name, used only for logging
+     * @param {object} [providerConfig]
+     * @param {string} [providerConfig.provider] - GEMINI | OPENAI | CLAUDE | GROK; defaults to GEMINI
+     * @param {string} [providerConfig.modelName] - defaults to the provider's DEFAULT_MODELS entry
+     * @param {string} [providerConfig.apiKey] - decrypted user key; unused for GEMINI (shared platform client)
+     */
+    constructor(name, providerConfig = {}) {
         this.name = name;
-        this.modelName = modelName;
-        // Default models will be overridden in analysisService based on tiering
+        const { provider, modelName, apiKey } = providerConfig;
+        this.provider = normalizeProvider(provider);
+        this.modelName = modelName || DEFAULT_MODELS[this.provider];
+        this._apiKey = apiKey;
+        this._adapter = null; // lazily constructed — see getAdapter() below, so a missing
+        // non-Gemini key only throws when a real (non-mocked) LLM call is actually made
+    }
+
+    getAdapter() {
+        if (!this._adapter) {
+            this._adapter = getAdapter(this.provider, this._apiKey);
+        }
+        return this._adapter;
     }
 
     async callLLM(prompt, temperature = 0.7, jsonMode = true, responseSchema = null, retries = 3, initialDelay = 5000, options = {}) {
@@ -64,22 +82,19 @@ export class BaseAgent {
             new Promise((_, reject) => setTimeout(() => reject(new Error("AI Request Timeout")), ms))
         ]);
 
+        const adapter = this.getAdapter();
+
         while (true) {
             try {
-                const model = genAI.getGenerativeModel({
-                    model: this.modelName,
-                    ...(options.systemInstruction && { systemInstruction: options.systemInstruction }),
-                    generationConfig: {
-                        temperature,
-                        maxOutputTokens: options.maxOutputTokens || OUTPUT_TOKEN_LIMITS.mediumJson,
-                        responseMimeType: jsonMode ? "application/json" : "text/plain",
-                        ...(responseSchema && { responseSchema })
-                    }
-                });
-
-                const result = await callWithTimeout(model.generateContent(prompt), TIMEOUT_MS);
-                const response = result.response;
-                const text = response.text();
+                const text = await callWithTimeout(adapter.generateContent({
+                    prompt,
+                    modelName: this.modelName,
+                    systemInstruction: options.systemInstruction,
+                    temperature,
+                    maxOutputTokens: options.maxOutputTokens || OUTPUT_TOKEN_LIMITS.mediumJson,
+                    jsonMode,
+                    responseSchema
+                }), TIMEOUT_MS);
 
                 if (jsonMode) {
                     return this.parseJSON(text);
@@ -87,10 +102,8 @@ export class BaseAgent {
                 return text;
 
             } catch (error) {
-                const status = error.status || error.errorCode || (error.message?.match(/\[(\d+)\]/) || [])[1];
-                const isRateLimit = status == 429 || error.message?.includes("429") || error.message?.includes("Quota exceeded");
-                const isServerError = status >= 500 && status < 600;
                 const isTimeout = error.message === "AI Request Timeout";
+                const { isRateLimit, isServerError } = isTimeout ? {} : adapter.classifyError(error);
 
                 if ((isRateLimit || isServerError || isTimeout) && attempt < retries) {
                     const jitter = delay * 0.2 * (Math.random() * 2 - 1);
@@ -99,7 +112,7 @@ export class BaseAgent {
                     logger.warn({
                         msg: `[${this.name}] LLM Retry`,
                         reason: isTimeout ? 'Timeout' : (isRateLimit ? 'Rate Limit' : 'Server Error'),
-                        status: status || 'TIMEOUT',
+                        provider: this.provider,
                         attempt: attempt + 1,
                         retries,
                         nextRetryIn: Math.round(finalDelay)
@@ -110,9 +123,9 @@ export class BaseAgent {
                     attempt++;
                 } else {
                     const isFetchFailed = error.message?.includes("fetch failed");
-                    logger.error({ msg: `[${this.name}] LLM Call Failed`, error: error.message });
+                    logger.error({ msg: `[${this.name}] LLM Call Failed`, provider: this.provider, error: error.message });
                     if (isFetchFailed) {
-                        logger.fatal(`[${this.name}] FATAL: Unable to reach Google AI servers. Check network/proxy.`);
+                        logger.fatal(`[${this.name}] FATAL: Unable to reach ${this.provider} servers. Check network/proxy.`);
                     }
                     throw new Error(`${this.name} failed to generate content: ${error.message}`);
                 }
@@ -120,11 +133,44 @@ export class BaseAgent {
         }
     }
 
+    /**
+     * Plain-text token stream — used by ChatAgent.chatStream for the conversational
+     * reply half of a chat turn. Deliberately no retry/backoff here (unlike callLLM):
+     * once tokens have started reaching the client, transparently retrying the whole
+     * call isn't meaningful — a mid-stream failure just ends the stream with an error.
+     */
+    async *streamText(prompt, options = {}) {
+        logger.debug({ msg: `[${this.name}] Streaming LLM`, model: this.modelName });
+
+        if (process.env.MOCK_AI === 'true') {
+            const mockReply = options.mockText || 'This is a mocked streaming reply.';
+            for (const word of mockReply.split(' ')) {
+                await new Promise(resolve => setTimeout(resolve, 10));
+                yield `${word} `;
+            }
+            return;
+        }
+
+        const adapter = this.getAdapter();
+        try {
+            for await (const chunk of adapter.generateContentStream({
+                prompt,
+                modelName: this.modelName,
+                systemInstruction: options.systemInstruction,
+                temperature: options.temperature,
+                maxOutputTokens: options.maxOutputTokens || OUTPUT_TOKEN_LIMITS.mediumJson
+            })) {
+                yield chunk;
+            }
+        } catch (error) {
+            logger.error({ msg: `[${this.name}] Streaming LLM Call Failed`, provider: this.provider, error: error.message });
+            throw new Error(`${this.name} failed to stream content: ${error.message}`);
+        }
+    }
+
     async countTokens(text) {
         try {
-            const model = genAI.getGenerativeModel({ model: this.modelName });
-            const { totalTokens } = await model.countTokens(text);
-            return totalTokens;
+            return await this.getAdapter().countTokens(text, this.modelName);
         } catch (error) {
             logger.error({ msg: `[${this.name}] countTokens failed`, error: error.message });
             return 0; // Fallback

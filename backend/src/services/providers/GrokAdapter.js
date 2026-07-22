@@ -1,0 +1,62 @@
+import OpenAI from 'openai';
+
+export const DEFAULT_MODEL = process.env.GROK_MODEL_NAME || 'grok-2-latest';
+const XAI_BASE_URL = 'https://api.x.ai/v1';
+
+// xAI exposes an OpenAI-compatible Chat Completions endpoint, so this reuses
+// the already-installed `openai` SDK pointed at their base URL instead of
+// pulling in a separate xAI client dependency.
+export class GrokAdapter {
+    constructor(apiKey) {
+        if (!apiKey) {
+            throw new Error('Grok API key is required — add one in Settings before selecting Grok as the provider.');
+        }
+        this.client = new OpenAI({ apiKey, baseURL: XAI_BASE_URL });
+    }
+
+    async generateContent({ prompt, systemInstruction, temperature, maxOutputTokens, jsonMode, modelName }) {
+        const completion = await this.client.chat.completions.create({
+            model: modelName || DEFAULT_MODEL,
+            messages: [
+                ...(systemInstruction ? [{ role: 'system', content: systemInstruction }] : []),
+                { role: 'user', content: prompt }
+            ],
+            temperature,
+            max_tokens: maxOutputTokens,
+            response_format: jsonMode ? { type: 'json_object' } : undefined
+        });
+        return completion.choices[0].message.content;
+    }
+
+    /** Plain-text token stream for conversational replies (ChatAgent.chatStream) — jsonMode is never used here. */
+    async *generateContentStream({ prompt, systemInstruction, temperature, maxOutputTokens, modelName }) {
+        const stream = await this.client.chat.completions.create({
+            model: modelName || DEFAULT_MODEL,
+            messages: [
+                ...(systemInstruction ? [{ role: 'system', content: systemInstruction }] : []),
+                { role: 'user', content: prompt }
+            ],
+            temperature,
+            max_tokens: maxOutputTokens,
+            stream: true
+        });
+
+        for await (const chunk of stream) {
+            const delta = chunk.choices?.[0]?.delta?.content;
+            if (delta) yield delta;
+        }
+    }
+
+    async countTokens(text) {
+        return Math.ceil((text?.length || 0) / 4);
+    }
+
+    classifyError(error) {
+        const status = error.status;
+        return {
+            isRateLimit: status === 429,
+            isServerError: status >= 500 && status < 600,
+            isAuthError: status === 401 || status === 403
+        };
+    }
+}

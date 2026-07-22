@@ -3,8 +3,8 @@ import { RefinedIntentSchema } from '../utils/aiSchemas.js';
 import { OUTPUT_TOKEN_LIMITS, TEMPERATURES } from '../utils/llmGenerationConfig.js';
 
 export class ProductOwnerAgent extends BaseAgent {
-  constructor() {
-    super("Product Owner");
+  constructor(providerConfig = {}) {
+    super("Product Owner", providerConfig);
   }
 
   async refineIntent(userInput, settings = {}) {
