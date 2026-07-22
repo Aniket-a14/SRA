@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Plus, GripVertical, Trash2 } from "lucide-react"
@@ -16,6 +16,16 @@ interface EditableSectionProps {
 
 export function EditableSection({ items, isEditing, onUpdate, prefix = "ITEM", badgeColor = "text-primary" }: EditableSectionProps) {
     const [localItems, setLocalItems] = useState(items)
+
+    // useState(items) only seeds the initial value on mount — without this, cancelling
+    // an edit (parent resets its state back to the original data and passes the same
+    // `items` prop down again) left this component still showing the discarded local
+    // edits, since React never re-runs the useState initializer on a prop change alone.
+    useEffect(() => {
+        // Deferred to a microtask to avoid the cascading-render lint rule (same pattern
+        // used elsewhere in this codebase, e.g. chat-input.tsx).
+        Promise.resolve().then(() => setLocalItems(items))
+    }, [items])
 
     const handleChange = (index: number, value: string) => {
         const newItems = [...localItems]

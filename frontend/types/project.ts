@@ -4,7 +4,7 @@ export interface PromptSettings {
     profile: string;
     depth: number;
     strictness: number;
-    modelProvider?: 'google' | 'openai';
+    modelProvider?: 'google' | 'openai' | 'claude' | 'grok';
     modelName?: string;
 }
 

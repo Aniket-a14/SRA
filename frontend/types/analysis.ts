@@ -1,3 +1,4 @@
+import type { DFDInput } from "@/components/DFDViewer";
 
 export interface RevisionHistoryItem {
     version: string;
@@ -88,7 +89,11 @@ export interface AnalysisModels {
     flowchartDiagram?: Diagram | string;
     sequenceDiagram?: Diagram | string;
     entityRelationshipDiagram?: Diagram | string;
-    dataFlowDiagram?: { level0: string; level1: string; caption: string; syntaxExplanation?: string } | Diagram | string;
+    // Real shape produced by DFD generation is DFDInput's { dfd_level_0, dfd_level_1 }
+    // (see DFDViewer.tsx) plus a caption/syntaxExplanation merged in alongside it — not
+    // the { level0, level1, caption } shape this used to declare, which nothing actually
+    // read (bridged everywhere with `as any` instead of being caught here).
+    dataFlowDiagram?: (DFDInput & { caption?: string; syntaxExplanation?: string }) | Diagram | string;
 }
 
 export interface ValidationIssue {

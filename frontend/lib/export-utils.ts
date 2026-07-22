@@ -1,5 +1,6 @@
 import { getAcronym } from '@/lib/utils';
 import type { AnalysisResult, Diagram, Requirement } from '@/types/analysis';
+import type { DFDInput } from '@/components/DFDViewer';
 
 // Helper: Convert SVG string to PNG Blob (kept from original)
 const svgToPng = (svgStr: string): Promise<Blob | null> => {
@@ -311,25 +312,23 @@ export const renderMermaidDiagrams = async (data: AnalysisResult): Promise<Recor
 
         // 4. DFD (React Flow)
         if (models.dataFlowDiagram) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const dfdObj = models.dataFlowDiagram as any;
-            const isDfdJson = (dfdObj.dfd_level_0 || dfdObj.dfd_level_1);
+            const dfdObj = models.dataFlowDiagram;
+            const isDfdJson = typeof dfdObj === 'object' && dfdObj !== null && ('dfd_level_0' in dfdObj || 'dfd_level_1' in dfdObj);
 
             if (isDfdJson) {
+                const structuredDfd = dfdObj as DFDInput;
                 // Level 0
-                if (dfdObj.dfd_level_0) {
+                if (structuredDfd.dfd_level_0) {
                     await captureComponent(
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        React.createElement(DFDViewer, { data: { dfd_level_0: dfdObj.dfd_level_0 } as any, isExport: true }),
+                        React.createElement(DFDViewer, { data: { dfd_level_0: structuredDfd.dfd_level_0 }, isExport: true }),
                         'dataFlowLevel0',
                         1600, 1000, false // Fixed
                     );
                 }
                 // Level 1
-                if (dfdObj.dfd_level_1) {
+                if (structuredDfd.dfd_level_1) {
                     await captureComponent(
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        React.createElement(DFDViewer, { data: { dfd_level_1: dfdObj.dfd_level_1 } as any, isExport: true }),
+                        React.createElement(DFDViewer, { data: { dfd_level_1: structuredDfd.dfd_level_1 }, isExport: true }),
                         'dataFlowLevel1',
                         1600, 1200, false // Fixed
                     );
@@ -1513,12 +1512,6 @@ export const generateSRS = async (data: AnalysisResult, title: string, diagramIm
     }
 
     return doc;
-};
-
-// Keep other exports, maybe adjusting them if needed, but generateSRS is key.
-export const generateAPI = (data: AnalysisResult) => {
-    console.log("Generating API for", data.introduction?.projectName || "Project");
-    return "# API Documentation\n(To be implemented for new structure)";
 };
 
 export const downloadBundle = async (data: AnalysisResult, title: string) => {

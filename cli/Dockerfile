@@ -24,5 +24,10 @@ FROM base AS runtime
 COPY --from=builder /app /app
 WORKDIR /app/cli
 RUN pnpm link --global
+# docker-compose.yml mounts the host project root at /app/workspace so `sra` commands
+# (check/sync/push resolve paths like sra.spec.json relative to cwd) scan the user's
+# actual project — the container's runtime cwd must match that mount, not the CLI's
+# own source tree the earlier WORKDIR was needed for during `pnpm link`.
+WORKDIR /app/workspace
 ENTRYPOINT ["sra"]
 CMD ["--help"]

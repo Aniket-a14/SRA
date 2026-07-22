@@ -54,7 +54,9 @@ jobs:
       working-directory: ./frontend
 
     - name: Security Scan
-      run: pnpm audit --audit-level=high || true
+      # --prod scopes this to runtime dependencies. No more `|| true` — this step now
+      # actually fails the build on a high-severity production CVE.
+      run: pnpm audit --prod --audit-level=high
       working-directory: ./frontend
 
     - name: Run Build

@@ -12,7 +12,8 @@ rules:
       - /frontend: Next.js 16 UI using App Router and Standalone compilation.
       - /backend: Node.js 20, Express, and Prisma 7 ORM.
       - /cli: Command-line audit toolkit (@sra-srs/sra-cli).
-      - /model: Shared schemas, prompt factories, and standard templates.
+      - /model: Offline dataset harvesting/benchmarking and fine-tuning scripts for the
+        planned self-hosted model stack (see v5.0_roadmap.md) — not part of the runtime app.
 
       Engineering & Code Review Standards:
       1. ESM Compliance: The backend uses ES Modules (`"type": "module"`). In unit tests, verify mock orchestrations use `jest.unstable_mockModule` dynamically. Never allow raw static mock imports that violate read-only ESM bindings.

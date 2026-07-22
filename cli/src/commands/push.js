@@ -10,6 +10,7 @@ export async function push() {
         const config = await configManager.load();
         if (!config.projectId) {
             logger.error("Project ID missing. Run 'sra init' first.");
+            process.exitCode = 1;
             return;
         }
 
@@ -39,6 +40,8 @@ export async function push() {
             logger.error('sra.spec.json not found. Run "sra sync" first.');
         } else {
             logger.stopSpinner(false, 'Push Failed');
+            logger.error('Push failed:', error.message);
         }
+        process.exitCode = 1;
     }
 }

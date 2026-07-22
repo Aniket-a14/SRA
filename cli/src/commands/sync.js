@@ -10,6 +10,7 @@ export async function sync() {
         const config = await configManager.load();
         if (!config.projectId) {
             logger.error("Project ID missing. Run 'sra init' first.");
+            process.exitCode = 1;
             return;
         }
 
@@ -19,6 +20,7 @@ export async function sync() {
 
         if (!analysis || !analysis.resultJson) {
             logger.stopSpinner(false, 'Incomplete spec data.');
+            process.exitCode = 1;
             return;
         }
 
@@ -69,5 +71,7 @@ export async function sync() {
 
     } catch (error) {
         logger.stopSpinner(false, 'Sync failed');
+        logger.error('Sync failed:', error.message);
+        process.exitCode = 1;
     }
 }

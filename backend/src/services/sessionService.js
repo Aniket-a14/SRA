@@ -2,10 +2,14 @@ import prisma from '../config/prisma.js';
 import axios from 'axios';
 import crypto from 'crypto';
 
+// axios has no default timeout — an unreachable/slow ip-api.com would otherwise hang
+// login/session-rotation (a critical path) for as long as the TCP connection allows.
+const GEOLOCATION_TIMEOUT_MS = 3000;
+
 const getLocationFromIp = async (ip) => {
     if (!ip || ip === '::1' || ip === '127.0.0.1') return 'Localhost';
     try {
-        const response = await axios.get(`http://ip-api.com/json/${ip}`);
+        const response = await axios.get(`http://ip-api.com/json/${ip}`, { timeout: GEOLOCATION_TIMEOUT_MS });
         if (response.data.status === 'success') {
             return `${response.data.city}, ${response.data.country}`;
         }

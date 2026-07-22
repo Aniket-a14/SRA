@@ -30,9 +30,16 @@ export default defineConfig({
         },
     ],
     webServer: {
-        command: 'set NODE_TLS_REJECT_UNAUTHORIZED=0 && pnpm run dev',
+        command: 'pnpm run dev',
         url: 'http://localhost:3001',
         reuseExistingServer: !process.env.CI,
         timeout: 300 * 1000,
+        env: {
+            // Scoped via Playwright's own `env` (only the spawned dev-server child
+            // process for this E2E run, not the whole shell/other processes) instead of
+            // `set VAR=val && cmd`, which is Windows-only shell syntax and silently
+            // failed to set anything on Linux/Mac CI runners anyway.
+            NODE_TLS_REJECT_UNAUTHORIZED: '0',
+        },
     },
 });

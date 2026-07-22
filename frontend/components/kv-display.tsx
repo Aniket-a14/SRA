@@ -6,16 +6,15 @@ import { getAcronym } from "@/lib/utils"
 import { Textarea } from "@/components/ui/textarea"
 import { EditableSection } from "@/components/editable-section"
 import { MarkdownDisplay } from "@/components/markdown-display"
+import type { UserCharacteristic, GlossaryItem } from "@/types/analysis"
 
 interface KVDisplayProps {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    data: Record<string, any>
+    data: Record<string, unknown>
     title?: string
     excludeKeys?: string[]
     projectTitle?: string
     isEditing?: boolean
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onUpdate?: (newData: Record<string, any>) => void
+    onUpdate?: (newData: Record<string, unknown>) => void
 }
 
 // Helper to format camelCase to Title Case
@@ -59,15 +58,16 @@ export function KVDisplay({ data, title, excludeKeys = [], projectTitle = "SRA",
                     // 1. Handle Arrays
                     if (Array.isArray(value)) {
                         // Check for specialized object arrays
-                        if (value.length > 0 && typeof value[0] === 'object') {
+                        const firstItem: unknown = value[0]
+                        if (value.length > 0 && typeof firstItem === 'object' && firstItem !== null) {
                             // User Classes (UserCharacteristic)
-                            if ('userClass' in value[0]) {
+                            if ('userClass' in firstItem) {
+                                const userClasses = value as UserCharacteristic[]
                                 return (
                                     <div key={key}>
                                         <h4 className="text-sm font-medium mb-3 text-primary">{formatKey(key)}</h4>
                                         <div className="grid gap-3">
-                                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                            {(value as any[]).map((item, idx) => (
+                                            {userClasses.map((item, idx) => (
                                                 <div key={idx} className="p-3 bg-secondary/30 rounded-md border border-border/50">
                                                     <div className="font-semibold text-sm mb-1"><MarkdownDisplay content={item.userClass} /></div>
                                                     <div className="text-sm text-muted-foreground"><MarkdownDisplay content={item.characteristics} /></div>
@@ -79,13 +79,13 @@ export function KVDisplay({ data, title, excludeKeys = [], projectTitle = "SRA",
                                 )
                             }
                             // Glossary Terms
-                            if ('term' in value[0]) {
+                            if ('term' in firstItem) {
+                                const glossaryItems = value as GlossaryItem[]
                                 return (
                                     <div key={key}>
                                         <h4 className="text-sm font-medium mb-3 text-primary">{formatKey(key)}</h4>
                                         <dl className="grid gap-3">
-                                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                            {(value as any[]).map((item, idx) => (
+                                            {glossaryItems.map((item, idx) => (
                                                 <div key={idx} className="p-3 bg-secondary/30 rounded-md border border-border/50">
                                                     <dt className="font-semibold text-sm mb-1"><MarkdownDisplay content={item.term} /></dt>
                                                     <dd className="text-sm text-muted-foreground"><MarkdownDisplay content={item.definition} /></dd>

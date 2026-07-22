@@ -19,7 +19,7 @@ const DFDViewer = dynamic(() => import('@/components/DFDViewer'), {
 })
 
 interface DFDDiagramSectionProps {
-    data?: { level0: string; level1: string; caption: string } | Diagram | string | Record<string, unknown> | null
+    data?: (DFDInput & { caption?: string; syntaxExplanation?: string }) | Diagram | string | null
     projectId?: string
     projectTitle: string
     description: string
@@ -41,8 +41,8 @@ export function DFDDiagramSection({ data, projectTitle, description, srsContent,
     ]
 
     // Detect if we have new structured data
-    const isStructured = data && typeof data === 'object' && 'dfd_level_0' in data;
-    const structuredData = localData || (isStructured ? (data as unknown as DFDInput) : null);
+    const isStructured = data !== null && data !== undefined && typeof data === 'object' && ('dfd_level_0' in data || 'dfd_level_1' in data);
+    const structuredData = localData || (isStructured ? (data as DFDInput) : null);
 
     // Detect if empty
     const isEmpty = !structuredData && (!data || (typeof data === 'string' && data.length < 10) || (typeof data === 'object' && Object.keys(data).length === 0));

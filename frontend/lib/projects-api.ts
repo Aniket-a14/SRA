@@ -1,20 +1,7 @@
 import { Project, PromptSettings } from "@/types/project";
+import { handleResponse } from "@/lib/api-response";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
-
-async function handleResponse(res: Response) {
-    if (!res.ok) {
-        let errorMessage = res.statusText;
-        try {
-            const errorData = await res.json();
-            errorMessage = errorData.error || errorData.message || res.statusText;
-        } catch {
-            // Ignore JSON parse error, fallback to statusText
-        }
-        throw new Error(errorMessage);
-    }
-    return res;
-}
 
 export async function fetchProjects(token: string): Promise<Project[]> {
     const res = await fetch(`${BACKEND_URL}/projects`, {

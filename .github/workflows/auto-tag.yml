@@ -44,14 +44,6 @@ jobs:
             git push origin "$TAG"
             echo "tag_created=true" >> $GITHUB_OUTPUT
           fi
-
-      - name: Create Release
-        if: steps.tag-logic.outputs.tag_created == 'true'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: "v${{ steps.package-version.outputs.version }}"
-          generate_release_notes: true
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Release creation is owned by release.yml, which triggers on this tag push —
+      # both jobs calling softprops/action-gh-release@v2 for the same tag risked a
+      # race/duplicate release.

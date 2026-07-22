@@ -57,7 +57,10 @@ export const extractGraph = async (text, projectId, prismaClient = prisma) => {
             return;
         }
 
-        const agent = new BaseAgent("Graph Extractor", "gemini-flash-latest");
+        // BaseAgent's 2nd arg is a providerConfig object (Phase 4 multi-provider rework),
+        // not a bare model-name string — this call site predates that change and was
+        // silently falling back to the platform default Gemini model instead of this one.
+        const agent = new BaseAgent("Graph Extractor", { provider: 'GEMINI', modelName: 'gemini-flash-latest' });
         const prompt = GRAPH_EXTRACTION_PROMPT.replace("{{text}}", text);
 
         const graphData = await agent.callLLM(prompt, 0.2, true);
@@ -71,62 +74,70 @@ export const extractGraph = async (text, projectId, prismaClient = prisma) => {
     }
 };
 
+const nodeKey = (name, type) => `${name}::${type}`;
+const edgeKey = (sourceId, targetId, relation) => `${sourceId}::${targetId}::${relation}`;
+
 export const storeGraph = async (graphData, projectId, prismaClient = prisma) => {
     try {
         await prismaClient.$transaction(async (tx) => {
             const nodeMap = new Map(); // Name -> ID mapping
 
-            // Upsert Nodes
-            for (const node of graphData.nodes) {
-                let dbNode = await tx.graphNode.findUnique({
-                    where: {
-                        projectId_name_type: {
-                            projectId,
-                            name: node.name,
-                            type: node.type
-                        }
-                    }
-                });
+            // Batch: one findMany + one createManyAndReturn instead of a per-node
+            // findUnique/create round-trip — the sequential version risked timing out
+            // or lock-contending the transaction on larger graphs.
+            const existingNodes = await tx.graphNode.findMany({ where: { projectId } });
+            const existingNodeByKey = new Map(existingNodes.map(n => [nodeKey(n.name, n.type), n]));
 
-                if (!dbNode) {
-                    dbNode = await tx.graphNode.create({
-                        data: {
-                            projectId,
-                            name: node.name,
-                            type: node.type,
-                            metadata: node.metadata || {}
-                        }
-                    });
+            const nodesToCreateByKey = new Map(); // dedupe in case the LLM repeats a node within one payload
+            for (const node of graphData.nodes) {
+                const key = nodeKey(node.name, node.type);
+                const existing = existingNodeByKey.get(key);
+                if (existing) {
+                    nodeMap.set(node.name, existing.id);
+                } else if (!nodesToCreateByKey.has(key)) {
+                    nodesToCreateByKey.set(key, node);
                 }
-                nodeMap.set(node.name, dbNode.id);
             }
 
-            // Create Edges
+            if (nodesToCreateByKey.size > 0) {
+                const created = await tx.graphNode.createManyAndReturn({
+                    data: Array.from(nodesToCreateByKey.values()).map(node => ({
+                        projectId,
+                        name: node.name,
+                        type: node.type,
+                        metadata: node.metadata || {}
+                    }))
+                });
+                created.forEach(dbNode => nodeMap.set(dbNode.name, dbNode.id));
+            }
+
+            // Same batching for edges: one findMany scoped to this graph's node IDs,
+            // diff in memory, one createMany.
+            const nodeIds = Array.from(nodeMap.values());
+            const existingEdges = nodeIds.length > 0
+                ? await tx.graphEdge.findMany({ where: { sourceId: { in: nodeIds } } })
+                : [];
+            const existingEdgeKeys = new Set(existingEdges.map(e => edgeKey(e.sourceId, e.targetId, e.relation)));
+
+            const edgesToCreateByKey = new Map();
             for (const edge of graphData.edges) {
                 const sourceId = nodeMap.get(edge.source);
                 const targetId = nodeMap.get(edge.target);
+                if (!sourceId || !targetId) continue;
 
-                if (sourceId && targetId) {
-                    // Avoid duplicate edges
-                    const existingEdge = await tx.graphEdge.findFirst({
-                        where: {
-                            sourceId,
-                            targetId,
-                            relation: edge.relation
-                        }
-                    });
+                const key = edgeKey(sourceId, targetId, edge.relation);
+                if (existingEdgeKeys.has(key) || edgesToCreateByKey.has(key)) continue;
 
-                    if (!existingEdge) {
-                        await tx.graphEdge.create({
-                            data: {
-                                sourceId,
-                                targetId,
-                                relation: edge.relation,
-                                metadata: edge.metadata || {}
-                            }
-                        });
-                    }
-                }
+                edgesToCreateByKey.set(key, {
+                    sourceId,
+                    targetId,
+                    relation: edge.relation,
+                    metadata: edge.metadata || {}
+                });
+            }
+
+            if (edgesToCreateByKey.size > 0) {
+                await tx.graphEdge.createMany({ data: Array.from(edgesToCreateByKey.values()) });
             }
         }, { timeout: 15000 });
         logger.info(`[GraphService] Stored ${graphData.nodes.length} nodes and ${graphData.edges.length} edges for Project ${projectId}`);
