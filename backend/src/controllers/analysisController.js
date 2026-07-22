@@ -1,5 +1,5 @@
-import { performAnalysis, getUserAnalyses, getAnalysisById, getAnalysisHistory } from '../services/analysisService.js';
-import { processChat } from '../services/chatService.js';
+import { performAnalysis, getUserAnalyses, getAnalysisById, getAnalysisHistory, deleteAnalysis as deleteAnalysisService } from '../services/analysisService.js';
+import { processChat, processChatStream } from '../services/chatService.js';
 import { generateCodeFromAnalysis } from '../services/codeGenService.js';
 import { addAnalysisJob, getJobStatus } from '../services/queueService.js';
 import { surgicalRefine } from '../services/surgicalRefineService.js';
@@ -18,6 +18,7 @@ import prisma from '../config/prisma.js';
 import crypto from 'crypto';
 import { successResponse } from '../utils/response.js';
 import logger from '../config/logger.js';
+import { createNextVersion } from '../services/versioning.js';
 
 export const analyze = async (req, res, next) => {
     try {
@@ -79,10 +80,15 @@ export const analyze = async (req, res, next) => {
                         version: 1,
                         title: (srsData.details?.projectName?.content || "Draft Analysis") + " (Draft)",
                         projectId: req.body.projectId,
-                        status: "DRAFT", // Explicit model status
+                        status: "DRAFT", // Pipeline lifecycle status (typed column)
                         metadata: {
                             trigger: 'initial',
                             source: 'user',
+                            // metadata.status tracks the finer-grained draft/validation
+                            // sub-state (DRAFT -> VALIDATING -> VALIDATED/NEEDS_FIX) that the
+                            // frontend wizard (analysis/[id]/page.tsx) keys its step-unlock
+                            // logic on — a distinct axis from the pipeline lifecycle above,
+                            // not a duplicate of it, so it stays here rather than on the enum.
                             status: 'DRAFT',
                             draftData: srsData, // Store full source here
                             promptSettings: req.body.settings || {}
@@ -209,6 +215,18 @@ export const getHistory = async (req, res, next) => {
     }
 };
 
+export const deleteAnalysis = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const chain = req.query.chain === 'true';
+
+        const result = await deleteAnalysisService(req.user.userId, id, { chain });
+        return successResponse(res, result, 'Analysis deleted');
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const getHistoryForRoot = async (req, res, next) => {
     try {
         const { rootId } = req.params;
@@ -271,6 +289,7 @@ export const getAnalysis = async (req, res, next) => {
             id: analysis.id,
             title: analysis.title,
             status: analysis.status,
+            resultQuality: analysis.resultQuality,
             version: analysis.version,
             projectId: analysis.projectId,
             rootId: analysis.rootId,
@@ -278,6 +297,7 @@ export const getAnalysis = async (req, res, next) => {
             isFinalized: analysis.isFinalized,
             metadata: analysis.metadata,
             createdAt: analysis.createdAt,
+            updatedAt: analysis.updatedAt,
             generatedCode: mode === 'sync' ? undefined : analysis.generatedCode,
             inputText: mode === 'sync' ? undefined : analysis.inputText,
             resultJson: analysis.resultJson
@@ -307,6 +327,10 @@ export const updateAnalysis = async (req, res, next) => {
             : {};
         const newMetadata = metadata ? { ...existingMetadata, ...metadata } : existingMetadata;
 
+        // metadata.status here is the draft/validation sub-state (DRAFT/VALIDATING/
+        // VALIDATED/NEEDS_FIX), distinct from currentAnalysis.status (the pipeline
+        // lifecycle column, which stays 'DRAFT' for the whole pre-pipeline flow) —
+        // only the literal pre-validation DRAFT sub-state should stay in-place-editable.
         const isDraft = newMetadata.status === 'DRAFT';
         const inPlace = req.body.inPlace || isDraft;
 
@@ -380,28 +404,19 @@ export const updateAnalysis = async (req, res, next) => {
         newResultJson.diff = diff;
 
         // Create NEW Analysis Version
+        const rootId = currentAnalysis.rootId || currentAnalysis.id;
         const newAnalysis = await prisma.$transaction(async (tx) => {
-            const rootId = currentAnalysis.rootId || currentAnalysis.id;
-            const maxVersionAgg = await tx.analysis.findFirst({
-                where: { rootId },
-                orderBy: { version: 'desc' },
-                select: { version: true }
-            });
-            const nextVersion = (maxVersionAgg?.version || 0) + 1;
-
-            return await tx.analysis.create({
-                data: {
-                    userId: req.user.userId,
-                    inputText: currentAnalysis.inputText,
-                    resultJson: newResultJson,
-                    version: nextVersion,
-                    title: currentAnalysis.title || `Version ${nextVersion}`,
-                    rootId: rootId,
-                    parentId: currentAnalysis.id,
-                    projectId: currentAnalysis.projectId,
-                    metadata: newMetadata
-                }
-            });
+            return await createNextVersion(tx, rootId, (nextVersion) => ({
+                userId: req.user.userId,
+                inputText: currentAnalysis.inputText,
+                resultJson: newResultJson,
+                version: nextVersion,
+                title: currentAnalysis.title || `Version ${nextVersion}`,
+                rootId: rootId,
+                parentId: currentAnalysis.id,
+                projectId: currentAnalysis.projectId,
+                metadata: newMetadata
+            }));
         });
 
         return successResponse(res, {
@@ -421,14 +436,67 @@ export const updateAnalysis = async (req, res, next) => {
 export const chat = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { message } = req.body;
+        const { message, clientMessageId } = req.body;
 
         if (!message) throw new Error("Message is required");
 
-        const response = await processChat(req.user.userId, id, message);
+        const response = await processChat(req.user.userId, id, message, clientMessageId);
         return successResponse(res, response);
     } catch (error) {
         next(error);
+    }
+};
+
+export const chatStream = async (req, res, next) => {
+    const { id } = req.params;
+    const { message, clientMessageId } = req.body;
+
+    if (!message) {
+        const error = new Error('Message is required');
+        error.statusCode = 400;
+        return next(error);
+    }
+
+    // Ownership/existence check BEFORE committing to a 200 streaming response — a
+    // 403/404 needs to come back as a normal JSON error, not a mid-stream error frame.
+    try {
+        const analysis = await getAnalysisById(req.user.userId, id);
+        if (!analysis) {
+            const error = new Error('Analysis not found');
+            error.statusCode = 404;
+            return next(error);
+        }
+    } catch (error) {
+        return next(error);
+    }
+
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no'
+    });
+
+    // Clicking "Stop" client-side aborts the fetch, which surfaces here as 'close' —
+    // stop relaying chunks once that happens rather than writing to a dead response.
+    let aborted = false;
+    req.on('close', () => { aborted = true; });
+
+    const send = (event) => {
+        if (aborted) return;
+        res.write(`data: ${JSON.stringify(event)}\n\n`);
+    };
+
+    try {
+        const result = await processChatStream(req.user.userId, id, message, clientMessageId, (chunk) => {
+            send({ type: 'chunk', text: chunk });
+        });
+        send({ type: 'done', newAnalysisId: result.newAnalysisId });
+    } catch (error) {
+        logger.error({ msg: '[chatStream] Failed', error: error.message });
+        send({ type: 'error', message: error.message });
+    } finally {
+        if (!aborted) res.end();
     }
 };
 
@@ -531,34 +599,25 @@ export const regenerate = async (req, res, next) => {
         const rootId = currentAnalysis.rootId || currentAnalysis.id;
 
         const newAnalysis = await prisma.$transaction(async (tx) => {
-            const maxVersionAgg = await tx.analysis.findFirst({
-                where: { rootId },
-                orderBy: { version: 'desc' },
-                select: { version: true }
-            });
-            const nextVersion = (maxVersionAgg?.version || 0) + 1;
-
-            return await tx.analysis.create({
-                data: {
-                    userId: req.user.userId,
-                    inputText: currentAnalysis.inputText,
-                    resultJson: mergedResultJson,
-                    version: nextVersion,
-                    title: currentAnalysis.title || `Version ${nextVersion}`,
-                    status: 'COMPLETED',
-                    rootId: rootId,
-                    parentId: currentAnalysis.id,
-                    projectId: currentAnalysis.projectId,
-                    metadata: {
-                        ...currentAnalysis.metadata,
-                        trigger: 'refinement',
-                        source: 'surgical_refine',
-                        refinementNotes: improvementNotes,
-                        refinedSections: Object.keys(partialUpdate),
-                        promptSettings: currentAnalysis.metadata?.promptSettings || {}
-                    }
+            return await createNextVersion(tx, rootId, (nextVersion) => ({
+                userId: req.user.userId,
+                inputText: currentAnalysis.inputText,
+                resultJson: mergedResultJson,
+                version: nextVersion,
+                title: currentAnalysis.title || `Version ${nextVersion}`,
+                status: 'COMPLETED',
+                rootId: rootId,
+                parentId: currentAnalysis.id,
+                projectId: currentAnalysis.projectId,
+                metadata: {
+                    ...currentAnalysis.metadata,
+                    trigger: 'refinement',
+                    source: 'surgical_refine',
+                    refinementNotes: improvementNotes,
+                    refinedSections: Object.keys(partialUpdate),
+                    promptSettings: currentAnalysis.metadata?.promptSettings || {}
                 }
-            });
+            }));
         });
 
         logger.info({ msg: "[Layer 4] Surgical refinement complete", newId: newAnalysis.id, version: newAnalysis.version, modifiedSections: Object.keys(partialUpdate) });

@@ -2,6 +2,7 @@ import 'dotenv/config';
 import app from './app.js';
 import prisma from './config/prisma.js';
 import { getRedisClient } from './config/redis.js';
+import { runReconciliation } from './services/reconciliationService.js';
 
 
 const PORT = process.env.PORT || 3000;
@@ -15,6 +16,19 @@ const server = app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Internal Analysis Service available at http://localhost:${PORT}/internal/analyze`);
 });
+
+// In production, POST /api/worker/reconcile is meant to be hit by a scheduled QStash
+// job (see docs/reconciliation.md) so the sweep survives across replicas/restarts.
+// There's no local QStash schedule in dev, so run the same sweep in-process on an
+// interval — mirrors the MOCK_QSTASH pattern already used for the analysis queue.
+const RECONCILIATION_INTERVAL_MS = 15 * 60 * 1000;
+let reconciliationInterval = null;
+if (process.env.MOCK_QSTASH === 'true' || process.env.NODE_ENV === 'development') {
+    reconciliationInterval = setInterval(() => {
+        runReconciliation().catch(err => console.error('[Reconciliation] Sweep failed:', err.message));
+    }, RECONCILIATION_INTERVAL_MS);
+    reconciliationInterval.unref();
+}
 
 // Graceful Shutdown — cleanly close all connections
 const gracefulShutdown = async (signal) => {

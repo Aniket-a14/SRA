@@ -13,15 +13,19 @@ const messages = [
     "Optimizing project vision...",
 ]
 
-export function AnalysisLoading() {
+export function AnalysisLoading({ liveMessage }: { liveMessage?: string | null }) {
     const [msgIndex, setMsgIndex] = useState(0)
 
     useEffect(() => {
+        // Once real stage-by-stage progress is streaming in, stop cycling the generic
+        // placeholder copy — the live message replaces it below.
+        if (liveMessage) return
+
         const interval = setInterval(() => {
             setMsgIndex((prev) => (prev + 1) % messages.length)
         }, 3000)
         return () => clearInterval(interval)
-    }, [])
+    }, [liveMessage])
 
     return (
         <div className="flex h-[calc(100vh-64px)] w-full items-center justify-center bg-background overflow-hidden relative">
@@ -112,7 +116,7 @@ export function AnalysisLoading() {
                     <div className="h-6 flex items-center justify-center">
                         <AnimatePresence mode="wait">
                             <motion.p
-                                key={msgIndex}
+                                key={liveMessage || msgIndex}
                                 initial={{ opacity: 0, y: 5 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -5 }}
@@ -126,7 +130,7 @@ export function AnalysisLoading() {
                                 >
                                     <Sparkles className="h-3 w-3 text-primary" />
                                 </motion.span>
-                                {messages[msgIndex]}
+                                {liveMessage || messages[msgIndex]}
                             </motion.p>
                         </AnimatePresence>
                     </div>

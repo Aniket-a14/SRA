@@ -1,7 +1,8 @@
 import express from 'express';
-import { processJob } from '../controllers/workerController.js';
+import { processJob, reconcileJobs } from '../controllers/workerController.js';
 import { Receiver } from "@upstash/qstash";
 import { log } from '../middleware/logger.js';
+import { aiLimiter, apiLimiter } from '../middleware/rateLimiters.js';
 
 const router = express.Router();
 
@@ -25,9 +26,11 @@ const verifyQStash = async (req, res, next) => {
     const signature = req.headers["upstash-signature"];
     const body = req.rawBody ? req.rawBody.toString() : "";
 
-    // Ensure no double slashes if BACKEND_URL ends with /
+    // Derive from the actual request path (not hardcoded to /process) so this
+    // middleware verifies correctly on every route it's mounted on, e.g. /reconcile —
+    // QStash signs each scheduled call against its real destination URL.
     const baseUrl = process.env.BACKEND_URL.replace(/\/$/, "");
-    const url = `${baseUrl}/api/worker/process`;
+    const url = `${baseUrl}${req.originalUrl}`;
 
     try {
         const isValid = await receiver.verify({
@@ -37,9 +40,8 @@ const verifyQStash = async (req, res, next) => {
         });
 
         if (!isValid) {
-            // throw new Error("Invalid QStash Signature");
-            // Note: Receiver.verify throws if invalid usually, but returns boolean in some versions.
-            // Let's assume strict verification.
+            log.error("QStash signature verification failed");
+            return res.status(401).send("Invalid Signature");
         }
         next();
     } catch (err) {
@@ -48,6 +50,7 @@ const verifyQStash = async (req, res, next) => {
     }
 };
 
-router.post('/process', verifyQStash, processJob);
+router.post('/process', aiLimiter, verifyQStash, processJob);
+router.post('/reconcile', apiLimiter, verifyQStash, reconcileJobs);
 
 export default router;

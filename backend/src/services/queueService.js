@@ -2,6 +2,7 @@ import { Client } from "@upstash/qstash";
 import { log } from "../middleware/logger.js";
 import prisma from "../config/prisma.js";
 import crypto from 'crypto';
+import { createNextVersion } from './versioning.js';
 
 const qstashClient = new Client({
     token: process.env.QSTASH_TOKEN,
@@ -39,44 +40,51 @@ export const addAnalysisJob = async (userId, text, projectId, settings, parentId
 
     // 1. Create the Analysis record immediately with PENDING status
     let finalRootId = rootId;
-    let version = 1;
     const newId = crypto.randomUUID();
 
     const analysis = await prisma.$transaction(async (tx) => {
-        // Determine version/root if needed (ATOMICALLY)
         if (!finalRootId) {
             finalRootId = newId;
-        } else {
-            const maxVersionAgg = await tx.analysis.findFirst({
-                where: { rootId: finalRootId },
-                orderBy: { version: 'desc' },
-                select: { version: true }
+            return await tx.analysis.create({
+                data: {
+                    id: newId,
+                    userId,
+                    inputText: text,
+                    resultJson: {},
+                    version: 1,
+                    title: `Analysis in Progress (v1)`,
+                    rootId: finalRootId,
+                    parentId,
+                    projectId,
+                    status: 'PENDING',
+                    metadata: {
+                        trigger: 'initial',
+                        source: 'ai',
+                        promptSettings: settings,
+                        inputHash
+                    }
+                }
             });
-            version = (maxVersionAgg?.version || 0) + 1;
         }
 
-        const title = `Analysis in Progress (v${version})`;
-
-        return await tx.analysis.create({
-            data: {
-                id: newId,
-                userId,
-                inputText: text,
-                resultJson: {}, // Empty initially
-                version,
-                title,
-                rootId: finalRootId,
-                parentId,
-                projectId,
-                status: 'PENDING',
-                metadata: {
-                    trigger: 'initial',
-                    source: 'ai',
-                    promptSettings: settings,
-                    inputHash // Store hash for idempotency lookup
-                }
+        return await createNextVersion(tx, finalRootId, (version) => ({
+            id: newId,
+            userId,
+            inputText: text,
+            resultJson: {},
+            version,
+            title: `Analysis in Progress (v${version})`,
+            rootId: finalRootId,
+            parentId,
+            projectId,
+            status: 'PENDING',
+            metadata: {
+                trigger: 'initial',
+                source: 'ai',
+                promptSettings: settings,
+                inputHash // Store hash for idempotency lookup
             }
-        });
+        }));
     });
 
     const payload = {
@@ -149,6 +157,7 @@ export const getJobStatus = async (jobId) => {
         where: { id: jobId },
         select: {
             status: true,
+            resultQuality: true,
             resultJson: true,
             id: true
         }

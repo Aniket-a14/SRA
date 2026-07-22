@@ -9,10 +9,17 @@ import { ArchitectAgent } from '../agents/ArchitectAgent.js';
 import { DeveloperAgent } from '../agents/DeveloperAgent.js';
 import { ReviewerAgent } from '../agents/ReviewerAgent.js';
 import { CriticAgent } from '../agents/CriticAgent.js';
+import { resolveProviderKey } from './providerKeyService.js';
+import { publishProgress } from './progressService.js';
 import { evalService } from './evalService.js';
 import { retrieveContext, formatRagContext } from './ragService.js';
 import { createReviewSnapshot } from '../utils/promptCompaction.js';
 const CACHE_TTL = 3600; // 1 hour in seconds
+
+// Gemini free-tier rate limits (requests/minute) are the reason for these — not
+// arbitrary padding. See the sectional Developer generation and reflection loop below.
+const AGENT_COOLDOWN_MS = 3000; // between sectional Developer generation calls
+const REFLECTION_LOOP_COOLDOWN_MS = 5000; // before the heavier Reviewer/Critic reflection pass
 
 /** Invalidate the cached dashboard list so the UI reflects mutations immediately. */
 const invalidateUserAnalysesCache = async (userId) => {
@@ -32,13 +39,28 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
     let finalIndustryAudit = null;
     let srsDraft = null; // Declare upfront to avoid ReferenceError in catch block
 
+    // Section-level progress for the SSE stream endpoint (GET /api/analysis/:id/stream) —
+    // best-effort only, never lets a broadcast failure affect the actual pipeline run.
+    const emitProgress = (stage, message, extra = {}) => {
+        publishProgress(analysisId, { stage, message, ...extra }).catch(() => {});
+    };
+
     try {
+        // Resolve the provider/model/key once for the whole pipeline — every agent in this
+        // run shares one provider so a mid-pipeline mismatch (e.g. PO on Claude, Architect on
+        // Gemini) can't happen. Throws early with a clear message if a non-Gemini provider
+        // was selected without a configured key, rather than silently falling back to Gemini.
+        const { provider, apiKey, modelName } = process.env.MOCK_AI === 'true'
+            ? { provider: 'GEMINI', apiKey: null, modelName: null }
+            : await resolveProviderKey(userId, settings.modelProvider, settings.modelName);
+        const providerConfig = { provider, apiKey, modelName };
+
         // ORCHESTRATION START
-        const poAgent = new ProductOwnerAgent();
-        const archAgent = new ArchitectAgent();
-        const devAgent = new DeveloperAgent();
-        const qaAgent = new ReviewerAgent();
-        const criticAgent = new CriticAgent();
+        const poAgent = new ProductOwnerAgent(providerConfig);
+        const archAgent = new ArchitectAgent(providerConfig);
+        const devAgent = new DeveloperAgent(providerConfig);
+        const qaAgent = new ReviewerAgent(providerConfig);
+        const criticAgent = new CriticAgent(providerConfig);
 
         // 0.0 Fetch User Profile for Attribution
         const userProfile = await prisma.user.findUnique({
@@ -53,6 +75,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
 
         // 1. PO: Define Scope
         logger.info("--> Agent: Product Owner");
+        emitProgress('product_owner', 'Refining scope and features with the Product Owner agent...');
         const poOutput = await poAgent.refineIntent(text, { projectName, version: promptVersion });
 
         // 2. Architect: Design System (Placeholder - moved after RAG)
@@ -60,6 +83,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
 
         // 2.5 Pillar 2: Multi-Query RAG (Intelligent Recycling)
         logger.info("--> Pillar 2: Active Requirement Recycling (Multi-Query RAG)");
+        emitProgress('rag_retrieval', 'Searching prior requirements for reusable context...');
         const featureList = (poOutput?.systemFeatures || poOutput?.features || []);
         let allRecyclableChunks = [];
 
@@ -84,6 +108,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
 
         // 3. Architect: Design System (Logical Sectional Approach)
         logger.info("--> Agent: Architect");
+        emitProgress('architect', 'Designing system architecture...');
 
         // Generate focused search queries for components/entities/principles
         let ragContexts = {};
@@ -157,11 +182,13 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         };
 
         logger.info("--> Agent: Developer (Sectional Generation: Shell)");
+        emitProgress('developer_shell', 'Drafting the SRS shell (introduction, scope, overview)...');
         const srsShell = await devAgent.generateShell(text, poOutput, archOutput, developerPromptSettings);
 
-        await sleep(3000); // Cooling period
+        await sleep(AGENT_COOLDOWN_MS); // Cooling period
 
         logger.info("--> Agent: Developer (Sectional Generation: Features)");
+        emitProgress('developer_features', `Writing system features (0/${featureList.length})...`);
         const CHUNK_SIZE = 2;
         let allFeatures = [];
 
@@ -172,20 +199,23 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
             if (featuresOutput.systemFeatures) {
                 allFeatures = [...allFeatures, ...featuresOutput.systemFeatures];
             }
+            emitProgress('developer_features', `Writing system features (${Math.min(i + CHUNK_SIZE, featureList.length)}/${featureList.length})...`);
             if (i + CHUNK_SIZE < featureList.length) {
-                await sleep(3000); // Delay between feature chunks
+                await sleep(AGENT_COOLDOWN_MS); // Delay between feature chunks
             }
         }
 
-        await sleep(3000); // Cooling period
+        await sleep(AGENT_COOLDOWN_MS); // Cooling period
 
         logger.info("--> Agent: Developer (Sectional Generation: Requirements & Glossary)");
+        emitProgress('developer_requirements', 'Writing functional/non-functional requirements and glossary...');
         const sections1And2 = { ...srsShell, systemFeatures: allFeatures };
         const srsRequirements = await devAgent.generateRequirements(text, sections1And2, poOutput, archOutput, developerPromptSettings);
 
-        await sleep(3000); // Cooling period
+        await sleep(AGENT_COOLDOWN_MS); // Cooling period
 
         logger.info("--> Agent: Developer (Sectional Generation: Appendices & Diagrams)");
+        emitProgress('developer_appendices', 'Generating appendices and diagrams...');
         const sections123 = { ...sections1And2, ...srsRequirements };
         const srsAppendices = await devAgent.generateAppendices(text, sections123, poOutput, archOutput, developerPromptSettings);
 
@@ -200,6 +230,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         // NEW: Repair Diagrams BEFORE Auditing (Defensive Generation)
         // This prevents the Reviewer/Critic from failing a draft due to minor syntax errors
         logger.info("--> Service: Pre-Audit Diagram Repair");
+        emitProgress('diagram_repair', 'Validating and auto-repairing diagrams...');
         await validateAndAutoRepairDiagrams(srsDraft, settings);
 
         // 4. Pillar 1: Reflection Loop (Max 2 refinement passes)
@@ -210,10 +241,11 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
 
         // Mandatory cooling period before starting the heavy Reflection Loop on Free Tier
         logger.info("    [Pause] Cooling down for 5 seconds before Reflection Loop (GCP Quota Safety)...");
-        await sleep(5000);
+        await sleep(REFLECTION_LOOP_COOLDOWN_MS);
 
         while (loopCount < MAX_LOOPS) {
             logger.info(`--> Pillar 1: Global Reflection Pass ${loopCount + 1}`);
+            emitProgress('reflection', `Reviewing quality (pass ${loopCount + 1}/${MAX_LOOPS})...`);
 
             // A. Reviewer Audit (Security/Consistency)
             const review = await qaAgent.reviewSRS(poOutput, srsDraft);
@@ -243,6 +275,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                 : `Quality Score: ${audit.overallScore} < ${QUALITY_THRESHOLD}`;
 
             logger.info(`    [Refine] ${reason}. Performing surgical refinement...`);
+            emitProgress('reflection_refine', `Refining ${reflectionFeedback.length ? 'flagged sections' : 'draft'} (${reason})...`);
 
             reflectionFeedback = [
                 ...review.feedback,
@@ -314,6 +347,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         // The evaluator only needs high-level signals (titles, feature names, scope summary)
         // to score faithfulness — not the full 40KB+ document.
         logger.info('--> Service: RAG Evaluation');
+        emitProgress('final_evaluation', 'Running final RAG faithfulness evaluation...');
         const contextString = typeof archOutput === 'string' ? archOutput : JSON.stringify(archOutput);
         const evalSnapshot = createReviewSnapshot(poOutput, finalSRS);
         const ragEval = await evalService.evaluateRAG(text, contextString, evalSnapshot);
@@ -361,6 +395,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                 where: { id: analysisId },
                 data: {
                     status: 'COMPLETED', // Mark as completed so user can see the draft
+                    resultQuality: 'PARTIAL',
                     resultJson: srsDraft,
                     metadata: {
                         ...(analysisMeta || {}),
@@ -371,6 +406,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                 }
             });
             await invalidateUserAnalysesCache(userId);
+            emitProgress('completed', 'Analysis finalized early (partial result — audit skipped).', { terminal: true, status: 'COMPLETED', resultQuality: 'PARTIAL' });
             return; // Exit early as we've handled the record
         }
 
@@ -380,6 +416,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                 where: { id: analysisId },
                 data: {
                     status: 'FAILED',
+                    resultQuality: 'NONE',
                     metadata: {
                         ...(analysisMeta || {}),
                         failureReason: error.message,
@@ -388,6 +425,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                 }
             });
             await invalidateUserAnalysesCache(userId);
+            emitProgress('failed', failureReason, { terminal: true, status: 'FAILED' });
         }
         throw new Error(failureReason);
     }
@@ -477,40 +515,37 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
             }
         }
 
-        // If analysisId is provided (Standard Flow via queueService), we update the existing record
-        if (analysisId) {
-            const existing = await tx.analysis.findUnique({ where: { id: analysisId } });
-            if (!existing) throw new Error("Analysis ID not found during processing");
+        // performAnalysis is only ever called via queueService/workerController, both of
+        // which always pass analysisId — the legacy direct-creation path this used to
+        // fall back to was confirmed unreachable and has been removed.
+        const existing = await tx.analysis.findUnique({ where: { id: analysisId } });
+        if (!existing) throw new Error("Analysis ID not found during processing");
 
-            // We still need to calculate title if missing
-            const title = resultJson.projectTitle || `Version ${existing.version}`;
+        // We still need to calculate title if missing
+        const title = resultJson.projectTitle || `Version ${existing.version}`;
 
-            const result = await tx.analysis.update({
-                where: { id: analysisId },
-                data: {
-                    resultJson,
-                    title,
-                    status: 'COMPLETED',
-                    isFinalized: false, // default
-                    projectId: finalProjectId, // Link to the (potentially new) project
-                    metadata: {
-                        ...(existing.metadata || {}),
-                        ...analysisMeta, // Contains promptVersion
-                        completionTime: new Date().toISOString()
-                    }
+        const result = await tx.analysis.update({
+            where: { id: analysisId },
+            data: {
+                resultJson,
+                title,
+                status: 'COMPLETED',
+                isFinalized: false, // default
+                projectId: finalProjectId, // Link to the (potentially new) project
+                metadata: {
+                    ...(existing.metadata || {}),
+                    ...analysisMeta, // Contains promptVersion
+                    completionTime: new Date().toISOString()
                 }
-            });
+            }
+        });
 
-            return { result, text, finalProjectId };
-        }
-
-        // --- LEGACY / DIRECT SYNC FLOW ---
-        // DEPRECATED: All analyses should now be created via queueService with an ID upfront.
-        throw new Error("performAnalysis called without analysisId. Legacy direct creation is deprecated.");
+        return { result, text, finalProjectId };
     });
 
     if (transactionResult) {
         await invalidateUserAnalysesCache(userId);
+        emitProgress('completed', 'Analysis complete.', { terminal: true, status: 'COMPLETED', resultQuality: 'FULL' });
 
         // Synchronize Knowledge Graph (Async)
         if (transactionResult.finalProjectId) {
@@ -552,6 +587,10 @@ export const getUserAnalyses = async (userId) => {
                 metadata
             FROM "Analysis"
             WHERE "userId" = ${userId}
+            -- DRAFT rows are pre-pipeline (Layer 1 wizard state, not a real analysis yet) —
+            -- explicit now that DRAFT is a typed status value (Phase 3), not just leaked
+            -- metadata; a FAILED row with no projectId never got far enough to be useful.
+            AND status != 'DRAFT'
             AND NOT (status = 'FAILED' AND "projectId" IS NULL)
             ORDER BY "rootId", version DESC
         `;
@@ -670,6 +709,63 @@ export const getAnalysisById = async (userId, analysisId) => {
     }
 
     return analysis;
+};
+
+// A finalized analysis has been shredded into KnowledgeChunk rows (see finalizeAnalysis
+// in analysisController.js) whose sourceAnalysisId FK is ON DELETE RESTRICT — deleting
+// it would either hard-fail with a Postgres FK violation or, if we ever relax that
+// constraint, silently destroy reuse knowledge other projects depend on. Block it with
+// a clear error instead of either outcome.
+const assertNotFinalized = (analysis) => {
+    if (analysis.isFinalized) {
+        const error = new Error('Cannot delete a finalized analysis — it has been converted into reusable knowledge chunks.');
+        error.statusCode = 409;
+        throw error;
+    }
+};
+
+export const deleteAnalysis = async (userId, analysisId, { chain = false } = {}) => {
+    const analysis = await getAnalysisById(userId, analysisId); // 404/403 handled inside
+
+    if (!analysis) {
+        const error = new Error('Analysis not found');
+        error.statusCode = 404;
+        throw error;
+    }
+
+    if (!chain) {
+        assertNotFinalized(analysis);
+
+        const childCount = await prisma.analysis.count({ where: { parentId: analysisId } });
+        if (childCount > 0) {
+            const error = new Error('Cannot delete a version with other versions depending on it. Pass chain=true to delete the entire history, or delete descendant versions first.');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        await prisma.analysis.delete({ where: { id: analysisId } });
+        await invalidateUserAnalysesCache(userId);
+        return { deletedCount: 1, mode: 'leaf' };
+    }
+
+    // Chain delete: the whole rootId lineage in one shot.
+    const rootId = analysis.rootId || analysis.id;
+    const chainAnalyses = await prisma.analysis.findMany({
+        where: { userId, OR: [{ id: rootId }, { rootId }] },
+        select: { id: true, isFinalized: true }
+    });
+
+    if (chainAnalyses.some(a => a.isFinalized)) {
+        const error = new Error('Cannot delete this history — one or more versions have been finalized into reusable knowledge chunks.');
+        error.statusCode = 409;
+        throw error;
+    }
+
+    const { count } = await prisma.analysis.deleteMany({
+        where: { userId, OR: [{ id: rootId }, { rootId }] }
+    });
+    await invalidateUserAnalysesCache(userId);
+    return { deletedCount: count, mode: 'chain' };
 };
 
 export const getLatestAnalysisByProjectId = async (projectId) => {

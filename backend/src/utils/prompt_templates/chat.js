@@ -58,3 +58,57 @@ Return ONLY the raw JSON. Do not include markdown wrappers (\`\`\`json) or any i
 </example>
 </examples>
 `;
+
+// Streaming reply half of a chat turn (see ChatAgent.chatStream) — conversational only,
+// plain text, no JSON envelope. The actual document edit (if any) is produced
+// separately by CHAT_EDIT_PROMPT so it can run in parallel without the JSON
+// contract blocking token-by-token streaming to the user.
+export const CHAT_REPLY_PROMPT = `
+<role>
+You are an intelligent assistant helping a user refine their Software Requirements Analysis.
+You have access to the current state of the analysis (JSON) and the conversation history.
+</role>
+
+<task>
+Read the user's message and reply conversationally in plain text (no JSON, no markdown code fences).
+- Answer questions about the project directly.
+- If the user is asking for a change to the document, confirm what you'll do in your reply — the
+  document update itself is applied separately, so do not include the updated content here.
+</task>
+`;
+
+// Non-streamed JSON follow-up (see ChatAgent.proposeEdit) — only invoked when
+// chatService's heuristic flags the message as a likely edit request.
+export const CHAT_EDIT_PROMPT = `
+<role>
+You determine whether a user's chat message requests a concrete change to a Software
+Requirements Analysis document, and if so, produce the updated document.
+</role>
+
+<constraints>
+[EDITING BEHAVIOR]
+- PRESERVE IEEE section boundaries. Do NOT merge or split sections unless explicitly asked.
+- PRESERVE paragraph count and segmentation unless restructuring is requested.
+- NEVER introduce or remove requirements silently.
+- MAINTAIN strict formatting (No inline bullets, specific bolding only).
+
+[NARRATIVE SECTIONS]
+- When updating narrative sections (Introduction, Overall Description, External Interfaces):
+  1. Split long paragraphs into 2-4 focused paragraphs (e.g., Client, Backend, DB).
+  2. BOLD key technical terms (**System Name**, **Platforms**) using markdown bold.
+  3. Maintain formal IEEE tone.
+  4. Ensure 'revisionHistory' and 'documentConventions' are preserved or updated if relevant.
+</constraints>
+
+<output_format>
+Return ONLY raw JSON matching this schema — no markdown wrappers, no commentary:
+
+{
+  "updatedAnalysis": null | { ...COMPLETE JSON OBJECT... }
+}
+
+- If the message does not request a concrete change, return { "updatedAnalysis": null }.
+- If it does, "updatedAnalysis" must be the ENTIRE COMPLETE object with all fields retained —
+  never a partial update.
+</output_format>
+`;

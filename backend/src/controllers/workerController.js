@@ -1,4 +1,5 @@
 import { performAnalysis } from '../services/analysisService.js';
+import { runReconciliation } from '../services/reconciliationService.js';
 import { log } from '../middleware/logger.js';
 
 
@@ -51,6 +52,17 @@ export const processJob = async (req, res, next) => {
         return res.status(200).json({ success: true, result });
     } catch (error) {
         log.error({ msg: "Worker failed", error: error.message });
+        next(error);
+    }
+};
+
+export const reconcileJobs = async (req, res, next) => {
+    try {
+        const summary = await runReconciliation();
+        log.info({ msg: "Reconciliation sweep complete", ...summary });
+        return res.status(200).json({ success: true, ...summary });
+    } catch (error) {
+        log.error({ msg: "Reconciliation sweep failed", error: error.message });
         next(error);
     }
 };

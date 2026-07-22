@@ -1,5 +1,5 @@
 import { BaseAgent } from './BaseAgent.js';
-import { CHAT_PROMPT } from '../utils/prompts.js';
+import { CHAT_PROMPT, CHAT_REPLY_PROMPT, CHAT_EDIT_PROMPT } from '../utils/prompts.js';
 import { OUTPUT_TOKEN_LIMITS, TEMPERATURES } from '../utils/llmGenerationConfig.js';
 
 /**
@@ -12,8 +12,8 @@ import { OUTPUT_TOKEN_LIMITS, TEMPERATURES } from '../utils/llmGenerationConfig.
  *  - systemInstruction separation for Gemini prompt caching
  */
 export class ChatAgent extends BaseAgent {
-    constructor() {
-        super('Chat Agent');
+    constructor(providerConfig = {}) {
+        super('Chat Agent', providerConfig);
     }
 
     /**
@@ -48,6 +48,68 @@ User: ${userMessage}
             2000,                  // initialDelay
             {
                 systemInstruction: CHAT_PROMPT,
+                maxOutputTokens: OUTPUT_TOKEN_LIMITS.srsRefinement
+            }
+        );
+    }
+
+    /**
+     * Streaming conversational half of a chat turn — plain text, no JSON envelope.
+     * @returns {AsyncGenerator<string>} text chunks as they arrive
+     */
+    chatStream(srsSnapshot, historyText, userMessage) {
+        const prompt = `
+<current_analysis_json>
+${JSON.stringify(srsSnapshot)}
+</current_analysis_json>
+
+<chat_history>
+${historyText}
+</chat_history>
+
+<user_message>
+User: ${userMessage}
+</user_message>
+`;
+
+        return this.streamText(prompt, {
+            systemInstruction: CHAT_REPLY_PROMPT,
+            temperature: TEMPERATURES.critic,
+            maxOutputTokens: OUTPUT_TOKEN_LIMITS.srsRefinement,
+            mockText: 'Mocked AI Reply'
+        });
+    }
+
+    /**
+     * Non-streamed JSON follow-up — only called when chatService's heuristic flags
+     * the message as a likely edit request. Kept as a plain callLLM (full retry/backoff/
+     * JSON-repair) since it's not shown to the user token-by-token.
+     * @returns {Promise<{updatedAnalysis: object|null}>}
+     */
+    async proposeEdit(srsSnapshot, historyText, userMessage) {
+        const prompt = `
+<current_analysis_json>
+${JSON.stringify(srsSnapshot)}
+</current_analysis_json>
+
+<chat_history>
+${historyText}
+</chat_history>
+
+<user_message>
+User: ${userMessage}
+</user_message>
+`;
+
+        return this.callLLM(
+            prompt,
+            TEMPERATURES.critic,
+            true,
+            null,
+            3,
+            2000,
+            {
+                systemInstruction: CHAT_EDIT_PROMPT,
                 maxOutputTokens: OUTPUT_TOKEN_LIMITS.srsRefinement
             }
         );
