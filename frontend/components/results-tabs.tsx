@@ -10,18 +10,24 @@ import { throttle } from "@/lib/utils"
 import { useAuthFetch } from "@/lib/hooks"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
+import { ErrorBoundary } from "@/components/error-boundary"
 
-// Modular Tab Components
+// Modular Tab Components — all dynamic so a syntax/render error or heavy dependency
+// (e.g. MermaidRenderer/DFDViewer inside AppendicesTab) in one tab's bundle can't
+// block the others from loading, and each gets its own ErrorBoundary below so a
+// crash while rendering one tab doesn't take down the other 7.
 import dynamic from "next/dynamic"
-import { IntroductionTab } from "./analysis/tabs/introduction-tab"
-import { FeaturesTab } from "./analysis/tabs/features-tab"
-import { InterfacesTab } from "./analysis/tabs/interfaces-tab"
-import { NFRsTab } from "./analysis/tabs/nfrs-tab"
-import { AppendicesTab } from "./analysis/tabs/appendices-tab"
-import { QualityAuditTab } from "./analysis/tabs/quality-audit-tab"
 
-const CodeAssetsTab = dynamic(() => import("./analysis/tabs/code-assets-tab").then(mod => mod.CodeAssetsTab))
-const KnowledgeGraphTab = dynamic(() => import("./analysis/tabs/knowledge-graph-tab").then(mod => mod.KnowledgeGraphTab))
+const tabLoading = <div className="h-[400px] w-full bg-muted/10 animate-pulse rounded-xl" />
+
+const IntroductionTab = dynamic(() => import("./analysis/tabs/introduction-tab").then(mod => mod.IntroductionTab), { loading: () => tabLoading })
+const FeaturesTab = dynamic(() => import("./analysis/tabs/features-tab").then(mod => mod.FeaturesTab), { loading: () => tabLoading })
+const InterfacesTab = dynamic(() => import("./analysis/tabs/interfaces-tab").then(mod => mod.InterfacesTab), { loading: () => tabLoading })
+const NFRsTab = dynamic(() => import("./analysis/tabs/nfrs-tab").then(mod => mod.NFRsTab), { loading: () => tabLoading })
+const AppendicesTab = dynamic(() => import("./analysis/tabs/appendices-tab").then(mod => mod.AppendicesTab), { loading: () => tabLoading })
+const QualityAuditTab = dynamic(() => import("./analysis/tabs/quality-audit-tab").then(mod => mod.QualityAuditTab), { loading: () => tabLoading })
+const CodeAssetsTab = dynamic(() => import("./analysis/tabs/code-assets-tab").then(mod => mod.CodeAssetsTab), { loading: () => tabLoading })
+const KnowledgeGraphTab = dynamic(() => import("./analysis/tabs/knowledge-graph-tab").then(mod => mod.KnowledgeGraphTab), { loading: () => tabLoading })
 import type { CodeViewerProps } from "./code-viewer"
 
 interface ResultsTabsProps {
@@ -170,70 +176,86 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
             </ScrollArea>
 
             <TabsContent value="intro" className="outline-none">
-              <IntroductionTab
-                introduction={currentData.introduction}
-                overallDescription={currentData.overallDescription}
-                revisionHistory={currentData.revisionHistory}
-                missingLogic={currentData.missingLogic}
-                contradictions={currentData.contradictions}
-                isEditing={isEditing}
-                onUpdate={updateSection}
-              />
+              <ErrorBoundary name="Introduction Tab">
+                <IntroductionTab
+                  introduction={currentData.introduction}
+                  overallDescription={currentData.overallDescription}
+                  revisionHistory={currentData.revisionHistory}
+                  missingLogic={currentData.missingLogic}
+                  contradictions={currentData.contradictions}
+                  isEditing={isEditing}
+                  onUpdate={updateSection}
+                />
+              </ErrorBoundary>
             </TabsContent>
 
             <TabsContent value="features" className="outline-none">
-              <FeaturesTab
-                systemFeatures={currentData.systemFeatures}
-                projectTitle={data.projectTitle}
-                isEditing={isEditing}
-                onUpdate={updateSection}
-              />
+              <ErrorBoundary name="System Features Tab">
+                <FeaturesTab
+                  systemFeatures={currentData.systemFeatures}
+                  projectTitle={data.projectTitle}
+                  isEditing={isEditing}
+                  onUpdate={updateSection}
+                />
+              </ErrorBoundary>
             </TabsContent>
 
             <TabsContent value="interfaces" className="outline-none">
-              <InterfacesTab
-                externalInterfaceRequirements={currentData.externalInterfaceRequirements}
-                isEditing={isEditing}
-                onUpdate={updateSection}
-              />
+              <ErrorBoundary name="External Interfaces Tab">
+                <InterfacesTab
+                  externalInterfaceRequirements={currentData.externalInterfaceRequirements}
+                  isEditing={isEditing}
+                  onUpdate={updateSection}
+                />
+              </ErrorBoundary>
             </TabsContent>
 
             <TabsContent value="nfrs" className="outline-none">
-              <NFRsTab
-                nonFunctionalRequirements={currentData.nonFunctionalRequirements}
-                otherRequirements={currentData.otherRequirements}
-                projectTitle={data.projectTitle}
-                isEditing={isEditing}
-                onUpdate={updateSection}
-              />
+              <ErrorBoundary name="Non-Functional Requirements Tab">
+                <NFRsTab
+                  nonFunctionalRequirements={currentData.nonFunctionalRequirements}
+                  otherRequirements={currentData.otherRequirements}
+                  projectTitle={data.projectTitle}
+                  isEditing={isEditing}
+                  onUpdate={updateSection}
+                />
+              </ErrorBoundary>
             </TabsContent>
 
             <TabsContent value="appendices" className="outline-none">
-              <AppendicesTab
-                appendices={currentData.appendices}
-                glossary={currentData.glossary}
-                analysisId={analysisId}
-                projectTitle={data.projectTitle}
-                productScope={currentData.introduction?.productScope}
-                srsContent={JSON.stringify(data)}
-                onRefresh={onRefresh}
-                onDiagramEditChange={onDiagramEditChange}
-              />
+              <ErrorBoundary name="Appendices Tab">
+                <AppendicesTab
+                  appendices={currentData.appendices}
+                  glossary={currentData.glossary}
+                  analysisId={analysisId}
+                  projectTitle={data.projectTitle}
+                  productScope={currentData.introduction?.productScope}
+                  srsContent={JSON.stringify(data)}
+                  onRefresh={onRefresh}
+                  onDiagramEditChange={onDiagramEditChange}
+                />
+              </ErrorBoundary>
             </TabsContent>
 
             <TabsContent value="code" className="outline-none">
-              <CodeAssetsTab
-                initialGeneratedCode={data.generatedCode as unknown as CodeViewerProps}
-                analysisId={analysisId}
-              />
+              <ErrorBoundary name="Code Assets Tab">
+                <CodeAssetsTab
+                  initialGeneratedCode={data.generatedCode as unknown as CodeViewerProps}
+                  analysisId={analysisId}
+                />
+              </ErrorBoundary>
             </TabsContent>
 
             <TabsContent value="quality" className="outline-none">
-              <QualityAuditTab qualityAudit={currentData.qualityAudit} />
+              <ErrorBoundary name="Quality Audit Tab">
+                <QualityAuditTab qualityAudit={currentData.qualityAudit} />
+              </ErrorBoundary>
             </TabsContent>
 
             <TabsContent value="graph" className="outline-none">
-              <KnowledgeGraphTab projectId={data.projectId || ""} />
+              <ErrorBoundary name="Knowledge Graph Tab">
+                <KnowledgeGraphTab projectId={data.projectId || ""} />
+              </ErrorBoundary>
             </TabsContent>
           </Tabs>
         </div>

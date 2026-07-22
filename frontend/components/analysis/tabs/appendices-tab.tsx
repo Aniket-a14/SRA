@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { toast } from "sonner"
 import dynamic from "next/dynamic"
 import { DFDDiagramSection } from "@/components/analysis/dfd-diagram-section"
+import { ErrorBoundary } from "@/components/error-boundary"
 import { useAuthFetch } from "@/lib/hooks"
 import { useRouter } from "next/navigation"
 import type { AnalysisResult, Diagram } from "@/types/analysis"
@@ -80,28 +81,33 @@ export const AppendicesTab = memo(function AppendicesTab({
             <div className="space-y-4">
                 <h3 className="text-lg font-semibold border-l-4 border-primary pl-3">Analysis Models</h3>
                 <div className="grid lg:grid-cols-2 gap-6">
-                    <DiagramEditor
-                        title="Flowchart"
-                        initialCode={typeof appendices?.analysisModels?.flowchartDiagram === 'string'
-                            ? appendices.analysisModels.flowchartDiagram
-                            : appendices?.analysisModels?.flowchartDiagram?.code || ""}
-                        onSave={(newCode: string, options?: { inPlace?: boolean }) => handleDiagramSave('flowchartDiagram', newCode, options)}
-                        onOpenChange={onDiagramEditChange}
-                        syntaxExplanation={typeof appendices?.analysisModels?.flowchartDiagram === 'object' && appendices.analysisModels.flowchartDiagram !== null ? (appendices.analysisModels.flowchartDiagram as Diagram).syntaxExplanation : undefined}
-                    />
-                    <DiagramEditor
-                        title="Sequence Diagram"
-                        initialCode={typeof appendices?.analysisModels?.sequenceDiagram === 'string'
-                            ? appendices.analysisModels.sequenceDiagram
-                            : appendices?.analysisModels?.sequenceDiagram?.code || ""}
-                        onSave={(newCode: string, options?: { inPlace?: boolean }) => handleDiagramSave('sequenceDiagram', newCode, options)}
-                        onOpenChange={onDiagramEditChange}
-                        syntaxExplanation={typeof appendices?.analysisModels?.sequenceDiagram === 'object' && appendices.analysisModels.sequenceDiagram !== null ? (appendices.analysisModels.sequenceDiagram as Diagram).syntaxExplanation : undefined}
-                    />
+                    <ErrorBoundary name="Flowchart Diagram">
+                        <DiagramEditor
+                            title="Flowchart"
+                            initialCode={typeof appendices?.analysisModels?.flowchartDiagram === 'string'
+                                ? appendices.analysisModels.flowchartDiagram
+                                : appendices?.analysisModels?.flowchartDiagram?.code || ""}
+                            onSave={(newCode: string, options?: { inPlace?: boolean }) => handleDiagramSave('flowchartDiagram', newCode, options)}
+                            onOpenChange={onDiagramEditChange}
+                            syntaxExplanation={typeof appendices?.analysisModels?.flowchartDiagram === 'object' && appendices.analysisModels.flowchartDiagram !== null ? (appendices.analysisModels.flowchartDiagram as Diagram).syntaxExplanation : undefined}
+                        />
+                    </ErrorBoundary>
+                    <ErrorBoundary name="Sequence Diagram">
+                        <DiagramEditor
+                            title="Sequence Diagram"
+                            initialCode={typeof appendices?.analysisModels?.sequenceDiagram === 'string'
+                                ? appendices.analysisModels.sequenceDiagram
+                                : appendices?.analysisModels?.sequenceDiagram?.code || ""}
+                            onSave={(newCode: string, options?: { inPlace?: boolean }) => handleDiagramSave('sequenceDiagram', newCode, options)}
+                            onOpenChange={onDiagramEditChange}
+                            syntaxExplanation={typeof appendices?.analysisModels?.sequenceDiagram === 'object' && appendices.analysisModels.sequenceDiagram !== null ? (appendices.analysisModels.sequenceDiagram as Diagram).syntaxExplanation : undefined}
+                        />
+                    </ErrorBoundary>
                 </div>
 
                 {/* DFD Section */}
                 <div className="mt-6">
+                  <ErrorBoundary name="Data Flow Diagram">
                     <DFDDiagramSection
                         data={appendices?.analysisModels?.dataFlowDiagram}
                         projectTitle={projectTitle || ""}
@@ -140,18 +146,21 @@ export const AppendicesTab = memo(function AppendicesTab({
                             }
                         }}
                     />
+                  </ErrorBoundary>
                 </div>
 
                 <div className="grid lg:grid-cols-2 gap-6 mt-6">
-                    <DiagramEditor
-                        title="Entity Relationship Diagram"
-                        initialCode={typeof appendices?.analysisModels?.entityRelationshipDiagram === 'string'
-                            ? appendices.analysisModels.entityRelationshipDiagram
-                            : appendices?.analysisModels?.entityRelationshipDiagram?.code || ""}
-                        syntaxExplanation={typeof appendices?.analysisModels?.entityRelationshipDiagram === 'object' && appendices.analysisModels.entityRelationshipDiagram !== null ? (appendices.analysisModels.entityRelationshipDiagram as Diagram).syntaxExplanation : undefined}
-                        onSave={(newCode: string, options?: { inPlace?: boolean }) => handleDiagramSave('entityRelationshipDiagram', newCode, options)}
-                        onOpenChange={onDiagramEditChange}
-                    />
+                    <ErrorBoundary name="Entity Relationship Diagram">
+                        <DiagramEditor
+                            title="Entity Relationship Diagram"
+                            initialCode={typeof appendices?.analysisModels?.entityRelationshipDiagram === 'string'
+                                ? appendices.analysisModels.entityRelationshipDiagram
+                                : appendices?.analysisModels?.entityRelationshipDiagram?.code || ""}
+                            syntaxExplanation={typeof appendices?.analysisModels?.entityRelationshipDiagram === 'object' && appendices.analysisModels.entityRelationshipDiagram !== null ? (appendices.analysisModels.entityRelationshipDiagram as Diagram).syntaxExplanation : undefined}
+                            onSave={(newCode: string, options?: { inPlace?: boolean }) => handleDiagramSave('entityRelationshipDiagram', newCode, options)}
+                            onOpenChange={onDiagramEditChange}
+                        />
+                    </ErrorBoundary>
                 </div>
             </div>
 

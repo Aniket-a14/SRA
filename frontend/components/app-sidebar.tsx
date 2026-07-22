@@ -10,47 +10,48 @@ import {
     Sparkles,
     Database,
     Lock,
-    Folder
+    MessageSquare,
+    Plus
 } from "lucide-react"
 import { useLayer } from "@/lib/layer-context"
 import { useRouter, useParams } from "next/navigation"
-import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
+import useSWR from "swr"
+import { fetcher, swrOptions } from "@/lib/swr-utils"
+import { useMemo } from "react"
 
 type AppSidebarProps = React.HTMLAttributes<HTMLDivElement>
+
+interface AnalysisHistoryItem {
+    id: string
+    createdAt: string
+    inputPreview: string
+    title?: string
+}
 
 export function AppSidebar({ className }: AppSidebarProps) {
     const { currentLayer, setLayer, isLayerLocked, maxAllowedLayer, isFinalized } = useLayer()
     const router = useRouter()
     const params = useParams()
     const { token } = useAuth()
-    const [projects, setProjects] = useState<{ id: string, name: string }[]>([])
 
-    const analysisId = params?.id
+    const analysisId = params?.id as string | undefined
 
-    // Fetch projects for sidebar list
-    useEffect(() => {
-        if (token) {
-            fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/projects`, {
-                headers: { Authorization: `Bearer ${token}` }
-            })
-                .then(res => {
-                    if (!res.ok) throw new Error("Failed");
-                    return res.json();
-                })
-                .then(data => {
-                    if (Array.isArray(data)) {
-                        setProjects(data);
-                    } else {
-                        setProjects([]);
-                    }
-                })
-                .catch(err => {
-                    console.error("Failed to load projects", err);
-                    setProjects([]);
-                })
-        }
+    // Live conversation/analysis history rail — replaces the old one-shot,
+    // 5-item-capped Project list. useSWR keeps it in sync (revalidates on
+    // reconnect/interval like every other data fetch in this app) instead of
+    // fetching once on mount and never again.
+    const swrKey = useMemo(() => {
+        if (!token) return null
+        return [`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, token] as const
     }, [token])
+
+    const { data: historyData } = useSWR<AnalysisHistoryItem[]>(swrKey, fetcher, {
+        ...swrOptions,
+        refreshInterval: 30000 // light background sync — this is a nav rail, not the live-progress view
+    })
+
+    const history = Array.isArray(historyData) ? historyData : []
 
     const layers = [
         { id: 1, label: "Structured Input", icon: FileText },
@@ -63,6 +64,16 @@ export function AppSidebar({ className }: AppSidebarProps) {
     return (
         <div className={cn("pb-12 w-64 border-r h-screen bg-muted/10 flex flex-col fixed left-0 top-0 z-30", className)}>
             <div className="space-y-4 py-4">
+                <div className="px-3">
+                    <Button
+                        variant="outline"
+                        className="w-full justify-start gap-2"
+                        onClick={() => router.push("/")}
+                    >
+                        <Plus className="h-4 w-4" />
+                        New Analysis
+                    </Button>
+                </div>
 
                 {/* Layer Tracker - Only show if inside an analysis */}
                 {analysisId && (
@@ -108,23 +119,37 @@ export function AppSidebar({ className }: AppSidebarProps) {
                     </div>
                 )}
 
-                {/* Recent Projects List */}
+                {/* Recent Analyses — live history rail */}
                 <div className="py-2">
-                    <h2 className="relative px-7 text-xs font-semibold tracking-tight text-muted-foreground/70 uppercase mb-2">
-                        Recent Projects
-                    </h2>
-                    <ScrollArea className="h-[200px] px-1">
+                    <div className="flex items-center justify-between px-7 mb-2">
+                        <h2 className="text-xs font-semibold tracking-tight text-muted-foreground/70 uppercase">
+                            Recent Analyses
+                        </h2>
+                        <button
+                            className="text-xs text-primary hover:underline"
+                            onClick={() => router.push("/analysis")}
+                        >
+                            View all
+                        </button>
+                    </div>
+                    <ScrollArea className="h-[calc(100vh-64px-13rem)] px-1">
                         <div className="space-y-1 p-2">
-                            {projects.slice(0, 5).map((p) => (
+                            {history.length === 0 && (
+                                <p className="px-3 text-xs text-muted-foreground/60">No analyses yet</p>
+                            )}
+                            {history.slice(0, 15).map((item) => (
                                 <Button
-                                    key={p.id}
+                                    key={item.id}
                                     variant="ghost"
                                     size="sm"
-                                    className="w-full justify-start font-normal truncate"
-                                    onClick={() => router.push(`/projects/${p.id}`)}
+                                    className={cn(
+                                        "w-full justify-start font-normal truncate gap-2",
+                                        item.id === analysisId && "bg-secondary text-secondary-foreground"
+                                    )}
+                                    onClick={() => router.push(`/analysis/${item.id}`)}
                                 >
-                                    <Folder className="mr-2 h-3 w-3" />
-                                    <span className="truncate">{p.name}</span>
+                                    <MessageSquare className="h-3 w-3 shrink-0" />
+                                    <span className="truncate">{item.title || item.inputPreview || "Untitled"}</span>
                                 </Button>
                             ))}
                         </div>

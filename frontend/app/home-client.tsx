@@ -77,21 +77,13 @@ const defaultAnalysis: Analysis = {
 export function HomeClient() {
     const router = useRouter()
     const searchParams = useSearchParams()
-    const { authenticateWithToken, token } = useAuth()
+    const { token } = useAuth()
     const [analysisResult] = useState<Analysis>(defaultAnalysis)
 
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const projectId = searchParams.get("projectId")
     const [projectName, setProjectName] = useState<string>("")
     const [projectSettings, setProjectSettings] = useState<PromptSettings | null>(null);
-
-    useEffect(() => {
-        const urlToken = searchParams.get("token")
-        const urlRefreshToken = searchParams.get("refreshToken")
-        if (urlToken) {
-            authenticateWithToken(urlToken, urlRefreshToken || undefined)
-        }
-    }, [searchParams, authenticateWithToken])
 
     useEffect(() => {
         if (projectId && token) {

@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import useSWR from "swr";
 import { fetcher, swrOptions } from "@/lib/swr-utils";
+import { useAnalysisProgress } from "@/lib/hooks";
 
 import { Button } from "@/components/ui/button"
 import { Loader2, ArrowLeft, Calendar, Download, Sparkles, Database, Save, Zap } from "lucide-react"
@@ -22,7 +23,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
     } from "@/components/ui/alert-dialog"
-import { generateSRS, generateAPI, downloadBundle } from "@/lib/export-utils"
+import { generateSRS, downloadBundle } from "@/lib/export-utils"
 import { updateAnalysis, runValidation, autoFixIssue, startAnalysis, finalizeAnalysis } from "@/lib/analysis-api"
 import type { Analysis, ValidationIssue, StartAnalysisInput, SystemFeature } from "@/types/analysis"
 import { SRSIntakeModel } from "@/types/srs-intake"
@@ -32,7 +33,6 @@ import { toast } from "sonner"
 import { useLayer } from "@/lib/layer-context"
 import { AnalysisLoading } from "@/components/analysis/analysis-loading"
 import dynamic from "next/dynamic"
-import saveAs from "file-saver"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { SourcesPanel } from "@/components/analysis/sources-panel"
@@ -102,6 +102,15 @@ function AnalysisDetailContent() {
             }
         }
     );
+
+    // Live section-by-section progress over SSE — purely additive on top of the SWR
+    // polling above: replaces the generic "Synchronizing requirements..." placeholder
+    // cycling with the pipeline's actual current stage, and triggers an immediate
+    // refetch on completion instead of waiting for the next 3s poll tick. If the stream
+    // never connects (Redis not configured, network hiccup), polling above still works.
+    const streamStatus = (analysis?.status || '').toUpperCase();
+    const isStreamActive = streamStatus === 'PENDING' || streamStatus === 'IN_PROGRESS' || streamStatus === 'QUEUED';
+    const liveProgress = useAnalysisProgress(id || null, isStreamActive, () => { mutate(); });
 
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState("")
@@ -359,6 +368,7 @@ function AnalysisDetailContent() {
             mutate();
         } catch (e) {
             console.error("Failed to reset draft status", e);
+            toast.error("Failed to go back to editing — please try again.");
         }
     }
 
@@ -393,7 +403,7 @@ function AnalysisDetailContent() {
 
     // 1. Premium Loader for Active Analysis
     if (isActuallyInProgress) {
-        return <AnalysisLoading />
+        return <AnalysisLoading liveMessage={liveProgress?.message} />
     }
 
     // 2. Sophisticated Skeleton Loader
@@ -714,21 +724,6 @@ function AnalysisDetailContent() {
                                                 }}>
                                                     Export SRS (PDF)
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => {
-                                                    try {
-                                                        if (analysis) {
-                                                            const md = generateAPI(analysis);
-                                                            const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
-                                                            saveAs(blob, "API_Blueprint.md");
-                                                            toast.success("API Blueprint downloaded");
-                                                        }
-                                                    } catch (err) {
-                                                        console.error("API Export Failed", err);
-                                                        toast.error("Failed to generate API Blueprint");
-                                                    }
-                                                }}>
-                                                    Export API Blueprint (MD)
-                                                </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={async () => {
                                                     try {
                                                         if (analysis) {
@@ -765,14 +760,18 @@ function AnalysisDetailContent() {
                             )}
                         </div>
                     </main>
-                </div>
 
-                <ProjectChatPanel
-                    analysisId={id}
-                    onAnalysisUpdate={(newId: string) => router.push(`/analysis/${newId}`)}
-                    hidden={isDiagramEditing}
-                    isFinalized={analysis?.isFinalized}
-                />
+                    {/* Flex sibling of <main> so the desktop chrome (see project-chat-panel.tsx)
+                        sits inline alongside the results view instead of overlaying it; the
+                        mobile chrome in the same component is a fixed-position overlay that
+                        ignores this placement entirely. */}
+                    <ProjectChatPanel
+                        analysisId={id}
+                        onAnalysisUpdate={(newId: string) => router.push(`/analysis/${newId}`)}
+                        hidden={isDiagramEditing}
+                        isFinalized={analysis?.isFinalized}
+                    />
+                </div>
 
                 {analysis && (
                     <ImprovementDialog
