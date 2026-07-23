@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -61,7 +60,6 @@ export function ProviderKeyManager() {
 
     useEffect(() => {
         if (token) {
-            // Defer to next tick to avoid cascading render warning
             Promise.resolve().then(() => fetchKeys())
         }
     }, [token, fetchKeys])
@@ -119,31 +117,31 @@ export function ProviderKeyManager() {
         }
     }
 
-    if (isLoading) return <div>Loading provider keys...</div>
+    if (isLoading) return <div className="text-sm text-muted-foreground">Loading provider keys...</div>
 
     return (
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+        <div className="border border-foreground/10 p-6">
+            <div className="flex items-start justify-between gap-4 mb-6">
                 <div>
-                    <CardTitle className="flex items-center gap-2">
-                        <Sparkles className="h-5 w-5 text-primary" />
-                        AI Provider Keys
-                    </CardTitle>
-                    <CardDescription>
-                        Bring your own key to generate analyses with OpenAI, Claude, or Grok. Gemini works
-                        out of the box using the platform&apos;s key — add your own here to override it.
-                    </CardDescription>
+                    <h3 className="flex items-center gap-2 font-medium mb-1">
+                        <Sparkles className="h-4 w-4" />
+                        AI provider keys
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                        Bring your own key to analyze with OpenAI, Claude, or Grok. Gemini works
+                        out of the box on the platform&apos;s key — add your own here to override it.
+                    </p>
                 </div>
                 <Dialog open={isAddOpen} onOpenChange={(open) => open ? setIsAddOpen(true) : closeDialog()}>
                     <DialogTrigger asChild>
-                        <Button size="sm" className="gap-2" disabled={availableProviders.length === 0}>
+                        <Button size="sm" className="gap-2 rounded-full bg-foreground hover:bg-foreground/90 text-background shrink-0" disabled={availableProviders.length === 0}>
                             <Plus className="h-4 w-4" />
-                            Add Key
+                            Add key
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-md">
                         <DialogHeader>
-                            <DialogTitle>Add Provider Key</DialogTitle>
+                            <DialogTitle>Add provider key</DialogTitle>
                             <DialogDescription>
                                 Your key is encrypted at rest and never shown again after saving.
                             </DialogDescription>
@@ -164,7 +162,7 @@ export function ProviderKeyManager() {
                                 </Select>
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="apiKey">API Key</Label>
+                                <Label htmlFor="apiKey">API key</Label>
                                 <Input
                                     id="apiKey"
                                     type="password"
@@ -185,42 +183,41 @@ export function ProviderKeyManager() {
                         </div>
 
                         <DialogFooter>
-                            <Button onClick={saveKey} disabled={!apiKey.trim() || isSaving}>
-                                {isSaving ? "Saving..." : "Save Key"}
+                            <Button onClick={saveKey} disabled={!apiKey.trim() || isSaving} className="rounded-full bg-foreground hover:bg-foreground/90 text-background">
+                                {isSaving ? "Saving..." : "Save key"}
                             </Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-4">
-                    {keys.length === 0 && (
-                        <div className="text-muted-foreground text-sm">
-                            No provider keys configured. Analyses run on Gemini by default.
-                        </div>
-                    )}
-                    {keys.map((key) => (
-                        <div key={key.id} className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg bg-muted/20">
-                            <div className="space-y-1">
-                                <div className="font-medium flex items-center gap-2">
-                                    {PROVIDER_LABELS[key.provider]}
-                                    {key.label && <span className="text-xs text-muted-foreground">({key.label})</span>}
-                                </div>
-                                <div className="text-xs font-mono text-muted-foreground">{key.maskedKey}</div>
+            </div>
+
+            <div className="space-y-3">
+                {keys.length === 0 && (
+                    <div className="text-muted-foreground text-sm">
+                        No provider keys configured. Analyses run on Gemini by default.
+                    </div>
+                )}
+                {keys.map((key) => (
+                    <div key={key.id} className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between p-4 border border-foreground/10">
+                        <div className="space-y-1">
+                            <div className="font-medium flex items-center gap-2">
+                                {PROVIDER_LABELS[key.provider]}
+                                {key.label && <span className="text-xs text-muted-foreground">({key.label})</span>}
                             </div>
-                            <Button
-                                variant="destructive"
-                                size="sm"
-                                className="w-full sm:w-auto"
-                                onClick={() => removeKey(key.provider)}
-                            >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Remove
-                            </Button>
+                            <div className="text-xs font-mono text-muted-foreground">{key.maskedKey}</div>
                         </div>
-                    ))}
-                </div>
-            </CardContent>
-        </Card>
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            className="w-full sm:w-auto rounded-full"
+                            onClick={() => removeKey(key.provider)}
+                        >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Remove
+                        </Button>
+                    </div>
+                ))}
+            </div>
+        </div>
     )
 }

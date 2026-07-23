@@ -22,7 +22,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
     AlertDialogTrigger,
-    } from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog"
 import { generateSRS, downloadBundle } from "@/lib/export-utils"
 import { updateAnalysis, runValidation, autoFixIssue, startAnalysis, finalizeAnalysis } from "@/lib/analysis-api"
 import type { Analysis, ValidationIssue, StartAnalysisInput, SystemFeature } from "@/types/analysis"
@@ -36,27 +36,23 @@ import dynamic from "next/dynamic"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { SourcesPanel } from "@/components/analysis/sources-panel"
-import { useTransition } from "react"
 
 const ResultsTabs = dynamic(() => import("@/components/results-tabs").then(mod => mod.ResultsTabs), {
-    loading: () => <div className="h-[600px] w-full bg-muted/5 animate-pulse rounded-xl" />
+    loading: () => <div className="h-[600px] w-full bg-muted/5 animate-pulse" />
 })
 
 const ProjectChatPanel = dynamic(() => import("@/components/project-chat-panel").then(mod => mod.ProjectChatPanel), {
-    ssr: false // Client side floating widget
+    ssr: false
 })
 
 const VersionTimeline = dynamic(() => import("@/components/version-timeline").then(mod => mod.VersionTimeline), {
-    loading: () => <div className="h-20 w-full bg-muted/5 animate-pulse rounded-lg" />
+    loading: () => <div className="h-20 w-full bg-muted/5 animate-pulse" />
 })
 
 const ImprovementDialog = dynamic(() => import("@/components/improvement-dialog").then(mod => mod.ImprovementDialog))
 const AccordionInput = dynamic(() => import("@/components/analysis/accordion-input").then(mod => mod.AccordionInput))
 const ValidationReport = dynamic(() => import("@/components/analysis/validation-report").then(mod => mod.ValidationReport))
 const RecyclingPanel = dynamic(() => import("@/components/analysis/recycling-panel").then(mod => mod.RecyclingPanel))
-
-
-
 
 export default function AnalysisDetailPage() {
     return <AnalysisDetailContent />
@@ -69,7 +65,6 @@ function AnalysisDetailContent() {
     const { user, token, isLoading: authLoading } = useAuth()
     const { unlockAndNavigate, unlockLayer, setLayer, setIsFinalized } = useLayer()
 
-    // SWR Data Fetching
     const swrKey = useMemo(() => {
         if (!id || !token || authLoading) return null;
         return [`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${id}`, token];
@@ -84,16 +79,12 @@ function AnalysisDetailContent() {
                 const status = (latestData?.status || '').toUpperCase();
                 const metaStatus = (latestData?.metadata?.status || '').toUpperCase();
 
-                // Stop polling if complete, failed, or finalized
                 if (status === 'COMPLETED' || status === 'FAILED' || latestData?.isFinalized) {
                     return 0;
                 }
-                // Stop polling for Draft/Validation UI states
                 if (metaStatus === 'DRAFT' || metaStatus === 'VALIDATED' || metaStatus === 'NEEDS_FIX') {
                     return 0;
                 }
-
-                // If we have results but status strangely says pending (legacy check), stop
                 if (latestData?.resultJson && Object.keys(latestData.resultJson).length > 2 && status !== 'IN_PROGRESS') {
                     return 0;
                 }
@@ -103,11 +94,6 @@ function AnalysisDetailContent() {
         }
     );
 
-    // Live section-by-section progress over SSE — purely additive on top of the SWR
-    // polling above: replaces the generic "Synchronizing requirements..." placeholder
-    // cycling with the pipeline's actual current stage, and triggers an immediate
-    // refetch on completion instead of waiting for the next 3s poll tick. If the stream
-    // never connects (Redis not configured, network hiccup), polling above still works.
     const streamStatus = (analysis?.status || '').toUpperCase();
     const isStreamActive = streamStatus === 'PENDING' || streamStatus === 'IN_PROGRESS' || streamStatus === 'QUEUED';
     const liveProgress = useAnalysisProgress(id || null, isStreamActive, () => { mutate(); });
@@ -120,21 +106,16 @@ function AnalysisDetailContent() {
     const [isValidating, setIsValidating] = useState(false)
     const [isProceeding, setIsProceeding] = useState(false)
     const [isFixing, setIsFixing] = useState<string | null>(null);
-    const [,] = useTransition()
     const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([]);
 
-    // Draft State
     const [draftData, setDraftData] = useState<SRSIntakeModel | null>(null)
 
-    // State Sync Hook: Keep UI states in sync with SWR data
     useEffect(() => {
         if (!analysis) return;
 
-        // Defer all state synchronization to next tick to avoid cascading renders
         Promise.resolve().then(() => {
             const currentStatus = (analysis.status || '').toUpperCase();
 
-            // Handle Error terminal state
             if (currentStatus === 'FAILED') {
                 const metaStatus = analysis.metadata?.status;
                 if (metaStatus === 'DRAFT' && analysis.metadata?.draftData) {
@@ -155,11 +136,9 @@ function AnalysisDetailContent() {
                 return;
             }
 
-            // Successfully loaded data
             setIsLoading(false);
             setError("");
 
-            // Layer Synchronization
             const metadataStatus = analysis.metadata?.status;
             if (metadataStatus === 'DRAFT') {
                 unlockAndNavigate(1);
@@ -184,10 +163,8 @@ function AnalysisDetailContent() {
         });
     }, [analysis, unlockAndNavigate, unlockLayer, setLayer, setIsFinalized, router]);
 
-    // Handle SWR errors separately
     useEffect(() => {
         if (swrError) {
-            // Defer to next tick to avoid cascading render warning
             Promise.resolve().then(() => {
                 setError(swrError.message || "Failed to sync analysis");
                 setIsLoading(false);
@@ -206,14 +183,12 @@ function AnalysisDetailContent() {
     useEffect(() => {
         if (authLoading) return
         if (!user || !token) {
-            // Defer to next tick to avoid cascading render warning
             Promise.resolve().then(() => setIsLoading(false));
             router.push("/auth/login")
             return
         }
 
         if (id === 'undefined') {
-            // Defer to next tick to avoid cascading render warning
             Promise.resolve().then(() => {
                 setError("Invalid Analysis ID");
                 setIsLoading(false);
@@ -221,13 +196,10 @@ function AnalysisDetailContent() {
         }
     }, [user, token, id, authLoading, router])
 
-
     useEffect(() => {
         if (analysis) {
             const s = (analysis.status || '').toUpperCase();
-            // Poll for any in-progress equivalent
             if (s !== 'PENDING' && s !== 'IN_PROGRESS' && s !== 'QUEUED') {
-                // Defer to next tick to avoid cascading render warning
                 Promise.resolve().then(() => setIsLoading(false));
             }
         }
@@ -246,8 +218,6 @@ function AnalysisDetailContent() {
             return newData as unknown as SRSIntakeModel;
         });
     }, []);
-
-
 
     const handleSaveDraft = async () => {
         if (!id || !draftData) return;
@@ -271,7 +241,7 @@ function AnalysisDetailContent() {
             });
 
             const response = await runValidation(id, token!);
-            const result = response.data; // The returned Analysis object
+            const result = response.data;
 
             if (result.metadata?.validationResult?.validation_status === 'SERVICE_ERROR') {
                 const errInfo = result.metadata.validationResult.service_error || {};
@@ -279,11 +249,10 @@ function AnalysisDetailContent() {
                     description: errInfo.message || 'The AI is currently overloaded. Please try again shortly.',
                     duration: 5000
                 });
-                mutate(response.data, false); // Update anyway to reflect status=DRAFT if changed
+                mutate(response.data, false);
                 return;
             }
 
-            // Immediately update SWR cache with the new analysis object to trigger UI switch
             mutate(response.data, false);
 
             setValidationIssues(result.metadata?.validationResult?.issues || []);
@@ -308,7 +277,6 @@ function AnalysisDetailContent() {
         try {
             const { fixedText } = await autoFixIssue(id, token, issueId);
 
-            // Find the issue to know WHICH section it belongs to
             const issues: ValidationIssue[] = analysis?.metadata?.validationResult?.issues || [];
             const issue = issues.find(i => i.id === issueId);
 
@@ -318,7 +286,6 @@ function AnalysisDetailContent() {
                     if (!prev) return prev;
                     const next = { ...prev } as unknown as SRSIntakeModel;
 
-                    // Simple heuristic mapping - can be expanded
                     if (section.includes('introduction') || section.includes('purpose') || section.includes('description')) {
                         if (next.details?.fullDescription) {
                             next.details.fullDescription.content = fixedText;
@@ -363,7 +330,7 @@ function AnalysisDetailContent() {
     const handleBackToEdit = async () => {
         try {
             await updateAnalysis(id, token!, {
-                metadata: { ...analysis?.metadata, status: 'DRAFT' } // Explicit status reset
+                metadata: { ...analysis?.metadata, status: 'DRAFT' }
             });
             mutate();
         } catch (e) {
@@ -388,10 +355,9 @@ function AnalysisDetailContent() {
         }
     }
 
-    // Loading State Handling (Priority)
     const currentStatus = (analysis?.status || '').toUpperCase();
 
-    const hasRealResults = analysis?.resultJson && Object.keys(analysis.resultJson).length > 5; // Enough keys to represent a real SRS
+    const hasRealResults = analysis?.resultJson && Object.keys(analysis.resultJson).length > 5;
 
     const isActuallyInProgress =
         !hasRealResults && (
@@ -401,17 +367,14 @@ function AnalysisDetailContent() {
             (analysis?.title?.includes('Analysis in Progress') && currentStatus !== 'FAILED' && currentStatus !== 'COMPLETED')
         );
 
-    // 1. Premium Loader for Active Analysis
     if (isActuallyInProgress) {
         return <AnalysisLoading liveMessage={liveProgress?.message} />
     }
 
-    // 2. Sophisticated Skeleton Loader
     if (authLoading || (isLoading && !analysis)) {
         return (
-            <div className="flex flex-col h-[calc(100vh-64px)] bg-background">
-                {/* Header Skeleton */}
-                <div className="border-b px-6 py-4 flex items-center justify-between">
+            <div className="flex flex-col min-h-screen bg-background">
+                <div className="border-b border-foreground/10 px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <Skeleton className="h-10 w-10 rounded-full" />
                         <div className="space-y-2">
@@ -425,16 +388,15 @@ function AnalysisDetailContent() {
                     </div>
                 </div>
 
-                {/* Main Content Skeleton */}
                 <div className="flex-1 p-6 space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="md:col-span-2 space-y-4">
-                            <Skeleton className="h-64 w-full rounded-xl" />
-                            <Skeleton className="h-32 w-full rounded-xl" />
+                            <Skeleton className="h-64 w-full" />
+                            <Skeleton className="h-32 w-full" />
                         </div>
                         <div className="space-y-4">
-                            <Skeleton className="h-48 w-full rounded-xl" />
-                            <Skeleton className="h-48 w-full rounded-xl" />
+                            <Skeleton className="h-48 w-full" />
+                            <Skeleton className="h-48 w-full" />
                         </div>
                     </div>
                 </div>
@@ -446,13 +408,13 @@ function AnalysisDetailContent() {
         const parentDraftId = analysis?.parentId;
 
         return (
-            <div className="h-[calc(100vh-64px)] flex flex-col">
-                <div className="flex-1 flex items-center justify-center p-8 text-center bg-muted/10">
-                    <div className="max-w-md w-full border border-destructive/20 bg-destructive/5 rounded-xl p-6 shadow-sm">
+            <div className="min-h-screen flex flex-col">
+                <div className="flex-1 flex items-center justify-center p-8 text-center">
+                    <div className="max-w-md w-full border border-destructive/20 bg-destructive/5 p-6">
                         <div className="bg-destructive/10 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
                             <Sparkles className="h-6 w-6 text-destructive" />
                         </div>
-                        <h2 className="text-xl font-bold text-destructive mb-2">Analysis Generation Failed</h2>
+                        <h2 className="text-xl font-display text-destructive mb-2">Analysis Generation Failed</h2>
                         <p className="text-sm text-muted-foreground mb-6">
                             {error}
                         </p>
@@ -461,7 +423,7 @@ function AnalysisDetailContent() {
                             {parentDraftId && (
                                 <Button
                                     onClick={() => router.push(`/analysis/${parentDraftId}`)}
-                                    className="w-full"
+                                    className="w-full bg-foreground hover:bg-foreground/90 text-background rounded-full"
                                 >
                                     <ArrowLeft className="h-4 w-4 mr-2" /> Back to Draft
                                 </Button>
@@ -469,9 +431,9 @@ function AnalysisDetailContent() {
                             <Button
                                 onClick={() => router.push('/analysis')}
                                 variant="outline"
-                                className="w-full"
+                                className="w-full rounded-full"
                             >
-                                <ArrowLeft className="h-4 w-4 mr-2" /> Back to Projects
+                                <ArrowLeft className="h-4 w-4 mr-2" /> Back to My Analyses
                             </Button>
                         </div>
                     </div>
@@ -480,7 +442,6 @@ function AnalysisDetailContent() {
         )
     }
 
-    // View State Logic
     const modelStatus = (analysis?.status || '').toUpperCase();
     const metadataStatus = analysis?.metadata?.status;
     const isTerminal = modelStatus === 'COMPLETED' || modelStatus === 'FAILED';
@@ -488,22 +449,22 @@ function AnalysisDetailContent() {
 
     if (metadataStatus === 'DRAFT') {
         return (
-            <div className="h-[calc(100vh-64px)] flex flex-col bg-background">
-                <div className="border-b px-6 py-4 flex items-center justify-between sticky top-0 bg-background z-20 shadow-sm">
+            <div className="min-h-screen flex flex-col bg-background">
+                <div className="border-b border-foreground/10 px-6 py-4 flex items-center justify-between sticky top-0 bg-background z-20">
                     <div className="flex items-center gap-4">
                         <Button variant="ghost" size="icon" onClick={() => router.push('/analysis')}><ArrowLeft className="h-4 w-4" /></Button>
                         <div>
-                            <h1 className="text-xl font-bold">{analysis?.title?.replace(" (Draft)", "") || "New Project Analysis"}</h1>
-                            <span className="text-xs text-muted-foreground">Draft Mode • Layer 1</span>
+                            <h1 className="text-xl font-display">{analysis?.title?.replace(" (Draft)", "") || "New Analysis"}</h1>
+                            <span className="text-xs font-mono text-muted-foreground">Draft mode · Layer 1</span>
                         </div>
                     </div>
                     <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={handleSaveDraft}>
-                            <Save className="h-4 w-4 mr-2" /> Save Draft
+                        <Button variant="outline" size="sm" className="rounded-full" onClick={handleSaveDraft}>
+                            <Save className="h-4 w-4 mr-2" /> Save draft
                         </Button>
                     </div>
                 </div>
-                <div className="flex-1 overflow-auto bg-muted/5 p-6">
+                <div className="flex-1 overflow-auto p-6">
                     <AccordionInput
                         data={(draftData as unknown as SRSIntakeModel) || {}}
                         onUpdate={handleDraftUpdate}
@@ -517,8 +478,8 @@ function AnalysisDetailContent() {
 
     if (isValidatingOrValidated) {
         return (
-            <div className="h-[calc(100vh-64px)] flex flex-col bg-background">
-                <div className="flex-1 overflow-auto bg-muted/5 p-6">
+            <div className="min-h-screen flex flex-col bg-background">
+                <div className="flex-1 overflow-auto p-6">
                     <ValidationReport
                         issues={analysis?.metadata?.validationResult?.issues || []}
                         onProceed={handleProceedToAnalysis}
@@ -534,21 +495,20 @@ function AnalysisDetailContent() {
 
     if (isTerminal) {
         return (
-            <div className="h-[calc(100vh-64px)] flex flex-col bg-background">
+            <div className="min-h-screen flex flex-col bg-background">
                 <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-                    <main className="flex-1 overflow-auto h-full bg-muted/5">
-                        <div className="bg-background border-b border-border shadow-sm sticky top-0 z-10">
-                            <div className="container mx-auto px-4 sm:px-6 py-4">
+                    <main className="flex-1 overflow-auto h-full">
+                        <div className="bg-background border-b border-foreground/10 sticky top-0 z-10">
+                            <div className="px-6 py-4">
                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
 
-                                    {/* Title & Meta */}
                                     <div className="space-y-1">
                                         <div className="flex items-center gap-3">
-                                            <h1 className="text-xl sm:text-2xl font-bold tracking-tight truncate max-w-[300px] sm:max-w-md">
+                                            <h1 className="text-xl sm:text-2xl font-display tracking-tight truncate max-w-[300px] sm:max-w-md">
                                                 {draftData?.details?.projectName?.content || analysis?.title || "Analysis Result"}
                                             </h1>
                                             {analysis?.version && (
-                                                <span className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full font-medium border border-primary/20">
+                                                <span className="px-2 py-0.5 border border-foreground/10 text-xs font-mono">
                                                     v{analysis.version}
                                                 </span>
                                             )}
@@ -561,24 +521,23 @@ function AnalysisDetailContent() {
                                             )}
                                         </div>
                                         <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                            <span className="flex items-center gap-1">
+                                            <span className="flex items-center gap-1 font-mono">
                                                 <Calendar className="h-3 w-3" />
                                                 {analysis?.createdAt && formatDistanceToNow(new Date(analysis.createdAt), { addSuffix: true })}
                                             </span>
 
-                                            {/* Version History Trigger */}
                                             {analysis?.rootId && (
                                                 <>
-                                                    <span className="text-border">|</span>
+                                                    <span className="text-foreground/20">|</span>
                                                     <Sheet>
                                                         <SheetTrigger asChild>
-                                                            <button className="flex items-center gap-1 hover:text-primary transition-colors">
+                                                            <button className="flex items-center gap-1 hover:text-foreground transition-colors">
                                                                 <div className="flex items-center gap-1">
                                                                     <div className="relative flex h-2 w-2">
                                                                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
                                                                         <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500"></span>
                                                                     </div>
-                                                                    Version History
+                                                                    Version history
                                                                 </div>
                                                             </button>
                                                         </SheetTrigger>
@@ -601,13 +560,12 @@ function AnalysisDetailContent() {
                                         </div>
                                     </div>
 
-                                    {/* Action Toolbar (Layers 4 & 5) */}
-                                    <div className="flex items-center gap-2 pl-12 md:pl-0">
+                                    <div className="flex items-center gap-2 pl-12 md:pl-0 flex-wrap">
                                         <Sheet>
                                             <SheetTrigger asChild>
                                                 <Button
                                                     variant="outline"
-                                                    className="gap-2 border-primary/20 hover:bg-primary/5 hover:text-primary"
+                                                    className="gap-2 rounded-full"
                                                     disabled={analysis?.isFinalized}
                                                 >
                                                     <Zap className="h-4 w-4 text-amber-500" />
@@ -647,7 +605,7 @@ function AnalysisDetailContent() {
                                         <Button
                                             onClick={() => setIsImproveDialogOpen(true)}
                                             variant="outline"
-                                            className="gap-2 border-primary/20 hover:bg-primary/5 hover:text-primary"
+                                            className="gap-2 rounded-full"
                                             disabled={analysis?.isFinalized}
                                         >
                                             <Sparkles className="h-4 w-4 text-amber-500" />
@@ -659,10 +617,10 @@ function AnalysisDetailContent() {
                                                 <Button
                                                     variant={(analysis?.isFinalized) ? "outline" : "default"}
                                                     className={cn(
-                                                        "gap-2 transition-all",
+                                                        "gap-2 rounded-full transition-all",
                                                         (analysis?.isFinalized)
                                                             ? "border-green-500/30 text-green-600 bg-green-500/5 hover:bg-green-500/10"
-                                                            : "bg-primary hover:bg-primary/90"
+                                                            : "bg-foreground text-background hover:bg-foreground/90"
                                                     )}
                                                     disabled={isFinalizing || analysis?.isFinalized}
                                                 >
@@ -679,7 +637,7 @@ function AnalysisDetailContent() {
                                             {!analysis?.isFinalized && (
                                                 <AlertDialogContent>
                                                     <AlertDialogHeader>
-                                                        <AlertDialogTitle>Finalize SRS Analysis?</AlertDialogTitle>
+                                                        <AlertDialogTitle>Finalize SRS analysis?</AlertDialogTitle>
                                                         <AlertDialogDescription>
                                                             Once you finalize, you cannot &quot;Improve&quot; this specific SRS version again using the AI refinement tools.
                                                             Further changes will require performing a separate analysis.
@@ -687,19 +645,17 @@ function AnalysisDetailContent() {
                                                     </AlertDialogHeader>
                                                     <AlertDialogFooter>
                                                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                        <AlertDialogAction onClick={handleFinalize} className="bg-primary hover:bg-primary/90">
-                                                            Yes, Finalize
+                                                        <AlertDialogAction onClick={handleFinalize} className="bg-foreground hover:bg-foreground/90 text-background">
+                                                            Yes, finalize
                                                         </AlertDialogAction>
                                                     </AlertDialogFooter>
                                                 </AlertDialogContent>
                                             )}
                                         </AlertDialog>
 
-
-
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
-                                                <Button variant="outline" className="gap-2">
+                                                <Button variant="outline" className="gap-2 rounded-full">
                                                     <Download className="h-4 w-4" />
                                                     Export
                                                 </Button>
@@ -743,28 +699,24 @@ function AnalysisDetailContent() {
                                     </div>
                                 </div>
                             </div>
-
-                            {analysis && (
-                                <div className="flex flex-col gap-4 mb-4">
-                                    <SourcesPanel sources={analysis.metadata?.ragSources || []} />
-                                    <div className="border p-2 bg-muted rounded-lg">
-                                        <ErrorBoundary name="Results View">
-                                            <ResultsTabs
-                                                data={analysis}
-                                                onDiagramEditChange={memoizedOnDiagramEditChange}
-                                                onRefresh={memoizedOnRefresh}
-                                            />
-                                        </ErrorBoundary>
-                                    </div>
-                                </div>
-                            )}
                         </div>
+
+                        {analysis && (
+                            <div className="flex flex-col gap-4 p-6">
+                                <SourcesPanel sources={analysis.metadata?.ragSources || []} />
+                                <div className="border border-foreground/10">
+                                    <ErrorBoundary name="Results View">
+                                        <ResultsTabs
+                                            data={analysis}
+                                            onDiagramEditChange={memoizedOnDiagramEditChange}
+                                            onRefresh={memoizedOnRefresh}
+                                        />
+                                    </ErrorBoundary>
+                                </div>
+                            </div>
+                        )}
                     </main>
 
-                    {/* Flex sibling of <main> so the desktop chrome (see project-chat-panel.tsx)
-                        sits inline alongside the results view instead of overlaying it; the
-                        mobile chrome in the same component is a fixed-position overlay that
-                        ignores this placement entirely. */}
                     <ProjectChatPanel
                         analysisId={id}
                         onAnalysisUpdate={(newId: string) => router.push(`/analysis/${newId}`)}
@@ -787,12 +739,12 @@ function AnalysisDetailContent() {
     }
 
     return (
-        <div className="h-[calc(100vh-64px)] flex flex-col bg-background">
-            <div className="border-b px-6 py-4 flex items-center justify-between sticky top-0 bg-background z-20 shadow-sm">
+        <div className="min-h-screen flex flex-col bg-background">
+            <div className="border-b border-foreground/10 px-6 py-4 flex items-center justify-between sticky top-0 bg-background z-20">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="icon" onClick={() => router.push('/analysis')}><ArrowLeft className="h-4 w-4" /></Button>
                     <div>
-                        <h1 className="text-xl font-bold">{analysis?.title?.replace(" (Draft)", "") || "New Project Analysis"}</h1>
+                        <h1 className="text-xl font-display">{analysis?.title?.replace(" (Draft)", "") || "New Analysis"}</h1>
                     </div>
                 </div>
             </div>

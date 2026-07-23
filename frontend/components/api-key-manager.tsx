@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -47,7 +46,6 @@ export function ApiKeyManager() {
 
     useEffect(() => {
         if (token) {
-            // Defer to next tick to avoid cascading render warning
             Promise.resolve().then(() => fetchKeys())
         }
     }, [token, fetchKeys])
@@ -67,15 +65,15 @@ export function ApiKeyManager() {
 
             if (res.ok) {
                 const data = await res.json()
-                setGeneratedKey(data.rawKey) // Save raw key to show *once*
+                setGeneratedKey(data.rawKey)
                 setKeys(prev => [data, ...prev])
                 setNewKeyName("")
-                toast.success("API Key created successfully")
+                toast.success("API key created successfully")
             } else {
-                toast.error("Failed to create API Key")
+                toast.error("Failed to create API key")
             }
         } catch {
-            toast.error("Error creating API Key")
+            toast.error("Error creating API key")
         }
     }
 
@@ -88,12 +86,12 @@ export function ApiKeyManager() {
 
             if (res.ok) {
                 setKeys(prev => prev.filter(k => k.id !== id))
-                toast.success("API Key revoked")
+                toast.success("API key revoked")
             } else {
-                toast.error("Failed to revoke API Key")
+                toast.error("Failed to revoke API key")
             }
         } catch {
-            toast.error("Error revoking API Key")
+            toast.error("Error revoking API key")
         }
     }
 
@@ -114,33 +112,33 @@ export function ApiKeyManager() {
         setNewKeyName("")
     }
 
-    if (isLoading) return <div>Loading keys...</div>
+    if (isLoading) return <div className="text-sm text-muted-foreground">Loading keys...</div>
 
     return (
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+        <div className="border border-foreground/10 p-6">
+            <div className="flex items-start justify-between gap-4 mb-6">
                 <div>
-                    <CardTitle className="flex items-center gap-2">
-                        <Key className="h-5 w-5 text-primary" />
-                        API Keys
-                    </CardTitle>
-                    <CardDescription>
-                        Manage API keys validation for CLI and external tools.
-                    </CardDescription>
+                    <h3 className="flex items-center gap-2 font-medium mb-1">
+                        <Key className="h-4 w-4" />
+                        API keys
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                        Used by the sra CLI and other external tools to authenticate with the platform.
+                    </p>
                 </div>
                 <Dialog open={isCreateOpen} onOpenChange={(open) => {
                     if (!open) closeDialog()
                     else setIsCreateOpen(true)
                 }}>
                     <DialogTrigger asChild>
-                        <Button size="sm" className="gap-2">
+                        <Button size="sm" className="gap-2 rounded-full bg-foreground hover:bg-foreground/90 text-background shrink-0">
                             <Plus className="h-4 w-4" />
-                            Create New Key
+                            Create key
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-md">
                         <DialogHeader>
-                            <DialogTitle>Create API Key</DialogTitle>
+                            <DialogTitle>Create API key</DialogTitle>
                             <DialogDescription>
                                 Generate a new key for accessing the SRA API programmatically.
                             </DialogDescription>
@@ -149,7 +147,7 @@ export function ApiKeyManager() {
                         {!generatedKey ? (
                             <div className="grid gap-4 py-4">
                                 <div className="grid gap-2">
-                                    <Label htmlFor="name">Key Name</Label>
+                                    <Label htmlFor="name">Key name</Label>
                                     <Input
                                         id="name"
                                         placeholder="e.g. Laptop CLI"
@@ -165,7 +163,7 @@ export function ApiKeyManager() {
                                     <span>Copy this key now. You won&apos;t see it again!</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <code className="flex-1 p-2 bg-muted rounded border font-mono text-sm break-all">
+                                    <code className="flex-1 p-2 bg-muted border font-mono text-sm break-all">
                                         {generatedKey}
                                     </code>
                                     <Button size="icon" variant="outline" onClick={() => copyToClipboard(generatedKey)}>
@@ -177,51 +175,50 @@ export function ApiKeyManager() {
 
                         <DialogFooter>
                             {!generatedKey ? (
-                                <Button onClick={createKey} disabled={!newKeyName.trim()}>
-                                    Generate Key
+                                <Button onClick={createKey} disabled={!newKeyName.trim()} className="rounded-full bg-foreground hover:bg-foreground/90 text-background">
+                                    Generate key
                                 </Button>
                             ) : (
-                                <Button onClick={closeDialog}>
+                                <Button onClick={closeDialog} className="rounded-full bg-foreground hover:bg-foreground/90 text-background">
                                     Done
                                 </Button>
                             )}
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-4">
-                    {keys.length === 0 && (
-                        <div className="text-muted-foreground text-sm">No active API keys found.</div>
-                    )}
-                    {keys.map((key) => (
-                        <div key={key.id} className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg bg-muted/20">
-                            <div className="space-y-1">
-                                <div className="font-medium flex items-center gap-2">
-                                    {key.name}
-                                </div>
-                                <div className="text-xs text-muted-foreground flex items-center gap-4">
-                                    <span>Created {formatDistanceToNow(new Date(key.createdAt))} ago</span>
-                                    <span>•</span>
-                                    <span>Last used {formatDistanceToNow(new Date(key.lastUsed))} ago</span>
-                                </div>
-                                <div className="text-xs font-mono text-muted-foreground">
-                                    sra_live_...{key.id.slice(0, 4)}
-                                </div>
+            </div>
+
+            <div className="space-y-3">
+                {keys.length === 0 && (
+                    <div className="text-muted-foreground text-sm">No active API keys found.</div>
+                )}
+                {keys.map((key) => (
+                    <div key={key.id} className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between p-4 border border-foreground/10">
+                        <div className="space-y-1">
+                            <div className="font-medium flex items-center gap-2">
+                                {key.name}
                             </div>
-                            <Button
-                                variant="destructive"
-                                size="sm"
-                                className="w-full sm:w-auto"
-                                onClick={() => revokeKey(key.id)}
-                            >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Revoke
-                            </Button>
+                            <div className="text-xs text-muted-foreground flex items-center gap-4">
+                                <span>Created {formatDistanceToNow(new Date(key.createdAt))} ago</span>
+                                <span>•</span>
+                                <span>Last used {formatDistanceToNow(new Date(key.lastUsed))} ago</span>
+                            </div>
+                            <div className="text-xs font-mono text-muted-foreground">
+                                sra_live_...{key.id.slice(0, 4)}
+                            </div>
                         </div>
-                    ))}
-                </div>
-            </CardContent>
-        </Card>
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            className="w-full sm:w-auto rounded-full"
+                            onClick={() => revokeKey(key.id)}
+                        >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Revoke
+                        </Button>
+                    </div>
+                ))}
+            </div>
+        </div>
     )
 }

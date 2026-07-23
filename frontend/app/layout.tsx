@@ -1,20 +1,25 @@
-import type { Metadata, Viewport } from "next"
-import { Inter, Outfit } from "next/font/google"
-import "./globals.css"
+import React from "react"
+import type { Metadata, Viewport } from 'next'
+import { Instrument_Sans, Instrument_Serif, JetBrains_Mono } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/next'
 import { Providers } from "@/components/providers"
 import { Toaster } from "@/components/ui/sonner"
-import { VitalsMonitor } from "@/components/monitoring/VitalsMonitor"
+import './globals.css'
 
-const inter = Inter({
+const instrumentSans = Instrument_Sans({ 
   subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
+  variable: '--font-instrument'
 });
 
-const outfit = Outfit({
+const instrumentSerif = Instrument_Serif({ 
   subsets: ["latin"],
-  variable: "--font-outfit",
-  display: "swap",
+  weight: "400",
+  variable: '--font-instrument-serif'
+});
+
+const jetbrainsMono = JetBrains_Mono({ 
+  subsets: ["latin"],
+  variable: '--font-jetbrains'
 });
 
 export const viewport: Viewport = {
@@ -26,38 +31,17 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL("https://sra-xi.vercel.app"),
   title: {
-    default: "Smart Requirements Analyzer | AI-Powered SRS Tool",
-    template: "%s | SRA",
+    default: 'SRA - Smart Requirements Analyzer',
+    template: '%s | SRA',
   },
-  description: "Transform your raw project ideas into professional IEEE-830 Software Requirements Specifications (SRS) with our 5-Layer AI Agentic Pipeline.",
-  keywords: ["SRS", "Requirements Engineering", "AI", "Gemini", "Software Architecture", "IEEE-830"],
-  authors: [{ name: "SRA Team" }],
-  creator: "SRA Team",
-  openGraph: {
-    type: "website",
-    locale: "en_US",
-    url: "https://sra-xi.vercel.app/",
-    title: "Smart Requirements Analyzer",
-    description: "Automated, Professional SRS Generation for Enterprise Software.",
-    siteName: "Smart Requirements Analyzer",
-    images: [
-      {
-        url: "/assets/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "SRA Dashboard",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Smart Requirements Analyzer",
-    description: "Turn ideas into specs in seconds.",
-    images: ["/assets/og-image.png"],
-    creator: "@sra_team",
-  },
+  description: 'Turn raw stakeholder text into a verified IEEE-830 requirements specification with a multi-agent AI pipeline.',
+  keywords: ["SRS", "Requirements Engineering", "AI", "IEEE-830", "Software Architecture"],
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/icon-light-32x32.png", media: "(prefers-color-scheme: light)" },
+      { url: "/icon-dark-32x32.png", media: "(prefers-color-scheme: dark)" },
+    ],
+    apple: "/apple-icon.png",
   },
 }
 
@@ -68,12 +52,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="scroll-smooth" suppressHydrationWarning>
-      <body className={`${inter.variable} ${outfit.variable} font-sans antialiased bg-background text-foreground`}>
+      <body className={`${instrumentSans.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
         <Providers>
           {children}
-          <VitalsMonitor />
           <Toaster closeButton />
         </Providers>
+        <Analytics />
       </body>
     </html>
   )

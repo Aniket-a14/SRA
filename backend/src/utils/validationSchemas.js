@@ -64,7 +64,7 @@ export const projectUpdateSchema = z.object({
 // --- Analysis routes (BE-06: these previously took raw req.body with no schema) ---
 
 // Generic `:id` param check for routes that don't take a meaningful body (finalize,
-// validate, generateCode, getChatHistory) — still worth validating so a malformed ID
+// validate, getChatHistory) — still worth validating so a malformed ID
 // gets a clean 400 instead of falling through to a Prisma cast error.
 export const idParamSchema = z.object({
     params: z.object({ id: z.string().uuid("Invalid analysis ID") })

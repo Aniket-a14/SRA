@@ -1,8 +1,18 @@
 "use client"
 
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
     FileText,
     ShieldCheck,
@@ -11,7 +21,10 @@ import {
     Database,
     Lock,
     MessageSquare,
-    Plus
+    Plus,
+    Folder,
+    Settings,
+    LogOut,
 } from "lucide-react"
 import { useLayer } from "@/lib/layer-context"
 import { useRouter, useParams } from "next/navigation"
@@ -29,18 +42,33 @@ interface AnalysisHistoryItem {
     title?: string
 }
 
+const layers = [
+    { id: 1, label: "Structured Input", icon: FileText },
+    { id: 2, label: "Validation Gate", icon: ShieldCheck },
+    { id: 3, label: "Final Analysis", icon: Bot },
+    { id: 4, label: "Refinement", icon: Sparkles },
+    { id: 5, label: "Knowledge Base", icon: Database },
+] as const
+
+function getInitials(name: string) {
+    return name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+}
+
 export function AppSidebar({ className }: AppSidebarProps) {
     const { currentLayer, setLayer, isLayerLocked, maxAllowedLayer, isFinalized } = useLayer()
     const router = useRouter()
     const params = useParams()
-    const { token } = useAuth()
+    const { token, user, logout } = useAuth()
 
     const analysisId = params?.id as string | undefined
 
-    // Live conversation/analysis history rail — replaces the old one-shot,
-    // 5-item-capped Project list. useSWR keeps it in sync (revalidates on
-    // reconnect/interval like every other data fetch in this app) instead of
-    // fetching once on mount and never again.
+    // Live conversation/analysis history rail. useSWR keeps it in sync (revalidates
+    // on reconnect/interval like every other data fetch in this app).
     const swrKey = useMemo(() => {
         if (!token) return null
         return [`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, token] as const
@@ -48,116 +76,145 @@ export function AppSidebar({ className }: AppSidebarProps) {
 
     const { data: historyData } = useSWR<AnalysisHistoryItem[]>(swrKey, fetcher, {
         ...swrOptions,
-        refreshInterval: 30000 // light background sync — this is a nav rail, not the live-progress view
+        refreshInterval: 30000,
     })
 
     const history = Array.isArray(historyData) ? historyData : []
 
-    const layers = [
-        { id: 1, label: "Structured Input", icon: FileText },
-        { id: 2, label: "Validation Gate", icon: ShieldCheck },
-        { id: 3, label: "Final Analysis", icon: Bot },
-        { id: 4, label: "Refinement", icon: Sparkles },
-        { id: 5, label: "Knowledge Base", icon: Database },
-    ] as const
+    const handleLogout = () => {
+        logout()
+    }
 
     return (
-        <div className={cn("pb-12 w-64 border-r h-screen bg-muted/10 flex flex-col fixed left-0 top-0 z-30", className)}>
-            <div className="space-y-4 py-4">
-                <div className="px-3">
-                    <Button
-                        variant="outline"
-                        className="w-full justify-start gap-2"
-                        onClick={() => router.push("/")}
-                    >
-                        <Plus className="h-4 w-4" />
-                        New Analysis
-                    </Button>
-                </div>
+        <div className={cn("w-64 border-r border-foreground/10 h-screen bg-background flex flex-col fixed left-0 top-0 z-30", className)}>
+            <div className="px-4 py-4 border-b border-foreground/10">
+                <Link href="/" className="flex items-center gap-2 mb-4">
+                    <span className="text-xl font-display">SRA</span>
+                    <span className="text-[10px] text-muted-foreground font-mono mt-1">IEEE-830</span>
+                </Link>
+                <Button
+                    variant="outline"
+                    className="w-full justify-start gap-2 rounded-full border-foreground/20 hover:bg-foreground/5"
+                    onClick={() => router.push("/analysis/new")}
+                >
+                    <Plus className="h-4 w-4" />
+                    New analysis
+                </Button>
+            </div>
 
-                {/* Layer Tracker - Only show if inside an analysis */}
+            <ScrollArea className="flex-1">
+                {/* Pipeline progress — only inside an in-flight analysis */}
                 {analysisId && (
-                    <div className="px-3 py-2">
-                        <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight">
-                            Pipeline Progress
+                    <div className="px-4 py-4 border-b border-foreground/10">
+                        <h2 className="mb-3 text-xs font-mono uppercase tracking-wide text-muted-foreground">
+                            Pipeline progress
                         </h2>
                         <div className="space-y-1">
                             {layers.map((layer) => {
                                 const Icon = layer.icon
                                 const isLocked = isLayerLocked(layer.id as 1 | 2 | 3 | 4 | 5)
                                 const isActive = currentLayer === layer.id
+                                const isDone = layer.id < maxAllowedLayer || (layer.id === 5 && isFinalized)
 
                                 return (
-                                    <Button
+                                    <button
                                         key={layer.id}
-                                        variant={isActive ? "secondary" : "ghost"}
-                                        className={cn(
-                                            "w-full justify-start relative pl-8",
-                                            isLocked && "opacity-50 cursor-not-allowed",
-                                            isActive && "bg-primary/10 text-primary hover:bg-primary/15"
-                                        )}
+                                        type="button"
                                         disabled={isLocked}
                                         onClick={() => !isLocked && setLayer(layer.id as 1 | 2 | 3 | 4 | 5)}
+                                        className={cn(
+                                            "w-full flex items-center gap-2 px-2 py-2 text-sm text-left transition-colors",
+                                            isLocked && "opacity-40 cursor-not-allowed",
+                                            isActive ? "bg-foreground text-background" : "hover:bg-foreground/5"
+                                        )}
                                     >
-                                        {/* Connector Line */}
-                                        <div className="absolute left-4 top-0 bottom-0 w-px bg-border group-last:bottom-1/2"></div>
-
-                                        {/* Status Dot */}
-                                        <div className={cn(
-                                            "absolute left-[13px] h-2.5 w-2.5 rounded-full border border-background z-10",
-                                            isActive ? "bg-primary" :
-                                                (layer.id < maxAllowedLayer || (layer.id === 5 && isFinalized)) ? "bg-green-500" : "bg-muted-foreground/30"
+                                        <span className={cn(
+                                            "h-1.5 w-1.5 rounded-full shrink-0",
+                                            isActive ? "bg-background" : isDone ? "bg-foreground" : "bg-foreground/20"
                                         )} />
-
-                                        <Icon className="mr-2 h-4 w-4" />
-                                        {layer.label}
-                                        {isLocked && <Lock className="ml-auto h-3 w-3 opacity-50" />}
-                                    </Button>
+                                        <Icon className="h-3.5 w-3.5 shrink-0" />
+                                        <span className="truncate">{layer.label}</span>
+                                        {isLocked && <Lock className="ml-auto h-3 w-3 opacity-50 shrink-0" />}
+                                    </button>
                                 )
                             })}
                         </div>
                     </div>
                 )}
 
-                {/* Recent Analyses — live history rail */}
-                <div className="py-2">
-                    <div className="flex items-center justify-between px-7 mb-2">
-                        <h2 className="text-xs font-semibold tracking-tight text-muted-foreground/70 uppercase">
-                            Recent Analyses
+                {/* Recent analyses */}
+                <div className="px-4 py-4">
+                    <div className="flex items-center justify-between mb-3">
+                        <h2 className="text-xs font-mono uppercase tracking-wide text-muted-foreground">
+                            Recent analyses
                         </h2>
                         <button
-                            className="text-xs text-primary hover:underline"
+                            className="text-xs text-muted-foreground hover:text-foreground"
                             onClick={() => router.push("/analysis")}
                         >
                             View all
                         </button>
                     </div>
-                    <ScrollArea className="h-[calc(100vh-64px-13rem)] px-1">
-                        <div className="space-y-1 p-2">
-                            {history.length === 0 && (
-                                <p className="px-3 text-xs text-muted-foreground/60">No analyses yet</p>
-                            )}
-                            {history.slice(0, 15).map((item) => (
-                                <Button
-                                    key={item.id}
-                                    variant="ghost"
-                                    size="sm"
-                                    className={cn(
-                                        "w-full justify-start font-normal truncate gap-2",
-                                        item.id === analysisId && "bg-secondary text-secondary-foreground"
-                                    )}
-                                    onClick={() => router.push(`/analysis/${item.id}`)}
-                                >
-                                    <MessageSquare className="h-3 w-3 shrink-0" />
-                                    <span className="truncate">{item.title || item.inputPreview || "Untitled"}</span>
-                                </Button>
-                            ))}
-                        </div>
-                    </ScrollArea>
+                    <div className="space-y-1">
+                        {history.length === 0 && (
+                            <p className="text-xs text-muted-foreground/60 px-2 py-1">No analyses yet</p>
+                        )}
+                        {history.slice(0, 15).map((item) => (
+                            <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => router.push(`/analysis/${item.id}`)}
+                                className={cn(
+                                    "w-full flex items-center gap-2 px-2 py-2 text-sm text-left truncate transition-colors",
+                                    item.id === analysisId ? "bg-foreground/5 text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+                                )}
+                            >
+                                <MessageSquare className="h-3.5 w-3.5 shrink-0" />
+                                <span className="truncate">{item.title || item.inputPreview || "Untitled"}</span>
+                            </button>
+                        ))}
+                    </div>
                 </div>
-            </div>
+            </ScrollArea>
 
-            {/* Footer / User Info could go here */}
+            {/* User menu */}
+            <div className="border-t border-foreground/10 p-3">
+                {user && (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <button className="w-full flex items-center gap-2 px-2 py-2 hover:bg-foreground/5 transition-colors" aria-label="User menu">
+                                <Avatar className="h-7 w-7">
+                                    <AvatarImage src={user.image} alt={user.name} />
+                                    <AvatarFallback className="text-xs">{getInitials(user.name)}</AvatarFallback>
+                                </Avatar>
+                                <span className="text-sm truncate">{user.name}</span>
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56" align="start">
+                            <DropdownMenuLabel className="font-normal">
+                                <div className="flex flex-col space-y-1">
+                                    <p className="text-sm font-medium leading-none">{user.name}</p>
+                                    <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                                </div>
+                            </DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => router.push("/projects")}>
+                                <Folder className="mr-2 h-4 w-4" />
+                                Projects
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => router.push("/settings")}>
+                                <Settings className="mr-2 h-4 w-4" />
+                                Settings
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+                                <LogOut className="mr-2 h-4 w-4" />
+                                Log out
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                )}
+            </div>
         </div>
     )
 }

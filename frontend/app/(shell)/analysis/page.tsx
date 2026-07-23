@@ -9,7 +9,6 @@ import { fetcher, swrOptions } from "@/lib/swr-utils";
 import { AnalysisHistory } from "@/components/analysis-history"
 import { Loader2 } from "lucide-react"
 
-// Import the type from the component
 type AnalysisHistoryItem = {
     id: string
     createdAt: string
@@ -45,27 +44,25 @@ export default function AnalysisPage() {
 
     if (authLoading || isLoading) {
         return (
-            <div className="h-full flex flex-col items-center justify-center">
+            <div className="h-full flex flex-col items-center justify-center py-24">
                 <div className="flex flex-col items-center gap-4">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="text-muted-foreground">Loading your analyses...</p>
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    <p className="text-muted-foreground text-sm">Loading your analyses...</p>
                 </div>
             </div>
         )
     }
 
     return (
-        <div className="h-full flex flex-col container mx-auto px-4 sm:px-6 py-12">
-            <div className="max-w-5xl mx-auto space-y-8 w-full">
-                <div className="flex flex-col gap-2">
-                    <h1 className="text-3xl font-bold tracking-tight">My Analysis</h1>
-                    <p className="text-muted-foreground">
-                        View and manage your previous requirements analyses.
-                    </p>
-                </div>
-
-                <AnalysisHistory items={history} />
+        <div className="max-w-5xl mx-auto px-6 lg:px-12 py-12">
+            <div className="flex flex-col gap-2 mb-8">
+                <h1 className="text-3xl lg:text-4xl font-display tracking-tight">My Analyses</h1>
+                <p className="text-muted-foreground">
+                    View and manage your previous requirements analyses.
+                </p>
             </div>
+
+            <AnalysisHistory items={history} />
         </div>
     )
 }

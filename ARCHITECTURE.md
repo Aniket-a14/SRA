@@ -42,12 +42,14 @@ graph TD
         P3 --> Eval["RAG Eval (Faithfulness)"]
 
         subgraph "Reliability Layer"
-            PO & Arch & Dev & Critic & Eval -.->|Timeout / Retry| LLM[Gemini 2.5 Flash]
+            PO & Arch & Dev & Critic & Eval -.->|Timeout / Retry| Adapter{{Provider Adapter Registry}}
+            Adapter --> Gemini[Gemini — platform default]
+            Adapter --> BYOK[OpenAI / Claude / Grok — user's own key]
         end
     end
 
     subgraph "Local Execution Layer (CLI Toolkit)"
-        CLI["SRA CLI (@aniket_a14/sra-cli)"] -->|Auth/Sync| Gateway
+        CLI["SRA CLI (@sra-srs/sra-cli)"] -->|Auth/Sync| Gateway
         CLI -->|Verify| Code[(Local Source Code)]
         Code -->|Verification Data| CLI
         CLI -->|Push Audit Trail| Gateway
@@ -151,6 +153,11 @@ The system utilizes a **Prompt Factory** pattern to maintain consistent AI outpu
 7.  **Conversational Chat Agent & Prompt Compaction Engine (`ChatAgent.js` / `promptCompaction.js`)**:
     - **Dedicated Conversational Persona**: Conversational refinement queries and targeted patches are handled via `ChatAgent`, inheriting robust retry and dynamic JSON repair from `BaseAgent`.
     - **Prompt Compaction**: Bypasses the overhead of passing full 50KB+ requirement files to the LLM during chat turns. It generates highly specialized, sub-10K token snapshots (`createChatSnapshot()` for conversational Q&A, `createReviewSnapshot()` for evaluator metrics) utilizing fast character-based token counters to ensure light, cost-effective context payloads.
+8.  **Multi-Provider Adapter Registry (`services/providers/`)**: `BaseAgent` and `ChatAgent` no longer talk to Gemini directly — every call is routed through a shared adapter interface (`generateContent`, `generateContentStream`, `countTokens`, `classifyError`) implemented per provider:
+    - `GeminiAdapter` — the only adapter constructed from the **platform's own key** (`GEMINI_API_KEY`); it's the default for every user and the sole embedding provider (`embeddingService.js` is fixed to Gemini regardless of the chosen generation provider, since the `vector(768)` pgvector column is dimensioned to its embedding model).
+    - `OpenAIAdapter`, `ClaudeAdapter`, `GrokAdapter` — **bring-your-own-key (BYOK)**. Each requires a user-supplied key; there is no silent fallback to the platform key for these providers.
+    - `providerKeyService.js` resolves `(userId, provider)` to a decrypted key at the top of `performAnalysis`, using the existing AES-256-GCM field-level encryption (`dataEncryption.js`) — keys are stored in the `UserProviderKey` model and never returned in plaintext by the API, only as a masked preview.
+    - Users add/remove keys per provider under **Settings → AI Providers**, and pick provider + model on a per-analysis basis from the New Analysis screen; Gemini is pre-selected and requires no setup.
 
 ### 🧪 Unit Testing Architecture & Dynamic ESM Mocking
 SRA establishes a rigorous, ESM-compliant testing suite powered by **Jest** (`cross-env NODE_OPTIONS=--experimental-vm-modules jest`). Testing in a native ES Module environment introduces read-only binding constraints, which SRA resolves using advanced asynchronous dynamic mock orchestration:
@@ -211,7 +218,7 @@ To understand how these components interact, let's walk through a typical requir
 ### 3. Exploring Results (Layer 3)
 - **Scenario**: Analyzing the generated IEEE-830 specification.
 - **Architectural Flow**:
-    -   **Modular Workspace Tabs**: The frontend renders the complex JSON structure into 7 specialized, memoized tab components (Introduction, Features, Interfaces, NFRs, Appendices, Code Assets, Quality Audit). These are **dynamically imported** (`next/dynamic`) to ensure sub-second initial load times by only fetching the active tab's code.
+    -   **Modular Workspace Tabs**: The frontend renders the complex JSON structure into 6 specialized, memoized tab components (Introduction, System Features, Ext. Interfaces, Non-Functional Requirements, Appendices, Knowledge Graph). These are **dynamically imported** (`next/dynamic`) to ensure sub-second initial load times by only fetching the active tab's code.
     -   **Diagram Syntax Authority**:
         -   The **MermaidRenderer** component enforces strict syntax.
         -   Users can click "View Syntax Explanation" to see the AI's justification, ensuring the diagram matches the formal specification.

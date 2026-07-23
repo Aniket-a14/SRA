@@ -86,7 +86,6 @@ model Analysis {
   resultJson      Json
   createdAt       DateTime                @default(now())
   updatedAt       DateTime                @updatedAt
-  generatedCode   Json?
   parentId        String?
   rootId          String?
   title           String?

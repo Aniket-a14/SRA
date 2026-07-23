@@ -9,8 +9,11 @@ import { cleanInputText } from "@/lib/utils";
 import Link from "next/link";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { ArrowLeft, Edit2, Trash2, FileText, Calendar, Plus } from "lucide-react";
+import { ArrowLeft, Edit2, Trash2, FileText, Calendar, Plus, Loader2 } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -78,76 +81,67 @@ export default function ProjectDetailPage() {
         }
     };
 
-    if (isLoading) return <div className="h-full flex items-center justify-center p-8"><span className="loading loading-spinner loading-lg text-primary"></span></div>;
+    if (isLoading) return (
+        <div className="h-full flex items-center justify-center p-24 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+        </div>
+    );
     if (!project) return null;
 
     return (
-        <div className="container mx-auto px-4 py-8 h-full">
-            <Link href="/projects" className="flex items-center text-muted-foreground hover:text-foreground mb-6 transition">
-                <ArrowLeft size={16} className="mr-2" /> Back to Projects
+        <div className="max-w-[1000px] mx-auto px-6 lg:px-12 py-12">
+            <Link href="/projects" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors">
+                <ArrowLeft size={14} className="mr-2" /> Back to projects
             </Link>
 
             {isEditing ? (
-                <form onSubmit={handleUpdate} className="bg-card p-6 rounded-lg border shadow-sm mb-8">
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Project Name</label>
-                            <input
-                                type="text"
-                                value={editName}
-                                onChange={(e) => setEditName(e.target.value)}
-                                className="w-full px-4 py-2 rounded-md border"
-                                required
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Description</label>
-                            <textarea
-                                value={editDesc}
-                                onChange={(e) => setEditDesc(e.target.value)}
-                                className="w-full px-4 py-2 rounded-md border"
-                                rows={3}
-                            />
-                        </div>
-                        <div className="flex gap-4">
-                            <button type="submit" className="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/90">
-                                Save Changes
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setIsEditing(false)}
-                                className="px-6 py-2 rounded-md hover:bg-muted"
-                            >
-                                Cancel
-                            </button>
-                        </div>
+                <form onSubmit={handleUpdate} className="border border-foreground/10 p-6 mb-10 space-y-4">
+                    <div>
+                        <label className="block text-xs font-mono uppercase tracking-wide text-muted-foreground mb-2">Project name</label>
+                        <Input
+                            type="text"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            required
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-mono uppercase tracking-wide text-muted-foreground mb-2">Description</label>
+                        <Textarea
+                            value={editDesc}
+                            onChange={(e) => setEditDesc(e.target.value)}
+                            rows={3}
+                        />
+                    </div>
+                    <div className="flex gap-3">
+                        <Button type="submit" className="bg-foreground hover:bg-foreground/90 text-background rounded-full">
+                            Save changes
+                        </Button>
+                        <Button type="button" variant="outline" className="rounded-full" onClick={() => setIsEditing(false)}>
+                            Cancel
+                        </Button>
                     </div>
                 </form>
             ) : (
-                <div className="flex justify-between items-start mb-8 border-b pb-6">
+                <div className="flex justify-between items-start mb-10 border-b border-foreground/10 pb-6">
                     <div>
-                        <h1 className="text-3xl font-bold mb-2">{project?.name}</h1>
+                        <h1 className="text-3xl lg:text-4xl font-display tracking-tight mb-2">{project?.name}</h1>
                         <p className="text-muted-foreground">{project?.description}</p>
                         <div className="flex gap-4 mt-4 text-sm text-muted-foreground">
-                            <span className="flex items-center gap-1"><Calendar size={14} /> Created {format(new Date(project!.createdAt), 'PPP')}</span>
+                            <span className="flex items-center gap-1 font-mono text-xs">
+                                <Calendar size={13} /> Created {format(new Date(project!.createdAt), 'PPP')}
+                            </span>
                         </div>
                     </div>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => setIsEditing(true)}
-                            className="p-2 hover:bg-muted rounded-full transition"
-                            title="Edit Project"
-                        >
-                            <Edit2 size={20} />
-                        </button>
+                    <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => setIsEditing(true)} aria-label="Edit project">
+                            <Edit2 size={16} />
+                        </Button>
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
-                                <button
-                                    className="p-2 hover:bg-destructive/10 text-destructive rounded-full transition"
-                                    title="Delete Project"
-                                >
-                                    <Trash2 size={20} />
-                                </button>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" aria-label="Delete project">
+                                    <Trash2 size={16} />
+                                </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                                 <AlertDialogHeader>
@@ -168,29 +162,32 @@ export default function ProjectDetailPage() {
 
             <div className="space-y-6">
                 <div className="flex justify-between items-center">
-                    <h2 className="text-2xl font-semibold flex items-center gap-2">
-                        <FileText size={24} /> Recent Analyses
+                    <h2 className="text-xl font-display flex items-center gap-2">
+                        <FileText size={20} /> Recent analyses
                     </h2>
-                    <Link href={`/?projectId=${project?.id}`}>
-                        <button className="bg-primary text-primary-foreground px-4 py-2 rounded-md flex items-center gap-2 hover:bg-primary/90 transition text-sm">
-                            <Plus size={16} /> New Analysis
-                        </button>
-                    </Link>
+                    <Button
+                        asChild
+                        className="bg-foreground hover:bg-foreground/90 text-background rounded-full gap-2"
+                    >
+                        <Link href={`/analysis/new?projectId=${project?.id}`}>
+                            <Plus size={16} /> New analysis
+                        </Link>
+                    </Button>
                 </div>
 
                 {project?.analyses && project.analyses.length > 0 ? (
-                    <div className="grid gap-4">
+                    <div className="grid gap-3">
                         {project.analyses.map(analysis => (
                             <Link key={analysis.id} href={`/analysis/${analysis.id}`}>
-                                <div className="p-4 border rounded-lg hover:bg-muted/50 transition">
+                                <div className="p-4 border border-foreground/10 hover:border-foreground/30 hover:bg-foreground/[0.02] transition-all duration-300">
                                     <div className="flex justify-between items-center mb-1">
                                         <h3 className="font-medium">{analysis.title || `Analysis ${analysis.version}`}</h3>
-                                        <span className="text-xs text-muted-foreground">v{analysis.version}</span>
+                                        <span className="text-xs font-mono text-muted-foreground">v{analysis.version}</span>
                                     </div>
                                     <p className="text-sm text-muted-foreground line-clamp-1">
                                         {cleanInputText(analysis.inputText || "")}
                                     </p>
-                                    <div className="flex justify-between mt-2 text-xs text-muted-foreground">
+                                    <div className="flex justify-between mt-2 text-xs text-muted-foreground font-mono">
                                         <span>{format(new Date(analysis.createdAt), 'MMM d, h:mm a')}</span>
                                     </div>
                                 </div>
@@ -198,7 +195,7 @@ export default function ProjectDetailPage() {
                         ))}
                     </div>
                 ) : (
-                    <p className="text-muted-foreground italic">No analyses in this project yet.</p>
+                    <p className="text-muted-foreground italic text-sm">No analyses in this project yet.</p>
                 )}
             </div>
         </div>

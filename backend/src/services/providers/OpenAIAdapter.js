@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 
-export const DEFAULT_MODEL = process.env.OPENAI_MODEL_NAME || 'gpt-4o';
+export const DEFAULT_MODEL = process.env.OPENAI_MODEL_NAME || 'gpt-5.6';
 
 export class OpenAIAdapter {
     constructor(apiKey) {

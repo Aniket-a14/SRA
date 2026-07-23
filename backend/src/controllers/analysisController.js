@@ -1,6 +1,5 @@
 import { performAnalysis, getUserAnalyses, getAnalysisById, getAnalysisHistory, deleteAnalysis as deleteAnalysisService } from '../services/analysisService.js';
 import { processChat, processChatStream } from '../services/chatService.js';
-import { generateCodeFromAnalysis } from '../services/codeGenService.js';
 import { addAnalysisJob, getJobStatus } from '../services/queueService.js';
 import { surgicalRefine } from '../services/surgicalRefineService.js';
 import { compareAnalyses } from '../services/diffService.js';
@@ -298,7 +297,6 @@ export const getAnalysis = async (req, res, next) => {
             metadata: analysis.metadata,
             createdAt: analysis.createdAt,
             updatedAt: analysis.updatedAt,
-            generatedCode: mode === 'sync' ? undefined : analysis.generatedCode,
             inputText: mode === 'sync' ? undefined : analysis.inputText,
             resultJson: analysis.resultJson
         });
@@ -536,15 +534,6 @@ export const getChatHistory = async (req, res, next) => {
     }
 };
 
-export const generateCode = async (req, res, next) => {
-    try {
-        const { id } = req.params;
-        const result = await generateCodeFromAnalysis(req.user.userId, id);
-        return successResponse(res, result);
-    } catch (error) {
-        next(error);
-    }
-};
 export const regenerate = async (req, res, next) => {
     try {
         const { id } = req.params;

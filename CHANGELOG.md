@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.1.0] - 2026-07-23
+
+### 🔑 Multi-Provider BYOK Architecture
+- **Added** a shared provider adapter interface (`services/providers/`: `GeminiAdapter`, `OpenAIAdapter`, `ClaudeAdapter`, `GrokAdapter`) with `generateContent`/`generateContentStream`/`countTokens`/`classifyError`, replacing the single hardcoded Gemini call path in `BaseAgent` and `aiService.js`.
+- **Added** `UserProviderKey` model + `providerKeyService.js`: users store their own OpenAI/Claude/Grok key (AES-256-GCM encrypted, masked on read) via **Settings → AI Providers**; Gemini remains the only platform-funded, zero-setup default.
+- **Added** per-analysis provider + model selection on the New Analysis screen.
+- **Kept** embeddings fixed to Gemini (`embeddingService.js`) regardless of the chosen generation provider — the `vector(768)` pgvector column is dimensioned to Gemini's embedding model.
+- **Updated** default model IDs to current, verified-available models: Gemini `gemini-2.5-flash`/`gemini-2.5-pro`, OpenAI `gpt-5.6`/`gpt-5.6-luna`, Claude `claude-opus-4-8`/`claude-sonnet-5`, Grok `grok-4.5` (replacing the stale `grok-2-latest` default, which upstream has since retired).
+
+### 🔄 Streaming Architecture
+- **Replaced** the hand-rolled SWR polling loop with an SSE endpoint for live, section-by-section pipeline progress, backed by Redis pub/sub.
+- **Split** chat replies into a token-streamed conversational reply plus a non-streamed JSON follow-up only when an edit is actually requested, rendered live via `streamdown`.
+
+### 🎨 Frontend Rehaul
+- **Rebuilt** the frontend from the ground up on the marketing site's own design system (previously two visually inconsistent codebases) — landing page, auth, projects, the full analysis workspace, and settings now share one Next.js app and one component library.
+- **Rewrote** all marketing copy to describe the real system (real pipeline stages, real integrations, real security measures) instead of generic template placeholders.
+- **Removed** the user-facing **Code Assets** tab and `codeGenService.js` entirely, and the user-facing **Quality Audit** tab — the underlying 6Cs scoring remains as an internal-only gate in the Reviewer/Critic reflection loop and the separate pre-finalization Validation Report.
+- **Removed** the Testimonials and Pricing sections.
+
 ## [4.0.3] - 2026-05-24
 
 ### 📚 Documentation Alignment & Harmonization (v4.0.3)

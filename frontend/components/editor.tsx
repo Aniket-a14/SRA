@@ -5,7 +5,7 @@ import "@blocknote/core/fonts/inter.css";
 import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
-import { useTheme } from "@/lib/theme-context";
+import { useTheme } from "next-themes";
 
 interface EditorProps {
     initialContent?: string;
@@ -50,7 +50,7 @@ export default function Editor({ initialContent = "", onChange, editable = true,
                 editor={editor}
                 editable={editable}
                 onChange={handleChange}
-                theme={resolvedTheme}
+                theme={resolvedTheme === "dark" ? "dark" : "light"}
                 className="min-h-[100px]"
             />
         </div>

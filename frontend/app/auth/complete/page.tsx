@@ -23,8 +23,6 @@ function AuthCompleteContent() {
 
         const code = searchParams.get("code")
         if (!code) {
-            // Defer to a microtask — calling setState synchronously in the effect body
-            // (as opposed to inside the fetch callbacks below) trips react-hooks/set-state-in-effect.
             Promise.resolve().then(() => setError("Missing authorization code"))
             return
         }
@@ -51,11 +49,11 @@ function AuthCompleteContent() {
         <div className="flex min-h-screen items-center justify-center bg-background">
             <div className="flex flex-col items-center gap-3 text-muted-foreground">
                 {error ? (
-                    <p className="text-sm">{error} — redirecting to login…</p>
+                    <p className="text-sm font-mono">{error} — redirecting to login…</p>
                 ) : (
                     <>
                         <Loader2 className="h-6 w-6 animate-spin" />
-                        <p className="text-sm">Signing you in…</p>
+                        <p className="text-sm font-mono">Signing you in…</p>
                     </>
                 )}
             </div>

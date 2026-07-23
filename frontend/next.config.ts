@@ -16,7 +16,6 @@ const connectSrc = isProd
 const contentSecurityPolicy = `default-src 'self'; ${scriptSrc} frame-src 'self' https://vercel.live https://*.vercel.live; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; ${connectSrc} frame-ancestors 'none';`;
 
 const nextConfig: NextConfig = {
-  /* config options here */
   output: 'standalone',
   async headers() {
     return [

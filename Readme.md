@@ -99,9 +99,15 @@ graph TD
 
 ### 📊 Professional Requirements Engineering
 *   **IEEE-830 v2.1.0 Compliance**: Automated generation with strict identifier governance and academic prose discipline.
-*   **6Cs Quality Audit**: Automated scoring for Clarity, Completeness, Conciseness, Consistency, Correctness, and Context.
+*   **6Cs Quality Audit**: Automated internal scoring for Clarity, Completeness, Conciseness, Consistency, Correctness, and Context — gates every draft in the Reviewer/Critic reflection loop before it reaches the user.
 *   **RAG Benchmarking**: Real-time evaluation of LLM Faithfulness and Answer Relevancy.
 *   **User Story Evolution**: Generates "Jira-Ready" user stories with granular acceptance criteria.
+
+### 🔑 Bring Your Own Key (BYOK) & Model Choice
+*   **Multi-Provider Support**: Gemini (platform default, zero setup), OpenAI, Claude, and Grok.
+*   **Encrypted Key Storage**: User-supplied keys are AES-256-GCM encrypted at rest and never returned in plaintext by the API — only a masked preview is shown back.
+*   **Per-Analysis Model Selection**: Choose provider and specific model (e.g. Gemini 2.5 Flash/Pro, GPT-5.6, Claude Opus 4.8/Sonnet 5, Grok 4.5) when starting a new analysis.
+*   **Fixed Embedding Provider**: RAG embeddings always run on Gemini regardless of the chosen generation provider, since the vector column is dimensioned to its embedding model.
 
 ### 🎨 Advanced Architectural Visualization
 *   **Multi-Level DFDs**: Generates Level 0 (Context) and Level 1 (Functional Decomposition) Gane-Sarson diagrams.
@@ -196,7 +202,7 @@ SRA leverages professional GitHub Actions for continuous quality assurance and o
 | **Backend** | [Node.js 20](https://nodejs.org/) / [Prisma 7](https://www.prisma.io/) | Type-safe ORM for robust asynchronous data orchestration. |
 | **Database** | [PostgreSQL 16+](https://www.postgresql.org/) | High-concurrency persistence with `pgvector` RAG support. |
 | **Orchestration** | [Upstash QStash](https://upstash.com/) | Serverless job queue for reliable, long-running AI tasks. |
-| **LLM Engine** | [Gemini 2.5 Flash](https://ai.google.dev/) | Advanced reasoning and context window for complex architectural mapping. |
+| **LLM Engine** | Multi-provider (Gemini default, BYOK OpenAI/Claude/Grok) | Gemini runs on the platform's own key for every user out of the box; users can add their own OpenAI, Claude, or Grok key in Settings and pick a provider + model per analysis. |
 
 </details>
 
@@ -276,9 +282,9 @@ Ensure the following variables are defined in your infrastructure (see `.env.exa
 | **Database** | `DATABASE_URL` | Yes | Postgres connection string with transaction pooling (typically port `6543`). |
 | **Database** | `DIRECT_URL` | Yes | Direct connection string bypassing transaction pooler (typically port `5432`) for Prisma migrations and heavy-duty database backup/restore operations. |
 | **Database** | `REDIS_URL` | Optional | Redis connection string for rate limiting/caching. |
-| **AI (Gemini)** | `GEMINI_API_KEY` | Yes | API key for Google Gemini 2.5 Flash (Primary). |
+| **AI (Gemini)** | `GEMINI_API_KEY` | Yes | Platform-wide Gemini key — the default provider for every user, and the fixed embedding provider regardless of which generation provider a user picks. |
 | **AI (Gemini)** | `RAG_SIMILARITY_THRESHOLD` | Optional | Cosine similarity threshold for RAG retrieval matching, defaults to `0.25`. |
-| **AI (OpenAI)**| `OPENAI_API_KEY` | Optional | API key for OpenAI (Secondary/Internal). |
+| **AI (BYOK)** | `OPENAI_API_KEY`, `ANTHROPIC_API_KEY` | Optional | **Not** read as platform-wide fallbacks — only used to set the `*_MODEL_NAME` default for local dev. End users bring their own OpenAI/Claude/Grok key via **Settings → AI Providers**, stored encrypted (AES-256-GCM) per user, and choose the model per analysis. |
 | **Async** | `QSTASH_TOKEN` | Yes | Bearer token for Upstash QStash job publishing. |
 | **Async** | `QSTASH_SIGNING_KEYS` | Yes | Signing keys for verifying QStash webhooks. |
 | **Auth** | `JWT_SECRET` | Yes | Secret key for signing authorization tokens. |
@@ -402,6 +408,7 @@ SRA/
 - [x] **v3.1**: **Distributed Rate Limiting & Load Balancing**.
 - [x] **v3.2**: **Industry Benchmarking & MAS Refinement**.
 - [x] **v4.0**: **Full CLI Toolkit & Spec-to-Code Traceability**.
+- [x] **v4.1**: **Multi-Provider BYOK Architecture**, SSE-based live pipeline/chat streaming, and a ChatGPT-style frontend rehaul (unified landing + product app).
 - [ ] **v4.5**: Collaborative Real-time Multi-User Editing.
 - [ ] **v5.0**: Custom Model Fine-tuning (MLOps integration).
 

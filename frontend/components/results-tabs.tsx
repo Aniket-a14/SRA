@@ -25,10 +25,7 @@ const FeaturesTab = dynamic(() => import("./analysis/tabs/features-tab").then(mo
 const InterfacesTab = dynamic(() => import("./analysis/tabs/interfaces-tab").then(mod => mod.InterfacesTab), { loading: () => tabLoading })
 const NFRsTab = dynamic(() => import("./analysis/tabs/nfrs-tab").then(mod => mod.NFRsTab), { loading: () => tabLoading })
 const AppendicesTab = dynamic(() => import("./analysis/tabs/appendices-tab").then(mod => mod.AppendicesTab), { loading: () => tabLoading })
-const QualityAuditTab = dynamic(() => import("./analysis/tabs/quality-audit-tab").then(mod => mod.QualityAuditTab), { loading: () => tabLoading })
-const CodeAssetsTab = dynamic(() => import("./analysis/tabs/code-assets-tab").then(mod => mod.CodeAssetsTab), { loading: () => tabLoading })
 const KnowledgeGraphTab = dynamic(() => import("./analysis/tabs/knowledge-graph-tab").then(mod => mod.KnowledgeGraphTab), { loading: () => tabLoading })
-import type { CodeViewerProps } from "./code-viewer"
 
 interface ResultsTabsProps {
   data?: Analysis
@@ -128,8 +125,8 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-start gap-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary animate-pulse-glow shadow-lg shadow-primary/20">
-                <Bot className="h-5 w-5 text-primary-foreground" aria-hidden="true" />
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-foreground">
+                <Bot className="h-5 w-5 text-background" aria-hidden="true" />
               </div>
               <div>
                 <h2 className="text-2xl font-bold tracking-tight mb-1">Analysis Report</h2>
@@ -168,9 +165,7 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
                 <TabsTrigger value="interfaces" className="px-4 py-2">Ext. Interfaces</TabsTrigger>
                 <TabsTrigger value="nfrs" className="px-4 py-2">Non-Functional</TabsTrigger>
                 <TabsTrigger value="appendices" className="px-4 py-2">Appendices</TabsTrigger>
-                <TabsTrigger value="code" className="px-4 py-2">Code Assets</TabsTrigger>
                 <TabsTrigger value="graph" className="px-4 py-2">Knowledge Graph</TabsTrigger>
-                <TabsTrigger value="quality" className="px-4 py-2">Quality Audit</TabsTrigger>
               </TabsList>
               <ScrollBar orientation="horizontal" />
             </ScrollArea>
@@ -234,21 +229,6 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
                   onRefresh={onRefresh}
                   onDiagramEditChange={onDiagramEditChange}
                 />
-              </ErrorBoundary>
-            </TabsContent>
-
-            <TabsContent value="code" className="outline-none">
-              <ErrorBoundary name="Code Assets Tab">
-                <CodeAssetsTab
-                  initialGeneratedCode={data.generatedCode as unknown as CodeViewerProps}
-                  analysisId={analysisId}
-                />
-              </ErrorBoundary>
-            </TabsContent>
-
-            <TabsContent value="quality" className="outline-none">
-              <ErrorBoundary name="Quality Audit Tab">
-                <QualityAuditTab qualityAudit={currentData.qualityAudit} />
               </ErrorBoundary>
             </TabsContent>
 

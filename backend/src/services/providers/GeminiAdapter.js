@@ -3,7 +3,7 @@ import { genAI } from '../../config/gemini.js';
 // Platform-hosted default — the only provider allowed to fall back to the
 // platform's own key (see providerKeyService.js). Every other adapter
 // requires the user's own key.
-export const DEFAULT_MODEL = process.env.GEMINI_MODEL_NAME || 'gemini-3-flash-preview';
+export const DEFAULT_MODEL = process.env.GEMINI_MODEL_NAME || 'gemini-2.5-flash';
 
 export class GeminiAdapter {
     // No apiKey param: genAI is constructed once at boot from the platform's

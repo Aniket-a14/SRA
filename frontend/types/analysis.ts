@@ -137,7 +137,6 @@ export interface AnalysisResult {
             standardAdherence?: string;
         }
     }
-    generatedCode?: Record<string, unknown> | null
 }
 
 export interface Analysis extends AnalysisResult {
@@ -219,7 +218,6 @@ export interface UpdateAnalysisInput {
             standardAdherence?: string;
         }
     }
-    generatedCode?: Record<string, unknown> | null;
     metadata?: Record<string, unknown>;
     inPlace?: boolean;
     skipAlignment?: boolean;

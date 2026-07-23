@@ -30,7 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const logout = React.useCallback(async () => {
         try {
-            // Refresh token now lives only in an httpOnly cookie, sent automatically —
+            // Refresh token lives only in an httpOnly cookie, sent automatically —
             // no need to read/send it from localStorage.
             await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/logout`, {
                 method: "POST",
@@ -126,14 +126,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem("user", JSON.stringify(newUser))
         setToken(newToken)
         setUser(newUser)
-        router.push("/")
+        router.push("/projects")
     }, [router])
 
     const authenticateWithToken = React.useCallback(async (newToken: string) => {
         localStorage.setItem("token", newToken)
         setToken(newToken)
         await fetchUser(newToken)
-        router.push("/")
+        router.push("/projects")
     }, [fetchUser, router])
 
     const value = React.useMemo(() => ({

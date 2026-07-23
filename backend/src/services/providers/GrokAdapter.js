@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 
-export const DEFAULT_MODEL = process.env.GROK_MODEL_NAME || 'grok-2-latest';
+export const DEFAULT_MODEL = process.env.GROK_MODEL_NAME || 'grok-4.5';
 const XAI_BASE_URL = 'https://api.x.ai/v1';
 
 // xAI exposes an OpenAI-compatible Chat Completions endpoint, so this reuses
