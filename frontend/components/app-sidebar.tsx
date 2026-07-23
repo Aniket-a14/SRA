@@ -42,6 +42,11 @@ interface AnalysisHistoryItem {
     title?: string
 }
 
+interface ProjectSummary {
+    id: string
+    name: string
+}
+
 const layers = [
     { id: 1, label: "Structured Input", icon: FileText },
     { id: 2, label: "Validation Gate", icon: ShieldCheck },
@@ -80,6 +85,13 @@ export function AppSidebar({ className }: AppSidebarProps) {
     })
 
     const history = Array.isArray(historyData) ? historyData : []
+
+    const projectsSwrKey = useMemo(() => {
+        if (!token) return null
+        return [`${process.env.NEXT_PUBLIC_BACKEND_URL}/projects`, token] as const
+    }, [token])
+    const { data: projectsData } = useSWR<ProjectSummary[]>(projectsSwrKey, fetcher, swrOptions)
+    const projects = Array.isArray(projectsData) ? projectsData : []
 
     const handleLogout = () => {
         logout()
@@ -141,6 +153,37 @@ export function AppSidebar({ className }: AppSidebarProps) {
                         </div>
                     </div>
                 )}
+
+                {/* Projects */}
+                <div className="px-4 py-4 border-b border-foreground/10">
+                    <div className="flex items-center justify-between mb-3">
+                        <h2 className="text-xs font-mono uppercase tracking-wide text-muted-foreground">
+                            Projects
+                        </h2>
+                        <button
+                            className="text-xs text-muted-foreground hover:text-foreground"
+                            onClick={() => router.push("/projects")}
+                        >
+                            View all
+                        </button>
+                    </div>
+                    <div className="space-y-1">
+                        {projects.length === 0 && (
+                            <p className="text-xs text-muted-foreground/60 px-2 py-1">No projects yet</p>
+                        )}
+                        {projects.slice(0, 5).map((project) => (
+                            <button
+                                key={project.id}
+                                type="button"
+                                onClick={() => router.push(`/projects/${project.id}`)}
+                                className="w-full flex items-center gap-2 px-2 py-2 text-sm text-left truncate text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
+                            >
+                                <Folder className="h-3.5 w-3.5 shrink-0" />
+                                <span className="truncate">{project.name}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
 
                 {/* Recent analyses */}
                 <div className="px-4 py-4">
