@@ -123,11 +123,11 @@ export function HowItWorksSection() {
                     <p className="text-background/60 leading-relaxed">
                       {step.description}
                     </p>
-                    
+
                     {/* Progress indicator */}
                     {activeStep === index && (
                       <div className="mt-4 h-px bg-background/20 overflow-hidden">
-                        <div 
+                        <div
                           className="h-full bg-background w-0"
                           style={{
                             animation: 'progress 5s linear forwards'
@@ -160,10 +160,10 @@ export function HowItWorksSection() {
               <div className="p-8 font-mono text-sm min-h-[280px]">
                 <pre className="text-background/70">
                   {steps[activeStep].code.split('\n').map((line, lineIndex) => (
-                    <div 
-                      key={`${activeStep}-${lineIndex}`} 
+                    <div
+                      key={`${activeStep}-${lineIndex}`}
                       className="leading-loose code-line-reveal"
-                      style={{ 
+                      style={{
                         animationDelay: `${lineIndex * 80}ms`,
                       }}
                     >
@@ -201,26 +201,26 @@ export function HowItWorksSection() {
           from { width: 0%; }
           to { width: 100%; }
         }
-        
+
         .code-line-reveal {
           opacity: 0;
           transform: translateX(-8px);
           animation: lineReveal 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
-        
+
         @keyframes lineReveal {
           to {
             opacity: 1;
             transform: translateX(0);
           }
         }
-        
+
         .code-char-reveal {
           opacity: 0;
           filter: blur(8px);
           animation: charReveal 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
-        
+
         @keyframes charReveal {
           to {
             opacity: 1;

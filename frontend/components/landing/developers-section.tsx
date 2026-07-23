@@ -58,20 +58,20 @@ const codeAnimationStyles = `
     transform: translateX(-8px);
     animation: devLineReveal 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
-  
+
   @keyframes devLineReveal {
     to {
       opacity: 1;
       transform: translateX(0);
     }
   }
-  
+
   .dev-code-char {
     opacity: 0;
     filter: blur(8px);
     animation: devCharReveal 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
-  
+
   @keyframes devCharReveal {
     to {
       opacity: 1;
@@ -129,7 +129,7 @@ export function DevelopersSection() {
               sync the finalized requirements, check what&apos;s actually
               implemented, and push the results back.
             </p>
-            
+
             {/* Features */}
             <div className="grid grid-cols-2 gap-6">
               {features.map((feature, index) => (
@@ -146,7 +146,7 @@ export function DevelopersSection() {
               ))}
             </div>
           </div>
-          
+
           {/* Right: Code block */}
           <div
             className={`lg:sticky lg:top-32 transition-all duration-700 delay-200 ${
@@ -187,13 +187,13 @@ export function DevelopersSection() {
                   )}
                 </button>
               </div>
-              
+
               {/* Code content */}
               <div className="p-8 font-mono text-sm bg-foreground/[0.01] min-h-[220px]">
                 <pre className="text-foreground/80">
                   {codeExamples[activeTab].code.split('\n').map((line, lineIndex) => (
-                    <div 
-                      key={`${activeTab}-${lineIndex}`} 
+                    <div
+                      key={`${activeTab}-${lineIndex}`}
                       className="leading-loose dev-code-line"
                       style={{ animationDelay: `${lineIndex * 80}ms` }}
                     >
@@ -215,7 +215,7 @@ export function DevelopersSection() {
                 </pre>
               </div>
             </div>
-            
+
             {/* Links */}
             <div className="mt-6 flex items-center gap-6 text-sm">
               <span className="text-muted-foreground font-mono text-xs">@sra-srs/sra-cli</span>
