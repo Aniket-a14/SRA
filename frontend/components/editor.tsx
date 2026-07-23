@@ -5,7 +5,6 @@ import "@blocknote/core/fonts/inter.css";
 import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
-import { useTheme } from "next-themes";
 
 interface EditorProps {
     initialContent?: string;
@@ -15,8 +14,6 @@ interface EditorProps {
 }
 
 export default function Editor({ initialContent = "", onChange, editable = true, className }: EditorProps) {
-    const { resolvedTheme } = useTheme();
-
     // We use a state to track if the editor is ready to yield markdown
     // and to avoid hydration mismatches if necessary, though BlockNote handles this well.
 
@@ -50,7 +47,7 @@ export default function Editor({ initialContent = "", onChange, editable = true,
                 editor={editor}
                 editable={editable}
                 onChange={handleChange}
-                theme={resolvedTheme === "dark" ? "dark" : "light"}
+                theme="light"
                 className="min-h-[100px]"
             />
         </div>
