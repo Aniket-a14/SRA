@@ -1,18 +1,19 @@
 "use client"
 
-import { Suspense, useEffect, useState } from "react"
+import { Suspense, useEffect, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
 import { fetchProject } from "@/lib/projects-api"
 import { PromptSettings } from "@/types/project"
 import { toast } from "sonner"
-import { Folder, Sparkles, Settings2, Loader2 } from "lucide-react"
+import { Folder, Sparkles, SlidersHorizontal, Loader2, ArrowUp, KeyRound, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
 
 const DEFAULT_SETTINGS: PromptSettings = {
     profile: "default",
@@ -30,13 +31,13 @@ const PROFILES = [
 ]
 
 const MODELS = [
-    { provider: "google", value: "gemini-2.5-flash", label: "Gemini 2.5 Flash (Fast)" },
-    { provider: "google", value: "gemini-2.5-pro", label: "Gemini 2.5 Pro (Advanced)" },
-    { provider: "openai", value: "gpt-5.6", label: "GPT-5.6 (Smartest)" },
-    { provider: "openai", value: "gpt-5.6-luna", label: "GPT-5.6 Luna (Fast)" },
-    { provider: "claude", value: "claude-opus-4-8", label: "Claude Opus 4.8 (Smartest)" },
-    { provider: "claude", value: "claude-sonnet-5", label: "Claude Sonnet 5 (Fast)" },
-    { provider: "grok", value: "grok-4.5", label: "Grok 4.5" },
+    { provider: "google", value: "gemini-2.5-flash", label: "Gemini 2.5 Flash", hint: "Fast" },
+    { provider: "google", value: "gemini-2.5-pro", label: "Gemini 2.5 Pro", hint: "Advanced" },
+    { provider: "openai", value: "gpt-5.6", label: "GPT-5.6", hint: "Smartest" },
+    { provider: "openai", value: "gpt-5.6-luna", label: "GPT-5.6 Luna", hint: "Fast" },
+    { provider: "claude", value: "claude-opus-4-8", label: "Claude Opus 4.8", hint: "Smartest" },
+    { provider: "claude", value: "claude-sonnet-5", label: "Claude Sonnet 5", hint: "Fast" },
+    { provider: "grok", value: "grok-4.5", label: "Grok 4.5", hint: "" },
 ]
 
 // Gemini runs on the platform's own key — every other provider requires the
@@ -48,10 +49,22 @@ const PROVIDER_TO_ENUM: Record<string, string> = {
     grok: "GROK",
 }
 
+const EXAMPLES = [
+    "A subscription billing platform with tiered plans, dunning, and Stripe payouts.",
+    "An IoT fleet dashboard that ingests sensor telemetry and raises threshold alerts.",
+    "A patient intake portal with insurance verification and HIPAA-compliant records.",
+    "A multi-vendor marketplace with escrow payments, reviews, and dispute resolution.",
+]
+
+function deriveName(text: string): string {
+    const words = text.trim().replace(/\s+/g, " ").split(" ").slice(0, 6).join(" ")
+    return words.length > 60 ? words.slice(0, 60) : words
+}
+
 function NewAnalysisContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
-    const { token } = useAuth()
+    const { token, user } = useAuth()
     const projectId = searchParams.get("projectId")
 
     const [projectName, setProjectName] = useState("")
@@ -60,6 +73,7 @@ function NewAnalysisContent() {
     const [configuredProviders, setConfiguredProviders] = useState<Set<string>>(new Set(["GEMINI"]))
     const [contextProjectName, setContextProjectName] = useState<string>("")
     const [isAnalyzing, setIsAnalyzing] = useState(false)
+    const textareaRef = useRef<HTMLTextAreaElement>(null)
 
     useEffect(() => {
         if (projectId && token) {
@@ -84,12 +98,28 @@ function NewAnalysisContent() {
             .catch(() => { /* non-fatal — falls back to Gemini-only */ })
     }, [token])
 
+    // Auto-grow the composer as the description grows, ChatGPT-style.
+    useEffect(() => {
+        const el = textareaRef.current
+        if (!el) return
+        el.style.height = "auto"
+        el.style.height = `${Math.min(el.scrollHeight, 320)}px`
+    }, [description])
+
+    const activeModel = MODELS.find(m => m.value === settings.modelName) || MODELS[0]
+    const onlyGemini = configuredProviders.size === 1
+
     const handleAnalyze = async () => {
         if (!token) {
             toast.error("You must be logged in to start an analysis.")
             return
         }
-        if (!projectName.trim()) return
+        const desc = description.trim()
+        if (!desc) {
+            toast.error("Describe what the system should do to get started.")
+            return
+        }
+        const effectiveName = projectName.trim() || deriveName(desc) || "Untitled System"
 
         setIsAnalyzing(true)
         const loadingToast = toast.loading("Initializing analysis...")
@@ -103,11 +133,11 @@ function NewAnalysisContent() {
                     Authorization: `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    text: description || projectName,
+                    text: desc,
                     srsData: {
                         introduction: {
-                            projectName: { content: projectName },
-                            purpose: { content: description || projectName },
+                            projectName: { content: effectiveName },
+                            purpose: { content: desc },
                         },
                     },
                     projectId: projectId || undefined,
@@ -136,154 +166,203 @@ function NewAnalysisContent() {
         }
     }
 
+    const firstName = user?.name?.split(" ")[0]
+
     return (
-        <div className="max-w-2xl mx-auto px-6 py-16">
-            <div className="text-center mb-10">
-                <span className="inline-flex items-center gap-3 text-sm font-mono text-muted-foreground mb-4">
-                    <span className="w-8 h-px bg-foreground/30" />
-                    New analysis
-                </span>
-                <h1 className="text-3xl lg:text-4xl font-display tracking-tight mb-3">
-                    Describe your system.
-                </h1>
-                <p className="text-muted-foreground">
-                    Paste raw stakeholder notes or a rough brief — the pipeline figures out
-                    scope, features, and requirements from plain text.
-                </p>
-            </div>
-
-            {projectId && (
-                <div className="mb-6 border border-foreground/10 px-4 py-3 flex items-center gap-2 text-sm">
-                    <Folder size={16} className="text-muted-foreground" />
-                    <span>Adding to project: <strong>{contextProjectName || "Loading..."}</strong></span>
-                </div>
-            )}
-
-            <div className="border border-foreground/10 p-6">
-                <div className="flex items-start justify-between gap-3 mb-4">
-                    <div className="flex items-start gap-3">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center border border-foreground/10">
-                            <Sparkles className="h-4 w-4" />
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                            Give your project a name and describe what it should do. You can
-                            refine everything in detail on the next step.
-                        </p>
+        <div className="min-h-[calc(100vh-1px)] flex flex-col items-center justify-center px-4 py-16">
+            <div className="w-full max-w-2xl">
+                {projectId && (
+                    <div className="mb-6 mx-auto w-fit border border-foreground/10 rounded-full px-3 py-1.5 flex items-center gap-2 text-xs">
+                        <Folder size={13} className="text-muted-foreground" />
+                        <span className="text-muted-foreground">Adding to</span>
+                        <strong className="font-medium">{contextProjectName || "…"}</strong>
                     </div>
+                )}
 
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button variant="outline" size="icon" className="shrink-0" aria-label="Analysis settings">
-                                <Settings2 className="h-4 w-4" />
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-80 p-4" align="end">
-                            <div className="space-y-4">
-                                <h4 className="font-medium leading-none flex items-center gap-2">
-                                    <Settings2 className="h-4 w-4" /> Analysis settings
-                                </h4>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="model">AI model</Label>
-                                    <Select
-                                        value={settings.modelName || "gemini-2.5-flash"}
-                                        onValueChange={(val) => {
-                                            const model = MODELS.find(m => m.value === val)
-                                            setSettings(prev => ({
-                                                ...prev,
-                                                modelName: val,
-                                                modelProvider: model?.provider as PromptSettings["modelProvider"]
-                                            }))
-                                        }}
-                                    >
-                                        <SelectTrigger id="model" className="h-8">
-                                            <SelectValue placeholder="Select model" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {MODELS.filter(m => configuredProviders.has(PROVIDER_TO_ENUM[m.provider])).map(m => (
-                                                <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    {configuredProviders.size === 1 && (
-                                        <p className="text-[10px] text-muted-foreground">
-                                            Add an OpenAI, Claude, or Grok key in Settings to unlock more models.
-                                        </p>
-                                    )}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="profile">Analyst persona</Label>
-                                    <Select value={settings.profile} onValueChange={(val) => setSettings(prev => ({ ...prev, profile: val }))}>
-                                        <SelectTrigger id="profile" className="h-8">
-                                            <SelectValue placeholder="Select profile" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {PROFILES.map(p => (
-                                                <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <div className="flex justify-between">
-                                        <Label>Depth &amp; verbosity</Label>
-                                        <span className="text-xs text-muted-foreground">{settings.depth}/5</span>
-                                    </div>
-                                    <Slider
-                                        value={[settings.depth]}
-                                        min={1}
-                                        max={5}
-                                        step={1}
-                                        onValueChange={(v: number[]) => setSettings(prev => ({ ...prev, depth: v[0] }))}
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <div className="flex justify-between">
-                                        <Label>Creative strictness</Label>
-                                        <span className="text-xs text-muted-foreground">{settings.strictness}/5</span>
-                                    </div>
-                                    <Slider
-                                        value={[settings.strictness]}
-                                        min={1}
-                                        max={5}
-                                        step={1}
-                                        onValueChange={(v: number[]) => setSettings(prev => ({ ...prev, strictness: v[0] }))}
-                                    />
-                                </div>
-                            </div>
-                        </PopoverContent>
-                    </Popover>
+                <div className="text-center mb-8">
+                    <h1 className="text-3xl lg:text-4xl font-display tracking-tight mb-2">
+                        {firstName ? `What are we specifying, ${firstName}?` : "What are we specifying today?"}
+                    </h1>
+                    <p className="text-muted-foreground text-sm">
+                        Paste raw stakeholder notes or a rough brief. The pipeline extracts scope,
+                        features, and IEEE-830 requirements from plain text.
+                    </p>
                 </div>
 
-                <div className="space-y-3">
-                    <Input
-                        placeholder="Project name (e.g. Inventory Manager)"
+                {/* Chat-style composer — the input layer. A single focused surface: name it,
+                    describe it, pick a model, send. */}
+                <div className="rounded-2xl border border-foreground/15 bg-background shadow-sm focus-within:border-foreground/30 focus-within:shadow-md transition-all">
+                    <input
+                        type="text"
+                        placeholder="Name your project (optional)"
                         value={projectName}
                         onChange={(e) => setProjectName(e.target.value)}
                         disabled={isAnalyzing}
+                        className="w-full bg-transparent px-4 pt-3.5 pb-1 text-sm font-medium outline-none placeholder:text-muted-foreground/60 placeholder:font-normal"
                     />
                     <textarea
-                        placeholder="Describe what this system needs to do..."
+                        ref={textareaRef}
+                        placeholder="Describe what the system should do…"
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                         disabled={isAnalyzing}
-                        rows={5}
-                        className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                        rows={2}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault()
+                                if (!isAnalyzing && description.trim()) handleAnalyze()
+                            }
+                        }}
+                        className="w-full resize-none bg-transparent px-4 pt-1 pb-2 text-sm leading-relaxed outline-none placeholder:text-muted-foreground/60 min-h-[64px]"
                     />
+
+                    <div className="flex items-center justify-between gap-2 px-3 py-2.5 border-t border-foreground/[0.06]">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <button
+                                        type="button"
+                                        className="inline-flex items-center gap-1.5 rounded-full border border-foreground/10 hover:bg-foreground/5 px-2.5 py-1 text-xs transition-colors max-w-[180px]"
+                                    >
+                                        <Sparkles className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                        <span className="truncate">{activeModel.label}</span>
+                                        <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                    </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-80 p-4" align="start">
+                                    <div className="space-y-4">
+                                        <h4 className="font-medium leading-none flex items-center gap-2 text-sm">
+                                            <SlidersHorizontal className="h-4 w-4" /> Analysis settings
+                                        </h4>
+
+                                        <div className="space-y-2">
+                                            <Label htmlFor="model">AI model</Label>
+                                            <Select
+                                                value={settings.modelName || "gemini-2.5-flash"}
+                                                onValueChange={(val) => {
+                                                    const model = MODELS.find(m => m.value === val)
+                                                    setSettings(prev => ({
+                                                        ...prev,
+                                                        modelName: val,
+                                                        modelProvider: model?.provider as PromptSettings["modelProvider"]
+                                                    }))
+                                                }}
+                                            >
+                                                <SelectTrigger id="model" className="h-8">
+                                                    <SelectValue placeholder="Select model" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {MODELS.filter(m => configuredProviders.has(PROVIDER_TO_ENUM[m.provider])).map(m => (
+                                                        <SelectItem key={m.value} value={m.value}>
+                                                            {m.label}{m.hint ? ` · ${m.hint}` : ""}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            {onlyGemini && (
+                                                <Link href="/settings" className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors">
+                                                    <KeyRound className="h-3 w-3" />
+                                                    Add an OpenAI, Claude, or Grok key to unlock more models
+                                                </Link>
+                                            )}
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label htmlFor="profile">Analyst persona</Label>
+                                            <Select value={settings.profile} onValueChange={(val) => setSettings(prev => ({ ...prev, profile: val }))}>
+                                                <SelectTrigger id="profile" className="h-8">
+                                                    <SelectValue placeholder="Select profile" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {PROFILES.map(p => (
+                                                        <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between">
+                                                <Label>Depth &amp; verbosity</Label>
+                                                <span className="text-xs text-muted-foreground">{settings.depth}/5</span>
+                                            </div>
+                                            <Slider
+                                                value={[settings.depth]}
+                                                min={1}
+                                                max={5}
+                                                step={1}
+                                                onValueChange={(v: number[]) => setSettings(prev => ({ ...prev, depth: v[0] }))}
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between">
+                                                <Label>Creative strictness</Label>
+                                                <span className="text-xs text-muted-foreground">{settings.strictness}/5</span>
+                                            </div>
+                                            <Slider
+                                                value={[settings.strictness]}
+                                                min={1}
+                                                max={5}
+                                                step={1}
+                                                onValueChange={(v: number[]) => setSettings(prev => ({ ...prev, strictness: v[0] }))}
+                                            />
+                                        </div>
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
+
+                            <span className="hidden sm:inline text-[11px] text-muted-foreground/60 font-mono">
+                                Enter to send · Shift+Enter for a new line
+                            </span>
+                        </div>
+
+                        <Button
+                            size="icon"
+                            className="h-8 w-8 rounded-full bg-foreground hover:bg-foreground/90 text-background shrink-0 disabled:opacity-40"
+                            onClick={handleAnalyze}
+                            disabled={isAnalyzing || !description.trim()}
+                            aria-label="Start analysis"
+                        >
+                            {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
+                        </Button>
+                    </div>
                 </div>
 
-                <div className="flex justify-end mt-4">
-                    <Button
-                        className="gap-2 bg-foreground hover:bg-foreground/90 text-background rounded-full"
-                        onClick={handleAnalyze}
-                        disabled={isAnalyzing || !projectName.trim()}
+                {onlyGemini && (
+                    <Link
+                        href="/settings"
+                        className="mt-3 flex items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
                     >
-                        {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                        {isAnalyzing ? "Starting..." : "Start analysis"}
-                    </Button>
+                        <KeyRound className="h-3.5 w-3.5" />
+                        Using the platform Gemini key. Add your own OpenAI, Claude, or Grok key in Settings.
+                    </Link>
+                )}
+
+                {/* Starter prompts */}
+                <div className="mt-8">
+                    <p className="text-center text-[11px] font-mono uppercase tracking-wide text-muted-foreground/60 mb-3">
+                        Or start from an example
+                    </p>
+                    <div className="grid sm:grid-cols-2 gap-2">
+                        {EXAMPLES.map((ex) => (
+                            <button
+                                key={ex}
+                                type="button"
+                                disabled={isAnalyzing}
+                                onClick={() => {
+                                    setDescription(ex)
+                                    textareaRef.current?.focus()
+                                }}
+                                className={cn(
+                                    "text-left text-sm text-muted-foreground rounded-xl border border-foreground/10 px-3.5 py-3",
+                                    "hover:border-foreground/25 hover:text-foreground hover:bg-foreground/[0.02] transition-all"
+                                )}
+                            >
+                                {ex}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>

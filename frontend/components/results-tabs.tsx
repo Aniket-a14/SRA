@@ -2,7 +2,6 @@
 
 import React, { useEffect, useRef, useState, memo } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Bot } from "lucide-react"
 import type { Analysis, AnalysisResult } from "@/types/analysis"
 import { useParams, useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -118,58 +117,53 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
 
   const currentData = isEditing && editedData ? editedData : data
 
-  return (
-    <section ref={sectionRef} className="py-12 sm:py-16">
-      <div className="container mx-auto px-4 sm:px-6">
-        <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-start gap-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-foreground">
-                <Bot className="h-5 w-5 text-background" aria-hidden="true" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold tracking-tight mb-1">Analysis Report</h2>
-                <p className="text-muted-foreground">
-                  IEEE 830-1998 Compliant Software Requirements Specification
-                </p>
-              </div>
-            </div>
+  const tabTriggerClass = "flex-none rounded-none border-0 border-b-2 border-transparent bg-transparent shadow-none px-1 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
 
-            <div className="flex gap-2">
+  return (
+    <section ref={sectionRef} className="pb-10">
+      <Tabs defaultValue="intro" className="w-full gap-0">
+        {/* Sticky tab bar — clean underline nav, no redundant page header (the canvas
+            toolbar already carries the document title, version, and actions). */}
+        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-foreground/10">
+          <div className="flex items-center justify-between gap-3 px-4 sm:px-6 pt-3">
+            <p className="text-[11px] font-mono uppercase tracking-wide text-muted-foreground/70 hidden sm:block">
+              IEEE 830-1998 · SRS
+            </p>
+            <div className="flex gap-2 ml-auto">
               {isEditing ? (
                 <>
-                  <Button variant="outline" onClick={() => {
+                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => {
                     setIsEditing(false)
                     setEditedData(data ? structuredClone(data) : null)
                   }}>
                     Cancel
                   </Button>
-                  <Button onClick={handleSave}>
-                    Save Changes
+                  <Button size="sm" className="h-7 text-xs rounded-full bg-foreground text-background hover:bg-foreground/90" onClick={handleSave}>
+                    Save changes
                   </Button>
                 </>
               ) : (
-                <Button variant="outline" onClick={() => setIsEditing(true)}>
-                  Edit Requirements
+                <Button variant="outline" size="sm" className="h-7 text-xs rounded-full" onClick={() => setIsEditing(true)}>
+                  Edit
                 </Button>
               )}
             </div>
           </div>
 
-          <Tabs defaultValue="intro" className="w-full">
-            <ScrollArea className="w-full mb-8">
-              <TabsList className="inline-flex w-max bg-secondary p-1">
-                <TabsTrigger value="intro" className="px-4 py-2">Introduction</TabsTrigger>
-                <TabsTrigger value="features" className="px-4 py-2">System Features</TabsTrigger>
-                <TabsTrigger value="interfaces" className="px-4 py-2">Ext. Interfaces</TabsTrigger>
-                <TabsTrigger value="nfrs" className="px-4 py-2">Non-Functional</TabsTrigger>
-                <TabsTrigger value="appendices" className="px-4 py-2">Appendices</TabsTrigger>
-                <TabsTrigger value="graph" className="px-4 py-2">Knowledge Graph</TabsTrigger>
-              </TabsList>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
+          <ScrollArea className="w-full">
+            <TabsList className="inline-flex w-max items-center justify-start gap-5 bg-transparent p-0 px-4 sm:px-6 h-auto rounded-none border-0">
+              <TabsTrigger value="intro" className={tabTriggerClass}>Introduction</TabsTrigger>
+              <TabsTrigger value="features" className={tabTriggerClass}>System Features</TabsTrigger>
+              <TabsTrigger value="interfaces" className={tabTriggerClass}>Interfaces</TabsTrigger>
+              <TabsTrigger value="nfrs" className={tabTriggerClass}>Non-Functional</TabsTrigger>
+              <TabsTrigger value="appendices" className={tabTriggerClass}>Appendices</TabsTrigger>
+              <TabsTrigger value="graph" className={tabTriggerClass}>Knowledge Graph</TabsTrigger>
+            </TabsList>
+            <ScrollBar orientation="horizontal" className="opacity-0" />
+          </ScrollArea>
+        </div>
 
+        <div className="px-4 sm:px-6 pt-6">
             <TabsContent value="intro" className="outline-none">
               <ErrorBoundary name="Introduction Tab">
                 <IntroductionTab
@@ -237,9 +231,8 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
                 <KnowledgeGraphTab projectId={data.projectId || ""} />
               </ErrorBoundary>
             </TabsContent>
-          </Tabs>
         </div>
-      </div>
+      </Tabs>
     </section>
   )
 }, (prev, next) => {
