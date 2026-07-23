@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
+import { Menu, X, LayoutDashboard } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 const navLinks = [
   { name: "Features", href: "#features" },
@@ -15,6 +16,10 @@ const navLinks = [
 export function Navigation() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user } = useAuth();
+  // user is null on the first client render (matches the server-rendered,
+  // logged-out HTML) and populates after auth-context restores from storage,
+  // so switching the CTA here doesn't cause a hydration mismatch.
 
   useEffect(() => {
     const handleScroll = () => {
@@ -66,16 +71,33 @@ export function Navigation() {
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-4">
-            <a href="/auth/login" className={`text-foreground/70 hover:text-foreground transition-all duration-500 ${isScrolled ? "text-xs" : "text-sm"}`}>
-              Sign in
-            </a>
-            <Button
-              asChild
-              size="sm"
-              className={`bg-foreground hover:bg-foreground/90 text-background rounded-full transition-all duration-500 ${isScrolled ? "px-4 h-8 text-xs" : "px-6"}`}
-            >
-              <a href="/auth/signup">Get started</a>
-            </Button>
+            {user ? (
+              <>
+                <span className={`text-foreground/70 transition-all duration-500 ${isScrolled ? "text-xs" : "text-sm"}`}>
+                  {user.name?.split(" ")[0] || "Signed in"}
+                </span>
+                <Button
+                  asChild
+                  size="sm"
+                  className={`bg-foreground hover:bg-foreground/90 text-background rounded-full gap-2 transition-all duration-500 ${isScrolled ? "px-4 h-8 text-xs" : "px-6"}`}
+                >
+                  <Link href="/projects"><LayoutDashboard className="h-4 w-4" /> Dashboard</Link>
+                </Button>
+              </>
+            ) : (
+              <>
+                <a href="/auth/login" className={`text-foreground/70 hover:text-foreground transition-all duration-500 ${isScrolled ? "text-xs" : "text-sm"}`}>
+                  Sign in
+                </a>
+                <Button
+                  asChild
+                  size="sm"
+                  className={`bg-foreground hover:bg-foreground/90 text-background rounded-full transition-all duration-500 ${isScrolled ? "px-4 h-8 text-xs" : "px-6"}`}
+                >
+                  <a href="/auth/signup">Get started</a>
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -131,21 +153,33 @@ export function Navigation() {
           }`}
           style={{ transitionDelay: isMobileMenuOpen ? "300ms" : "0ms" }}
           >
-            <Button
-              asChild
-              variant="outline"
-              className="flex-1 rounded-full h-14 text-base"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              <a href="/auth/login">Sign in</a>
-            </Button>
-            <Button
-              asChild
-              className="flex-1 bg-foreground text-background rounded-full h-14 text-base"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              <a href="/auth/signup">Get started</a>
-            </Button>
+            {user ? (
+              <Button
+                asChild
+                className="flex-1 bg-foreground text-background rounded-full h-14 text-base gap-2"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <Link href="/projects"><LayoutDashboard className="h-5 w-5" /> Go to dashboard</Link>
+              </Button>
+            ) : (
+              <>
+                <Button
+                  asChild
+                  variant="outline"
+                  className="flex-1 rounded-full h-14 text-base"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <a href="/auth/login">Sign in</a>
+                </Button>
+                <Button
+                  asChild
+                  className="flex-1 bg-foreground text-background rounded-full h-14 text-base"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <a href="/auth/signup">Get started</a>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>
