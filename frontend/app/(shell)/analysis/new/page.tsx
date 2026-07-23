@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth-context"
 import { fetchProject } from "@/lib/projects-api"
 import { PromptSettings } from "@/types/project"
 import { toast } from "sonner"
-import { Folder, Sparkles, SlidersHorizontal, Loader2, ArrowUp, KeyRound, ChevronDown } from "lucide-react"
+import { Folder, Sparkles, SlidersHorizontal, Loader2, ArrowUp, KeyRound } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
@@ -106,7 +106,6 @@ function NewAnalysisContent() {
         el.style.height = `${Math.min(el.scrollHeight, 320)}px`
     }, [description])
 
-    const activeModel = MODELS.find(m => m.value === settings.modelName) || MODELS[0]
     const onlyGemini = configuredProviders.size === 1
 
     const handleAnalyze = async () => {
@@ -218,67 +217,84 @@ function NewAnalysisContent() {
 
                     <div className="flex items-center justify-between gap-2 px-3 py-2.5 border-t border-foreground/[0.06]">
                         <div className="flex items-center gap-1.5 min-w-0">
+                            {/* Model picker — a standalone Select (portals to the body on its
+                                own). Kept out of the settings Popover on purpose: nesting one
+                                Radix portal inside another breaks the dropdown's collision
+                                detection, which is what clipped the list before. */}
+                            <Select
+                                value={settings.modelName || "gemini-2.5-flash"}
+                                onValueChange={(val) => {
+                                    const model = MODELS.find(m => m.value === val)
+                                    setSettings(prev => ({
+                                        ...prev,
+                                        modelName: val,
+                                        modelProvider: model?.provider as PromptSettings["modelProvider"]
+                                    }))
+                                }}
+                            >
+                                <SelectTrigger
+                                    size="sm"
+                                    className="h-7 w-auto max-w-[190px] rounded-full border-foreground/10 px-2.5 text-xs gap-1.5 shadow-none"
+                                    aria-label="AI model"
+                                >
+                                    <Sparkles className="h-3 w-3 text-muted-foreground" />
+                                    <SelectValue placeholder="Model" />
+                                </SelectTrigger>
+                                <SelectContent align="start" className="max-w-[calc(100vw-2rem)]">
+                                    {MODELS.filter(m => configuredProviders.has(PROVIDER_TO_ENUM[m.provider])).map(m => (
+                                        <SelectItem key={m.value} value={m.value}>
+                                            {m.label}{m.hint ? ` · ${m.hint}` : ""}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            {/* Advanced settings — persona uses buttons (not a nested Select)
+                                so nothing inside the Popover opens a second portal. */}
                             <Popover>
                                 <PopoverTrigger asChild>
-                                    <button
-                                        type="button"
-                                        className="inline-flex items-center gap-1.5 rounded-full border border-foreground/10 hover:bg-foreground/5 px-2.5 py-1 text-xs transition-colors max-w-[180px]"
-                                    >
-                                        <Sparkles className="h-3 w-3 shrink-0 text-muted-foreground" />
-                                        <span className="truncate">{activeModel.label}</span>
-                                        <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
-                                    </button>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full text-muted-foreground" aria-label="Analysis settings">
+                                        <SlidersHorizontal className="h-3.5 w-3.5" />
+                                    </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-80 p-4" align="start">
+                                <PopoverContent
+                                    side="top"
+                                    align="start"
+                                    sideOffset={8}
+                                    collisionPadding={16}
+                                    className="w-80 p-4 max-h-[min(28rem,var(--radix-popover-content-available-height))] overflow-y-auto"
+                                >
                                     <div className="space-y-4">
                                         <h4 className="font-medium leading-none flex items-center gap-2 text-sm">
                                             <SlidersHorizontal className="h-4 w-4" /> Analysis settings
                                         </h4>
 
-                                        <div className="space-y-2">
-                                            <Label htmlFor="model">AI model</Label>
-                                            <Select
-                                                value={settings.modelName || "gemini-2.5-flash"}
-                                                onValueChange={(val) => {
-                                                    const model = MODELS.find(m => m.value === val)
-                                                    setSettings(prev => ({
-                                                        ...prev,
-                                                        modelName: val,
-                                                        modelProvider: model?.provider as PromptSettings["modelProvider"]
-                                                    }))
-                                                }}
-                                            >
-                                                <SelectTrigger id="model" className="h-8">
-                                                    <SelectValue placeholder="Select model" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {MODELS.filter(m => configuredProviders.has(PROVIDER_TO_ENUM[m.provider])).map(m => (
-                                                        <SelectItem key={m.value} value={m.value}>
-                                                            {m.label}{m.hint ? ` · ${m.hint}` : ""}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            {onlyGemini && (
-                                                <Link href="/settings" className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors">
-                                                    <KeyRound className="h-3 w-3" />
-                                                    Add an OpenAI, Claude, or Grok key to unlock more models
-                                                </Link>
-                                            )}
-                                        </div>
+                                        {onlyGemini && (
+                                            <Link href="/settings" className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors">
+                                                <KeyRound className="h-3 w-3 shrink-0" />
+                                                Add an OpenAI, Claude, or Grok key to unlock more models
+                                            </Link>
+                                        )}
 
-                                        <div className="space-y-2">
-                                            <Label htmlFor="profile">Analyst persona</Label>
-                                            <Select value={settings.profile} onValueChange={(val) => setSettings(prev => ({ ...prev, profile: val }))}>
-                                                <SelectTrigger id="profile" className="h-8">
-                                                    <SelectValue placeholder="Select profile" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {PROFILES.map(p => (
-                                                        <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
+                                        <div className="space-y-1.5">
+                                            <Label>Analyst persona</Label>
+                                            <div className="grid gap-1">
+                                                {PROFILES.map(p => (
+                                                    <button
+                                                        key={p.value}
+                                                        type="button"
+                                                        onClick={() => setSettings(prev => ({ ...prev, profile: p.value }))}
+                                                        className={cn(
+                                                            "text-left text-xs rounded-md px-2.5 py-1.5 border transition-colors",
+                                                            settings.profile === p.value
+                                                                ? "border-foreground/30 bg-foreground/5 text-foreground"
+                                                                : "border-transparent text-muted-foreground hover:bg-foreground/5"
+                                                        )}
+                                                    >
+                                                        {p.label}
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
 
                                         <div className="space-y-2">
@@ -312,7 +328,7 @@ function NewAnalysisContent() {
                                 </PopoverContent>
                             </Popover>
 
-                            <span className="hidden sm:inline text-[11px] text-muted-foreground/60 font-mono">
+                            <span className="hidden sm:inline text-[11px] text-muted-foreground/60 font-mono truncate">
                                 Enter to send · Shift+Enter for a new line
                             </span>
                         </div>

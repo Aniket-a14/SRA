@@ -8,7 +8,7 @@ import { fetcher, swrOptions } from "@/lib/swr-utils";
 import { useAnalysisProgress } from "@/lib/hooks";
 
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Sparkles, Save, PanelRight } from "lucide-react"
+import { ArrowLeft, Sparkles, Save, MessageSquare, FileText } from "lucide-react"
 import { updateAnalysis, runValidation, autoFixIssue, startAnalysis, finalizeAnalysis } from "@/lib/analysis-api"
 import type { Analysis, ValidationIssue, StartAnalysisInput } from "@/types/analysis"
 import { SRSIntakeModel } from "@/types/srs-intake"
@@ -74,7 +74,7 @@ function AnalysisDetailContent() {
     const [error, setError] = useState("")
     const [isDiagramEditing, setIsDiagramEditing] = useState(false)
     const [isImproveDialogOpen, setIsImproveDialogOpen] = useState(false)
-    const [isCanvasOpen, setIsCanvasOpen] = useState(true)
+    const [view, setView] = useState<'chat' | 'document'>('document')
     const [isFinalizing, setIsFinalizing] = useState(false)
     const [isValidating, setIsValidating] = useState(false)
     const [isProceeding, setIsProceeding] = useState(false)
@@ -467,62 +467,68 @@ function AnalysisDetailContent() {
     }
 
     if (isTerminal && analysis) {
+        const projectLabel = draftData?.details?.projectName?.content || analysis.projectTitle || analysis.title || "Analysis Result"
         return (
             <div className="h-screen flex flex-col bg-background">
-                {/* Minimal outer chrome — everything that acts on the document itself
-                    lives in the canvas toolbar instead, ChatGPT Canvas / Claude
-                    Artifacts style, rather than a header full of pill buttons. */}
+                {/* One surface at a time, each full-width: the conversation (refinement)
+                    and the document (the SRS) are separate views rather than a cramped
+                    side-by-side split. */}
                 <div className="border-b border-foreground/10 px-4 py-2.5 flex items-center justify-between gap-4 shrink-0">
                     <div className="flex items-center gap-2 min-w-0">
                         <Button variant="ghost" size="icon" onClick={() => router.push('/analysis')} aria-label="Back to analyses">
                             <ArrowLeft className="h-4 w-4" />
                         </Button>
-                        <h1 className="text-sm font-medium truncate">
-                            {draftData?.details?.projectName?.content || analysis.title || "Analysis Result"}
-                        </h1>
+                        <h1 className="text-sm font-medium truncate">{projectLabel}</h1>
                     </div>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setIsCanvasOpen((v) => !v)}
-                        aria-label={isCanvasOpen ? "Hide document" : "Show document"}
-                        className={cn(isCanvasOpen && "bg-foreground/5")}
-                    >
-                        <PanelRight className="h-4 w-4" />
-                    </Button>
+
+                    <div className="flex items-center gap-1 rounded-full border border-foreground/10 p-0.5 shrink-0">
+                        <button
+                            type="button"
+                            onClick={() => setView('chat')}
+                            className={cn(
+                                "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                                view === 'chat' ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            <MessageSquare className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Conversation</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setView('document')}
+                            className={cn(
+                                "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                                view === 'document' ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            <FileText className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Document</span>
+                        </button>
+                    </div>
                 </div>
 
-                <div className="flex-1 flex overflow-hidden relative">
+                <div className="flex-1 overflow-hidden">
                     <AnalysisConversation
                         analysis={analysis}
                         analysisId={id}
                         onAnalysisUpdate={(newId: string) => router.push(`/analysis/${newId}`)}
-                        hidden={isDiagramEditing}
+                        hidden={view !== 'chat' || isDiagramEditing}
                         isFinalized={analysis.isFinalized}
-                        isCanvasOpen={isCanvasOpen}
-                        onOpenCanvas={() => setIsCanvasOpen(true)}
+                        isCanvasOpen={view === 'document'}
+                        onOpenCanvas={() => setView('document')}
                     />
 
-                    {isCanvasOpen && (
-                        <div className={cn(
-                            "bg-background z-40",
-                            "fixed inset-x-0 bottom-0 top-[49px]",
-                            "lg:static lg:inset-auto lg:z-auto lg:w-[48%] lg:shrink-0 lg:border-l lg:border-foreground/10"
-                        )}>
-                            <DocumentCanvas
-                                analysis={analysis}
-                                analysisId={id}
-                                token={token!}
-                                onClose={() => setIsCanvasOpen(false)}
-                                onDiagramEditChange={memoizedOnDiagramEditChange}
-                                onRefresh={memoizedOnRefresh}
-                                onNavigate={(newId) => router.push(`/analysis/${newId}`)}
-                                isFinalizing={isFinalizing}
-                                onFinalize={handleFinalize}
-                                onImproveClick={() => setIsImproveDialogOpen(true)}
-                                className="h-full"
-                            />
-                        </div>
+                    {view === 'document' && (
+                        <DocumentCanvas
+                            analysis={analysis}
+                            analysisId={id}
+                            token={token!}
+                            onDiagramEditChange={memoizedOnDiagramEditChange}
+                            onRefresh={memoizedOnRefresh}
+                            onNavigate={(newId) => router.push(`/analysis/${newId}`)}
+                            isFinalizing={isFinalizing}
+                            onFinalize={handleFinalize}
+                            onImproveClick={() => setIsImproveDialogOpen(true)}
+                            className="h-full"
+                        />
                     )}
                 </div>
 

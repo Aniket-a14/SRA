@@ -233,8 +233,10 @@ export function DocumentCanvas({
             </div>
 
             <div className="flex-1 overflow-y-auto">
-                <div className="flex flex-col gap-4 px-2 sm:px-4">
-                    <SourcesPanel sources={analysis.metadata?.ragSources || []} />
+                <div className="flex flex-col gap-4 w-full max-w-5xl mx-auto">
+                    <div className="px-4 sm:px-6 pt-4">
+                        <SourcesPanel sources={analysis.metadata?.ragSources || []} />
+                    </div>
                     <ErrorBoundary name="Results View">
                         <ResultsTabs
                             data={analysis}

@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Bot, User, Loader2, Sparkles, FileText, Send, Square, PanelRight } from "lucide-react"
+import { Bot, User, Loader2, FileText, Send, Square, PanelRight } from "lucide-react"
 import { cn, cleanInputText } from "@/lib/utils"
 import { toast } from "sonner"
 import { readSSEStream } from "@/lib/sse"
@@ -180,7 +180,7 @@ interface AnalysisConversationProps {
     isCanvasOpen?: boolean
 }
 
-export function AnalysisConversation({ analysis, analysisId, onAnalysisUpdate, hidden, isFinalized, onOpenCanvas, isCanvasOpen }: AnalysisConversationProps) {
+export function AnalysisConversation({ analysis, analysisId, onAnalysisUpdate, hidden, isFinalized, onOpenCanvas }: AnalysisConversationProps) {
     const session = useChatSession(analysisId, onAnalysisUpdate)
     const { messages, input, setInput, isLoading, streamingId, onSendSubmit, handleStop } = session
     const scrollRef = useRef<HTMLDivElement>(null)
@@ -273,16 +273,6 @@ export function AnalysisConversation({ analysis, analysisId, onAnalysisUpdate, h
                 </form>
             </div>
 
-            {!isCanvasOpen && (
-                <button
-                    type="button"
-                    onClick={onOpenCanvas}
-                    className="md:hidden fixed bottom-24 right-4 h-12 w-12 rounded-full bg-foreground text-background shadow-lg flex items-center justify-center z-40"
-                    aria-label="Open document"
-                >
-                    <Sparkles className="h-5 w-5" />
-                </button>
-            )}
         </div>
     )
 }

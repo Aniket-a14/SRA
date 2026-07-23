@@ -80,7 +80,7 @@ export const AppendicesTab = memo(function AppendicesTab({
             {/* Diagrams */}
             <div className="space-y-4">
                 <h3 className="text-lg font-semibold border-l-4 border-primary pl-3">Analysis Models</h3>
-                <div className="grid lg:grid-cols-2 gap-6">
+                <div className="space-y-6">
                     <ErrorBoundary name="Flowchart Diagram">
                         <DiagramEditor
                             title="Flowchart"
@@ -149,7 +149,7 @@ export const AppendicesTab = memo(function AppendicesTab({
                   </ErrorBoundary>
                 </div>
 
-                <div className="grid lg:grid-cols-2 gap-6 mt-6">
+                <div className="mt-6">
                     <ErrorBoundary name="Entity Relationship Diagram">
                         <DiagramEditor
                             title="Entity Relationship Diagram"
