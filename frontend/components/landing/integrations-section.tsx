@@ -31,8 +31,8 @@ export function IntegrationsSection() {
   }, []);
 
   return (
-    <section id="integrations" ref={sectionRef} className="relative py-24 lg:py-32 overflow-hidden">
-      <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
+    <section id="integrations" ref={sectionRef} className="relative py-16 sm:py-20 lg:py-32 overflow-hidden">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12">
         {/* Header */}
         <div
           className={`text-center max-w-3xl mx-auto mb-16 lg:mb-24 transition-all duration-700 ${

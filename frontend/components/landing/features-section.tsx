@@ -5,8 +5,8 @@ import { useEffect, useRef, useState } from "react";
 const features = [
   {
     number: "01",
-    title: "IEEE-830 SRS Generation",
-    description: "Raw stakeholder text becomes a full IEEE-830 specification — scope, functional and non-functional requirements, interfaces, and appendices — drafted by a Product Owner, Architect, and Developer agent chain.",
+    title: "Multi-Format SRS Generation",
+    description: "Raw stakeholder text becomes a full specification in the standard you pick — IEEE 830, ISO/IEC/IEEE 29148, Volere, or Agile PRD. The chosen format drives the real structure end-to-end, drafted by a Product Owner, Architect, and Developer agent chain.",
     visual: "deploy",
   },
   {
@@ -18,7 +18,7 @@ const features = [
   {
     number: "03",
     title: "Bring Your Own LLM Key",
-    description: "Choose Gemini, OpenAI, Claude, or Grok and analyze with your own API key. No key configured? It falls back to the platform's Gemini access automatically.",
+    description: "Choose Gemini, OpenAI, Claude, or Grok and generate on your own API key — encrypted at rest and used only for your analyses. Keys stay yours; the platform key is reserved for embeddings.",
     visual: "collab",
   },
   {
@@ -315,7 +315,7 @@ function FeatureCard({ feature, index }: { feature: typeof features[0]; index: n
       }`}
       style={{ transitionDelay: `${index * 100}ms` }}
     >
-      <div className="flex flex-col lg:flex-row gap-8 lg:gap-16 py-12 lg:py-20 border-b border-foreground/10">
+      <div className="flex flex-col lg:flex-row gap-6 lg:gap-16 py-8 sm:py-10 lg:py-20 border-b border-foreground/10">
         {/* Number */}
         <div className="shrink-0">
           <span className="font-mono text-sm text-muted-foreground">{feature.number}</span>
@@ -364,11 +364,11 @@ export function FeaturesSection() {
     <section
       id="features"
       ref={sectionRef}
-      className="relative py-24 lg:py-32"
+      className="relative py-16 sm:py-20 lg:py-32"
     >
-      <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12">
         {/* Header */}
-        <div className="mb-16 lg:mb-24">
+        <div className="mb-12 sm:mb-16 lg:mb-24">
           <span className="inline-flex items-center gap-3 text-sm font-mono text-muted-foreground mb-6">
             <span className="w-8 h-px bg-foreground/30" />
             Capabilities

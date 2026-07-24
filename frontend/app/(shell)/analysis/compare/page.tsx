@@ -5,15 +5,30 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { VersionDiffViewer } from "@/components/version-diff-viewer"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Loader2 } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
+
+function CompareSkeleton() {
+    return (
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-10 py-8 sm:py-12">
+            <Skeleton className="h-8 w-40 mb-6" />
+            <div className="grid gap-4 md:grid-cols-2">
+                {Array.from({ length: 2 }).map((_, i) => (
+                    <div key={i} className="rounded-xl border border-border p-5 space-y-3">
+                        <Skeleton className="h-5 w-1/3" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-11/12" />
+                        <Skeleton className="h-4 w-4/5" />
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
+}
 
 export default function ComparePage() {
     return (
-        <Suspense fallback={
-            <div className="flex items-center justify-center py-24">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-        }>
+        <Suspense fallback={<CompareSkeleton />}>
             <CompareContent />
         </Suspense>
     )
@@ -44,8 +59,11 @@ function CompareContent() {
                     throw new Error("Failed to fetch diff")
                 }
 
-                const data = await response.json()
-                setDiff(data)
+                const json = await response.json()
+                // Unwrap the { success, message, data } envelope — passing the raw
+                // envelope to VersionDiffViewer would make it diff `success`/`message`
+                // keys instead of the real section changes.
+                setDiff(json?.data ?? json)
             } catch (err) {
                 console.error("Error fetching diff:", err)
                 setError("Failed to load comparison. Ensure you have access to both versions.")
@@ -73,11 +91,7 @@ function CompareContent() {
     }, [v1, v2, token, authLoading, router])
 
     if (authLoading || isLoading) {
-        return (
-            <div className="flex items-center justify-center py-24">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-        )
+        return <CompareSkeleton />
     }
 
     return (

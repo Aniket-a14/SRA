@@ -33,7 +33,10 @@ import useSWR from "swr"
 import { fetcher, swrOptions } from "@/lib/swr-utils"
 import { useMemo } from "react"
 
-type AppSidebarProps = React.HTMLAttributes<HTMLDivElement>
+type AppSidebarProps = React.HTMLAttributes<HTMLDivElement> & {
+    /** Rendered inside the mobile drawer (Sheet) rather than the fixed desktop rail. */
+    inSheet?: boolean
+}
 
 interface AnalysisHistoryItem {
     id: string
@@ -64,7 +67,7 @@ function getInitials(name: string) {
         .slice(0, 2)
 }
 
-export function AppSidebar({ className }: AppSidebarProps) {
+export function AppSidebar({ className, inSheet = false }: AppSidebarProps) {
     const { currentLayer, setLayer, isLayerLocked, maxAllowedLayer, isFinalized } = useLayer()
     const router = useRouter()
     const params = useParams()
@@ -98,11 +101,15 @@ export function AppSidebar({ className }: AppSidebarProps) {
     }
 
     return (
-        <div className={cn("w-64 border-r border-foreground/10 h-screen bg-background flex flex-col fixed left-0 top-0 z-30", className)}>
+        <div className={cn(
+            "w-64 border-r border-foreground/10 bg-background flex flex-col",
+            inSheet ? "h-full w-full border-r-0" : "h-screen fixed left-0 top-0 z-30",
+            className
+        )}>
             <div className="px-4 py-4 border-b border-foreground/10">
                 <Link href="/" className="flex items-center gap-2 mb-4">
                     <span className="text-xl font-display">SRA</span>
-                    <span className="text-[10px] text-muted-foreground font-mono mt-1">IEEE-830</span>
+                    <span className="text-[10px] text-muted-foreground font-mono mt-1">MULTI-FORMAT</span>
                 </Link>
                 <Button
                     variant="outline"

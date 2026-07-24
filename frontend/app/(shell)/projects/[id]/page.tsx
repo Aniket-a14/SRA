@@ -9,7 +9,8 @@ import { cleanInputText } from "@/lib/utils";
 import Link from "next/link";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { ArrowLeft, Edit2, Trash2, FileText, Calendar, Plus, Loader2 } from "lucide-react";
+import { ArrowLeft, Edit2, Trash2, FileText, Calendar, Plus } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -82,14 +83,25 @@ export default function ProjectDetailPage() {
     };
 
     if (isLoading) return (
-        <div className="h-full flex items-center justify-center p-24 text-muted-foreground">
-            <Loader2 className="h-5 w-5 animate-spin" />
+        <div className="max-w-[1000px] mx-auto px-4 sm:px-6 lg:px-10 py-8 sm:py-12">
+            <Skeleton className="h-4 w-24 mb-8" />
+            <Skeleton className="h-9 w-1/2" />
+            <Skeleton className="mt-3 h-4 w-3/4" />
+            <div className="mt-10 grid gap-4 sm:grid-cols-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="rounded-xl border border-border p-5 space-y-3">
+                        <Skeleton className="h-5 w-1/2" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-4/5" />
+                    </div>
+                ))}
+            </div>
         </div>
     );
     if (!project) return null;
 
     return (
-        <div className="max-w-[1000px] mx-auto px-6 lg:px-12 py-12">
+        <div className="max-w-[1000px] mx-auto px-4 sm:px-6 lg:px-10 py-8 sm:py-12">
             <Link href="/projects" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors">
                 <ArrowLeft size={14} className="mr-2" /> Back to projects
             </Link>

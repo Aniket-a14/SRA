@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Bot, User, Loader2, FileText, Send, Square, PanelRight } from "lucide-react"
+import { Bot, User, Loader2, FileText, Send, Square } from "lucide-react"
 import { cn, cleanInputText } from "@/lib/utils"
 import { toast } from "sonner"
 import { readSSEStream } from "@/lib/sse"
@@ -195,9 +195,27 @@ export function AnalysisConversation({ analysis, analysisId, onAnalysisUpdate, h
     if (hidden) return null
 
     return (
-        <div className="flex flex-col h-full min-w-0">
-            <div className="flex-1 overflow-y-auto">
-                <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 flex flex-col gap-6">
+        <div className="relative flex flex-col h-full min-w-0 noise-overlay">
+            {/* Faint ruled backdrop — carries the landing hero's grid motif behind the thread. */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-[0.25]" aria-hidden>
+                {[...Array(5)].map((_, i) => (
+                    <div key={`v-${i}`} className="absolute w-px bg-foreground/10 top-0 bottom-0" style={{ left: `${(100 / 6) * (i + 1)}%` }} />
+                ))}
+            </div>
+
+            <div className="relative flex-1 overflow-y-auto">
+                <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 flex flex-col gap-8">
+                    {/* Editorial thread header */}
+                    <div className="animate-fade-up">
+                        <span className="inline-flex items-center gap-3 text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground/70">
+                            <span className="w-6 h-px bg-foreground/30" />
+                            Refinement thread
+                        </span>
+                        <h2 className="font-display text-3xl leading-tight mt-2">
+                            {analysis.projectTitle || analysis.title || "Your specification"}
+                        </h2>
+                    </div>
+
                     {/* Synthetic opening exchange — frames the generated document as the
                         first turn of the conversation, ChatGPT/Gemini-style, instead of
                         presenting the document as a bare page with chat bolted on. */}
@@ -212,24 +230,26 @@ export function AnalysisConversation({ analysis, analysisId, onAnalysisUpdate, h
                             <button
                                 type="button"
                                 onClick={onOpenCanvas}
-                                className="w-full text-left border border-foreground/10 hover:border-foreground/30 hover:bg-foreground/[0.02] transition-all px-4 py-3 flex items-center gap-3 rounded-lg"
+                                className="group w-full text-left border border-foreground/15 hover:border-foreground/40 hover:bg-foreground/[0.02] transition-all px-5 py-4 flex items-center gap-4"
                             >
-                                <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
+                                <span className="font-display text-2xl text-foreground/25 leading-none group-hover:text-foreground/50 transition-colors">01</span>
                                 <div className="min-w-0 flex-1">
-                                    <p className="font-medium truncate">{analysis.projectTitle || analysis.title || "SRS Document"}</p>
-                                    <p className="text-xs text-muted-foreground font-mono">
-                                        {sectionCount} feature{sectionCount === 1 ? "" : "s"} · v{analysis.version}
+                                    <p className="font-display text-lg truncate leading-tight">{analysis.projectTitle || analysis.title || "SRS Document"}</p>
+                                    <p className="text-[11px] text-muted-foreground font-mono uppercase tracking-wider mt-0.5">
+                                        {sectionCount} feature{sectionCount === 1 ? "" : "s"} · v{analysis.version} · open document
                                     </p>
                                 </div>
-                                <PanelRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                <FileText className="h-5 w-5 shrink-0 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
                             </button>
                         </div>
                     </Bubble>
 
                     {messages.length === 0 && (
-                        <p className="text-sm text-muted-foreground/70 text-center py-4">
-                            Ask me to refine requirements, rewrite user stories, or update diagrams.
-                        </p>
+                        <div className="text-center py-6 border-y border-dashed border-foreground/10">
+                            <p className="text-sm text-muted-foreground/80">
+                                Ask me to refine requirements, rewrite user stories, or update diagrams.
+                            </p>
+                        </div>
                     )}
 
                     {messages.map((msg) => (
@@ -245,31 +265,36 @@ export function AnalysisConversation({ analysis, analysisId, onAnalysisUpdate, h
                 </div>
             </div>
 
-            <div className="border-t border-foreground/10 shrink-0">
-                <form onSubmit={onSendSubmit} className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-end gap-2">
-                    <Textarea
-                        placeholder={isFinalized ? "Analysis finalized — chat disabled" : "Refine a requirement, ask for a rewrite, or request a new diagram..."}
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        disabled={isLoading || isFinalized}
-                        rows={1}
-                        className="min-h-[44px] max-h-40 resize-none rounded-2xl"
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                                e.preventDefault()
-                                onSendSubmit()
-                            }
-                        }}
-                    />
-                    {isLoading ? (
-                        <Button type="button" size="icon" variant="destructive" className="rounded-full shrink-0" onClick={handleStop}>
-                            <Square className="h-4 w-4" />
-                        </Button>
-                    ) : (
-                        <Button type="submit" size="icon" className="rounded-full shrink-0 bg-foreground text-background hover:bg-foreground/90" disabled={!input.trim() || isFinalized}>
-                            <Send className="h-4 w-4" />
-                        </Button>
-                    )}
+            <div className="relative border-t border-foreground/10 shrink-0 bg-background/95 backdrop-blur-sm">
+                <form onSubmit={onSendSubmit} className="max-w-3xl mx-auto px-4 sm:px-6 py-4">
+                    <div className="flex items-end gap-2 rounded-2xl border border-foreground/15 focus-within:border-foreground/40 transition-colors bg-card/40 pl-4 pr-2 py-2">
+                        <Textarea
+                            placeholder={isFinalized ? "Analysis finalized — chat disabled" : "Refine a requirement, ask for a rewrite, or request a new diagram…"}
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            disabled={isLoading || isFinalized}
+                            rows={1}
+                            className="min-h-[36px] max-h-40 resize-none border-0 shadow-none focus-visible:ring-0 bg-transparent px-0 py-1.5"
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" && !e.shiftKey) {
+                                    e.preventDefault()
+                                    onSendSubmit()
+                                }
+                            }}
+                        />
+                        {isLoading ? (
+                            <Button type="button" size="icon" variant="destructive" className="rounded-full shrink-0" onClick={handleStop}>
+                                <Square className="h-4 w-4" />
+                            </Button>
+                        ) : (
+                            <Button type="submit" size="icon" className="rounded-full shrink-0 bg-foreground text-background hover:bg-foreground/90" disabled={!input.trim() || isFinalized}>
+                                <Send className="h-4 w-4" />
+                            </Button>
+                        )}
+                    </div>
+                    <p className="text-[10px] font-mono text-muted-foreground/50 mt-2 text-center uppercase tracking-wider">
+                        Enter to send · Shift+Enter for a new line
+                    </p>
                 </form>
             </div>
 

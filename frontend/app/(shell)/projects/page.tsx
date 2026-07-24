@@ -10,16 +10,35 @@ import { fetcher, swrOptions } from "@/lib/swr-utils";
 
 import Link from "next/link";
 import { toast } from "sonner";
-import { format, formatDistanceToNow } from "date-fns";
-import { Plus, Folder, Loader2, MessageSquare, ArrowRight } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { Plus, Folder, MessageSquare, Search, Clock, ArrowUpRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface AnalysisHistoryItem {
     id: string
     createdAt: string
     inputPreview: string
     title?: string
+}
+
+/** Deterministic soft gradient per project so the grid reads as distinct tiles at a glance. */
+const GRADIENTS = [
+    "from-violet-500/20 to-indigo-500/10",
+    "from-emerald-500/20 to-teal-500/10",
+    "from-amber-500/20 to-orange-500/10",
+    "from-sky-500/20 to-blue-500/10",
+    "from-rose-500/20 to-pink-500/10",
+    "from-fuchsia-500/20 to-purple-500/10",
+];
+function gradientFor(seed: string) {
+    let h = 0;
+    for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+    return GRADIENTS[h % GRADIENTS.length];
+}
+function initials(name: string) {
+    return name.trim().split(/\s+/).slice(0, 2).map(w => w[0]?.toUpperCase() || "").join("") || "P";
 }
 
 export default function ProjectsPage() {
@@ -29,13 +48,14 @@ export default function ProjectsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
     const [newProjectName, setNewProjectName] = useState("");
+    const [query, setQuery] = useState("");
 
     const recentSwrKey = useMemo(() => {
         if (!token) return null;
         return [`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, token] as const;
     }, [token]);
     const { data: recentData } = useSWR<AnalysisHistoryItem[]>(recentSwrKey, fetcher, swrOptions);
-    const recent = (Array.isArray(recentData) ? recentData : []).slice(0, 4);
+    const recent = (Array.isArray(recentData) ? recentData : []).slice(0, 6);
 
     useEffect(() => {
         if (isAuthLoading) return;
@@ -72,111 +92,171 @@ export default function ProjectsPage() {
         }
     };
 
+    const filtered = useMemo(() => {
+        const q = query.trim().toLowerCase();
+        if (!q) return projects;
+        return projects.filter(p =>
+            p.name.toLowerCase().includes(q) || (p.description || "").toLowerCase().includes(q)
+        );
+    }, [projects, query]);
+
     return (
-        <div className="max-w-[1200px] mx-auto px-6 lg:px-12 py-12">
-            <div className="flex justify-between items-center mb-10">
-                <h1 className="text-3xl lg:text-4xl font-display tracking-tight">Projects</h1>
-                <div className="flex items-center gap-2">
-                    <Button
-                        variant="outline"
-                        className="rounded-full gap-2"
-                        onClick={() => router.push("/analysis/new")}
-                    >
-                        <MessageSquare className="h-4 w-4" /> New analysis
-                    </Button>
-                    <Button
-                        onClick={() => setIsCreating(true)}
-                        className="bg-foreground hover:bg-foreground/90 text-background rounded-full gap-2"
-                    >
-                        <Plus className="h-4 w-4" /> New project
-                    </Button>
-                </div>
-            </div>
-
-            {isCreating && (
-                <form onSubmit={handleCreate} className="mb-10 p-4 border border-foreground/10 flex gap-4">
-                    <Input
-                        type="text"
-                        value={newProjectName}
-                        onChange={(e) => setNewProjectName(e.target.value)}
-                        placeholder="Project name"
-                        className="flex-1"
-                        required
-                        autoFocus
-                    />
-                    <Button type="submit" className="bg-foreground hover:bg-foreground/90 text-background rounded-full">
-                        Create
-                    </Button>
-                    <Button type="button" variant="outline" className="rounded-full" onClick={() => setIsCreating(false)}>
-                        Cancel
-                    </Button>
-                </form>
-            )}
-
-            {/* Recent activity — a quick-access row of your latest analyses across all
-                projects, ChatGPT/Gemini-style, ahead of the project folders themselves. */}
-            {recent.length > 0 && (
-                <div className="mb-12">
-                    <h2 className="text-xs font-mono uppercase tracking-wide text-muted-foreground mb-3">
-                        Jump back in
-                    </h2>
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                        {recent.map((item) => (
-                            <Link key={item.id} href={`/analysis/${item.id}`}>
-                                <div className="border border-foreground/10 p-4 hover:border-foreground/30 hover:bg-foreground/[0.02] transition-all h-full flex flex-col justify-between">
-                                    <p className="text-sm font-medium line-clamp-2 mb-3">
-                                        {item.title || item.inputPreview || "Untitled analysis"}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground font-mono">
-                                        {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
-                                    </p>
-                                </div>
-                            </Link>
-                        ))}
+        <div className="min-h-screen">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+                {/* Header */}
+                <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Projects</h1>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Workspaces for the systems you&apos;re specifying.
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            className="gap-2 rounded-lg"
+                            onClick={() => router.push("/analysis/new")}
+                        >
+                            <MessageSquare className="h-4 w-4" /> New analysis
+                        </Button>
+                        <Button
+                            onClick={() => setIsCreating(true)}
+                            className="gap-2 rounded-lg bg-foreground text-background hover:bg-foreground/90"
+                        >
+                            <Plus className="h-4 w-4" /> New project
+                        </Button>
                     </div>
                 </div>
-            )}
 
-            <h2 className="text-xs font-mono uppercase tracking-wide text-muted-foreground mb-3">
-                All projects
-            </h2>
+                {/* Search */}
+                <div className="relative mt-6">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        placeholder="Search projects…"
+                        className="h-11 rounded-xl pl-9"
+                    />
+                </div>
 
-            {isLoading ? (
-                <div className="flex items-center gap-2 text-muted-foreground py-20 justify-center">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Loading projects…
-                </div>
-            ) : projects.length === 0 ? (
-                <div className="text-center py-24 border border-dashed border-foreground/10">
-                    <Folder className="mx-auto h-10 w-10 text-muted-foreground mb-4" />
-                    <h3 className="text-xl font-display mb-2">No projects yet</h3>
-                    <p className="text-muted-foreground">Create your first project to get started</p>
-                </div>
-            ) : (
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {projects.map(project => (
-                        <Link key={project.id} href={`/projects/${project.id}`}>
-                            <div className="group border border-foreground/10 p-6 hover:border-foreground/30 hover:bg-foreground/[0.02] transition-all duration-300 h-full flex flex-col">
-                                <div className="flex items-start justify-between mb-4">
-                                    <div className="h-9 w-9 rounded-full bg-foreground/5 flex items-center justify-center">
-                                        <Folder className="h-4 w-4 text-muted-foreground" />
+                {/* Inline create */}
+                {isCreating && (
+                    <form onSubmit={handleCreate} className="mt-4 flex items-center gap-2 rounded-xl border border-border bg-card/50 p-2 pl-4">
+                        <Input
+                            type="text"
+                            value={newProjectName}
+                            onChange={(e) => setNewProjectName(e.target.value)}
+                            placeholder="Name your project…"
+                            className="flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0"
+                            required
+                            autoFocus
+                        />
+                        <Button type="submit" size="sm" className="rounded-lg bg-foreground text-background hover:bg-foreground/90">Create</Button>
+                        <Button type="button" size="icon" variant="ghost" className="rounded-lg" onClick={() => setIsCreating(false)}>
+                            <X className="h-4 w-4" />
+                        </Button>
+                    </form>
+                )}
+
+                {/* Recent activity */}
+                {recent.length > 0 && (
+                    <section className="mt-9">
+                        <div className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                            <Clock className="h-4 w-4" /> Jump back in
+                        </div>
+                        <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2">
+                            {recent.map((item) => (
+                                <Link
+                                    key={item.id}
+                                    href={`/analysis/${item.id}`}
+                                    className="group min-w-[210px] max-w-[210px] shrink-0 rounded-xl border border-border bg-card/50 p-4 transition-colors hover:border-foreground/25 hover:bg-card"
+                                >
+                                    <div className="mb-6 flex items-center justify-between">
+                                        <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                                        <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
                                     </div>
-                                    <span className="text-xs font-mono text-muted-foreground border border-foreground/10 px-2 py-1">
-                                        {project._count?.analyses || 0} analyses
-                                    </span>
+                                    <p className="line-clamp-2 text-sm font-medium leading-snug">
+                                        {item.title || item.inputPreview || "Untitled analysis"}
+                                    </p>
+                                    <p className="mt-1.5 text-xs text-muted-foreground">
+                                        {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
+                                    </p>
+                                </Link>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {/* Projects */}
+                <section className="mt-9">
+                    <div className="mb-4 flex items-center justify-between">
+                        <h2 className="text-sm font-medium text-muted-foreground">All projects</h2>
+                        {!isLoading && projects.length > 0 && (
+                            <span className="text-xs text-muted-foreground">{filtered.length} of {projects.length}</span>
+                        )}
+                    </div>
+
+                    {isLoading ? (
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            {Array.from({ length: 6 }).map((_, i) => (
+                                <div key={i} className="rounded-2xl border border-border p-5">
+                                    <Skeleton className="h-11 w-11 rounded-xl" />
+                                    <Skeleton className="mt-4 h-5 w-2/3" />
+                                    <Skeleton className="mt-2 h-4 w-full" />
+                                    <Skeleton className="mt-1.5 h-4 w-4/5" />
+                                    <Skeleton className="mt-6 h-3 w-1/2" />
                                 </div>
-                                <h3 className="font-display text-xl mb-2">{project.name}</h3>
-                                <p className="text-sm text-muted-foreground line-clamp-2 min-h-[40px] flex-1">
-                                    {project.description || "No description"}
-                                </p>
-                                <div className="mt-4 pt-4 border-t border-foreground/10 flex items-center justify-between text-xs text-muted-foreground">
-                                    <span>Updated {format(new Date(project.updatedAt), 'MMM d, yyyy')}</span>
-                                    <ArrowRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 -translate-x-1 group-hover:translate-x-0 transition-all" />
-                                </div>
+                            ))}
+                        </div>
+                    ) : filtered.length === 0 ? (
+                        <div className="rounded-2xl border border-dashed border-border py-16 text-center">
+                            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                                <Folder className="h-5 w-5 text-muted-foreground" />
                             </div>
-                        </Link>
-                    ))}
-                </div>
-            )}
+                            <h3 className="text-lg font-medium">
+                                {query ? "No matches" : "No projects yet"}
+                            </h3>
+                            <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
+                                {query
+                                    ? "Try a different search term."
+                                    : "Create your first project to start turning stakeholder text into verifiable specs."}
+                            </p>
+                            {!query && (
+                                <Button onClick={() => setIsCreating(true)} className="mt-5 gap-2 rounded-lg bg-foreground text-background hover:bg-foreground/90">
+                                    <Plus className="h-4 w-4" /> New project
+                                </Button>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            {filtered.map((project) => (
+                                <Link key={project.id} href={`/projects/${project.id}`} className="group">
+                                    <div className="flex h-full flex-col rounded-2xl border border-border bg-card/40 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-foreground/20 hover:bg-card hover:shadow-sm">
+                                        <div className="flex items-start justify-between">
+                                            <div className={`flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br ${gradientFor(project.id)} text-sm font-semibold`}>
+                                                {initials(project.name)}
+                                            </div>
+                                            <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                                                {project._count?.analyses || 0} analyses
+                                            </span>
+                                        </div>
+                                        <h3 className="mt-4 line-clamp-1 text-lg font-semibold group-hover:text-foreground">
+                                            {project.name}
+                                        </h3>
+                                        <p className="mt-1 line-clamp-2 flex-1 text-sm text-muted-foreground">
+                                            {project.description || "No description yet."}
+                                        </p>
+                                        <div className="mt-5 flex items-center justify-between border-t border-border/70 pt-3 text-xs text-muted-foreground">
+                                            <span>Updated {formatDistanceToNow(new Date(project.updatedAt), { addSuffix: true })}</span>
+                                            <ArrowUpRight className="h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100" />
+                                        </div>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    )}
+                </section>
+            </div>
         </div>
     );
 }

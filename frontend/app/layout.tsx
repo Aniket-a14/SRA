@@ -52,7 +52,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="scroll-smooth" suppressHydrationWarning>
-      <body className={`${instrumentSans.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
+      {/* suppressHydrationWarning: browser extensions (Grammarly, etc.) inject
+          attributes like data-gr-ext-installed onto <body> after SSR, which React
+          otherwise flags as a hydration mismatch. Scoped to this one element — it
+          only silences attribute diffs on <body> itself, not on the app tree. */}
+      <body suppressHydrationWarning className={`${instrumentSans.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
         <Providers>
           {children}
           <Toaster closeButton />

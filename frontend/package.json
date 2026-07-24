@@ -9,7 +9,10 @@
     "dev": "cross-env NODE_OPTIONS='--max-old-space-size=8192' next dev -p 3001",
     "build": "cross-env NODE_OPTIONS='--max-old-space-size=8192' next build",
     "start": "cross-env NODE_OPTIONS='--max-old-space-size=8192' next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@blocknote/core": "^0.46.2",
@@ -54,13 +57,12 @@
     "clsx": "^2.1.1",
     "cmdk": "1.0.4",
     "date-fns": "^4.1.0",
+    "docx": "^9.7.1",
     "embla-carousel-react": "8.5.1",
     "file-saver": "^2.0.5",
     "framer-motion": "^12.23.24",
     "html-to-image": "^1.11.13",
     "input-otp": "1.4.1",
-    "jspdf": "^4.2.1",
-    "jspdf-autotable": "^5.0.2",
     "jszip": "^3.10.1",
     "lucide-react": "^0.454.0",
     "mermaid": "^11.12.3",
@@ -85,7 +87,6 @@
     "@tailwindcss/postcss": "^4.1.9",
     "@types/d3-color": "^3.1.3",
     "@types/file-saver": "^2.0.7",
-    "@types/jspdf": "^1.3.3",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -98,6 +99,7 @@
     "postcss": "^8.5.3",
     "tailwindcss": "^4.1.9",
     "tw-animate-css": "1.3.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   }
 }

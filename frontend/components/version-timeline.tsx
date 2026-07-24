@@ -34,6 +34,18 @@ interface VersionTimelineProps {
     hideHeader?: boolean
 }
 
+/** Turn a raw model id (gemini-2.5-flash, gpt-5.6, claude-opus-4-8) into a short human label. */
+function formatModelLabel(modelName?: string): string {
+    if (!modelName) return "";
+    return modelName
+        .replace(/^gemini-/, "Gemini ")
+        .replace(/^gpt-/, "GPT-")
+        .replace(/^claude-/, "Claude ")
+        .replace(/^grok-/, "Grok ")
+        .replace(/-/g, " ")
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export function VersionTimeline({ rootId, currentId, className, hideHeader = false }: VersionTimelineProps) {
     const router = useRouter()
     const { token } = useAuth()
@@ -50,8 +62,11 @@ export function VersionTimeline({ rootId, currentId, className, hideHeader = fal
                     }
                 })
                 if (response.ok) {
-                    const data = await response.json()
-                    setHistory(data)
+                    const json = await response.json()
+                    // Backend wraps every payload in { success, message, data }.
+                    // Consuming `json` directly would set history to the envelope object
+                    // (which has no `.map`), crashing the timeline — unwrap `.data`.
+                    setHistory(Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []))
                 }
             } catch (error) {
                 console.error("Failed to fetch history", error)
@@ -90,17 +105,10 @@ export function VersionTimeline({ rootId, currentId, className, hideHeader = fal
                         else if (trigger === 'edit') { BadgeIcon = FileText; badgeLabel = "Edit"; }
                         else if (trigger === 'initial') { BadgeIcon = GitBranch; badgeLabel = "Initial"; }
 
-                        // Model Badge Logic
-                        let modelLabel = "";
-                        if (modelName) {
-                            if (modelName.includes('gpt')) {
-                                modelLabel = modelName.includes('4') ? 'GPT-4o' : 'GPT-3.5';
-                            } else if (modelName.includes('gemini')) {
-                                modelLabel = modelName.includes('pro') ? 'Gemini Pro' : 'Gemini Flash';
-                            } else {
-                                modelLabel = modelName;
-                            }
-                        }
+                        // Show the actual model that produced this version. The old logic
+                        // hardcoded "GPT-4o"/"GPT-3.5"/"Gemini Pro" heuristics that mislabelled
+                        // whatever model was really used (e.g. a gpt-5.x run showed "GPT-4o").
+                        const modelLabel = formatModelLabel(modelName);
 
                         return (
                             <div key={version.id} className="relative pl-6 pb-6 last:pb-0">

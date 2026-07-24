@@ -24,7 +24,7 @@ export function FooterSection() {
         <AnimatedWave />
       </div>
 
-      <div className="relative z-10 max-w-[1400px] mx-auto px-6 lg:px-12">
+      <div className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12">
         {/* Main Footer */}
         <div className="py-16 lg:py-24">
           <div className="grid grid-cols-2 md:grid-cols-6 gap-12 lg:gap-8">
@@ -32,12 +32,13 @@ export function FooterSection() {
             <div className="col-span-2">
               <Link href="/" className="inline-flex items-center gap-2 mb-6">
                 <span className="text-2xl font-display">SRA</span>
-                <span className="text-xs text-muted-foreground font-mono">IEEE-830</span>
+                <span className="text-xs text-muted-foreground font-mono">MULTI-FORMAT</span>
               </Link>
 
               <p className="text-muted-foreground leading-relaxed mb-8 max-w-xs">
                 Smart Requirements Analyzer. Raw stakeholder text to a verified
-                IEEE-830 spec, drafted by a multi-agent pipeline.
+                spec — IEEE 830, ISO 29148, Volere, or Agile PRD — drafted by a
+                multi-agent pipeline.
               </p>
             </div>
 

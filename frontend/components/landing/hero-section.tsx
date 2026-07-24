@@ -55,7 +55,7 @@ export function HeroSection() {
         ))}
       </div>
 
-      <div className="relative z-10 max-w-[1400px] mx-auto px-6 lg:px-12 py-32 lg:py-40">
+      <div className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12 py-24 sm:py-28 lg:py-40">
         {/* Eyebrow */}
         <div
           className={`mb-8 transition-all duration-700 ${
@@ -108,9 +108,9 @@ export function HeroSection() {
               isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
             }`}
           >
-            Turn raw stakeholder text into a complete IEEE-830 specification —
-            drafted, reviewed, and refined by a multi-agent AI pipeline, then
-            verified against your real codebase.
+            Turn raw stakeholder text into a complete requirements specification —
+            in IEEE 830, ISO 29148, Volere, or Agile PRD format — drafted, reviewed,
+            and refined by a multi-agent AI pipeline, then verified against your real codebase.
           </p>
 
           {/* CTAs */}
@@ -154,7 +154,7 @@ export function HeroSection() {
               {[
                 { value: "5", label: "agents in the pipeline", company: "MULTI-AGENT" },
                 { value: "4", label: "LLM providers, your key", company: "BRING YOUR OWN KEY" },
-                { value: "IEEE 830", label: "compliant spec structure", company: "STANDARD" },
+                { value: "4", label: "spec formats: IEEE · ISO · Volere · PRD", company: "MULTI-FORMAT" },
                 { value: "2", label: "max reflection passes per draft", company: "QUALITY LOOP" },
               ].map((stat) => (
                 <div key={`${stat.company}-${i}`} className="flex items-baseline gap-4">

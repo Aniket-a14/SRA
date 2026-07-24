@@ -31,8 +31,8 @@ export function CtaSection() {
   };
 
   return (
-    <section ref={sectionRef} className="relative py-24 lg:py-32 overflow-hidden">
-      <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
+    <section ref={sectionRef} className="relative py-16 sm:py-20 lg:py-32 overflow-hidden">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12">
         <div
           className={`relative border border-foreground transition-all duration-1000 ${
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
@@ -58,9 +58,9 @@ export function CtaSection() {
                 </h2>
 
                 <p className="text-xl text-muted-foreground mb-12 leading-relaxed max-w-xl">
-                  Paste your stakeholder text, pick a provider, and watch the
-                  pipeline draft, review, and refine an IEEE-830 spec you can
-                  verify against real code.
+                  Paste your stakeholder text, pick a provider and format, and watch
+                  the pipeline draft, review, and refine a standards-compliant spec you
+                  can verify against real code.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-start gap-4">
