@@ -1,18 +1,15 @@
-import { performAnalysis, getUserAnalyses, getAnalysisById, getAnalysisHistory, deleteAnalysis as deleteAnalysisService } from '../services/analysisService.js';
+import { performAnalysis, getUserAnalyses, getAnalysisById, getAnalysisHistory, deleteAnalysis as deleteAnalysisService, createDraftAnalysis } from '../services/analysisService.js';
 import { processChat, processChatStream } from '../services/chatService.js';
-import { addAnalysisJob, getJobStatus } from '../services/queueService.js';
+import { addAnalysisJob, getJobStatus, resumeAnalysisJob } from '../services/queueService.js';
 import { surgicalRefine } from '../services/surgicalRefineService.js';
 import { compareAnalyses } from '../services/diffService.js';
 import { lintRequirements, checkAlignment } from '../services/qualityService.js';
 import { validateRequirements, autoFixRequirements } from '../services/validationService.js';
-import { analyzeText, repairDiagram as aiRepairDiagram } from '../services/aiService.js';
-import { embedText } from '../services/embeddingService.js';
+import { repairDiagram as aiRepairDiagram } from '../services/aiService.js';
+import { embedText } from '../services/knowledge/embeddingService.js';
 import { ensureProjectExists } from '../services/projectService.js';
-import { findReuseCandidate } from '../services/reuseService.js';
-import { FEATURE_EXPANSION_PROMPT, DFD_STRUCT_GEN_PROMPT } from '../utils/prompts.js';
-import { layoutAllDFD } from '../services/dfdLayoutService.js';
-import { OUTPUT_TOKEN_LIMITS, TEMPERATURES } from '../utils/llmGenerationConfig.js';
-import { stringifyForPrompt } from '../utils/promptCompaction.js';
+import { findReuseCandidate } from '../services/knowledge/reuseService.js';
+import { expandFeatureContent, generateDfdStructure } from '../services/featureService.js';
 import prisma from '../config/prisma.js';
 import crypto from 'crypto';
 import { successResponse } from '../utils/response.js';
@@ -32,68 +29,8 @@ export const analyze = async (req, res, next) => {
         if (srsData) {
             // LAYER 1: Draft / Validation Mode
             if (req.body.draft) {
-                // Synchronous Draft Creation (No AI)
-                // We store the structured input in metadata.draftData
-                // We use a dummy inputText and resultJson to satisfy schema constraints for now.
-                const newAnalysis = await prisma.analysis.create({
-                    data: {
-                        userId: req.user.userId,
-                        inputText: JSON.stringify(srsData), // Serialize as input
-                        resultJson: { // Dummy result for schema compliance
-                            projectTitle: srsData.details?.projectName?.content || "Draft Project",
-                            introduction: {
-                                projectName: srsData.details?.projectName?.content || "",
-                                purpose: srsData.details?.fullDescription?.content || "",
-                                scope: "",
-                                intendedAudience: "",
-                                references: [],
-                                documentConventions: ""
-                            },
-                            overallDescription: {
-                                productPerspective: "See Introduction",
-                                productFunctions: [],
-                                userClassesAndCharacteristics: [],
-                                operatingEnvironment: "",
-                                designAndImplementationConstraints: [],
-                                userDocumentation: [],
-                                assumptionsAndDependencies: []
-                            },
-                            externalInterfaceRequirements: {
-                                userInterfaces: "",
-                                hardwareInterfaces: "",
-                                softwareInterfaces: "",
-                                communicationsInterfaces: ""
-                            },
-                            // Unified Input -> No systemFeatures yet (AI generates them)
-                            systemFeatures: [],
-                            nonFunctionalRequirements: {
-                                performanceRequirements: [],
-                                safetyRequirements: [],
-                                securityRequirements: [],
-                                softwareQualityAttributes: [],
-                                businessRules: []
-                            },
-                            otherRequirements: [],
-                            status: "DRAFT"
-                        },
-                        version: 1,
-                        title: (srsData.details?.projectName?.content || "Draft Analysis") + " (Draft)",
-                        projectId: req.body.projectId,
-                        status: "DRAFT", // Pipeline lifecycle status (typed column)
-                        metadata: {
-                            trigger: 'initial',
-                            source: 'user',
-                            // metadata.status tracks the finer-grained draft/validation
-                            // sub-state (DRAFT -> VALIDATING -> VALIDATED/NEEDS_FIX) that the
-                            // frontend wizard (analysis/[id]/page.tsx) keys its step-unlock
-                            // logic on — a distinct axis from the pipeline lifecycle above,
-                            // not a duplicate of it, so it stays here rather than on the enum.
-                            status: 'DRAFT',
-                            draftData: srsData, // Store full source here
-                            promptSettings: req.body.settings || {}
-                        }
-                    }
-                });
+                // Synchronous Draft Creation (No AI) — logic lives in analysisService.createDraftAnalysis.
+                const newAnalysis = await createDraftAnalysis(req.user.userId, srsData, req.body.projectId, req.body.settings);
 
                 return successResponse(res, {
                     id: newAnalysis.id,
@@ -221,6 +158,21 @@ export const deleteAnalysis = async (req, res, next) => {
 
         const result = await deleteAnalysisService(req.user.userId, id, { chain });
         return successResponse(res, result, 'Analysis deleted');
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Resume a FAILED analysis from its last checkpoint (POST /:id/resume). Re-dispatches the
+ * same analysisId to the worker; the pipeline reuses the checkpointed stages instead of
+ * restarting from the Product Owner agent.
+ */
+export const resumeAnalysis = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const result = await resumeAnalysisJob(req.user.userId, id);
+        return successResponse(res, result, 'Analysis resuming');
     } catch (error) {
         next(error);
     }
@@ -875,24 +827,7 @@ export const expandFeature = async (req, res, next) => {
             throw error;
         }
 
-        // Prepare prompt
-        const finalPrompt = FEATURE_EXPANSION_PROMPT
-            .replace('{{name}}', 'Provided in user input')
-            .replace('{{prompt}}', 'Provided in user input');
-
-        // Call AI Service with clean system prompt and no SRS validation
-        const result = await analyzeText(`Feature Name: ${name}\nDescription/Prompt: ${prompt}`, {
-            ...settings,
-            systemPrompt: finalPrompt,
-            temperature: TEMPERATURES.developer,
-            maxOutputTokens: OUTPUT_TOKEN_LIMITS.mediumJson,
-            zodSchema: null
-        });
-
-        if (result.error) {
-            throw new Error(result.error);
-        }
-
+        const result = await expandFeatureContent(name, prompt, settings);
         return successResponse(res, result);
     } catch (error) {
         next(error);
@@ -933,27 +868,7 @@ export const generateDFD = async (req, res, next) => {
             throw err;
         }
 
-        // Prepare prompt
-        const finalPrompt = DFD_STRUCT_GEN_PROMPT.replaceAll('{{projectName}}', projectName);
-
-        // Call AI Service with clean system prompt and no SRS validation
-        const result = await analyzeText(`Project: ${projectName}\nDescription: ${description}\nSRS Content Reference: ${stringifyForPrompt(srsContent || "N/A", 12000)}`, {
-            ...settings,
-            systemPrompt: finalPrompt,
-            temperature: TEMPERATURES.architect,
-            maxOutputTokens: OUTPUT_TOKEN_LIMITS.architectSection,
-            zodSchema: null
-        });
-
-        if (result.error) {
-            throw new Error(result.error);
-        }
-
-        // Apply Layouting
-        if (result.success && result.srs) {
-            result.srs = layoutAllDFD(result.srs);
-        }
-
+        const result = await generateDfdStructure(projectName, description, srsContent, settings);
         res.json(result);
     } catch (error) {
         next(error);

@@ -15,6 +15,25 @@ interface AnalysisHistoryItem {
     inputPreview: string
     version?: number
     title?: string
+    status?: string
+    resultQuality?: string
+    resumable?: boolean
+    failureReason?: string
+}
+
+/** Small status pill for a run's lifecycle state (only rendered for non-completed states). */
+function StatusPill({ status, resultQuality }: { status?: string; resultQuality?: string }) {
+    const s = (status || "").toUpperCase()
+    if (s === "FAILED") {
+        return <Badge className="h-6 px-2 text-xs shrink-0 border-transparent bg-destructive/10 text-destructive">Failed · resume</Badge>
+    }
+    if (s === "PENDING" || s === "IN_PROGRESS" || s === "QUEUED") {
+        return <Badge className="h-6 px-2 text-xs shrink-0 border-transparent bg-amber-500/10 text-amber-600 dark:text-amber-400">In progress</Badge>
+    }
+    if ((resultQuality || "").toUpperCase() === "PARTIAL") {
+        return <Badge className="h-6 px-2 text-xs shrink-0 border-transparent bg-amber-500/10 text-amber-600 dark:text-amber-400">Partial</Badge>
+    }
+    return null
 }
 
 interface AnalysisHistoryProps {
@@ -67,6 +86,7 @@ export function AnalysisHistory({ items }: AnalysisHistoryProps) {
                                     <CardTitle className="text-base font-semibold group-hover:text-primary transition-colors line-clamp-1">
                                         {item.title || "Requirements Analysis"}
                                     </CardTitle>
+                                    <StatusPill status={item.status} resultQuality={item.resultQuality} />
                                 </div>
                             </div>
                             <div className="flex items-center gap-2 text-sm text-muted-foreground shrink-0">
@@ -81,7 +101,7 @@ export function AnalysisHistory({ items }: AnalysisHistoryProps) {
                             </p>
 
                             <div className="flex items-center gap-1 text-xs text-primary font-medium mt-3 opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0">
-                                View Details <ArrowRight className="h-3 w-3" />
+                                {(item.status || "").toUpperCase() === "FAILED" ? "Resume analysis" : "View Details"} <ArrowRight className="h-3 w-3" />
                             </div>
                         </CardContent>
                     </Card>

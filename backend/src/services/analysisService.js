@@ -2,18 +2,23 @@ import prisma from '../config/prisma.js';
 import { getRedisClient } from '../config/redis.js';
 import logger from '../config/logger.js';
 import { lintRequirements, checkAlignment } from './qualityService.js';
-import { extractGraph } from './graphService.js';
-import { repairDiagram } from './aiService.js';
+import { extractGraph } from './knowledge/graphService.js';
+import { validateAndAutoRepairDiagrams } from './pipeline/diagramRepair.js';
+import { runReflectionLoop } from './pipeline/reflectionStage.js';
+import { generateSrsSections } from './pipeline/developerStage.js';
+import { generateFormatDoc, auditFormatDoc } from './pipeline/formatGenerator.js';
+import { getFormat, isValidFormatId, DEFAULT_FORMAT_ID } from '../formats/index.js';
 import { ProductOwnerAgent } from '../agents/ProductOwnerAgent.js';
 import { ArchitectAgent } from '../agents/ArchitectAgent.js';
 import { DeveloperAgent } from '../agents/DeveloperAgent.js';
 import { ReviewerAgent } from '../agents/ReviewerAgent.js';
 import { CriticAgent } from '../agents/CriticAgent.js';
-import { resolveProviderKey } from './providerKeyService.js';
+import { resolveProviderKey } from './providers/providerKeyService.js';
 import { publishProgress } from './progressService.js';
-import { evalService } from './evalService.js';
-import { retrieveContext, formatRagContext } from './ragService.js';
+import { evalService } from './knowledge/evalService.js';
+import { retrieveContext, formatRagContext } from './knowledge/ragService.js';
 import { createReviewSnapshot } from '../utils/promptCompaction.js';
+import { createCooldown } from '../utils/throttle.js';
 const CACHE_TTL = 3600; // 1 hour in seconds
 
 // Gemini free-tier rate limits (requests/minute) are the reason for these — not
@@ -39,10 +44,45 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
     let finalIndustryAudit = null;
     let srsDraft = null; // Declare upfront to avoid ReferenceError in catch block
 
+    // Resolve the target SRS format up front (outside the try) so it's available for the
+    // final lint/persist step too. Defaults to IEEE-830 (the legacy sectional pipeline).
+    const formatId = settings.format && isValidFormatId(settings.format) ? settings.format : DEFAULT_FORMAT_ID;
+    const spec = getFormat(formatId);
+
     // Section-level progress for the SSE stream endpoint (GET /api/analysis/:id/stream) —
     // best-effort only, never lets a broadcast failure affect the actual pipeline run.
     const emitProgress = (stage, message, extra = {}) => {
         publishProgress(analysisId, { stage, message, ...extra }).catch(() => {});
+    };
+
+    // RESUME SUPPORT — load any checkpoint a prior failed run left behind so the expensive
+    // completed stages (Product Owner, RAG context, Architect, Developer draft) are reused
+    // instead of re-run from scratch. `persistedMeta` is the row's existing metadata bag,
+    // preserved across checkpoint writes so we never clobber promptSettings/draftData/etc.
+    let persistedMeta = {};
+    let checkpoint = {};
+    if (analysisId) {
+        try {
+            const existingRow = await prisma.analysis.findUnique({ where: { id: analysisId }, select: { metadata: true } });
+            persistedMeta = existingRow?.metadata || {};
+            checkpoint = persistedMeta.checkpoint || {};
+        } catch (e) {
+            logger.warn({ msg: 'Could not load checkpoint (starting fresh)', error: e.message, analysisId });
+        }
+    }
+    const isResume = Object.keys(checkpoint).length > 0;
+    if (isResume) logger.info({ msg: '[Resume] Continuing analysis from checkpoint', analysisId, stages: Object.keys(checkpoint) });
+    srsDraft = checkpoint.srsDraft || null;
+
+    /** Persist a checkpoint patch into metadata.checkpoint (best-effort; never breaks the run). */
+    const saveCheckpoint = async (patch) => {
+        if (!analysisId) return;
+        checkpoint = { ...checkpoint, ...patch };
+        try {
+            await prisma.analysis.update({ where: { id: analysisId }, data: { metadata: { ...persistedMeta, checkpoint } } });
+        } catch (e) {
+            logger.warn({ msg: 'Checkpoint save failed (non-fatal)', error: e.message, analysisId });
+        }
     };
 
     try {
@@ -54,6 +94,12 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
             ? { provider: 'GEMINI', apiKey: null, modelName: null }
             : await resolveProviderKey(userId, settings.modelProvider, settings.modelName);
         const providerConfig = { provider, apiKey, modelName };
+
+        // Provider-aware cooldown: the sleeps below exist only to respect Gemini free-tier
+        // RPM limits. On a paid BYOK provider (or paid Gemini tier) they'd be dead latency,
+        // so createCooldown no-ops for anything but free-tier Gemini. Replaces the old
+        // hardcoded MOCK_AI-only sleep.
+        const sleep = createCooldown(provider);
 
         // ORCHESTRATION START
         const poAgent = new ProductOwnerAgent(providerConfig);
@@ -73,40 +119,53 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         const projectName = settings.projectName || "Project";
         const promptVersion = settings.promptVersion || "latest";
 
-        // 1. PO: Define Scope
-        logger.info("--> Agent: Product Owner");
-        emitProgress('product_owner', 'Refining scope and features with the Product Owner agent...');
-        const poOutput = await poAgent.refineIntent(text, { projectName, version: promptVersion });
-
-        // 2. Architect: Design System (Placeholder - moved after RAG)
-        let archOutput = null;
-
-        // 2.5 Pillar 2: Multi-Query RAG (Intelligent Recycling)
-        logger.info("--> Pillar 2: Active Requirement Recycling (Multi-Query RAG)");
-        emitProgress('rag_retrieval', 'Searching prior requirements for reusable context...');
-        const featureList = (poOutput?.systemFeatures || poOutput?.features || []);
-        let allRecyclableChunks = [];
-
-        // Surgical RAG: Search for EACH identified feature
-        if (featureList.length > 0) {
-            // Process features in parallel for better performance
-            const featureRetrievalPromises = featureList.slice(0, 8).map(async (feature) => {
-                const query = feature.name || (typeof feature === 'string' ? feature : "");
-                if (!query) return [];
-                return await retrieveContext(query, projectId, 2);
-            });
-            const featureResults = await Promise.all(featureRetrievalPromises);
-            allRecyclableChunks = featureResults.flat();
+        // 1. PO: Define Scope (reused on resume if already checkpointed)
+        let poOutput = checkpoint.poOutput;
+        if (!poOutput) {
+            logger.info("--> Agent: Product Owner");
+            emitProgress('product_owner', 'Refining scope and features with the Product Owner agent...');
+            poOutput = await poAgent.refineIntent(text, { projectName, version: promptVersion });
+            await saveCheckpoint({ poOutput });
         } else {
-            // Fallback to general context
-            allRecyclableChunks = await retrieveContext(text.substring(0, 200), projectId, 5);
+            logger.info("[Resume] Reusing checkpointed Product Owner output");
         }
 
-        // De-duplicate by content hash or ID
-        const uniqueChunks = Array.from(new Map(allRecyclableChunks.map(c => [c.id || JSON.stringify(c.content), c])).values());
-        const ragContext = await formatRagContext(uniqueChunks);
+        // 2.5 Pillar 2: Multi-Query RAG (Intelligent Recycling)
+        const featureList = (poOutput?.systemFeatures || poOutput?.features || []);
+        let ragContext = checkpoint.ragContext;
+        if (ragContext == null) {
+            logger.info("--> Pillar 2: Active Requirement Recycling (Multi-Query RAG)");
+            emitProgress('rag_retrieval', 'Searching prior requirements for reusable context...');
+            let allRecyclableChunks = [];
+
+            // Surgical RAG: Search for EACH identified feature
+            if (featureList.length > 0) {
+                // Process features in parallel for better performance
+                const featureRetrievalPromises = featureList.slice(0, 8).map(async (feature) => {
+                    const query = feature.name || (typeof feature === 'string' ? feature : "");
+                    if (!query) return [];
+                    return await retrieveContext(query, projectId, 2);
+                });
+                const featureResults = await Promise.all(featureRetrievalPromises);
+                allRecyclableChunks = featureResults.flat();
+            } else {
+                // Fallback to general context
+                allRecyclableChunks = await retrieveContext(text.substring(0, 200), projectId, 5);
+            }
+
+            // De-duplicate by content hash or ID
+            const uniqueChunks = Array.from(new Map(allRecyclableChunks.map(c => [c.id || JSON.stringify(c.content), c])).values());
+            ragContext = await formatRagContext(uniqueChunks);
+            await saveCheckpoint({ ragContext });
+        } else {
+            logger.info("[Resume] Reusing checkpointed RAG context");
+        }
 
         // 3. Architect: Design System (Logical Sectional Approach)
+        // Detailed formats (IEEE/ISO/Volere) run the architecture pass; light formats (Agile PRD)
+        // skip it to stay lightweight, leaving archOutput null. Reused on resume once checkpointed.
+        let archOutput = checkpoint.archOutput ?? null;
+        if (spec.tier === 'detailed' && !checkpoint.archDone) {
         logger.info("--> Agent: Architect");
         emitProgress('architect', 'Designing system architecture...');
 
@@ -146,6 +205,8 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                 version: promptVersion,
                 ragContexts // Pass domain-specific RAG contexts
             });
+        await saveCheckpoint({ archOutput, archDone: true });
+        }
 
         // --- CONTEXT MONITORING ---
         // Safeguard for Free Tier (250k TPM limit)
@@ -157,173 +218,70 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
             // Non-essential pruning if we are hitting limits
         }
 
-        // Optimized sleep context for tests/mock mode
-        const sleep = (ms) => {
-            if (process.env.MOCK_AI === 'true') return Promise.resolve();
-            return new Promise(resolve => setTimeout(resolve, ms));
-        };
+        // 3. Developer: Write initial draft.
+        // IEEE-830 uses the legacy sectional path + full surgical reflection loop. Other formats
+        // use the descriptor-driven generator (schema-constrained to the chosen format), with an
+        // audit-only quality pass for detailed formats (the surgical loop is IEEE-shaped).
+        let loopCount = 0;
 
-        // 3. Developer: Write initial draft (SECTIONAL GENERATION)
-        // M3 FIX: Resolve both system instructions in parallel — each triggers an async
-        // getDiagramAuthorityPrompt() I/O call; running concurrently saves ~1 round-trip.
-        const [developerSystemInstruction, appendicesSystemInstruction] = await Promise.all([
-            devAgent.getSystemInstruction({ projectName, version: promptVersion }),
-            devAgent.getSystemInstruction(
-                { projectName, version: promptVersion },
-                { profile: 'developer', noSchema: true }
-            )
-        ]);
-        const developerPromptSettings = {
-            projectName,
-            version: promptVersion,
-            ragContext,
-            systemInstruction: developerSystemInstruction,
-            appendicesSystemInstruction
-        };
-
-        logger.info("--> Agent: Developer (Sectional Generation: Shell)");
-        emitProgress('developer_shell', 'Drafting the SRS shell (introduction, scope, overview)...');
-        const srsShell = await devAgent.generateShell(text, poOutput, archOutput, developerPromptSettings);
-
-        await sleep(AGENT_COOLDOWN_MS); // Cooling period
-
-        logger.info("--> Agent: Developer (Sectional Generation: Features)");
-        emitProgress('developer_features', `Writing system features (0/${featureList.length})...`);
-        const CHUNK_SIZE = 2;
-        let allFeatures = [];
-
-        for (let i = 0; i < featureList.length; i += CHUNK_SIZE) {
-            const chunk = featureList.slice(i, i + CHUNK_SIZE);
-            logger.info(`    [Features] Processing chunk ${Math.floor(i / CHUNK_SIZE) + 1}/${Math.ceil(featureList.length / CHUNK_SIZE)}`);
-            const featuresOutput = await devAgent.generateFeatures(text, srsShell, poOutput, archOutput, chunk, developerPromptSettings);
-            if (featuresOutput.systemFeatures) {
-                allFeatures = [...allFeatures, ...featuresOutput.systemFeatures];
+        if (spec.legacyPipeline) {
+            // Reuse the checkpointed draft + its sectional pieces on resume; the reflection loop
+            // needs the individual sections (it refines them surgically), so both are checkpointed.
+            let legacySections = checkpoint.legacySections || null;
+            if (!srsDraft || !legacySections) {
+                const { srsShell, allFeatures, srsRequirements, srsAppendices, srsDraft: assembledDraft } = await generateSrsSections({
+                    text, poOutput, archOutput, featureList, devAgent,
+                    projectName, promptVersion, ragContext, sleep, emitProgress, cooldownMs: AGENT_COOLDOWN_MS
+                });
+                srsDraft = assembledDraft;
+                legacySections = { srsShell, allFeatures, srsRequirements, srsAppendices };
+                await saveCheckpoint({ srsDraft, legacySections });
+            } else {
+                logger.info("[Resume] Reusing checkpointed Developer draft (legacy)");
             }
-            emitProgress('developer_features', `Writing system features (${Math.min(i + CHUNK_SIZE, featureList.length)}/${featureList.length})...`);
-            if (i + CHUNK_SIZE < featureList.length) {
-                await sleep(AGENT_COOLDOWN_MS); // Delay between feature chunks
+
+            // Repair diagrams BEFORE auditing so a minor syntax slip doesn't tank the audit.
+            logger.info("--> Service: Pre-Audit Diagram Repair");
+            emitProgress('diagram_repair', 'Validating and auto-repairing diagrams...');
+            await validateAndAutoRepairDiagrams(srsDraft, settings);
+
+            // 4. Pillar 1: Reflection Loop (Max 2 refinement passes)
+            const reflection = await runReflectionLoop({
+                text, poOutput, archOutput, projectName,
+                sections: { ...legacySections, srsDraft },
+                agents: { devAgent, qaAgent, criticAgent },
+                sleep, emitProgress, reflectionCooldownMs: REFLECTION_LOOP_COOLDOWN_MS
+            });
+            srsDraft = reflection.srsDraft;
+            loopCount = reflection.loopCount;
+            finalIndustryAudit = reflection.finalIndustryAudit;
+        } else {
+            // Descriptor-driven generation for ISO 29148 / Volere / Agile PRD.
+            if (!srsDraft) {
+                srsDraft = await generateFormatDoc({
+                    spec, text, poOutput, archOutput, devAgent,
+                    projectName, promptVersion, ragContext, sleep, emitProgress, cooldownMs: AGENT_COOLDOWN_MS
+                });
+                await saveCheckpoint({ srsDraft });
+            } else {
+                logger.info("[Resume] Reusing checkpointed Developer draft (format)");
+            }
+
+            if (spec.tier === 'detailed') {
+                logger.info("--> Service: Pre-Audit Diagram Repair (format)");
+                emitProgress('diagram_repair', 'Validating and auto-repairing diagrams...');
+                await validateAndAutoRepairDiagrams(srsDraft, settings);
+                finalIndustryAudit = await auditFormatDoc({
+                    spec, poOutput, doc: srsDraft,
+                    agents: { qaAgent, criticAgent },
+                    sleep, emitProgress, reflectionCooldownMs: REFLECTION_LOOP_COOLDOWN_MS
+                });
             }
         }
 
-        await sleep(AGENT_COOLDOWN_MS); // Cooling period
-
-        logger.info("--> Agent: Developer (Sectional Generation: Requirements & Glossary)");
-        emitProgress('developer_requirements', 'Writing functional/non-functional requirements and glossary...');
-        const sections1And2 = { ...srsShell, systemFeatures: allFeatures };
-        const srsRequirements = await devAgent.generateRequirements(text, sections1And2, poOutput, archOutput, developerPromptSettings);
-
-        await sleep(AGENT_COOLDOWN_MS); // Cooling period
-
-        logger.info("--> Agent: Developer (Sectional Generation: Appendices & Diagrams)");
-        emitProgress('developer_appendices', 'Generating appendices and diagrams...');
-        const sections123 = { ...sections1And2, ...srsRequirements };
-        const srsAppendices = await devAgent.generateAppendices(text, sections123, poOutput, archOutput, developerPromptSettings);
-
-        // STITCHING: Assemble the final draft
-        srsDraft = {
-            ...srsShell,
-            systemFeatures: allFeatures,
-            ...srsRequirements,
-            ...srsAppendices
-        };
-
-        // NEW: Repair Diagrams BEFORE Auditing (Defensive Generation)
-        // This prevents the Reviewer/Critic from failing a draft due to minor syntax errors
-        logger.info("--> Service: Pre-Audit Diagram Repair");
-        emitProgress('diagram_repair', 'Validating and auto-repairing diagrams...');
-        await validateAndAutoRepairDiagrams(srsDraft, settings);
-
-        // 4. Pillar 1: Reflection Loop (Max 2 refinement passes)
-        let loopCount = 0;
-        const MAX_LOOPS = 2;
-        const QUALITY_THRESHOLD = 85;
-        let reflectionFeedback = [];
-
-        // Mandatory cooling period before starting the heavy Reflection Loop on Free Tier
-        logger.info("    [Pause] Cooling down for 5 seconds before Reflection Loop (GCP Quota Safety)...");
-        await sleep(REFLECTION_LOOP_COOLDOWN_MS);
-
-        while (loopCount < MAX_LOOPS) {
-            logger.info(`--> Pillar 1: Global Reflection Pass ${loopCount + 1}`);
-            emitProgress('reflection', `Reviewing quality (pass ${loopCount + 1}/${MAX_LOOPS})...`);
-
-            // A. Reviewer Audit (Security/Consistency)
-            const review = await qaAgent.reviewSRS(poOutput, srsDraft);
-
-            // B. Critic Audit (6Cs Quality)
-            const audit = await criticAgent.auditSRS(poOutput, srsDraft);
-            finalIndustryAudit = audit;
-
-            logger.info(`    Review Status: ${review.status}, Quality Score: ${audit.overallScore}`);
-
-            // C. Check if we meet the quality bar (Case-Insensitive)
-            // Intelligent Override: If score is near perfect (98+), allow pass even if Reviewer is stuck in pedantry
-            const isApproved = review.status?.toUpperCase() === "APPROVED";
-            const isHighQuality = audit.overallScore >= QUALITY_THRESHOLD;
-            const isExceptional = audit.overallScore >= 98;
-
-            if ((isApproved || isExceptional) && isHighQuality) {
-                logger.info(`    [OK] Quality threshold met${isExceptional && !isApproved ? " (Exceptional Score Override)" : ""}. Exiting reflection loop.`);
-                break;
-            }
-
-            // D. Threshold not met: Surgical Refinement
-            loopCount++;
-
-            const reason = review.status !== "APPROVED"
-                ? `QA Status: ${review.status}`
-                : `Quality Score: ${audit.overallScore} < ${QUALITY_THRESHOLD}`;
-
-            logger.info(`    [Refine] ${reason}. Performing surgical refinement...`);
-            emitProgress('reflection_refine', `Refining ${reflectionFeedback.length ? 'flagged sections' : 'draft'} (${reason})...`);
-
-            reflectionFeedback = [
-                ...review.feedback,
-                ...(audit.criticalIssues || []).map(issue => ({ severity: "MAJOR", category: "Quality", issue })),
-                ...(audit.suggestions || []).map(suggestion => ({ severity: "MINOR", category: "Quality", issue: suggestion }))
-            ];
-
-            const hasAppendicesFeedback = reflectionFeedback.some(f => f.issue.toLowerCase().includes('diagram') || f.issue.toLowerCase().includes('flowchart') || f.issue.toLowerCase().includes('erd'));
-            const hasNFRFeedback = reflectionFeedback.some(f => f.issue.toLowerCase().includes('requirement') || f.issue.toLowerCase().includes('security') || f.category === 'Security');
-            const hasFeatureFeedback = reflectionFeedback.some(f => f.issue.toLowerCase().includes('feature') || f.issue.toLowerCase().includes('function'));
-
-            let targetSectionName = "Shell";
-            let targetDraft = { ...srsShell };
-
-            if (hasAppendicesFeedback) {
-                targetSectionName = "Appendices";
-                targetDraft = { ...srsAppendices };
-            } else if (hasNFRFeedback) {
-                targetSectionName = "Requirements";
-                targetDraft = { ...srsRequirements };
-            } else if (hasFeatureFeedback) {
-                targetSectionName = "Features";
-                targetDraft = { systemFeatures: allFeatures };
-            }
-
-            // SURGICAL REFINEMENT: Developer only touches what's broken
-            const refinedSection = await devAgent.refineSRS(
-                text,
-                poOutput,
-                archOutput,
-                targetDraft,
-                targetSectionName,
-                reflectionFeedback,
-                { projectName }
-            );
-
-            // Re-stitch based on which section was refined
-            if (targetSectionName === "Shell") {
-                srsDraft = { ...srsDraft, ...refinedSection };
-            } else if (targetSectionName === "Features") {
-                if (refinedSection.systemFeatures) allFeatures = refinedSection.systemFeatures;
-                srsDraft.systemFeatures = allFeatures;
-            } else if (targetSectionName === "Requirements") {
-                // Re-merge requirements
-                srsDraft = { ...srsDraft, ...refinedSection };
-            } else if (targetSectionName === "Appendices") {
-                srsDraft = { ...srsDraft, ...refinedSection };
-            }
+        // Guarantee a benchmark object exists (light tier skips the audit).
+        if (!finalIndustryAudit) {
+            finalIndustryAudit = { overallScore: 0, scores: {}, criticalIssues: [], suggestions: [], skipped: true };
         }
 
         // F. Post-Processing: Enforce Clean Revision History (Initial Release)
@@ -391,13 +349,18 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         // we save it so the user doesn't lose the generation.
         if (analysisId && srsDraft) {
             logger.info("[Analysis Service] Failsafe: Saving last-known draft despite error.");
+            const { checkpoint: _dropped, ...restMeta } = persistedMeta || {};
             await prisma.analysis.update({
                 where: { id: analysisId },
                 data: {
                     status: 'COMPLETED', // Mark as completed so user can see the draft
                     resultQuality: 'PARTIAL',
                     resultJson: srsDraft,
+                    // A usable draft exists — give the row a real title so it stops reading
+                    // "Analysis in Progress" in the list, and drop the now-moot checkpoint.
+                    title: srsDraft.projectTitle || 'Partial Analysis',
                     metadata: {
+                        ...restMeta,
                         ...(analysisMeta || {}),
                         isPartial: true,
                         failureReason: error.message,
@@ -410,30 +373,44 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
             return; // Exit early as we've handled the record
         }
 
-        // Standard Failure
+        // Standard Failure — preserve the checkpoint so the user can RESUME from the last
+        // completed stage instead of restarting, and fix the title so the row no longer
+        // reads "Analysis in Progress" forever in the list.
         if (analysisId) {
+            const { checkpoint: _old, ...restMeta } = persistedMeta || {};
+            const resumable = Object.keys(checkpoint).length > 0;
             await prisma.analysis.update({
                 where: { id: analysisId },
                 data: {
                     status: 'FAILED',
                     resultQuality: 'NONE',
+                    title: 'Analysis failed',
                     metadata: {
+                        ...restMeta,
                         ...(analysisMeta || {}),
+                        checkpoint, // keep the latest checkpoint for resume
+                        resumable,
+                        failedStage: Object.keys(checkpoint).slice(-1)[0] || 'product_owner',
                         failureReason: error.message,
                         userFriendlyError: failureReason
                     }
                 }
             });
             await invalidateUserAnalysesCache(userId);
-            emitProgress('failed', failureReason, { terminal: true, status: 'FAILED' });
+            emitProgress('failed', failureReason, { terminal: true, status: 'FAILED', resumable });
         }
         throw new Error(failureReason);
     }
 
-    // Run Quality Check (Linting)
-    const qualityAudit = lintRequirements(resultJson, finalIndustryAudit);
+    // Run Quality Check (Linting). The IEEE linter is shape-specific (systemFeatures/NFRs);
+    // other formats fall back to the Critic audit score.
+    const qualityAudit = spec.legacyPipeline
+        ? lintRequirements(resultJson, finalIndustryAudit)
+        : { score: finalIndustryAudit?.overallScore || 0, issues: finalIndustryAudit?.criticalIssues || [] };
     resultJson = {
         ...resultJson,
+        formatId: spec.id,
+        formatName: spec.name,
         qualityAudit,
         promptSettings: settings // Store settings
     };
@@ -442,6 +419,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
     // We assume "settings" was passed in. analysisMeta overrides it if AI service provided explicit version info.
     const finalMetadata = {
         trigger: 'initial',
+        formatId: spec.id,
         ...analysisMeta
     };
 
@@ -524,6 +502,10 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         // We still need to calculate title if missing
         const title = resultJson.projectTitle || `Version ${existing.version}`;
 
+        // Drop the resume checkpoint now that the run succeeded — it's dead weight on a
+        // COMPLETED row (and could confuse a later re-run into thinking it can resume).
+        const { checkpoint: _doneCheckpoint, ...existingMeta } = existing.metadata || {};
+
         const result = await tx.analysis.update({
             where: { id: analysisId },
             data: {
@@ -533,7 +515,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                 isFinalized: false, // default
                 projectId: finalProjectId, // Link to the (potentially new) project
                 metadata: {
-                    ...(existing.metadata || {}),
+                    ...existingMeta,
                     ...analysisMeta, // Contains promptVersion
                     completionTime: new Date().toISOString()
                 }
@@ -555,6 +537,76 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
 
         return transactionResult.result;
     }
+};
+
+/**
+ * Synchronous Layer-1 DRAFT creation (no AI). The wizard stores structured input in
+ * metadata.draftData and a schema-satisfying placeholder resultJson so the row is valid before
+ * the pipeline ever runs. Extracted out of analysisController.analyze to keep the controller thin;
+ * the controller's response shape is unchanged.
+ *
+ * @returns {Promise<import('../generated/prisma/index.js').Analysis>} the created draft row
+ */
+export const createDraftAnalysis = async (userId, srsData, projectId, settings = {}) => {
+    const projectName = srsData.details?.projectName?.content || "Draft Project";
+    const purpose = srsData.details?.fullDescription?.content || "";
+
+    return prisma.analysis.create({
+        data: {
+            userId,
+            inputText: JSON.stringify(srsData), // Serialize structured input
+            resultJson: { // Schema-satisfying placeholder until the pipeline fills it in
+                projectTitle: projectName,
+                introduction: {
+                    projectName,
+                    purpose,
+                    scope: "",
+                    intendedAudience: "",
+                    references: [],
+                    documentConventions: ""
+                },
+                overallDescription: {
+                    productPerspective: "See Introduction",
+                    productFunctions: [],
+                    userClassesAndCharacteristics: [],
+                    operatingEnvironment: "",
+                    designAndImplementationConstraints: [],
+                    userDocumentation: [],
+                    assumptionsAndDependencies: []
+                },
+                externalInterfaceRequirements: {
+                    userInterfaces: "",
+                    hardwareInterfaces: "",
+                    softwareInterfaces: "",
+                    communicationsInterfaces: ""
+                },
+                systemFeatures: [], // AI generates these later
+                nonFunctionalRequirements: {
+                    performanceRequirements: [],
+                    safetyRequirements: [],
+                    securityRequirements: [],
+                    softwareQualityAttributes: [],
+                    businessRules: []
+                },
+                otherRequirements: [],
+                status: "DRAFT"
+            },
+            version: 1,
+            title: (srsData.details?.projectName?.content || "Draft Analysis") + " (Draft)",
+            projectId,
+            status: "DRAFT", // Pipeline lifecycle status (typed column)
+            metadata: {
+                trigger: 'initial',
+                source: 'user',
+                // metadata.status tracks the finer-grained draft/validation sub-state
+                // (DRAFT -> VALIDATING -> VALIDATED/NEEDS_FIX) the frontend wizard keys its
+                // step-unlock logic on — a distinct axis from the pipeline lifecycle above.
+                status: 'DRAFT',
+                draftData: srsData, // Full source input
+                promptSettings: settings || {}
+            }
+        }
+    });
 };
 
 export const getUserAnalyses = async (userId) => {
@@ -582,16 +634,17 @@ export const getUserAnalyses = async (userId) => {
                 LEFT("inputText", 500) AS "inputText",
                 version,
                 title,
+                status,
+                "resultQuality",
                 "rootId",
                 "parentId",
                 metadata
             FROM "Analysis"
             WHERE "userId" = ${userId}
-            -- DRAFT rows are pre-pipeline (Layer 1 wizard state, not a real analysis yet) —
-            -- explicit now that DRAFT is a typed status value (Phase 3), not just leaked
-            -- metadata; a FAILED row with no projectId never got far enough to be useful.
+            -- DRAFT rows are pre-pipeline (Layer 1 wizard state, not a real analysis yet).
+            -- FAILED rows now DO stick in the list — the user needs to see them and resume
+            -- from the last checkpoint rather than have them silently disappear.
             AND status != 'DRAFT'
-            AND NOT (status = 'FAILED' AND "projectId" IS NULL)
             ORDER BY "rootId", version DESC
         `;
 
@@ -650,8 +703,18 @@ export const getUserAnalyses = async (userId) => {
                 }
             }
 
+            // Strip the (potentially large) resume checkpoint from the list payload — the
+            // dashboard only needs a lightweight `resumable` flag + failure reason, not the
+            // full checkpointed draft. The checkpoint stays in the DB row for the resume run.
+            const { checkpoint: _omit, ...slimMeta } = a.metadata || {};
+
             return {
                 ...a,
+                metadata: slimMeta,
+                status: a.status,
+                resultQuality: a.resultQuality,
+                resumable: Boolean(a.metadata?.resumable),
+                failureReason: a.metadata?.userFriendlyError || a.metadata?.failureReason || null,
                 inputPreview: preview.substring(0, 100) + (preview.length > 100 ? '...' : '')
             };
         });
@@ -774,67 +837,3 @@ export const getLatestAnalysisByProjectId = async (projectId) => {
         orderBy: { version: 'desc' }
     });
 };
-
-/**
- * Heuristic validation and AI repair for Mermaid diagrams in the SRS.
- */
-async function validateAndAutoRepairDiagrams(srs, settings) {
-    if (!srs.appendices?.analysisModels) return;
-
-    const models = srs.appendices.analysisModels;
-    const diagramTypes = [
-        { key: 'flowchartDiagram', name: 'Flowchart' },
-        { key: 'sequenceDiagram', name: 'Sequence Diagram' },
-        { key: 'entityRelationshipDiagram', name: 'Entity Relationship Diagram' }
-    ];
-
-    for (const { key, name } of diagramTypes) {
-        const diagram = models[key];
-        if (diagram && diagram.code) {
-            let needsRepair = false;
-            let heuristicError = "";
-            let code = diagram.code.trim();
-
-            // 1. GLOBAL: Fix legacy 'graph' prefix for modern 'flowchart'
-            if (code.startsWith('graph')) {
-                code = code.replace(/^graph/, 'flowchart');
-                needsRepair = true;
-                heuristicError = "Legacy 'graph' prefix detected. Converted to 'flowchart'.";
-            }
-
-            // 2. ERD SPECIFIC
-            if (key === 'entityRelationshipDiagram') {
-                if (code.includes(' : ') && code.indexOf(' : ') < code.indexOf('--')) {
-                    needsRepair = true;
-                    heuristicError = "Invalid ERD colon placement.";
-                }
-                if (code.includes(' : ') && !code.includes('"') && code.split(' : ')[1]?.includes(' ')) {
-                    needsRepair = true;
-                    heuristicError = "ERD labels with spaces must be quoted.";
-                }
-                if (/\b(NN)\b/.test(code)) {
-                    needsRepair = true;
-                    heuristicError = "Invalid ERD key 'NN' found.";
-                }
-            }
-
-            // 3. SEQUENCE SPECIFIC
-            if (key === 'sequenceDiagram') {
-                if (!code.includes('+') && !code.includes('-') && code.includes('->>')) {
-                    // Heuristic: If there are calls but no activations, it might be lower quality
-                    logger.debug("[Analysis Service] Sequence diagram lacks activation markers. Proceeding but marking for potential UI improvement.");
-                }
-            }
-
-            if (needsRepair) {
-                logger.info(`[Analysis Service] Auto-repairing ${name} due to: ${heuristicError}`);
-                try {
-                    const repaired = await repairDiagram(code, heuristicError, settings);
-                    if (repaired) diagram.code = repaired;
-                } catch (err) {
-                    logger.warn(`[Analysis Service] Repair failed for ${name}: ${err.message}`);
-                }
-            }
-        }
-    }
-}

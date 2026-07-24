@@ -1,5 +1,5 @@
 import express from 'express';
-import { analyze, getHistory, getAnalysis, chat, chatStream, getChatHistory, updateAnalysis, checkJobStatus, getHistoryForRoot, performComparison, regenerate, finalizeAnalysis, validateAnalysis, expandFeature, repairDiagram, generateDFD, autoFixValidationIssue, deleteAnalysis } from '../controllers/analysisController.js';
+import { analyze, getHistory, getAnalysis, chat, chatStream, getChatHistory, updateAnalysis, checkJobStatus, getHistoryForRoot, performComparison, regenerate, finalizeAnalysis, validateAnalysis, expandFeature, repairDiagram, generateDFD, autoFixValidationIssue, deleteAnalysis, resumeAnalysis } from '../controllers/analysisController.js';
 import { streamAnalysisProgress } from '../controllers/streamController.js';
 import { authenticate } from '../middleware/authMiddleware.js';
 
@@ -35,6 +35,7 @@ router.get('/:id', validate(getAnalysisSchema), getAnalysis);
 router.put('/:id', validate(updateAnalysisSchema), updateAnalysis);
 router.delete('/:id', validate(deleteAnalysisSchema), deleteAnalysis);
 router.post('/:id/regenerate', validate(regenerateSchema), regenerate);
+router.post('/:id/resume', validate(idParamSchema), resumeAnalysis);
 router.post('/:id/validate', validate(idParamSchema), validateAnalysis);
 router.post('/:id/finalize', validate(idParamSchema), finalizeAnalysis);
 router.post('/:id/auto-fix', validate(autoFixSchema), autoFixValidationIssue);

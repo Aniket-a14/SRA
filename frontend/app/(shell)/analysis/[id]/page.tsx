@@ -8,8 +8,8 @@ import { fetcher, swrOptions } from "@/lib/swr-utils";
 import { useAnalysisProgress } from "@/lib/hooks";
 
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Sparkles, Save, MessageSquare, FileText } from "lucide-react"
-import { updateAnalysis, runValidation, autoFixIssue, startAnalysis, finalizeAnalysis } from "@/lib/analysis-api"
+import { ArrowLeft, Sparkles, Save, MessageSquare, FileText, RotateCcw, Loader2 } from "lucide-react"
+import { updateAnalysis, runValidation, autoFixIssue, startAnalysis, finalizeAnalysis, resumeAnalysis } from "@/lib/analysis-api"
 import type { Analysis, ValidationIssue, StartAnalysisInput } from "@/types/analysis"
 import { SRSIntakeModel } from "@/types/srs-intake"
 import { cn } from "@/lib/utils"
@@ -79,6 +79,7 @@ function AnalysisDetailContent() {
     const [isValidating, setIsValidating] = useState(false)
     const [isProceeding, setIsProceeding] = useState(false)
     const [isFixing, setIsFixing] = useState<string | null>(null);
+    const [isResuming, setIsResuming] = useState(false);
     const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([]);
 
     const [draftData, setDraftData] = useState<SRSIntakeModel | null>(null)
@@ -152,6 +153,26 @@ function AnalysisDetailContent() {
     const memoizedOnRefresh = useCallback(() => {
         mutate();
     }, [mutate])
+
+    // Resume a failed analysis from its last checkpoint — the backend reuses completed
+    // stages (PO/RAG/Architect/draft) rather than restarting. Flip back into the loading
+    // view and let the SWR poll + progress stream take over.
+    const handleResume = useCallback(async () => {
+        if (!token) return;
+        setIsResuming(true);
+        const t = toast.loading("Resuming analysis…");
+        try {
+            await resumeAnalysis(id, token!);
+            toast.success("Picking up where it stopped…", { id: t });
+            setError("");
+            setIsLoading(true);
+            mutate();
+        } catch (e: unknown) {
+            toast.error(e instanceof Error ? e.message : "Could not resume analysis", { id: t });
+        } finally {
+            setIsResuming(false);
+        }
+    }, [token, id, mutate])
 
     useEffect(() => {
         if (authLoading) return
@@ -393,17 +414,27 @@ function AnalysisDetailContent() {
                         </p>
 
                         <div className="flex flex-col gap-2">
+                            <Button
+                                onClick={handleResume}
+                                disabled={isResuming}
+                                className="w-full bg-foreground hover:bg-foreground/90 text-background rounded-full"
+                            >
+                                {isResuming
+                                    ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Resuming…</>
+                                    : <><RotateCcw className="h-4 w-4 mr-2" /> Resume from where it stopped</>}
+                            </Button>
                             {parentDraftId && (
                                 <Button
                                     onClick={() => router.push(`/analysis/${parentDraftId}`)}
-                                    className="w-full bg-foreground hover:bg-foreground/90 text-background rounded-full"
+                                    variant="outline"
+                                    className="w-full rounded-full"
                                 >
                                     <ArrowLeft className="h-4 w-4 mr-2" /> Back to Draft
                                 </Button>
                             )}
                             <Button
                                 onClick={() => router.push('/analysis')}
-                                variant="outline"
+                                variant="ghost"
                                 className="w-full rounded-full"
                             >
                                 <ArrowLeft className="h-4 w-4 mr-2" /> Back to My Analyses

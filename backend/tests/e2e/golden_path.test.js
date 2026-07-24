@@ -39,7 +39,7 @@ jest.unstable_mockModule('../../src/middleware/authMiddleware.js', () => ({
     },
 }));
 
-jest.unstable_mockModule('../../src/services/embeddingService.js', () => ({
+jest.unstable_mockModule('../../src/services/knowledge/embeddingService.js', () => ({
     embedText: jest.fn().mockResolvedValue([]),
 }));
 
@@ -80,7 +80,8 @@ jest.unstable_mockModule('../../src/services/queueService.js', () => ({
 
         return { id: 'mock-job', analysisId: id };
     }),
-    getJobStatus: jest.fn()
+    getJobStatus: jest.fn(),
+    resumeAnalysisJob: jest.fn().mockResolvedValue({ id: 'generated-id', status: 'PENDING' })
 }));
 
 // process.env.MOCK_QSTASH = 'true'; // Not needed if we mock the service

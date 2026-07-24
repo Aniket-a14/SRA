@@ -77,3 +77,13 @@ export async function finalizeAnalysis(id: string, token: string) {
     await handleResponse(res); // throws if not ok
     return true;
 }
+
+/** Resume a FAILED analysis from its last checkpoint (re-runs the same analysis id). */
+export async function resumeAnalysis(id: string, token: string) {
+    const res = await fetch(`${BACKEND_URL}/analyze/${id}/resume`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    await handleResponse(res); // throws if not ok
+    return true;
+}

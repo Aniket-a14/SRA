@@ -38,10 +38,11 @@ jest.unstable_mockModule('../../src/middleware/authMiddleware.js', () => ({
 jest.unstable_mockModule('../../src/services/queueService.js', () => ({
     addAnalysisJob: jest.fn().mockResolvedValue({ id: 'job-id' }),
     getJobStatus: jest.fn(),
+    resumeAnalysisJob: jest.fn().mockResolvedValue({ id: 'job-id', status: 'PENDING' }),
 }));
 
 // Mock AI Service/Embedding (prevent external calls)
-jest.unstable_mockModule('../../src/services/embeddingService.js', () => ({
+jest.unstable_mockModule('../../src/services/knowledge/embeddingService.js', () => ({
     embedText: jest.fn().mockResolvedValue([]),
 }));
 
