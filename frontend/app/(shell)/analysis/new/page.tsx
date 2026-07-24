@@ -14,6 +14,8 @@ import { Slider } from "@/components/ui/slider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
+import { buildModelOptions } from "@/lib/models"
+import { listFormatSpecs } from "@/lib/formats"
 
 const DEFAULT_SETTINGS: PromptSettings = {
     profile: "default",
@@ -21,7 +23,10 @@ const DEFAULT_SETTINGS: PromptSettings = {
     strictness: 3,
     modelProvider: "google",
     modelName: "gemini-2.5-flash",
+    format: "ieee830",
 }
+
+const FORMAT_OPTIONS = listFormatSpecs()
 
 const PROFILES = [
     { value: "default", label: "General Software (Default)" },
@@ -30,23 +35,10 @@ const PROFILES = [
     { value: "security_analyst", label: "Security Analyst (Safety Focused)" },
 ]
 
-const MODELS = [
-    { provider: "google", value: "gemini-2.5-flash", label: "Gemini 2.5 Flash", hint: "Fast" },
-    { provider: "google", value: "gemini-2.5-pro", label: "Gemini 2.5 Pro", hint: "Advanced" },
-    { provider: "openai", value: "gpt-5.6", label: "GPT-5.6", hint: "Smartest" },
-    { provider: "openai", value: "gpt-5.6-luna", label: "GPT-5.6 Luna", hint: "Fast" },
-    { provider: "claude", value: "claude-opus-4-8", label: "Claude Opus 4.8", hint: "Smartest" },
-    { provider: "claude", value: "claude-sonnet-5", label: "Claude Sonnet 5", hint: "Fast" },
-    { provider: "grok", value: "grok-4.5", label: "Grok 4.5", hint: "" },
-]
-
-// Gemini runs on the platform's own key — every other provider requires the
-// user to have added their own key in Settings (see providerKeyService.js).
-const PROVIDER_TO_ENUM: Record<string, string> = {
-    google: "GEMINI",
-    openai: "OPENAI",
-    claude: "CLAUDE",
-    grok: "GROK",
+interface ProviderKeyLite {
+    provider: "GEMINI" | "OPENAI" | "CLAUDE" | "GROK"
+    isActive: boolean
+    availableModels?: { id: string; label: string }[] | null
 }
 
 const EXAMPLES = [
@@ -70,7 +62,8 @@ function NewAnalysisContent() {
     const [projectName, setProjectName] = useState("")
     const [description, setDescription] = useState("")
     const [settings, setSettings] = useState<PromptSettings>(DEFAULT_SETTINGS)
-    const [configuredProviders, setConfiguredProviders] = useState<Set<string>>(new Set(["GEMINI"]))
+    const [providerKeys, setProviderKeys] = useState<ProviderKeyLite[]>([])
+    const [keysLoaded, setKeysLoaded] = useState(false)
     const [contextProjectName, setContextProjectName] = useState<string>("")
     const [isAnalyzing, setIsAnalyzing] = useState(false)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -91,12 +84,27 @@ function NewAnalysisContent() {
         })
             .then(res => res.ok ? res.json() : { data: [] })
             .then(json => {
-                const keys = (json.data || json) as { provider: string; isActive: boolean }[]
-                const active = keys.filter(k => k.isActive).map(k => k.provider)
-                setConfiguredProviders(new Set(["GEMINI", ...active]))
+                const keys = (json.data || json) as ProviderKeyLite[]
+                const active = Array.isArray(keys) ? keys.filter(k => k.isActive) : []
+                setProviderKeys(active)
+                // Make sure the selected model is one the user can actually run; otherwise
+                // the picker stays stuck on an unusable default (e.g. Gemini with no key).
+                const options = buildModelOptions(active)
+                if (options.length > 0) {
+                    setSettings(prev => (
+                        options.some(m => m.value === prev.modelName)
+                            ? prev
+                            : { ...prev, modelName: options[0].value, modelProvider: options[0].provider as PromptSettings["modelProvider"] }
+                    ))
+                }
             })
-            .catch(() => { /* non-fatal — falls back to Gemini-only */ })
+            .catch(() => { /* non-fatal — surfaces as the "add a key" state below */ })
+            .finally(() => setKeysLoaded(true))
     }, [token])
+
+    // Models the user can actually generate with — driven entirely by their own keys.
+    const modelOptions = buildModelOptions(providerKeys)
+    const hasNoKeys = keysLoaded && providerKeys.length === 0
 
     // Auto-grow the composer as the description grows, ChatGPT-style.
     useEffect(() => {
@@ -106,11 +114,13 @@ function NewAnalysisContent() {
         el.style.height = `${Math.min(el.scrollHeight, 320)}px`
     }, [description])
 
-    const onlyGemini = configuredProviders.size === 1
-
     const handleAnalyze = async () => {
         if (!token) {
             toast.error("You must be logged in to start an analysis.")
+            return
+        }
+        if (hasNoKeys) {
+            toast.error("Add your own API key in Settings before generating.")
             return
         }
         const desc = description.trim()
@@ -147,7 +157,7 @@ function NewAnalysisContent() {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}))
-                throw new Error(errorData.error || "Failed to initialize analysis.")
+                throw new Error(errorData.message || errorData.error || "Failed to initialize analysis.")
             }
 
             const json = await response.json()
@@ -184,7 +194,7 @@ function NewAnalysisContent() {
                     </h1>
                     <p className="text-muted-foreground text-sm">
                         Paste raw stakeholder notes or a rough brief. The pipeline extracts scope,
-                        features, and IEEE-830 requirements from plain text.
+                        features, and structured requirements in the format you choose.
                     </p>
                 </div>
 
@@ -224,7 +234,7 @@ function NewAnalysisContent() {
                             <Select
                                 value={settings.modelName || "gemini-2.5-flash"}
                                 onValueChange={(val) => {
-                                    const model = MODELS.find(m => m.value === val)
+                                    const model = modelOptions.find(m => m.value === val)
                                     setSettings(prev => ({
                                         ...prev,
                                         modelName: val,
@@ -241,8 +251,12 @@ function NewAnalysisContent() {
                                     <SelectValue placeholder="Model" />
                                 </SelectTrigger>
                                 <SelectContent align="start" className="max-w-[calc(100vw-2rem)]">
-                                    {MODELS.filter(m => configuredProviders.has(PROVIDER_TO_ENUM[m.provider])).map(m => (
-                                        <SelectItem key={m.value} value={m.value}>
+                                    {modelOptions.length === 0 ? (
+                                        <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                                            Add a provider key in Settings
+                                        </div>
+                                    ) : modelOptions.map(m => (
+                                        <SelectItem key={`${m.provider}:${m.value}`} value={m.value}>
                                             {m.label}{m.hint ? ` · ${m.hint}` : ""}
                                         </SelectItem>
                                     ))}
@@ -269,12 +283,34 @@ function NewAnalysisContent() {
                                             <SlidersHorizontal className="h-4 w-4" /> Analysis settings
                                         </h4>
 
-                                        {onlyGemini && (
+                                        {providerKeys.length > 0 && (
                                             <Link href="/settings" className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors">
                                                 <KeyRound className="h-3 w-3 shrink-0" />
-                                                Add an OpenAI, Claude, or Grok key to unlock more models
+                                                Manage provider keys &amp; models in Settings
                                             </Link>
                                         )}
+
+                                        <div className="space-y-1.5">
+                                            <Label>Output format</Label>
+                                            <Select
+                                                value={settings.format || "ieee830"}
+                                                onValueChange={(val) => setSettings(prev => ({ ...prev, format: val }))}
+                                            >
+                                                <SelectTrigger className="h-8 text-xs">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {FORMAT_OPTIONS.map(f => (
+                                                        <SelectItem key={f.id} value={f.id} className="text-xs">
+                                                            {f.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <p className="text-[11px] text-muted-foreground">
+                                                {FORMAT_OPTIONS.find(f => f.id === (settings.format || "ieee830"))?.description}
+                                            </p>
+                                        </div>
 
                                         <div className="space-y-1.5">
                                             <Label>Analyst persona</Label>
@@ -337,7 +373,7 @@ function NewAnalysisContent() {
                             size="icon"
                             className="h-8 w-8 rounded-full bg-foreground hover:bg-foreground/90 text-background shrink-0 disabled:opacity-40"
                             onClick={handleAnalyze}
-                            disabled={isAnalyzing || !description.trim()}
+                            disabled={isAnalyzing || !description.trim() || hasNoKeys}
                             aria-label="Start analysis"
                         >
                             {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
@@ -345,13 +381,13 @@ function NewAnalysisContent() {
                     </div>
                 </div>
 
-                {onlyGemini && (
+                {hasNoKeys && (
                     <Link
                         href="/settings"
-                        className="mt-3 flex items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 px-3 py-2.5 text-xs text-amber-700 dark:text-amber-400 hover:bg-amber-500/10 transition-colors"
                     >
-                        <KeyRound className="h-3.5 w-3.5" />
-                        Using the platform Gemini key. Add your own OpenAI, Claude, or Grok key in Settings.
+                        <KeyRound className="h-3.5 w-3.5 shrink-0" />
+                        You need your own API key to generate. Add a Gemini, OpenAI, Claude, or Grok key in Settings.
                     </Link>
                 )}
 

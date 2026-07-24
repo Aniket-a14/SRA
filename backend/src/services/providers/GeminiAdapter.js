@@ -1,16 +1,16 @@
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { genAI } from '../../config/gemini.js';
 
-// Platform-hosted default — the only provider allowed to fall back to the
-// platform's own key (see providerKeyService.js). Every other adapter
-// requires the user's own key.
 export const DEFAULT_MODEL = process.env.GEMINI_MODEL_NAME || 'gemini-2.5-flash';
 
 export class GeminiAdapter {
-    // No apiKey param: genAI is constructed once at boot from the platform's
-    // own GEMINI_API_KEY — per-user Gemini keys aren't supported, since Gemini
-    // is the fixed embedding provider and platform fallback.
-    constructor() {
-        this.client = genAI;
+    // SRS generation now always runs on the user's own Gemini key (BYOK) — the
+    // platform's GEMINI_API_KEY is reserved for embeddings only. When a per-user
+    // key is supplied we build a dedicated client for it; the shared platform
+    // `genAI` client is only used by internal/embedding-adjacent callers that
+    // pass no key (and by the MOCK_AI path, which never actually calls out).
+    constructor(apiKey = null) {
+        this.client = apiKey ? new GoogleGenerativeAI(apiKey) : genAI;
     }
 
     async generateContent({ prompt, systemInstruction, temperature, maxOutputTokens, jsonMode, responseSchema, modelName }) {

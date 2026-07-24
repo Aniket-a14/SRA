@@ -2,7 +2,19 @@ import { ChatAgent } from '../agents/ChatAgent.js';
 import prisma from '../config/prisma.js';
 import { createChatSnapshot } from '../utils/promptCompaction.js';
 import { createNextVersion } from './versioning.js';
+import { resolveProviderKey } from './providers/providerKeyService.js';
 import logger from '../config/logger.js';
+
+/**
+ * Resolve the provider/model/key for a chat turn from the analysis's stored prompt
+ * settings. Chat edits generate new SRS versions, so they run on the user's own key
+ * exactly like the main pipeline — never the platform key. No-ops under MOCK_AI.
+ */
+async function resolveChatProvider(userId, currentAnalysis) {
+    if (process.env.MOCK_AI === 'true') return {};
+    const settings = currentAnalysis?.metadata?.promptSettings || {};
+    return resolveProviderKey(userId, settings.modelProvider, settings.modelName);
+}
 
 // Same heuristic-keyword-branching philosophy already used in analysisService.js's
 // reflection loop (hasAppendicesFeedback/hasNFRFeedback/hasFeatureFeedback) — cheap,
@@ -130,7 +142,7 @@ export async function processChat(userId, analysisId, userMessage, clientMessage
     if (context.dedupedReply) return context.dedupedReply;
     const { currentAnalysis, historyText, srsSnapshot } = context;
 
-    const chatAgent = new ChatAgent();
+    const chatAgent = new ChatAgent(await resolveChatProvider(userId, currentAnalysis));
     let parsedResponse;
 
     if (process.env.MOCK_AI === 'true') {
@@ -174,7 +186,7 @@ export async function processChatStream(userId, analysisId, userMessage, clientM
     }
     const { currentAnalysis, historyText, srsSnapshot } = context;
 
-    const chatAgent = new ChatAgent();
+    const chatAgent = new ChatAgent(await resolveChatProvider(userId, currentAnalysis));
     const shouldProposeEdit = looksLikeEditRequest(userMessage);
 
     if (process.env.MOCK_AI === 'true') {

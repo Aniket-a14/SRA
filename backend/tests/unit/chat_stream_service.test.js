@@ -37,6 +37,12 @@ jest.unstable_mockModule('../../src/agents/ChatAgent.js', () => ({
     }))
 }));
 
+// Chat edits now run on the user's own provider key (BYOK) like the main pipeline;
+// stub the resolver so these tests exercise streaming/versioning, not key lookup.
+jest.unstable_mockModule('../../src/services/providers/providerKeyService.js', () => ({
+    resolveProviderKey: jest.fn().mockResolvedValue({ provider: 'GEMINI', apiKey: 'test-key', modelName: 'gemini-2.5-flash' })
+}));
+
 jest.unstable_mockModule('../../src/utils/promptCompaction.js', () => ({
     createChatSnapshot: jest.fn(() => ({}))
 }));

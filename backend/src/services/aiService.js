@@ -1,20 +1,27 @@
 import { getLatestVersion } from "../utils/promptRegistry.js";
 import { constructMasterPrompt, DIAGRAM_REPAIR_PROMPT } from "../utils/prompts.js";
 import { genAI } from "../config/gemini.js";
-import { getAdapter, normalizeProvider } from "./providers/index.js";
+import { getAdapter, normalizeProvider, DEFAULT_MODELS } from "./providers/index.js";
 import { AnalysisResultSchema } from "../utils/schemas.js";
 import { sanitizePII } from "../utils/sanitizer.js";
 import logger from "../config/logger.js";
 import { OUTPUT_TOKEN_LIMITS, TEMPERATURES } from "../utils/llmGenerationConfig.js";
 
-import { retrieveContext, formatRagContext } from "./ragService.js";
+import { retrieveContext, formatRagContext } from "./knowledge/ragService.js";
 
 export async function analyzeText(text, settings = {}) {
-  // PII REDACTION for production safety
-  const sanitizedText = sanitizePII(text);
+  // PII REDACTION for production safety — reassign in place so EVERY downstream use
+  // (projectName extraction, RAG retrieval query, master-prompt construction, and the
+  // provider call itself) operates on the redacted text. Previously the sanitized value
+  // was computed and then discarded, so raw emails/phones/cards reached the provider.
+  text = sanitizePII(text);
   const {
     modelProvider = "google",
-    modelName = process.env.GEMINI_MODEL_NAME || "gemini-2.5-flash",
+    // Canonical Gemini default lives in the provider registry (DEFAULT_MODELS.GEMINI, which
+    // already honors GEMINI_MODEL_NAME). Previously this file hardcoded its own divergent
+    // fallbacks ("gemini-2.5-flash" here, "gemini-3-flash-preview" below) — a single source
+    // of truth now, so there's no drift between the aiService path and the adapter registry.
+    modelName = DEFAULT_MODELS.GEMINI,
     promptVersion = getLatestVersion(),
     systemPrompt = null,
     projectId = null, // Extract projectId if available
@@ -128,47 +135,24 @@ ${text}
 
       const targetSchema = settings.zodSchema === null ? null : (settings.zodSchema || AnalysisResultSchema);
 
-      if (normalizedProvider === "GEMINI") {
-        // Gemini keeps its own direct path (native SchemaType responseSchema support,
-        // shared platform genAI client) rather than going through GeminiAdapter here —
-        // this call site pre-dates the adapter registry and doesn't yet thread a
-        // per-request responseSchema the way BaseAgent.callLLM does.
-        const model = genAI.getGenerativeModel({
-          model: modelName || process.env.GEMINI_MODEL_NAME || "gemini-3-flash-preview",
-          ...(masterPrompt && { systemInstruction: masterPrompt }),
-          generationConfig: {
-            responseMimeType: "application/json",
-            temperature: settings.temperature ?? TEMPERATURES.developer,
-            maxOutputTokens: settings.maxOutputTokens || OUTPUT_TOKEN_LIMITS.mediumJson
-          }
-        });
-        const result = await callWithTimeout(model.generateContent(systemPrompt ? text : finalPrompt), timeoutMs);
-
-        if (result && result.response && typeof result.response.text === "function") {
-          output = result.response.text();
-        } else if (result && result.candidates && result.candidates[0]) {
-          output = result.candidates[0].content || result.candidates[0].output || JSON.stringify(result.candidates[0]);
-        } else if (typeof result === "string") {
-          output = result;
-        } else {
-          output = JSON.stringify(result);
-        }
-      } else {
-        // OpenAI/Claude/Grok all require the caller's own key (settings.apiKey) — resolved
-        // upstream by providerKeyService for the main analysis pipeline. Previously this
-        // branch only special-cased "openai" and silently fell through to Gemini for any
-        // other provider string (e.g. "claude", "grok"); the adapter registry now throws a
-        // clear "API key is required" error instead of mis-routing to a different provider.
-        const adapter = getAdapter(normalizedProvider, settings.apiKey);
-        output = await callWithTimeout(adapter.generateContent({
-          prompt: systemPrompt ? text : finalPrompt,
-          systemInstruction: masterPrompt || "Return valid JSON that satisfies the requested task.",
-          temperature: settings.temperature ?? TEMPERATURES.developer,
-          maxOutputTokens: settings.maxOutputTokens || OUTPUT_TOKEN_LIMITS.mediumJson,
-          jsonMode: !!targetSchema,
-          modelName
-        }), timeoutMs);
-      }
+      // UNIFIED PROVIDER PATH — every provider (incl. Gemini) now goes through the adapter
+      // registry, removing the second, divergent Gemini call stack this file used to keep
+      // (BE-16). Behavior is preserved per-provider: Gemini always ran in JSON mode with no
+      // extra system instruction beyond masterPrompt; the others keyed jsonMode off targetSchema
+      // and fell back to a generic "return valid JSON" instruction. OpenAI/Claude/Grok still
+      // require the caller's own key (settings.apiKey) — the adapter throws a clear
+      // "API key is required" error rather than silently mis-routing to Gemini.
+      const isGemini = normalizedProvider === "GEMINI";
+      const adapter = getAdapter(normalizedProvider, settings.apiKey);
+      output = await callWithTimeout(adapter.generateContent({
+        prompt: systemPrompt ? text : finalPrompt,
+        systemInstruction: masterPrompt || (isGemini ? undefined : "Return valid JSON that satisfies the requested task."),
+        temperature: settings.temperature ?? TEMPERATURES.developer,
+        maxOutputTokens: settings.maxOutputTokens || OUTPUT_TOKEN_LIMITS.mediumJson,
+        jsonMode: isGemini ? true : !!targetSchema,
+        responseSchema: settings.responseSchema,
+        modelName
+      }), timeoutMs);
       break;
     } catch (error) {
       // ... retry logic remains ...
@@ -273,7 +257,7 @@ ${text}
 
 export async function repairDiagram(code, error, settings = {}, customInstruction = "") {
   const {
-    modelName = process.env.GEMINI_MODEL_NAME || "gemini-3-flash-preview",
+    modelName = DEFAULT_MODELS.GEMINI,
   } = settings;
 
   const finalPrompt = `

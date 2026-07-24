@@ -31,7 +31,9 @@ export function normalizeProvider(provider) {
 
 /**
  * @param {string} provider - GEMINI | OPENAI | CLAUDE | GROK (or a legacy alias)
- * @param {string} [apiKey] - decrypted key; only Gemini can fall back to the platform key
+ * @param {string} [apiKey] - decrypted per-user key. Required for every provider used for
+ *   generation, including Gemini. When omitted, Gemini falls back to the shared platform
+ *   client (embeddings/internal callers only) — user-facing generation always passes a key.
  */
 export function getAdapter(provider, apiKey) {
     switch (normalizeProvider(provider)) {
@@ -43,6 +45,6 @@ export function getAdapter(provider, apiKey) {
             return new GrokAdapter(apiKey);
         case 'GEMINI':
         default:
-            return new GeminiAdapter();
+            return new GeminiAdapter(apiKey);
     }
 }

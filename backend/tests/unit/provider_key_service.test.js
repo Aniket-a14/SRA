@@ -26,7 +26,7 @@ jest.unstable_mockModule('../../src/utils/dataEncryption.js', () => ({
     maskSensitiveData: jest.fn(() => '****masked****')
 }));
 
-const { resolveProviderKey, listProviderKeys, upsertProviderKey, deleteProviderKey } = await import('../../src/services/providerKeyService.js');
+const { resolveProviderKey, listProviderKeys, upsertProviderKey, deleteProviderKey } = await import('../../src/services/providers/providerKeyService.js');
 
 describe('providerKeyService', () => {
     const originalGeminiKey = process.env.GEMINI_API_KEY;
@@ -44,14 +44,26 @@ describe('providerKeyService', () => {
     });
 
     describe('resolveProviderKey', () => {
-        it('falls back to the platform Gemini key when the user has no key configured', async () => {
+        it('requires the user\'s own Gemini key for generation (no platform fallback)', async () => {
             mockFindUnique.mockResolvedValue(null);
+
+            // BYOK is mandatory for generation on every provider now — the platform
+            // GEMINI_API_KEY is reserved for embeddings, so Gemini no longer falls back.
+            await expect(resolveProviderKey('user-1', 'gemini')).rejects.toThrow(/No GEMINI API key configured/);
+        });
+
+        it('returns the user\'s own stored Gemini key when one is configured', async () => {
+            mockFindUnique.mockResolvedValue({
+                userId: 'user-1',
+                provider: 'GEMINI',
+                encryptedKey: 'ENC(gm-user-key)',
+                isActive: true
+            });
 
             const result = await resolveProviderKey('user-1', 'gemini');
 
             expect(result.provider).toBe('GEMINI');
-            expect(result.apiKey).toBeNull(); // GeminiAdapter uses the shared genAI client, not a per-call key
-            expect(result.modelName).toBeTruthy();
+            expect(result.apiKey).toBe('gm-user-key');
         });
 
         it('throws for a non-Gemini provider with no configured key', async () => {
