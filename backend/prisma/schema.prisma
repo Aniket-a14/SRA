@@ -217,6 +217,10 @@ model UserProviderKey {
   encryptedKey String
   maskedKey    String
   label        String?
+  // Generation-capable models discovered when the key was verified (see
+  // modelDiscovery.js). Cached so the analysis-creation model picker can offer
+  // exactly the models this key can actually use, instead of a hardcoded list.
+  availableModels Json?
   isActive     Boolean    @default(true)
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt

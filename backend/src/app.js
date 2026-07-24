@@ -18,11 +18,13 @@ import authRoutes from './routes/authRoutes.js';
 import analysisRoutes from './routes/analysisRoutes.js';
 import projectRoutes from './routes/projectRoutes.js';
 import validationRoutes from './routes/validationRoutes.js';
-import aiEndpoint from './routes/aiEndpoint.js';
 import healthRoutes from './routes/healthRoutes.js';
 import workerRoutes from './routes/workerRoutes.js';
 import reuseRoutes from './routes/reuseRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
+// Note: the former unauthenticated `/internal/analyze` HTTP route was removed — it had no
+// caller and exposed an expensive AI endpoint anonymously. `analyzeText` remains an
+// in-process service function (used by validation/quality/refine services + controllers).
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -65,9 +67,32 @@ const ADDITIONAL_ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
     .split(',')
     .map(o => o.trim())
     .filter(Boolean);
-const ALLOWED_ORIGIN_LIST = [FRONTEND_URL, ...ADDITIONAL_ALLOWED_ORIGINS];
 
-// Supports simple `*` wildcard entries (e.g. "https://*.vercel.app") in addition to exact origins.
+// A wildcard whose first label is `*` directly in front of a shared multi-tenant hosting
+// suffix (e.g. "https://*.vercel.app") is dangerous with `credentials: true`: ANY tenant on
+// that platform — including an attacker's own preview deployment — would pass CORS and make
+// credentialed requests. Bounded wildcards ("https://sra-*.vercel.app") are fine. Broad ones
+// are dropped unless ALLOW_BROAD_CORS_WILDCARD=true is set explicitly.
+const MULTI_TENANT_SUFFIXES = ['vercel.app', 'netlify.app', 'onrender.com', 'pages.dev', 'web.app', 'firebaseapp.com', 'herokuapp.com', 'github.io'];
+const isBroadWildcard = (pattern) => {
+    const m = pattern.match(/^https?:\/\/\*\.(.+)$/);
+    return !!m && MULTI_TENANT_SUFFIXES.includes(m[1].toLowerCase());
+};
+
+const allowBroad = process.env.ALLOW_BROAD_CORS_WILDCARD === 'true';
+const rejectedBroad = [];
+const safeAdditional = ADDITIONAL_ALLOWED_ORIGINS.filter((p) => {
+    if (isBroadWildcard(p) && !allowBroad) { rejectedBroad.push(p); return false; }
+    return true;
+});
+const ALLOWED_ORIGIN_LIST = [FRONTEND_URL, ...safeAdditional];
+
+if (rejectedBroad.length > 0) {
+    console.warn(`⚠️  CORS: dropped broad multi-tenant wildcard origin(s) ${rejectedBroad.join(', ')} — they would let any tenant on that host make credentialed requests. Use a bounded pattern (e.g. https://sra-*.vercel.app) or set ALLOW_BROAD_CORS_WILDCARD=true to override.`);
+}
+console.log(`[CORS] Effective allowlist: ${ALLOWED_ORIGIN_LIST.join(', ')}`);
+
+// Supports simple `*` wildcard entries (e.g. "https://sra-*.vercel.app") in addition to exact origins.
 const originMatches = (origin, pattern) => {
     if (!pattern.includes('*')) return origin === pattern;
     const regex = new RegExp('^' + pattern.split('*').map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$');
@@ -143,15 +168,7 @@ if (swaggerDocument) {
     app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, swaggerOptions));
 }
 
-// Internal AI Endpoint
-app.use('/internal/analyze', aiEndpoint);
-
 // Public/Protected Routes
-app.use((req, res, next) => {
-    // console.log(`[RAW REQUEST] ${req.method} ${req.url}`);
-    next();
-});
-
 app.use(['/auth', '/api/auth'], authLimiter, authRoutes);
 app.use(['/analyze', '/api/analyze'], aiLimiter, analysisRoutes);
 app.use(['/projects', '/api/projects'], projectRoutes);

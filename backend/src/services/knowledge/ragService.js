@@ -1,9 +1,9 @@
-import { Prisma } from '../generated/prisma/index.js';
-import prisma from '../config/prisma.js';
+import { Prisma } from '../../generated/prisma/index.js';
+import prisma from '../../config/prisma.js';
 import { embedText } from './embeddingService.js';
-import logger from '../config/logger.js';
+import logger from '../../config/logger.js';
 import { traverseGraph } from './graphService.js';
-import { genAI } from '../config/gemini.js';
+import { genAI } from '../../config/gemini.js';
 
 // Global token limit for context injection (Layer 5 policy)
 // Increased to 32k tokens to leverage Gemini 2.5 Pro/Flash capacity while staying within Free Tier TPM limits.

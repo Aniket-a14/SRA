@@ -1,6 +1,6 @@
-import { BaseAgent } from '../agents/BaseAgent.js';
-import { OUTPUT_TOKEN_LIMITS, TEMPERATURES } from '../utils/llmGenerationConfig.js';
-import { stringifyForPrompt } from '../utils/promptCompaction.js';
+import { BaseAgent } from '../../agents/BaseAgent.js';
+import { OUTPUT_TOKEN_LIMITS, TEMPERATURES } from '../../utils/llmGenerationConfig.js';
+import { stringifyForPrompt } from '../../utils/promptCompaction.js';
 
 /**
  * RAG Evaluation Service (Simplified RAGAS)

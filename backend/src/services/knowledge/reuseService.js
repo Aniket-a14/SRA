@@ -1,6 +1,6 @@
-import prisma from '../config/prisma.js';
+import prisma from '../../config/prisma.js';
 import { embedText } from './embeddingService.js';
-import logger from '../config/logger.js';
+import logger from '../../config/logger.js';
 
 export const findReuseCandidate = async (text) => {
     let reuseMetadata = { found: false };

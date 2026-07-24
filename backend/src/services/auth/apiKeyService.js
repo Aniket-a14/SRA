@@ -1,4 +1,4 @@
-import prisma from '../config/prisma.js';
+import prisma from '../../config/prisma.js';
 import crypto, { createHash } from 'crypto';
 
 // Helper to hash key for checking

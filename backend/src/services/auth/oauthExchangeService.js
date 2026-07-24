@@ -1,6 +1,6 @@
 import crypto from 'crypto';
-import { getRedisClient } from '../config/redis.js';
-import logger from '../config/logger.js';
+import { getRedisClient } from '../../config/redis.js';
+import logger from '../../config/logger.js';
 
 const EXCHANGE_TTL_SECONDS = 60;
 const KEY_PREFIX = 'oauth_exchange:';

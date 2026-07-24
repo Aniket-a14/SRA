@@ -1,4 +1,4 @@
-import { createApiKey, listApiKeys, revokeApiKey } from '../services/apiKeyService.js';
+import { createApiKey, listApiKeys, revokeApiKey } from '../services/auth/apiKeyService.js';
 
 export const createKey = async (req, res, next) => {
     try {

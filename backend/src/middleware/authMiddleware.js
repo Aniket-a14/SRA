@@ -1,5 +1,5 @@
 import { verifyToken } from '../config/jwt.js';
-import { verifyApiKey } from '../services/apiKeyService.js';
+import { verifyApiKey } from '../services/auth/apiKeyService.js';
 
 export const authenticate = async (req, res, next) => {
     const authHeader = req.headers.authorization;

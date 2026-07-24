@@ -10,11 +10,11 @@ jest.unstable_mockModule('../../src/config/prisma.js', () => ({
     }
 }));
 
-jest.unstable_mockModule('../../src/services/embeddingService.js', () => ({
+jest.unstable_mockModule('../../src/services/knowledge/embeddingService.js', () => ({
     embedText: mockEmbedText
 }));
 
-jest.unstable_mockModule('../../src/services/graphService.js', () => ({
+jest.unstable_mockModule('../../src/services/knowledge/graphService.js', () => ({
     traverseGraph: mockTraverseGraph
 }));
 
@@ -30,7 +30,7 @@ jest.unstable_mockModule('../../src/config/gemini.js', () => ({
     genAI: {}
 }));
 
-const { retrieveContext } = await import('../../src/services/ragService.js');
+const { retrieveContext } = await import('../../src/services/knowledge/ragService.js');
 
 describe('RAG Service retrieveContext', () => {
     const originalMockAi = process.env.MOCK_AI;

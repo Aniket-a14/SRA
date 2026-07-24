@@ -17,15 +17,35 @@ const createStore = (prefix) => {
     });
 };
 
-// Strict limiter for authentication routes (login, signup, etc.)
+// Moderate limiter for the auth router as a whole (OAuth, /me, /refresh, /sessions, /keys).
+// Deliberately NOT the brute-force guard — credential endpoints get the stricter
+// loginLimiter below. Kept relatively high so token refresh + session/key management
+// under normal use don't trip it.
 export const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    limit: 100, // Limit each IP to 100 requests per window (Relaxed for API Key management)
+    limit: 100,
     standardHeaders: true,
     legacyHeaders: false,
-    store: createStore('rl:auth:'), // Unique store with prefix
+    store: createStore('rl:auth:'),
     message: {
-        error: "Too many authentication attempts, please try again after 15 minutes",
+        error: "Too many authentication requests, please try again after 15 minutes",
+    },
+});
+
+// Strict brute-force guard for credential submission (POST /login, /signup). A separate,
+// tight budget so password-guessing is throttled independently of benign auth traffic like
+// token refresh or API-key management (which previously shared the same 100/15min bucket).
+export const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    limit: Number(process.env.LOGIN_RATE_LIMIT) || 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    // Only failed attempts count toward the limit — a user who logs in successfully
+    // isn't penalized, but repeated wrong-password attempts are throttled quickly.
+    skipSuccessfulRequests: true,
+    store: createStore('rl:login:'),
+    message: {
+        error: "Too many login attempts. Please wait 15 minutes and try again.",
     },
 });
 

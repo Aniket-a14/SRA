@@ -1,4 +1,4 @@
-import { embedText } from "../services/embeddingService.js";
+import { embedText } from "../services/knowledge/embeddingService.js";
 import dotenv from "dotenv";
 
 // Ensure env vars are loaded if not already by the service

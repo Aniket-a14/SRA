@@ -1,0 +1,22 @@
+{
+    "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+    "packageManager": "pnpm",
+    "testRunner": "jest",
+    "plugins": ["@stryker-mutator/jest-runner"],
+    "jest": {
+        "configFile": "jest.stryker.config.js"
+    },
+    "reporters": ["clear-text", "progress"],
+    "coverageAnalysis": "off",
+    "mutate": [
+        "src/utils/response.js",
+        "src/services/modelDiscovery.js"
+    ],
+    "concurrency": 2,
+    "timeoutMS": 60000,
+    "thresholds": {
+        "high": 80,
+        "low": 60,
+        "break": 0
+    }
+}

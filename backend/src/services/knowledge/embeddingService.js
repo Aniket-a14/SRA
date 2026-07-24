@@ -1,7 +1,7 @@
-import { genAI } from "../config/gemini.js";
-import { getRedisClient } from "../config/redis.js";
+import { genAI } from "../../config/gemini.js";
+import { getRedisClient } from "../../config/redis.js";
 import { createHash } from "crypto";
-import logger from "../config/logger.js";
+import logger from "../../config/logger.js";
 
 export async function embedText(text, retries = 3, initialDelay = 2000) {
     const redis = getRedisClient();

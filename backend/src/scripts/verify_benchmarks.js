@@ -5,7 +5,7 @@ import { ProductOwnerAgent } from '../agents/ProductOwnerAgent.js';
 import { ArchitectAgent } from '../agents/ArchitectAgent.js';
 import { DeveloperAgent } from '../agents/DeveloperAgent.js';
 import { CriticAgent } from '../agents/CriticAgent.js';
-import { evalService } from '../services/evalService.js';
+import { evalService } from '../services/knowledge/evalService.js';
 
 async function runBenchmark() {
     console.log("🚀 Starting FINAL Industry Benchmark Verification Suite\n");

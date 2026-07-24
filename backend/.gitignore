@@ -13,3 +13,8 @@ dist/
 .env.local
 
 /backups
+
+# Stryker mutation testing
+.stryker-tmp/
+reports/
+stryker.log

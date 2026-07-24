@@ -27,7 +27,7 @@ const prisma = new PrismaClient({ adapter });
 
 // 2. Dynamic Import of Service
 // We import dynamically to ensure we can pass our own prisma instance
-const { storeGraph, traverseGraph } = await import("../services/graphService.js");
+const { storeGraph, traverseGraph } = await import("../services/knowledge/graphService.js");
 
 async function verifyMock() {
     console.log("Starting MOCK GraphRAG Verification (Adapter + Direct)...");

@@ -1,4 +1,4 @@
-import { searchGoldStandardFragments } from '../services/ragService.js';
+import { searchGoldStandardFragments } from '../services/knowledge/ragService.js';
 import { successResponse } from '../utils/response.js';
 
 export const suggestReuse = async (req, res, next) => {

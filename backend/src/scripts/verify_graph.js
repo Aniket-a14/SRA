@@ -20,7 +20,7 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 // Dynamic import of service
-const { extractGraph, traverseGraph } = await import("../services/graphService.js");
+const { extractGraph, traverseGraph } = await import("../services/knowledge/graphService.js");
 
 const SAMPLE_TEXT = `
 The Admin User logs into the System Portal.

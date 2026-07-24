@@ -1,6 +1,6 @@
-import prisma from '../config/prisma.js';
-import { BaseAgent } from '../agents/BaseAgent.js';
-import logger from '../config/logger.js';
+import prisma from '../../config/prisma.js';
+import { BaseAgent } from '../../agents/BaseAgent.js';
+import logger from '../../config/logger.js';
 
 // Graph Extraction Prompt
 const GRAPH_EXTRACTION_PROMPT = `

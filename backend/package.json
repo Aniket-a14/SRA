@@ -8,6 +8,7 @@
   },
   "scripts": {
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules MOCK_AI=true jest",
+    "test:mutation": "cross-env NODE_OPTIONS=--experimental-vm-modules MOCK_AI=true stryker run",
     "lint": "eslint .",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
@@ -60,6 +61,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
+    "@stryker-mutator/core": "^9.6.1",
+    "@stryker-mutator/jest-runner": "^9.6.1",
     "cross-env": "^10.1.0",
     "eslint": "^9.39.2",
     "globals": "^17.0.0",

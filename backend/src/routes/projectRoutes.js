@@ -1,7 +1,7 @@
 import express from 'express';
 import { authenticate } from '../middleware/authMiddleware.js';
 import { createProject, getProjects, getProject, updateProject, deleteProject } from '../controllers/projectController.js';
-import { getFullProjectGraph } from '../services/graphService.js';
+import { getFullProjectGraph } from '../services/knowledge/graphService.js';
 import { successResponse } from '../utils/response.js';
 import { validate } from '../middleware/validationMiddleware.js';
 import { projectCreateSchema, projectUpdateSchema } from '../utils/validationSchemas.js';

@@ -1,10 +1,10 @@
 import crypto from 'crypto';
-import { registerUser, loginUser, handleGoogleAuth, handleGithubAuth, getUserById } from '../services/authService.js';
+import { registerUser, loginUser, handleGoogleAuth, handleGithubAuth, getUserById } from '../services/auth/authService.js';
 import { getGoogleAuthURL, getGoogleTokens, getGoogleUser } from '../config/googleOAuth.js';
 import { getGithubAuthURL, getGithubTokens, getGithubUser } from '../config/githubOAuth.js';
-import { validateSession, rotateSession, revokeSession, getUserSessions } from '../services/sessionService.js';
+import { validateSession, rotateSession, revokeSession, getUserSessions } from '../services/auth/sessionService.js';
 import { signToken } from '../config/jwt.js';
-import { createExchangeCode, consumeExchangeCode } from '../services/oauthExchangeService.js';
+import { createExchangeCode, consumeExchangeCode } from '../services/auth/oauthExchangeService.js';
 
 const OAUTH_STATE_COOKIE = 'oauth_state';
 const REFRESH_TOKEN_COOKIE = 'refreshToken';

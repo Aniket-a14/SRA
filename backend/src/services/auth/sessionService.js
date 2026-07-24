@@ -1,4 +1,4 @@
-import prisma from '../config/prisma.js';
+import prisma from '../../config/prisma.js';
 import axios from 'axios';
 import crypto from 'crypto';
 

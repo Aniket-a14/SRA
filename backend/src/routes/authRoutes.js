@@ -1,13 +1,15 @@
 import express from 'express';
 import { signup, login, googleStart, googleCallback, githubStart, githubCallback, exchangeToken, getMe, refreshToken, logout, getSessions, revokeSessionEndpoint } from '../controllers/authController.js';
 import { authenticate } from '../middleware/authMiddleware.js';
+import { loginLimiter } from '../middleware/rateLimiters.js';
 import { validate } from '../middleware/validationMiddleware.js';
 import { signupSchema, loginSchema } from '../utils/validationSchemas.js';
 
 const router = express.Router();
 
-router.post('/signup', validate(signupSchema), signup);
-router.post('/login', validate(loginSchema), login);
+// Credential endpoints get the strict brute-force limiter on top of the router-wide authLimiter.
+router.post('/signup', loginLimiter, validate(signupSchema), signup);
+router.post('/login', loginLimiter, validate(loginSchema), login);
 router.get('/google/start', googleStart);
 router.get('/google/callback', googleCallback);
 router.get('/github/start', githubStart);

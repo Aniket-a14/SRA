@@ -1,8 +1,8 @@
-import prisma from '../config/prisma.js';
-import { hashPassword, comparePassword } from '../utils/passwordUtils.js';
-import { signToken } from '../config/jwt.js';
+import prisma from '../../config/prisma.js';
+import { hashPassword, comparePassword } from '../../utils/passwordUtils.js';
+import { signToken } from '../../config/jwt.js';
 import { createSession } from './sessionService.js';
-import { encryptData } from '../utils/dataEncryption.js';
+import { encryptData } from '../../utils/dataEncryption.js';
 
 export const registerUser = async (email, password, name, userAgent = null, ip = null) => {
     const existingUser = await prisma.user.findUnique({ where: { email } });

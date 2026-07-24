@@ -26,7 +26,7 @@ jest.unstable_mockModule('../../src/config/logger.js', () => ({
     default: { info: jest.fn(), warn: jest.fn(), error: jest.fn() }
 }));
 
-const { storeGraph } = await import('../../src/services/graphService.js');
+const { storeGraph } = await import('../../src/services/knowledge/graphService.js');
 
 describe('storeGraph', () => {
     beforeEach(() => {

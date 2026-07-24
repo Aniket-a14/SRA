@@ -14,7 +14,6 @@ validateEnv();
 
 const server = app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
-    console.log(`Internal Analysis Service available at http://localhost:${PORT}/internal/analyze`);
 });
 
 // In production, POST /api/worker/reconcile is meant to be hit by a scheduled QStash
