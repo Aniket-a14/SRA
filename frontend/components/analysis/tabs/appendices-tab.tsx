@@ -39,6 +39,41 @@ export const AppendicesTab = memo(function AppendicesTab({
     const authFetch = useAuthFetch();
     const router = useRouter();
 
+    const additionalDiagrams = appendices?.analysisModels?.additionalDiagrams || [];
+
+    const persistAppendices = async (nextAnalysisModels: Record<string, unknown>, options?: { inPlace?: boolean }) => {
+        const isInPlace = !!options?.inPlace;
+        const res = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}`, {
+            method: "PUT",
+            body: JSON.stringify({
+                appendices: { ...appendices, analysisModels: nextAnalysisModels },
+                skipAlignment: true,
+                inPlace: isInPlace,
+            }),
+        });
+        if (!res.ok) throw new Error("Failed to save diagram");
+        const json = await res.json();
+        const updated = json.data || json;
+        if (!isInPlace && updated.id && updated.id !== analysisId) {
+            toast.success("New version created");
+            router.push(`/analysis/${updated.id}`);
+        } else {
+            toast.success(isInPlace ? "Diagram fixed" : "Saved");
+            onRefresh?.();
+        }
+    };
+
+    const handleAdditionalDiagramSave = async (index: number, newCode: string, options?: { inPlace?: boolean }) => {
+        try {
+            const current = appendices?.analysisModels?.additionalDiagrams || [];
+            const next = current.map((d, i) => (i === index ? { ...d, code: newCode } : d));
+            await persistAppendices({ ...appendices?.analysisModels, additionalDiagrams: next }, options);
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to save diagram");
+        }
+    };
+
     const handleDiagramSave = async (diagramType: string, newCode: string, options?: { inPlace?: boolean }) => {
         try {
             const isInPlace = !!options?.inPlace;
@@ -162,6 +197,26 @@ export const AppendicesTab = memo(function AppendicesTab({
                         />
                     </ErrorBoundary>
                 </div>
+
+                {/* AI-selected diagrams — the model chose the most fitting Mermaid type per feature/URS */}
+                {additionalDiagrams.length > 0 && (
+                    <div className="mt-8 space-y-6">
+                        <h4 className="text-base font-semibold text-muted-foreground">
+                            Additional Models <span className="font-normal">(AI-selected per requirement)</span>
+                        </h4>
+                        {additionalDiagrams.map((d, i) => (
+                            <ErrorBoundary key={`add-diagram-${i}`} name={`${d.title} Diagram`}>
+                                <DiagramEditor
+                                    title={`${d.title}${d.appliesTo ? ` — ${d.appliesTo}` : ""}`}
+                                    initialCode={d.code || ""}
+                                    syntaxExplanation={d.caption}
+                                    onSave={(newCode: string, options?: { inPlace?: boolean }) => handleAdditionalDiagramSave(i, newCode, options)}
+                                    onOpenChange={onDiagramEditChange}
+                                />
+                            </ErrorBoundary>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Glossary */}

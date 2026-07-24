@@ -117,33 +117,38 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
 
   const currentData = isEditing && editedData ? editedData : data
 
-  const tabTriggerClass = "flex-none rounded-none border-0 border-b-2 border-transparent bg-transparent shadow-none px-1 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+  const tabTriggerClass = "group/tab flex-none flex items-center gap-2 rounded-none border-0 border-b-2 border-transparent bg-transparent shadow-none px-1 py-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+  const tabIndexClass = "font-mono text-[10px] text-muted-foreground/50 group-data-[state=active]/tab:text-foreground/70 transition-colors"
 
   return (
     <section ref={sectionRef} className="pb-10">
       <Tabs defaultValue="intro" className="w-full gap-0">
-        {/* Sticky tab bar — clean underline nav, no redundant page header (the canvas
-            toolbar already carries the document title, version, and actions). */}
+        {/* Editorial masthead + sticky underline nav. The eyebrow carries the standard,
+            the serif line the section identity — matching the landing page's language. */}
         <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-foreground/10">
-          <div className="flex items-center justify-between gap-3 px-4 sm:px-6 pt-3">
-            <p className="text-[11px] font-mono uppercase tracking-wide text-muted-foreground/70 hidden sm:block">
-              IEEE 830-1998 · SRS
-            </p>
-            <div className="flex gap-2 ml-auto">
+          <div className="flex items-end justify-between gap-3 px-4 sm:px-6 pt-4 pb-1">
+            <div className="min-w-0">
+              <span className="inline-flex items-center gap-3 text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground/70">
+                <span className="w-6 h-px bg-foreground/30" />
+                IEEE 830-1998
+              </span>
+              <p className="font-display text-2xl leading-tight mt-1 hidden sm:block">Specification</p>
+            </div>
+            <div className="flex gap-2 ml-auto pb-1">
               {isEditing ? (
                 <>
-                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => {
+                  <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => {
                     setIsEditing(false)
                     setEditedData(data ? structuredClone(data) : null)
                   }}>
                     Cancel
                   </Button>
-                  <Button size="sm" className="h-7 text-xs rounded-full bg-foreground text-background hover:bg-foreground/90" onClick={handleSave}>
+                  <Button size="sm" className="h-8 text-xs rounded-full bg-foreground text-background hover:bg-foreground/90" onClick={handleSave}>
                     Save changes
                   </Button>
                 </>
               ) : (
-                <Button variant="outline" size="sm" className="h-7 text-xs rounded-full" onClick={() => setIsEditing(true)}>
+                <Button variant="outline" size="sm" className="h-8 text-xs rounded-full border-foreground/20 hover:bg-foreground/5" onClick={() => setIsEditing(true)}>
                   Edit
                 </Button>
               )}
@@ -151,13 +156,13 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
           </div>
 
           <ScrollArea className="w-full">
-            <TabsList className="inline-flex w-max items-center justify-start gap-5 bg-transparent p-0 px-4 sm:px-6 h-auto rounded-none border-0">
-              <TabsTrigger value="intro" className={tabTriggerClass}>Introduction</TabsTrigger>
-              <TabsTrigger value="features" className={tabTriggerClass}>System Features</TabsTrigger>
-              <TabsTrigger value="interfaces" className={tabTriggerClass}>Interfaces</TabsTrigger>
-              <TabsTrigger value="nfrs" className={tabTriggerClass}>Non-Functional</TabsTrigger>
-              <TabsTrigger value="appendices" className={tabTriggerClass}>Appendices</TabsTrigger>
-              <TabsTrigger value="graph" className={tabTriggerClass}>Knowledge Graph</TabsTrigger>
+            <TabsList className="inline-flex w-max items-center justify-start gap-6 bg-transparent p-0 px-4 sm:px-6 h-auto rounded-none border-0">
+              <TabsTrigger value="intro" className={tabTriggerClass}><span className={tabIndexClass}>01</span> Introduction</TabsTrigger>
+              <TabsTrigger value="features" className={tabTriggerClass}><span className={tabIndexClass}>02</span> System Features</TabsTrigger>
+              <TabsTrigger value="interfaces" className={tabTriggerClass}><span className={tabIndexClass}>03</span> Interfaces</TabsTrigger>
+              <TabsTrigger value="nfrs" className={tabTriggerClass}><span className={tabIndexClass}>04</span> Non-Functional</TabsTrigger>
+              <TabsTrigger value="appendices" className={tabTriggerClass}><span className={tabIndexClass}>05</span> Appendices</TabsTrigger>
+              <TabsTrigger value="graph" className={tabTriggerClass}><span className={tabIndexClass}>06</span> Knowledge Graph</TabsTrigger>
             </TabsList>
             <ScrollBar orientation="horizontal" className="opacity-0" />
           </ScrollArea>

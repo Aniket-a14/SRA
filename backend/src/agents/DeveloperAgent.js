@@ -1,6 +1,7 @@
 import { BaseAgent } from './BaseAgent.js';
 import { constructMasterPrompt } from '../utils/prompts.js';
 import { SRSSchema, SRSShellSchema, SRSFeaturesSchema, SRSRequirementsSchema, SRSAppendicesSchema } from '../utils/aiSchemas.js';
+import { buildFormatSchema, buildFormatGuidelines } from '../formats/index.js';
 import { OUTPUT_TOKEN_LIMITS, TEMPERATURES } from '../utils/llmGenerationConfig.js';
 import { stringifyForPrompt } from '../utils/promptCompaction.js';
 
@@ -228,6 +229,78 @@ ${rawInput}
   async generateSRS(requirements, architecture, settings = {}) {
     // Legacy support or fallback. For SRA 4.0, direct orchestration in service is preferred.
     return this.generateShell(requirements, architecture, settings);
+  }
+
+  /**
+   * Descriptor-driven generation. Produces one CHUNK of an arbitrary SRS format (ISO 29148,
+   * Volere, Agile PRD, …) directly into the format's shape. The system instruction carries the
+   * format's section guidelines (buildFormatGuidelines) and the response is constrained to the
+   * format's schema for just this chunk's section ids (buildFormatSchema). Prior chunks are
+   * passed as context so later sections stay consistent with earlier ones.
+   *
+   * @param {string} rawInput
+   * @param {object} p
+   * @param {object} p.spec - format descriptor
+   * @param {string[]} p.sectionIds - section ids to generate in this pass
+   * @param {object} p.poOutput
+   * @param {object} p.architecture
+   * @param {object} [p.priorSections] - already-generated sections (context)
+   * @param {object} [p.settings] - { projectName, version, ragContext }
+   */
+  async generateFormatChunk(rawInput, { spec, sectionIds, poOutput, architecture, priorSections = {}, settings = {} }) {
+    const { projectName = "Project", version = "latest", ragContext = "" } = settings;
+
+    const guidelines = buildFormatGuidelines(spec, sectionIds);
+    const schema = buildFormatSchema(spec, sectionIds);
+
+    const systemInstruction = await constructMasterPrompt(null, {
+      projectName,
+      ragContext,
+      formatGuidelines: guidelines,
+      formatName: spec.name
+    }, version);
+
+    const sectionTitles = spec.sections
+      .filter(s => sectionIds.includes(s.id))
+      .map(s => `${s.number}. ${s.title}`)
+      .join(', ');
+
+    const prompt = `
+<role>
+You are the Lead Requirements Engineer authoring a ${spec.name} specification. Produce ONLY the sections requested in this pass, in the exact JSON shape defined by the format guidelines in your system instruction.
+</role>
+
+<task>
+Generate these sections: ${sectionTitles}.
+Return a JSON object whose top-level keys are EXACTLY the corresponding section ids (plus "projectTitle" and "revisionHistory"). Do not add, rename, or omit keys.
+</task>
+
+<constraints>
+1. Use the "${projectName}-" prefix for all requirement identifiers where the format uses IDs.
+2. Every requirement must be atomic, verifiable, and unambiguous.
+3. Do NOT invent features or constraints absent from the refined intent, architecture, or raw input.
+4. Maintain consistency with any already-generated sections provided as context.
+</constraints>
+
+${MERMAID_RULES}
+
+<context>
+<refined_intent>${stringifyForPrompt(poOutput)}</refined_intent>
+<architecture>${stringifyForPrompt(architecture)}</architecture>
+<already_generated_sections>${stringifyForPrompt(priorSections)}</already_generated_sections>
+<historical_patterns>${ragContext || "None"}</historical_patterns>
+</context>
+
+<input>
+Original Raw Description:
+${rawInput}
+</input>
+`;
+
+    return this.callLLM(prompt, TEMPERATURES.developer, true, schema, 3, 5000, {
+      systemInstruction,
+      maxOutputTokens: OUTPUT_TOKEN_LIMITS.srsRequirements
+    });
   }
 
   /**

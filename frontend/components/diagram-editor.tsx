@@ -94,7 +94,11 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
 
             if (!res.ok) throw new Error("Repair failed")
 
-            const data = await res.json()
+            const json = await res.json()
+            // repairDiagram responds with successResponse(res, { code }) → { data: { code } }.
+            // Reading `json.code` here was always undefined, so the repaired diagram was
+            // silently discarded and auto-repair appeared to do nothing.
+            const data = json?.data ?? json
             if (data.code && data.code !== code) {
                 const repairedCode = data.code
                 // Mark the old code as failed so we don't try it again

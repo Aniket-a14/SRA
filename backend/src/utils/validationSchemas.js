@@ -13,7 +13,8 @@ export const analyzeSchema = z.object({
             depth: z.number().int().min(1).max(5).optional(),
             strictness: z.number().int().min(1).max(5).optional(),
             modelProvider: z.string().optional(),
-            modelName: z.string().optional()
+            modelName: z.string().optional(),
+            format: z.enum(['ieee830', 'iso29148', 'volere', 'agile-prd']).optional()
         }).passthrough().optional(),
         srsData: z.object({
             details: z.object({
@@ -189,5 +190,12 @@ export const providerKeyBodySchema = z.object({
 export const providerParamSchema = z.object({
     params: z.object({
         provider: z.enum(['GEMINI', 'OPENAI', 'CLAUDE', 'GROK'])
+    })
+});
+
+export const verifyProviderKeySchema = z.object({
+    body: z.object({
+        provider: z.enum(['GEMINI', 'OPENAI', 'CLAUDE', 'GROK']),
+        apiKey: z.string().min(1, "API key is required").max(500)
     })
 });

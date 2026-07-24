@@ -85,10 +85,24 @@ export interface Diagram {
     syntaxExplanation?: string;
 }
 
+/**
+ * AI-selected diagram: the model picks the Mermaid type that best fits a given feature/URS
+ * (state, class, journey, gantt, mindmap, timeline, …) rather than being limited to the
+ * canonical flowchart/sequence/ERD triad.
+ */
+export interface DynamicDiagram {
+    type: string;
+    title: string;
+    appliesTo?: string;
+    code: string;
+    caption?: string;
+}
+
 export interface AnalysisModels {
     flowchartDiagram?: Diagram | string;
     sequenceDiagram?: Diagram | string;
     entityRelationshipDiagram?: Diagram | string;
+    additionalDiagrams?: DynamicDiagram[];
     // Real shape produced by DFD generation is DFDInput's { dfd_level_0, dfd_level_1 }
     // (see DFDViewer.tsx) plus a caption/syntaxExplanation merged in alongside it — not
     // the { level0, level1, caption } shape this used to declare, which nothing actually
@@ -113,6 +127,9 @@ export interface Appendices {
 }
 
 export interface AnalysisResult {
+    // Which SRS format this document was generated in (absent/ieee830 = classic IEEE shape).
+    formatId?: string;
+    formatName?: string;
     // New IEEE Structure
     projectTitle: string;
     revisionHistory?: RevisionHistoryItem[];

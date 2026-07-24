@@ -350,6 +350,21 @@ export const SRSAppendicesSchema = {
                                 code: { type: SchemaType.STRING },
                                 caption: { type: SchemaType.STRING }
                             }
+                        },
+                        additionalDiagrams: {
+                            type: SchemaType.ARRAY,
+                            description: "AI-selected diagrams: for each key feature/URS, the most fitting Mermaid diagram type.",
+                            items: {
+                                type: SchemaType.OBJECT,
+                                properties: {
+                                    type: { type: SchemaType.STRING, description: "Mermaid type, e.g. stateDiagram-v2, classDiagram, journey, gantt, mindmap, timeline, quadrantChart, requirementDiagram, flowchart, sequenceDiagram, erDiagram" },
+                                    title: { type: SchemaType.STRING },
+                                    appliesTo: { type: SchemaType.STRING, description: "Feature name or requirement ID this diagram illustrates." },
+                                    code: { type: SchemaType.STRING, description: "Valid raw Mermaid code." },
+                                    caption: { type: SchemaType.STRING }
+                                },
+                                required: ["type", "title", "code"]
+                            }
                         }
                     }
                 },
@@ -478,6 +493,21 @@ export const SRSSchema = {
                                 syntaxExplanation: { type: SchemaType.STRING },
                                 code: { type: SchemaType.STRING },
                                 caption: { type: SchemaType.STRING }
+                            }
+                        },
+                        additionalDiagrams: {
+                            type: SchemaType.ARRAY,
+                            description: "AI-selected diagrams: for each key feature/URS, the most fitting Mermaid diagram type.",
+                            items: {
+                                type: SchemaType.OBJECT,
+                                properties: {
+                                    type: { type: SchemaType.STRING },
+                                    title: { type: SchemaType.STRING },
+                                    appliesTo: { type: SchemaType.STRING },
+                                    code: { type: SchemaType.STRING },
+                                    caption: { type: SchemaType.STRING }
+                                },
+                                required: ["type", "title", "code"]
                             }
                         }
                     }

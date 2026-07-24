@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import {
     AlertDialog,
@@ -18,11 +18,14 @@ import { Download, Sparkles, Database, Loader2, X, History, Zap } from "lucide-r
 import dynamic from "next/dynamic"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
-import { generateSRS, downloadBundle } from "@/lib/export-utils"
+import { downloadBundle } from "@/lib/export-utils"
+import { exportSrsToDocx, listFormats } from "@/lib/srs-export"
 import { updateAnalysis } from "@/lib/analysis-api"
 import type { Analysis, SystemFeature } from "@/types/analysis"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { SourcesPanel } from "@/components/analysis/sources-panel"
+import { FormatResults } from "@/components/analysis/format-results"
+import { getFormatSpec, resolveFormatId } from "@/lib/formats"
 
 const ResultsTabs = dynamic(() => import("@/components/results-tabs").then(mod => mod.ResultsTabs), {
     loading: () => <div className="h-[600px] w-full bg-muted/5 animate-pulse" />
@@ -150,23 +153,36 @@ export function DocumentCanvas({
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={async () => {
-                                try {
-                                    toast.info("Preparing diagrams and PDF...");
-                                    const { renderMermaidDiagrams } = await import("@/lib/export-utils");
-                                    const images = await renderMermaidDiagrams(analysis);
-
-                                    const projectTitle = analysis.projectTitle || analysis.title || "Project_Context";
-                                    const doc = await generateSRS(analysis, projectTitle, images);
-                                    doc.save(`${projectTitle.replace(/\s+/g, '_')}_SRS.pdf`);
-                                    toast.success("SRS Report downloaded");
-                                } catch (err) {
-                                    console.error("SRS Export Failed", err);
-                                    toast.error("Failed to generate SRS PDF");
-                                }
-                            }}>
-                                Export SRS (PDF)
-                            </DropdownMenuItem>
+                            <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>Export SRS (Word)</DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent>
+                                    <DropdownMenuLabel className="text-xs text-muted-foreground">Choose a template</DropdownMenuLabel>
+                                    {listFormats().map((fmt) => (
+                                        <DropdownMenuItem
+                                            key={fmt.id}
+                                            onClick={async () => {
+                                                const loading = toast.loading(`Generating ${fmt.name} document...`);
+                                                try {
+                                                    const { saveAs } = await import("file-saver");
+                                                    const projectTitle = analysis.projectTitle || analysis.title || "Project_Context";
+                                                    const { blob, filename } = await exportSrsToDocx(analysis, projectTitle, fmt.id);
+                                                    saveAs(blob, filename);
+                                                    toast.success(`${fmt.name} document downloaded`, { id: loading });
+                                                } catch (err) {
+                                                    console.error("SRS Word Export Failed", err);
+                                                    toast.error("Failed to generate Word document", { id: loading });
+                                                }
+                                            }}
+                                        >
+                                            <div className="flex flex-col">
+                                                <span>{fmt.name}</span>
+                                                <span className="text-xs text-muted-foreground">{fmt.description}</span>
+                                            </div>
+                                        </DropdownMenuItem>
+                                    ))}
+                                </DropdownMenuSubContent>
+                            </DropdownMenuSub>
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={async () => {
                                 try {
                                     toast.info("Generating bundle...");
@@ -238,11 +254,18 @@ export function DocumentCanvas({
                         <SourcesPanel sources={analysis.metadata?.ragSources || []} />
                     </div>
                     <ErrorBoundary name="Results View">
-                        <ResultsTabs
-                            data={analysis}
-                            onDiagramEditChange={onDiagramEditChange}
-                            onRefresh={onRefresh}
-                        />
+                        {resolveFormatId(analysis) === "ieee830" ? (
+                            <ResultsTabs
+                                data={analysis}
+                                onDiagramEditChange={onDiagramEditChange}
+                                onRefresh={onRefresh}
+                            />
+                        ) : (
+                            <FormatResults
+                                spec={getFormatSpec(resolveFormatId(analysis))}
+                                data={analysis as unknown as Record<string, unknown>}
+                            />
+                        )}
                     </ErrorBoundary>
                 </div>
             </div>

@@ -6,6 +6,7 @@ export interface PromptSettings {
     strictness: number;
     modelProvider?: 'google' | 'openai' | 'claude' | 'grok';
     modelName?: string;
+    format?: string;
 }
 
 export interface Project {

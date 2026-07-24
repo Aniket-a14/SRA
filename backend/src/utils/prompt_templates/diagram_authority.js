@@ -32,10 +32,20 @@ Key Principles:
 3. Unknown words break diagrams; parameters fail silently.
 
 [DIAGRAM TYPE SELECTION GUIDE]
-Choose the right diagram type based on the user's request (ONLY THESE 3 ARE SUPPORTED):
-1. Sequence Diagrams: Temporal interactions, message flows (API, Auth).
-2. Flowcharts: Processes, algorithms, user journeys, decision trees.
-3. Entity Relationship Diagrams (ERD): Database schemas, table relationships.
+Choose the diagram type whose semantics best match the requirement being illustrated:
+1. Sequence Diagrams (sequenceDiagram): Temporal interactions, message flows (API, Auth).
+2. Flowcharts (flowchart): Processes, algorithms, user journeys, decision trees.
+3. Entity Relationship Diagrams (erDiagram): Database schemas, table relationships.
+4. State Diagrams (stateDiagram-v2): Lifecycle / status transitions of an entity.
+5. Class Diagrams (classDiagram): Object structure, inheritance, associations.
+6. User Journey (journey): Step-by-step user experience and satisfaction.
+7. Gantt (gantt): Scheduling, phases, milestones.
+8. Mindmap (mindmap): Conceptual breakdown of a capability.
+9. Timeline (timeline): Chronology of events.
+10. Quadrant (quadrantChart): Prioritisation / comparison on two axes.
+11. Requirement (requirementDiagram): Formal requirement traceability.
+The canonical trio (flowchart, sequenceDiagram, erDiagram) remains the backbone; the others are
+selected per feature/URS when they communicate the intent more faithfully.
 
 [BEST PRACTICES & SAFETY]
 1. Start Simple: Begin with core entities.
@@ -108,14 +118,19 @@ Generate strictly compliant Mermaid diagrams based on requested context using th
 </task>
 
 <constraints>
-[ALLOWED DIAGRAM TYPES ONLY:]
+[ALLOWED DIAGRAM TYPES]
+Backbone (always valid, use for the canonical analysisModels trio):
 1. Flowchart (flowchart TD/LR)
 2. Sequence Diagram (sequenceDiagram)
 3. Entity Relationship Diagram (erDiagram)
+Extended (select per feature/URS when they fit better, for additionalDiagrams):
+4. State Diagram (stateDiagram-v2)   5. Class Diagram (classDiagram)
+6. User Journey (journey)            7. Gantt (gantt)
+8. Mindmap (mindmap)                 9. Timeline (timeline)
+10. Quadrant (quadrantChart)         11. Requirement Diagram (requirementDiagram)
 
-[STRICT PROHIBITION:]
-Do NOT generate Class Diagrams, C4, State, GitGraph, or any other type found in the knowledge base below.
-If a user request implies such a type, you MUST adapt it to one of the 3 allowed types (e.g., represent a Class structure using an ERD or a static Flowchart).
+[PROHIBITION]
+Do NOT generate C4 or GitGraph diagrams. Do NOT invent diagram types outside the allowed list above.
 
 [STRICT COMPLIANCE OVERLAY (OVERRIDES KNOWLEDGE BASE)]
 1. Flowchart IDs: NEVER use 'end', 'subgraph', or 'class' as IDs. Use alphanumeric (A-Z, 0-9) ONLY. NO spaces.
