@@ -1,5 +1,7 @@
 import { performAnalysis } from '../services/analysisService.js';
 import { runReconciliation } from '../services/reconciliationService.js';
+import { enqueueContinuation } from '../services/queueService.js';
+import { createStageBudget } from '../services/pipelineBudget.js';
 import { log } from '../middleware/logger.js';
 
 
@@ -8,9 +10,9 @@ import prisma from '../config/prisma.js';
 export const processJob = async (req, res, next) => {
     try {
         // QStash payload is in req.body
-        const { userId, text, projectId, settings, parentId, rootId, analysisId } = req.body;
+        const { userId, text, projectId, settings, parentId, rootId, analysisId, continuation } = req.body;
 
-        log.info({ msg: "Worker received job", projectId, userId, analysisId });
+        log.info({ msg: "Worker received job", projectId, userId, analysisId, continuation: !!continuation });
 
         if (!userId || !text) {
             return res.status(400).json({ error: "Missing required fields" });
@@ -18,11 +20,21 @@ export const processJob = async (req, res, next) => {
 
         // Security + Idempotency: Atomically verify ownership and transition PENDING → IN_PROGRESS.
         // If count === 0, either the record doesn't exist, userId doesn't match, or it's already past PENDING (QStash retry).
+        //
+        // A continuation is the pipeline handing itself to a new invocation after running
+        // out of function time, so the row is legitimately already IN_PROGRESS. It must be
+        // matched on IN_PROGRESS instead — the PENDING-only guard would otherwise classify
+        // the run's own continuation as a duplicate delivery and silently abandon it.
         if (analysisId) {
-            const { count } = await prisma.analysis.updateMany({
-                where: { id: analysisId, userId, status: 'PENDING' },
-                data: { status: 'IN_PROGRESS' }
-            });
+            const { count } = continuation
+                ? await prisma.analysis.updateMany({
+                    where: { id: analysisId, userId, status: 'IN_PROGRESS' },
+                    data: { status: 'IN_PROGRESS' }
+                })
+                : await prisma.analysis.updateMany({
+                    where: { id: analysisId, userId, status: 'PENDING' },
+                    data: { status: 'IN_PROGRESS' }
+                });
 
             if (count === 0) {
                 // Check if it's a duplicate delivery (already processing/completed) vs a real error
@@ -44,12 +56,25 @@ export const processJob = async (req, res, next) => {
             }
         }
 
-        // Execute Logic
-        const result = await performAnalysis(userId, text, projectId, parentId, rootId, settings, analysisId);
+        // Execute Logic. The budget makes the pipeline yield at a stage boundary rather
+        // than be killed mid-stage by the platform's function timeout.
+        const budget = createStageBudget();
 
-        log.info({ msg: "Worker finished job", projectId });
+        try {
+            const result = await performAnalysis(userId, text, projectId, parentId, rootId, settings, analysisId, { budget });
+            log.info({ msg: "Worker finished job", projectId });
+            return res.status(200).json({ success: true, result });
+        } catch (error) {
+            if (!error?.paused) throw error;
 
-        return res.status(200).json({ success: true, result });
+            // Out of time with work left. The checkpoint is already durable, so hand the
+            // rest to a new invocation and report success — QStash must not treat this as
+            // a failed delivery and retry the whole payload on its own terms.
+            await enqueueContinuation({ analysisId, userId, text, projectId, settings, parentId, rootId }, error.stage);
+
+            log.info({ msg: "Worker yielded to continuation", analysisId, stage: error.stage });
+            return res.status(200).json({ success: true, continued: true, stage: error.stage });
+        }
     } catch (error) {
         log.error({ msg: "Worker failed", error: error.message });
         next(error);

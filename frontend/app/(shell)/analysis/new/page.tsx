@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils"
 import { buildModelOptions } from "@/lib/models"
 import { listFormatSpecs } from "@/lib/formats"
 import { runValidation } from "@/lib/analysis-api"
+import { requestNotificationPermission } from "@/lib/notifications"
 
 // No model id is hardcoded here — the picker fills modelName in from the models the
 // user's own provider keys expose (see buildModelOptions + NEXT_PUBLIC_GEMINI_MODELS).
@@ -135,6 +136,11 @@ function NewAnalysisContent() {
 
         setIsAnalyzing(true)
         const loadingToast = toast.loading("Capturing your brief...")
+
+        // Ask here rather than on mount: a run takes minutes and finishes in the
+        // background, so this is the moment the permission is obviously worth granting —
+        // and an unprompted request on page load is the reliable way to get denied forever.
+        void requestNotificationPermission()
 
         try {
             const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, {

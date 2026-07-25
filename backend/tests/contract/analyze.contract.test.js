@@ -39,6 +39,7 @@ jest.unstable_mockModule('../../src/services/queueService.js', () => ({
     addAnalysisJob: jest.fn().mockResolvedValue({ id: 'job-id' }),
     getJobStatus: jest.fn(),
     resumeAnalysisJob: jest.fn().mockResolvedValue({ id: 'job-id', status: 'PENDING' }),
+    enqueueContinuation: jest.fn().mockResolvedValue({ continued: true }),
 }));
 
 // Mock AI Service/Embedding (prevent external calls)

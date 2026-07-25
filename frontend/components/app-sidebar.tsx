@@ -31,6 +31,7 @@ import { useRouter, useParams } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import useSWR from "swr"
 import { fetcher, swrOptions } from "@/lib/swr-utils"
+import { useCompletionNotifications } from "@/lib/use-completion-notifications"
 import { useMemo } from "react"
 
 type AppSidebarProps = React.HTMLAttributes<HTMLDivElement> & {
@@ -43,6 +44,10 @@ interface AnalysisHistoryItem {
     createdAt: string
     inputPreview: string
     title?: string
+    // Returned by GET /analyze and used to spot a run finishing while the user is
+    // elsewhere in the app.
+    status?: string
+    resultQuality?: string
 }
 
 interface ProjectSummary {
@@ -87,7 +92,15 @@ export function AppSidebar({ className, inSheet = false }: AppSidebarProps) {
         refreshInterval: 30000,
     })
 
-    const history = Array.isArray(historyData) ? historyData : []
+    const history = useMemo(() => (Array.isArray(historyData) ? historyData : []), [historyData])
+
+    // Analyses finish server-side minutes after they are started, often while the user is
+    // on another page. This watches the list already being polled above and announces the
+    // transition — no extra requests, since SWR serves both from one cache entry.
+    const { unreadCount, unreadIds, clearUnread, markRead } = useCompletionNotifications(
+        history,
+        (id) => router.push(`/analysis/${id}`)
+    )
 
     const projectsSwrKey = useMemo(() => {
         if (!token) return null
@@ -195,12 +208,20 @@ export function AppSidebar({ className, inSheet = false }: AppSidebarProps) {
                 {/* Recent analyses */}
                 <div className="px-4 py-4">
                     <div className="flex items-center justify-between mb-3">
-                        <h2 className="text-xs font-mono uppercase tracking-wide text-muted-foreground">
+                        <h2 className="text-xs font-mono uppercase tracking-wide text-muted-foreground flex items-center gap-2">
                             Recent analyses
+                            {unreadCount > 0 && (
+                                <span
+                                    aria-label={`${unreadCount} analysis${unreadCount === 1 ? "" : "es"} finished`}
+                                    className="inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold tabular-nums"
+                                >
+                                    {unreadCount}
+                                </span>
+                            )}
                         </h2>
                         <button
                             className="text-xs text-muted-foreground hover:text-foreground"
-                            onClick={() => router.push("/analysis")}
+                            onClick={() => { clearUnread(); router.push("/analysis") }}
                         >
                             View all
                         </button>
@@ -213,7 +234,7 @@ export function AppSidebar({ className, inSheet = false }: AppSidebarProps) {
                             <button
                                 key={item.id}
                                 type="button"
-                                onClick={() => router.push(`/analysis/${item.id}`)}
+                                onClick={() => { markRead(item.id); router.push(`/analysis/${item.id}`) }}
                                 className={cn(
                                     "w-full flex items-center gap-2 px-2 py-2 text-sm text-left truncate transition-colors",
                                     item.id === analysisId ? "bg-foreground/5 text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
@@ -221,6 +242,9 @@ export function AppSidebar({ className, inSheet = false }: AppSidebarProps) {
                             >
                                 <MessageSquare className="h-3.5 w-3.5 shrink-0" />
                                 <span className="truncate">{item.title || item.inputPreview || "Untitled"}</span>
+                                {unreadIds.includes(item.id) && (
+                                    <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary shrink-0" aria-label="Finished" />
+                                )}
                             </button>
                         ))}
                     </div>

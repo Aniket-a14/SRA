@@ -81,7 +81,8 @@ jest.unstable_mockModule('../../src/services/queueService.js', () => ({
         return { id: 'mock-job', analysisId: id };
     }),
     getJobStatus: jest.fn(),
-    resumeAnalysisJob: jest.fn().mockResolvedValue({ id: 'generated-id', status: 'PENDING' })
+    resumeAnalysisJob: jest.fn().mockResolvedValue({ id: 'generated-id', status: 'PENDING' }),
+    enqueueContinuation: jest.fn().mockResolvedValue({ continued: true })
 }));
 
 // process.env.MOCK_QSTASH = 'true'; // Not needed if we mock the service

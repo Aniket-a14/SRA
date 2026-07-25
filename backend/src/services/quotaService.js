@@ -4,11 +4,15 @@ import { ErrorCodes } from '../utils/errorCodes.js';
 /**
  * Per-user abuse / cost controls for AI analysis runs.
  *
- * Each analysis triggers a 5-agent pipeline against the shared platform Gemini quota (for
- * users without their own key) and holds worker capacity for minutes. Without a cap, one
- * user can exhaust the platform's free-tier quota for everyone. These limits are counted
- * directly off the Analysis table (cheap given @@index([userId]) + @@index([status])) — no
- * extra counter table to keep consistent.
+ * These limits originally protected a shared platform Gemini quota, which is why the
+ * concurrency cap was as low as 3. That rationale is gone: generation is BYOK on every
+ * provider, so a user's runs spend only their own key's quota and cannot affect anyone
+ * else. The remaining purpose is narrower — stop a runaway client from queueing work
+ * without bound — so concurrency is set to let people work across several projects at once
+ * (the way any chat product allows) while still catching a submit loop.
+ *
+ * Counted directly off the Analysis table (cheap given @@index([userId]) +
+ * @@index([status])) — no extra counter table to keep consistent.
  *
  * Tunable via env; set either to 0 to disable that check. Enforcement is skipped in the
  * test environment so the suite stays deterministic.
@@ -19,7 +23,7 @@ const num = (value, fallback) => {
     return Number.isFinite(n) ? n : fallback;
 };
 
-export const MAX_CONCURRENT_ANALYSES = num(process.env.MAX_CONCURRENT_ANALYSES, 3);
+export const MAX_CONCURRENT_ANALYSES = num(process.env.MAX_CONCURRENT_ANALYSES, 10);
 export const MAX_DAILY_ANALYSES = num(process.env.MAX_DAILY_ANALYSES, 50);
 
 const quotaError = (message, retryAfter) => {

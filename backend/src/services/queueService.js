@@ -173,6 +173,46 @@ export const addAnalysisJob = async (userId, text, projectId, settings, parentId
 };
 
 /**
+ * Hand a partially-run analysis to a fresh worker invocation.
+ *
+ * Called when the pipeline yields at a stage boundary because it is out of function time
+ * (see pipelineBudget.js). Unlike resumeAnalysisJob this is machine-driven and mid-flight:
+ * the row deliberately stays IN_PROGRESS so the UI keeps showing a running job, and the
+ * payload carries `continuation: true` so the worker's PENDING-only guard lets it back in.
+ *
+ * @param {object} payload - the original worker payload for this analysis
+ * @param {string} stage - the stage that had just completed when the budget ran out
+ */
+export const enqueueContinuation = async (payload, stage) => {
+    if (!BACKEND_URL) throw new Error("BACKEND_URL is not defined");
+
+    const continuationPayload = { ...payload, continuation: true, resumedAfter: stage };
+
+    // In-process mode has no function time limit, so a continuation should never be
+    // requested there; recursing through HTTP would be wrong. Run it inline instead.
+    const useMockQueue = process.env.MOCK_QSTASH === 'true' || process.env.NODE_ENV === 'development';
+    if (useMockQueue) {
+        log.info({ msg: "MOCK_QSTASH: continuing analysis in-process", analysisId: payload.analysisId, stage });
+        const { performAnalysis } = await import('./analysisService.js');
+        await performAnalysis(
+            payload.userId, payload.text, payload.projectId,
+            payload.parentId, payload.rootId, payload.settings, payload.analysisId
+        );
+        return { continued: true, inProcess: true };
+    }
+
+    const baseUrl = BACKEND_URL.replace(/\/$/, "");
+    const result = await qstashClient.publishJSON({
+        url: `${baseUrl}/api/worker/process`,
+        body: continuationPayload,
+        retries: 3
+    });
+
+    log.info({ msg: "Analysis continuation queued", analysisId: payload.analysisId, stage, jobId: result.messageId });
+    return { continued: true, messageId: result.messageId };
+};
+
+/**
  * Re-run a FAILED (or stale IN_PROGRESS) analysis from its last checkpoint instead of
  * starting over. Resets the row to PENDING and re-dispatches the SAME analysisId to the
  * worker; performAnalysis then loads `metadata.checkpoint` and skips the stages that

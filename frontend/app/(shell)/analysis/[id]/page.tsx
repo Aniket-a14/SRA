@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import useSWR from "swr";
 import { fetcher, swrOptions } from "@/lib/swr-utils";
-import { useAnalysisProgress } from "@/lib/hooks";
+import { useAnalysisProgress, useRevalidateOnRestore } from "@/lib/hooks";
 
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Sparkles, Save, MessageSquare, FileText, RotateCcw, Loader2 } from "lucide-react"
@@ -69,6 +69,11 @@ function AnalysisDetailContent() {
     const streamStatus = (analysis?.status || '').toUpperCase();
     const isStreamActive = streamStatus === 'PENDING' || streamStatus === 'IN_PROGRESS' || streamStatus === 'QUEUED';
     const liveProgress = useAnalysisProgress(id || null, isStreamActive, () => { mutate(); });
+
+    // Browser back restores this page from the bfcache with its SWR cache frozen, so the
+    // run's real status has to be refetched on return — otherwise the page can still offer
+    // to start an analysis that is already running.
+    useRevalidateOnRestore(() => { mutate(); }, !!swrKey);
 
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState("")

@@ -13,6 +13,47 @@ export interface AnalysisProgressEvent {
 }
 
 /**
+ * Refetch when the page is restored from the browser's back/forward cache.
+ *
+ * Back-navigation does not remount the page or re-run effects: the bfcache restores the
+ * whole JS heap, so React state and the SWR cache come back frozen at the moment the user
+ * left. For a page showing a background job that is exactly wrong — the analysis has moved
+ * on, and a stale "ready to start" view invites a duplicate submit of a run already going.
+ *
+ * `pageshow` with `persisted: true` is the only reliable bfcache signal; SWR's
+ * revalidateOnFocus does not cover it, because a restore need not raise a focus event.
+ * `visibilitychange` covers the ordinary background-tab case.
+ *
+ * @param revalidate - called when the page returns to view; typically SWR's `mutate`
+ * @param enabled - skip while unauthenticated or before hydration
+ */
+export function useRevalidateOnRestore(revalidate: () => void, enabled = true) {
+    const revalidateRef = useRef(revalidate);
+
+    useEffect(() => {
+        revalidateRef.current = revalidate;
+    }, [revalidate]);
+
+    useEffect(() => {
+        if (!enabled || typeof window === "undefined") return;
+
+        const onPageShow = (event: PageTransitionEvent) => {
+            if (event.persisted) revalidateRef.current();
+        };
+        const onVisibility = () => {
+            if (document.visibilityState === "visible") revalidateRef.current();
+        };
+
+        window.addEventListener("pageshow", onPageShow);
+        document.addEventListener("visibilitychange", onVisibility);
+        return () => {
+            window.removeEventListener("pageshow", onPageShow);
+            document.removeEventListener("visibilitychange", onVisibility);
+        };
+    }, [enabled]);
+}
+
+/**
  * Custom hook for making authenticated API requests.
  * Automatically injects the Authorization bearer token.
  */

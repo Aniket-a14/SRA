@@ -38,7 +38,15 @@ const invalidateUserAnalysesCache = async (userId) => {
 };
 
 
-export const performAnalysis = async (userId, text, projectId = null, parentId = null, rootId = null, settings = {}, analysisId = null) => {
+/**
+ * @param {object} [options]
+ * @param {ReturnType<import('./pipelineBudget.js').createStageBudget>} [options.budget] -
+ *   when supplied, the run yields (PipelinePausedError) at the first stage boundary past
+ *   its deadline so the worker can continue it in a fresh invocation. Omitted for
+ *   in-process runs (MOCK_QSTASH, tests), which have no platform time limit.
+ */
+export const performAnalysis = async (userId, text, projectId = null, parentId = null, rootId = null, settings = {}, analysisId = null, options = {}) => {
+    const { budget = null } = options;
     let resultJson;
     let analysisMeta = {};
     let finalIndustryAudit = null;
@@ -89,6 +97,17 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         }
     };
 
+    /**
+     * Save a checkpoint, then yield if this invocation is out of time. The pipeline runs
+     * ~360s against a 300s function ceiling, so it is split across invocations at stage
+     * boundaries rather than as one long call. Yielding is only safe directly after a
+     * checkpoint write — hence the pairing in a single helper, so the two can't drift apart.
+     */
+    const checkpointAndYield = async (patch, stage) => {
+        await saveCheckpoint(patch);
+        if (budget && analysisId) budget.assertBudget(stage);
+    };
+
     try {
         // Resolve the provider/model/key once for the whole pipeline — every agent in this
         // run shares one provider so a mid-pipeline mismatch (e.g. PO on Claude, Architect on
@@ -129,7 +148,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
             logger.info("--> Agent: Product Owner");
             emitProgress('product_owner', 'Refining scope and features with the Product Owner agent...');
             poOutput = await poAgent.refineIntent(text, { projectName, version: promptVersion });
-            await saveCheckpoint({ poOutput });
+            await checkpointAndYield({ poOutput }, 'product_owner');
         } else {
             logger.info("[Resume] Reusing checkpointed Product Owner output");
         }
@@ -160,7 +179,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
             // De-duplicate by content hash or ID
             const uniqueChunks = Array.from(new Map(allRecyclableChunks.map(c => [c.id || JSON.stringify(c.content), c])).values());
             ragContext = await formatRagContext(uniqueChunks);
-            await saveCheckpoint({ ragContext });
+            await checkpointAndYield({ ragContext }, 'rag_retrieval');
         } else {
             logger.info("[Resume] Reusing checkpointed RAG context");
         }
@@ -209,7 +228,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                 version: promptVersion,
                 ragContexts // Pass domain-specific RAG contexts
             });
-        await saveCheckpoint({ archOutput, archDone: true });
+        await checkpointAndYield({ archOutput, archDone: true }, 'architect');
         }
 
         // --- CONTEXT MONITORING ---
@@ -239,7 +258,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                 });
                 srsDraft = assembledDraft;
                 legacySections = { srsShell, allFeatures, srsRequirements, srsAppendices };
-                await saveCheckpoint({ srsDraft, legacySections });
+                await checkpointAndYield({ srsDraft, legacySections }, 'developer_draft');
             } else {
                 logger.info("[Resume] Reusing checkpointed Developer draft (legacy)");
             }
@@ -266,7 +285,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                     spec, text, poOutput, archOutput, devAgent,
                     projectName, promptVersion, ragContext, sleep, emitProgress, cooldownMs: AGENT_COOLDOWN_MS
                 });
-                await saveCheckpoint({ srsDraft });
+                await checkpointAndYield({ srsDraft }, 'format_draft');
             } else {
                 logger.info("[Resume] Reusing checkpointed Developer draft (format)");
             }
@@ -343,6 +362,16 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
             throw new Error(response.error || "AI Analysis execution failed to return valid SRS");
         }
     } catch (error) {
+        // A budget yield is not a failure — the checkpoint is durable and the worker is
+        // about to continue the run in a fresh invocation. It must escape before the
+        // handling below, which would otherwise mark a half-finished run FAILED or, worse,
+        // hit the failsafe and persist the partial draft as a COMPLETED analysis.
+        if (error?.paused) {
+            logger.info({ msg: '[Pipeline] Yielding to a new invocation', analysisId, stage: error.stage });
+            emitProgress(error.stage, 'Continuing in a new worker invocation...', { paused: true });
+            throw error;
+        }
+
         logger.error({ msg: "AI Analysis execution failed", error: error.message, stack: error.stack });
 
         const failureReason = error.message.includes("429") || error.message.includes("Quota exceeded")

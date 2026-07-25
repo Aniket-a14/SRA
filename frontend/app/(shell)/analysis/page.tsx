@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import useSWR from "swr";
 import { fetcher, swrOptions } from "@/lib/swr-utils";
+import { useRevalidateOnRestore } from "@/lib/hooks";
 
 import { AnalysisHistory } from "@/components/analysis-history"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -27,11 +28,15 @@ export default function AnalysisPage() {
         return [`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, token];
     }, [token, authLoading]);
 
-    const { data: historyData, error } = useSWR<AnalysisHistoryItem[]>(
+    const { data: historyData, error, mutate } = useSWR<AnalysisHistoryItem[]>(
         swrKey,
         fetcher,
         swrOptions
     );
+
+    // The list shows statuses that change while the tab is away; refetch on return so a
+    // bfcache restore cannot present finished runs as still in progress.
+    useRevalidateOnRestore(() => { mutate(); }, !!swrKey);
 
     const history = Array.isArray(historyData) ? historyData : [];
     const isLoading = authLoading || (!historyData && !error);
