@@ -1,5 +1,8 @@
 name: Release Automation
 
+# Covers the manual path only: a tag pushed by a human (`git tag v1.2.3 && git push --tags`).
+# Tags created by auto-tag.yml do NOT reach here — GitHub suppresses workflow triggers for
+# events made with the default GITHUB_TOKEN — so auto-tag.yml creates its own release.
 on:
   push:
     tags:

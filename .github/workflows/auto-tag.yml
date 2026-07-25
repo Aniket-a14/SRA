@@ -44,6 +44,26 @@ jobs:
             git push origin "$TAG"
             echo "tag_created=true" >> $GITHUB_OUTPUT
           fi
-      # Release creation is owned by release.yml, which triggers on this tag push —
-      # both jobs calling softprops/action-gh-release@v2 for the same tag risked a
-      # race/duplicate release.
+      # This job creates the release itself, and must.
+      #
+      # It previously delegated to release.yml "which triggers on this tag push". It does
+      # not: GitHub deliberately suppresses workflow triggers for events created with the
+      # default GITHUB_TOKEN, to stop workflows recursing. So the tag push above fires
+      # nothing, and release.yml has not run since v3.0.6 (2026-01-31) — every release from
+      # v4.0.0 to v4.2.0 had to be created by hand.
+      #
+      # release.yml is still useful for a tag a human pushes directly (a user token does
+      # trigger it), which is why it stays. The guard below keeps the two from
+      # double-creating a release for the same tag.
+      - name: Create GitHub Release
+        if: steps.tag-logic.outputs.tag_created == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.package-version.outputs.version }}
+        run: |
+          TAG="v$VERSION"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists. Skipping."
+          else
+            gh release create "$TAG" --title "$TAG" --generate-notes
+          fi
