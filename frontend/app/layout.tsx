@@ -36,13 +36,8 @@ export const metadata: Metadata = {
   },
   description: 'Turn raw stakeholder text into a verified IEEE-830 requirements specification with a multi-agent AI pipeline.',
   keywords: ["SRS", "Requirements Engineering", "AI", "IEEE-830", "Software Architecture"],
-  icons: {
-    icon: [
-      { url: "/icon-light-32x32.png", media: "(prefers-color-scheme: light)" },
-      { url: "/icon-dark-32x32.png", media: "(prefers-color-scheme: dark)" },
-    ],
-    apple: "/apple-icon.png",
-  },
+  // No `icons` key: app/favicon.ico is picked up by the App Router file convention
+  // and served at /favicon.ico, so declaring it here would only duplicate the tag.
 }
 
 export default function RootLayout({
