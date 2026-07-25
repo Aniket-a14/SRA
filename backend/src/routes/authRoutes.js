@@ -1,11 +1,22 @@
 import express from 'express';
-import { signup, login, googleStart, googleCallback, githubStart, githubCallback, exchangeToken, getMe, refreshToken, logout, getSessions, revokeSessionEndpoint } from '../controllers/authController.js';
+import cookieParser from 'cookie-parser';
+import { signup, login, googleStart, googleCallback, githubStart, githubCallback, exchangeToken, getMe, refreshToken, logout, getSessions, revokeSessionEndpoint, REFRESH_TOKEN_COOKIE } from '../controllers/authController.js';
 import { authenticate } from '../middleware/authMiddleware.js';
 import { loginLimiter } from '../middleware/rateLimiters.js';
 import { validate } from '../middleware/validationMiddleware.js';
+import { requireTrustedOrigin } from '../middleware/csrfMiddleware.js';
 import { signupSchema, loginSchema } from '../utils/validationSchemas.js';
 
 const router = express.Router();
+
+// Cookies are read here and nowhere else in the app (the OAuth state cookie and the refresh
+// token), so the parser is scoped to this router rather than mounted globally — every other
+// route authenticates with a bearer header and has no business seeing a parsed cookie jar.
+router.use(cookieParser(process.env.COOKIE_SECRET));
+
+// The two endpoints that authenticate with an ambient cookie need CSRF protection; everything
+// else on this router is either unauthenticated or bearer-authenticated. See csrfMiddleware.js.
+const guardRefreshCookie = requireTrustedOrigin(REFRESH_TOKEN_COOKIE);
 
 // Credential endpoints get the strict brute-force limiter on top of the router-wide authLimiter.
 router.post('/signup', loginLimiter, validate(signupSchema), signup);
@@ -16,8 +27,8 @@ router.get('/github/start', githubStart);
 router.get('/github/callback', githubCallback);
 router.post('/exchange', exchangeToken);
 router.get('/me', authenticate, getMe);
-router.post('/refresh', refreshToken);
-router.post('/logout', logout);
+router.post('/refresh', guardRefreshCookie, refreshToken);
+router.post('/logout', guardRefreshCookie, logout);
 router.get('/sessions', authenticate, getSessions);
 router.delete('/sessions/:sessionId', authenticate, revokeSessionEndpoint);
 

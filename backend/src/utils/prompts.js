@@ -1,5 +1,6 @@
 // DYNAMIC PROMPT GENERATOR
 import { registerPromptVersion, getPromptByVersion, getLatestVersion } from './promptRegistry.js';
+import { sanitizePromptSettings } from './promptSanitizer.js';
 import logger from '../config/logger.js';
 import * as v1 from './versions/v1_0_0.js';
 import * as v1_1 from './versions/v1_1_0.js';
@@ -33,7 +34,10 @@ export const constructMasterPrompt = async (text = null, settings = {}, version 
     logger.info(`[Governance] Using explicit prompt version: ${v}`);
   }
   const generator = getPromptByVersion(v);
-  return await generator(text, settings);
+  // Untrusted values (projectName, ragContext, …) are interpolated into the *system* role by
+  // every generator, so they are defanged here — the one place all agents funnel through —
+  // rather than at each call site. See utils/promptSanitizer.js.
+  return await generator(text, sanitizePromptSettings(settings));
 };
 
 // Re-export constants for compatibility

@@ -7,33 +7,43 @@ import { signToken } from '../config/jwt.js';
 import { createExchangeCode, consumeExchangeCode } from '../services/auth/oauthExchangeService.js';
 
 const OAUTH_STATE_COOKIE = 'oauth_state';
-const REFRESH_TOKEN_COOKIE = 'refreshToken';
+// Exported so authRoutes can point the CSRF guard at the same cookie this controller reads.
+export const REFRESH_TOKEN_COOKIE = 'refreshToken';
 
 const isProd = process.env.NODE_ENV === 'production';
 
-// Frontend and backend are cross-site in production (separate Vercel deployments),
-// so the refresh-token cookie must be sent on cross-origin fetch/XHR (not just top-level
-// navigation) — that requires SameSite=None, which browsers only honor alongside Secure.
-// Locally (same registrable domain, different ports) Lax is sufficient and doesn't
-// require HTTPS.
-const refreshCookieOptions = () => ({
-    httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? 'none' : 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // matches Session.expiresAt (7 days)
-    path: '/',
-});
+// `httpOnly` and `secure` are written as literals at every res.cookie/clearCookie call below
+// rather than hidden behind a helper. Both are load-bearing security attributes, and a reader
+// (or a static analyzer) should be able to see them without following an indirection.
+//
+// `secure: true` is unconditional. Gating it on NODE_ENV used to leave the refresh token in
+// clear text on any HTTPS deployment that was not tagged production — staging and preview
+// builds, exactly the environments that carry real sessions. Browsers treat http://localhost
+// as a trustworthy origin and accept Secure cookies from it, so local development is
+// unaffected on Chrome, Edge and Firefox. (Safari does not implement that exception; local
+// dev there needs HTTPS.)
+//
+// Frontend and backend are cross-site in production (separate Vercel deployments), so the
+// refresh cookie must ride cross-origin fetch/XHR, not just top-level navigation — that
+// requires SameSite=None. Locally (same registrable domain, different ports) Lax suffices.
+const refreshCookieSameSite = isProd ? 'none' : 'lax';
 
 const setRefreshCookie = (res, refreshToken) => {
-    res.cookie(REFRESH_TOKEN_COOKIE, refreshToken, refreshCookieOptions());
+    res.cookie(REFRESH_TOKEN_COOKIE, refreshToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: refreshCookieSameSite,
+        maxAge: 7 * 24 * 60 * 60 * 1000, // matches Session.expiresAt (7 days)
+        path: '/',
+    });
 };
 
 const clearRefreshCookie = (res) => {
     // clearCookie needs matching sameSite/secure attributes to reliably delete in all browsers.
     res.clearCookie(REFRESH_TOKEN_COOKIE, {
         httpOnly: true,
-        secure: isProd,
-        sameSite: isProd ? 'none' : 'lax',
+        secure: true,
+        sameSite: refreshCookieSameSite,
         path: '/',
     });
 };
@@ -78,18 +88,18 @@ export const login = async (req, res, next) => {
     }
 };
 
-const oauthStateCookieOptions = () => ({
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 10 * 60 * 1000, // 10 minutes — only needs to survive the redirect round-trip
-    path: '/',
-    signed: true,
-});
+const OAUTH_STATE_COOKIE_MAX_AGE = 10 * 60 * 1000; // only needs to survive the redirect round-trip
 
 export const googleStart = (req, res) => {
     const state = crypto.randomBytes(16).toString('hex');
-    res.cookie(OAUTH_STATE_COOKIE, state, oauthStateCookieOptions());
+    res.cookie(OAUTH_STATE_COOKIE, state, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+        maxAge: OAUTH_STATE_COOKIE_MAX_AGE,
+        path: '/',
+        signed: true,
+    });
     const url = getGoogleAuthURL(state);
     res.redirect(url);
 };
@@ -127,7 +137,14 @@ export const googleCallback = async (req, res, next) => {
 
 export const githubStart = (req, res) => {
     const state = crypto.randomBytes(16).toString('hex');
-    res.cookie(OAUTH_STATE_COOKIE, state, oauthStateCookieOptions());
+    res.cookie(OAUTH_STATE_COOKIE, state, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+        maxAge: OAUTH_STATE_COOKIE_MAX_AGE,
+        path: '/',
+        signed: true,
+    });
     const url = getGithubAuthURL(state);
     res.redirect(url);
 };

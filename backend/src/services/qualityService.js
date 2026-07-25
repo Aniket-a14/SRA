@@ -3,6 +3,7 @@ import { analyzeText } from './aiService.js';
 import { asAiSettings } from './providers/providerKeyService.js';
 import { OUTPUT_TOKEN_LIMITS, TEMPERATURES } from '../utils/llmGenerationConfig.js';
 import { stringifyForPrompt } from '../utils/promptCompaction.js';
+import { sanitizePromptLabel, fillTemplate } from '../utils/promptSanitizer.js';
 
 /**
  * Lints requirements to calculate a quality score and identify issues.
@@ -130,16 +131,25 @@ export const lintRequirements = (analysis, semanticAudit = null) => {
 
 /** Layer-3 alignment check. Runs on the user's own key (`providerConfig`). */
 export const checkAlignment = async (originalInput, validationContext, srsOutput, providerConfig) => {
-    // Construct task-specific prompt (system prompt)
-    let systemPrompt = ALIGNMENT_CHECK_PROMPT
-        .replace('{{projectName}}', originalInput.projectName || "Unknown")
-        .replace('{{rawInput}}', originalInput.rawText || "N/A")
-        .replace('{{domain}}', validationContext.domain || "General Software")
-        .replace('{{purpose}}', validationContext.purpose || "Not Specified")
-        .replace('{{srsContent}}', 'The generated SRS content is provided in the user input.');
+    // Construct task-specific prompt (system prompt).
+    //
+    // Only short, sanitized labels are interpolated here. The raw stakeholder text used to be
+    // templated in as `{{rawInput}}`, which handed anything the user typed system-level
+    // authority — it now travels in the user turn below, where it is data rather than
+    // instruction (the same split the SRS content already used).
+    let systemPrompt = ALIGNMENT_CHECK_PROMPT;
+    for (const [token, value] of [
+        ['{{projectName}}', sanitizePromptLabel(originalInput.projectName) || "Unknown"],
+        ['{{domain}}', sanitizePromptLabel(validationContext.domain) || "General Software"],
+        ['{{purpose}}', sanitizePromptLabel(validationContext.purpose) || "Not Specified"],
+        ['{{srsContent}}', 'The generated SRS content is provided in the user input.'],
+    ]) {
+        systemPrompt = fillTemplate(systemPrompt, token, value);
+    }
 
     // Pass the raw input as the message text
-    const text = (originalInput.rawText || "").slice(0, 5000) +
+    const text = "LAYER 1 RAW INPUT:\n" +
+        (originalInput.rawText || "N/A").slice(0, 5000) +
         "\n\nSRS CONTENT FOR VERIFICATION:\n" +
         stringifyForPrompt(srsOutput, 15000);
 

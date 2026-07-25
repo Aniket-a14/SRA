@@ -40,7 +40,7 @@ Return ONLY valid JSON matching this schema. No markdown wrappers (\`\`\`json).
 <input>
 Layer 1 Intent:
 - Project Name: "{{projectName}}"
-- Raw Input: "{{rawInput}}"
+- Raw Input: provided in the user message, under "LAYER 1 RAW INPUT".
 
 Layer 2 Context:
 - Validated Domain: "{{domain}}"
