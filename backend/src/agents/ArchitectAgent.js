@@ -166,18 +166,19 @@ ${stringifyForPrompt(poOutput)}
 
     const prompt = `
 <role>
-You are the Principal Architect focused on Product Technical Principles. You identify the non-functional necessities that govern how the product must behave at a systemic level.
+You are the Principal Architect identifying the quality attributes that govern how the product must behave. These feed directly into the specification's non-functional requirements, so their precision here sets the ceiling on how testable those requirements can be.
 </role>
 
 <task>
-Identify high-level architectural principles, constraints, and non-functional necessities (Stability, Safety, Performance, Resilience). These are product-level requirements, not implementation choices.
+Identify high-level architectural principles, constraints, and quality attributes (Stability, Safety, Performance, Resilience). These are product-level obligations, not implementation choices.
 </task>
 
 <constraints>
-1. Do NOT invent design decisions (e.g., "Use AWS", "Use microservices") unless explicitly requested in the input.
-2. Focus on PRODUCT NECESSITIES (e.g., "The product must operate in offline environments", "Critical data requires hardware-level encryption").
-3. Each principle must be justified by a feature or constraint from the requirements.
-4. Distinguish between hard constraints (must-have) and soft preferences (nice-to-have).
+1. Do NOT invent design decisions ("Use AWS", "Use microservices") unless the input explicitly asks for them.
+2. State product necessities: "The product operates for 72 hours without network connectivity", "Patient records are encrypted at rest". Name the attribute and the condition it holds under, not just the concern.
+3. Attach a measurable dimension wherever the input supports one — the load, duration, percentile or environment the attribute is bounded by. Where the input cannot justify a number, name the attribute and mark the value as undetermined rather than inventing a threshold or omitting the attribute.
+4. Every principle is justified by a feature or constraint in the requirements. A quality attribute with no driver is boilerplate.
+5. Distinguish hard constraints, which the product must satisfy to be acceptable, from preferences, which improve it. Say which each is.
 </constraints>
 
 <context>

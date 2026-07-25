@@ -69,8 +69,11 @@ export async function auditFormatDoc({ spec, poOutput, doc, agents, sleep, emitP
         await sleep(reflectionCooldownMs);
         emitProgress('reflection', `Auditing ${spec.name} quality...`);
         const [review, audit] = await Promise.all([
-            qaAgent.reviewSRS(poOutput, doc).catch(() => null),
-            criticAgent.auditSRS(poOutput, doc).catch(() => null)
+            // The spec is passed so the reviewers judge the document against its own method —
+            // without it they default to IEEE 830 and mark a Volere shell or a PRD down for
+            // not carrying section numbering that method never defined.
+            qaAgent.reviewSRS(poOutput, doc, spec).catch(() => null),
+            criticAgent.auditSRS(poOutput, doc, spec).catch(() => null)
         ]);
         if (review) logger.info(`    [${spec.name}] Reviewer status: ${review.status}`);
         if (audit) logger.info(`    [${spec.name}] Quality score: ${audit.overallScore}`);

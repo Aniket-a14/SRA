@@ -2,6 +2,7 @@ import { BaseAgent } from './BaseAgent.js';
 import { AuditSchema } from '../utils/aiSchemas.js';
 import { createReviewSnapshot, stringifyForPrompt } from '../utils/promptCompaction.js';
 import { TEMPERATURES } from '../utils/llmGenerationConfig.js';
+import { structuralExpectationsFor, defectChecklistFor } from '../utils/prompt_templates/srs_drafting_standard.js';
 
 /**
  * Critic Agent (Requirements Auditor)
@@ -13,27 +14,29 @@ export class CriticAgent extends BaseAgent {
         super("Senior QA Critic", providerConfig);
     }
 
-    async auditSRS(originalRequirements, srsContent) {
+    async auditSRS(originalRequirements, srsContent, spec = null) {
         const reviewSnapshot = createReviewSnapshot(originalRequirements, srsContent);
         const prompt = `
 <role>
-You are a Senior Requirements Auditor specializing in IEEE 830-1998 compliance and the 6Cs quality framework (Clarity, Completeness, Conciseness, Consistency, Correctness, Context). You evaluate SRS documents for production readiness.
+You are the requirements auditor. You score the document against the 6Cs quality framework — Clarity, Completeness, Conciseness, Consistency, Correctness, Context — and your score is what decides whether the draft is reworked or issued.
 </role>
 
 <task>
-Audit the generated SRS draft against the original user requirements. Score each of the 6Cs metrics (0-100), identify critical issues, provide actionable suggestions, and assign an overall quality score.
+Audit the draft against the stakeholder input it was written from. Score each of the 6Cs (0-100), identify critical issues, give actionable suggestions, and assign an overall quality score.
 </task>
 
+${structuralExpectationsFor(spec)}
+${defectChecklistFor(spec?.id)}
+
 <constraints>
-1. All scores (overallScore and individual 6Cs metrics) MUST be on a scale of 0 to 100.
-2. A score of 85+ means the document is production-ready.
-3. Be honest. If there are genuine ambiguities or contradictions, penalize the score.
-4. Faithful Translation: Does the SRS accurately map user input into an IEEE-830 pattern?
-5. Structural Integrity (Section 4.x): Does every feature contain 4.x.1 (Description/Priority), 4.x.2 (Stimulus), and 4.x.3 (Functional) sub-sections?
-6. Quality Attribute Coverage (Section 5.4): Does the SRS address applicable attributes like Adaptability, Portability, and Maintainability?
-7. Logical Consistency: Are there technical contradictions (e.g., "Requires 2FA" vs "Only basic email login")?
-8. Do NOT penalize for missing metrics if they were not in the original requirements. Judge based on faithful mapping.
-9. TBD Management: If "TBD" strings are found, are they accurately summarized in the TBD List?
+1. All scores (overallScore and the individual 6Cs) are on a scale of 0 to 100.
+2. 85 or above means the document is fit to issue.
+3. Score what is in front of you. A document with genuine ambiguities or contradictions must not reach 85, and a sound document must not be marked down to appear rigorous — a score that does not track quality is worse than no score.
+4. Every critical issue names its location: the requirement identifier, feature name, or section title.
+5. Completeness is judged against the input and the target format's own structure — whether every section the method defines is populated, not whether the document covers scope the stakeholder never raised.
+6. Clarity is judged on verifiability: could a tester turn each requirement into a single objective pass/fail check? Unquantified thresholds and capability phrasing ("shall support") are clarity defects even when the input was thin, because the correct response to an unknown is a tracked TBD.
+7. Consistency covers both logic (a requirement that defeats another) and terminology (one concept named two ways, or a domain term absent from the glossary).
+8. Context is whether the document reads as a specification for THIS product in its stated domain, rather than boilerplate that would fit any system.
 </constraints>
 
 <examples>

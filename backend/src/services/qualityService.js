@@ -174,8 +174,10 @@ export const checkAlignment = async (originalInput, validationContext, srsOutput
  * Pillar 4: Semantic LLM-Judge Audit
  * Integrates the CriticAgent's deep audit into the quality scoring system.
  */
-export const runSemanticAudit = async (srsContent) => {
+export const runSemanticAudit = async (srsContent, originalRequirements = null) => {
     const { CriticAgent } = await import('../agents/CriticAgent.js');
     const critic = new CriticAgent();
-    return await critic.auditSRS(srsContent);
+    // auditSRS takes (originalRequirements, srsContent); this used to pass the SRS in the first
+    // position, leaving the document itself undefined so the audit scored an empty snapshot.
+    return await critic.auditSRS(originalRequirements, srsContent);
 };

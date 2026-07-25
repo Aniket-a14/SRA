@@ -1,4 +1,5 @@
 import { getDiagramAuthorityPrompt } from '../prompt_templates/diagram_authority.js';
+import { deriveProjectPrefix } from '../prompt_templates/srs_drafting_standard.js';
 
 /**
  * v2.2.0 — "Enterprise Gold".
@@ -32,12 +33,9 @@ export const generate = async (text = null, settings = {}) => {
 
   const diagramAuthority = await getDiagramAuthorityPrompt();
 
-  const projectPrefix = projectName
-    .split(/\s+/)
-    .map(word => word[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 3) || "REQ";
+  // Shared with the agents' user-turn prompts so the system turn and the agents cannot
+  // disagree about what an identifier looks like. Derivation is unchanged.
+  const projectPrefix = deriveProjectPrefix(projectName);
 
   // --- PERSONA SELECTION ---
   let personaInstruction = "You are a Principal Requirements Engineer with 15+ years authoring IEEE 830-1998 specifications for regulated, enterprise-scale systems. You write specifications that survive formal audit, downstream contract negotiation, and independent V&V.";

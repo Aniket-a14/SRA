@@ -2,37 +2,36 @@ import { BaseAgent } from './BaseAgent.js';
 import { ReviewSchema } from '../utils/aiSchemas.js';
 import { createReviewSnapshot, stringifyForPrompt } from '../utils/promptCompaction.js';
 import { TEMPERATURES } from '../utils/llmGenerationConfig.js';
+import { structuralExpectationsFor, defectChecklistFor } from '../utils/prompt_templates/srs_drafting_standard.js';
 
 export class ReviewerAgent extends BaseAgent {
   constructor(providerConfig = {}) {
     super("QA Reviewer", providerConfig);
   }
 
-  async reviewSRS(originalRequirements, srsJson) {
+  async reviewSRS(originalRequirements, srsJson, spec = null) {
     const reviewSnapshot = createReviewSnapshot(originalRequirements, srsJson);
     const prompt = `
 <role>
-You are a Senior QA Lead specializing in IEEE 830-1998 SRS document review. You evaluate whether generated SRS documents faithfully represent the original user requirements while maintaining professional engineering standards.
+You are the reviewer on a requirements inspection. Your job is to decide whether this document could be handed to a delivery team and a test team without them having to come back and ask what was meant.
 </role>
 
 <task>
-Review the generated SRS draft against the original user requirements. Evaluate quality, structure, and adherence to IEEE standards. Assign a final status (APPROVED or REJECTED) and a numeric score (0-100).
+Review the draft against the stakeholder input it was written from. Assign a status (APPROVED or REJECTED) and a score (0-100).
 </task>
 
+${structuralExpectationsFor(spec)}
+${defectChecklistFor(spec?.id)}
+
 <constraints>
-1. Score MUST be on a scale of 0 to 100. A score of 85+ means the document is production-ready.
+1. Score on a scale of 0 to 100. 85 or above means the document is fit to issue.
 2. For the status field, use ONLY "APPROVED" or "REJECTED" (all caps).
-3. Judge based on the faithful bridge pattern — does the SRS accurately translate user intent into technical specification?
-4. Do NOT reject for missing metrics if the original input was thin. Focus on bridge quality, not pedantry.
-5. Faithfulness: Does the SRS capture the intent of the original requirements?
-6. Structural Pattern: Does it follow IEEE-830 Section 3/4 separation?
-7. Consistency: Are there contradictions between features and NFRs?
-8. Pragmatism: Is technical depth balanced with original input complexity?
-9. TBD Auditing: Flag "TBD" items not correctly mirrored in the TBD List.
-10. Security & Logic: Flag obvious logical contradictions or massive security oversights.
-11. Mermaid Syntax: No activation bars (+/-) in sequence diagrams. No colons in ERD field blocks.
-12. Keep feedback concise: return at most 3 feedback items, and keep each issue/suggestion to plain text without code fences or quoted examples.
-13. Avoid double quotes inside string fields unless they are absolutely necessary for a technical reason.
+3. Cite the specific location of every defect — the requirement identifier, feature name, or section title. A finding a reader cannot locate cannot be fixed.
+4. Judge the document against the input it was given. Missing scope the stakeholder never raised is not a defect; a vague requirement is a defect regardless of how thin the input was, because the correct response to an unknown is a tracked TBD, not an unverifiable sentence.
+5. Distinguish what is wrong from what you would have written differently. Report defects, not preferences.
+6. Report at most the 3 most severe findings, in plain text, without code fences or quoted examples.
+7. Avoid double quotes inside string fields unless technically necessary.
+8. Mermaid syntax: no activation bars (+/-) in sequence diagrams; no colons in ERD field blocks.
 </constraints>
 
 <examples>

@@ -4,6 +4,14 @@ import { SRSSchema, SRSShellSchema, SRSFeaturesSchema, SRSRequirementsSchema, SR
 import { buildFormatSchema, buildFormatGuidelines } from '../formats/index.js';
 import { TEMPERATURES } from '../utils/llmGenerationConfig.js';
 import { stringifyForPrompt } from '../utils/promptCompaction.js';
+import {
+  NORMATIVE_LANGUAGE_RULES,
+  REQUIREMENT_FORM,
+  NFR_QUANTIFICATION_RULES,
+  identifierRules,
+  draftingConventionFor,
+  qualityAttributeRulesFor
+} from '../utils/prompt_templates/srs_drafting_standard.js';
 
 const MERMAID_RULES = `
 <diagram_rules>
@@ -46,7 +54,7 @@ export class DeveloperAgent extends BaseAgent {
 
     const prompt = `
 <role>
-You are the Lead Developer generating the FOUNDATION of an IEEE 830-1998 SRS document. You specialize in translating refined requirements into precise, professional technical prose.
+You are the Lead Requirements Engineer drafting the opening sections of an IEEE 830-1998 SRS. These sections establish what the document covers, who it is for, and the context the product sits in.
 </role>
 
 <task>
@@ -54,12 +62,15 @@ Generate the SRS shell: 'projectTitle', 'revisionHistory', 'introduction', and '
 </task>
 
 <constraints>
-1. Use the "${projectName}-" prefix for all requirement identifiers.
-2. The 'productFunctions' in overallDescription must be high-level summaries of the core intent, not detailed specifications.
-3. Maintain formal IEEE academic prose. No bullet points in narrative fields.
-4. Each paragraph must cover exactly ONE concept, be 3-6 sentences long, and not exceed 120 words.
-5. Do NOT invent features or constraints not present in the requirements or architecture inputs.
+1. The 'productFunctions' in overallDescription summarise capability at the level a stakeholder reads for orientation. Detailed behaviour belongs in the System Features section, not here.
+2. Write in the register of a specification: declarative, third-person, present tense, no marketing language and no first-person voice. This is a reference document a reader consults, not an essay.
+3. Scope states what the product does AND names what it explicitly excludes — an unbounded scope statement is the most common defect in these sections.
+4. Record assumptions and dependencies as such. An assumption stated as fact becomes an undetected risk downstream.
+5. Each paragraph covers exactly ONE concept, runs 3-6 sentences, and stays under 120 words.
+6. Do NOT introduce features or constraints absent from the requirements or architecture inputs.
 </constraints>
+
+${identifierRules(projectName)}
 
 <context>
 <requirements>${stringifyForPrompt(requirements)}</requirements>
@@ -89,7 +100,7 @@ ${rawInput}
 
     const prompt = `
 <role>
-You are the Lead Developer generating detailed IEEE Section 4.x System Features for an SRS document. Each feature must be comprehensive, specific, and production-ready.
+You are the Lead Requirements Engineer specifying IEEE 830-1998 Section 4.x System Features. This is the part of the document a delivery team builds from and a test team writes cases against, so every obligation in it has to be unambiguous enough to argue over.
 </role>
 
 <task>
@@ -97,13 +108,16 @@ Generate system features for ONLY the target features listed below. For each, pr
 </task>
 
 <constraints>
-1. The 'description' MUST be a comprehensive, multi-paragraph explanation of the feature's value, behavior, and workflow. One-liners are unacceptable.
-2. Functional requirements must be exhaustive, specifically detailing edge cases, validation, and error handling.
-3. Each functional requirement must start with "The system shall" and be atomic (one requirement per item).
-4. Stimulus/Response sequences must follow: "Stimulus: [action] Response: [behavior]".
-5. Use the "${projectName}-" prefix for requirement identifiers.
-6. Do NOT generate features beyond what is listed in the target features below.
+1. The 'description' explains the feature's purpose, the behaviour a user observes, and how it fits the surrounding workflow — several paragraphs, written as specification prose rather than a summary line.
+2. Specify the whole behaviour, not only the success path: input validation, boundary values, contention, and what the system does when a step fails. A specification that describes only the happy path leaves the failure behaviour to be invented during implementation.
+3. State behaviour, never implementation. "What the system does" belongs here; "how it is built" belongs to design and is out of scope for this document.
+4. Stimulus/Response sequences follow "Stimulus: [external event] Response: [observable system behaviour]" and describe events crossing the system boundary, not internal steps.
+5. Cover exactly the target features listed below — no more, and none omitted.
 </constraints>
+
+${NORMATIVE_LANGUAGE_RULES}
+${REQUIREMENT_FORM}
+${identifierRules(projectName)}
 
 <context>
 <foundation>${stringifyForPrompt(section1)}</foundation>
@@ -136,7 +150,7 @@ ${rawInput}
 
     const prompt = `
 <role>
-You are the Lead Developer generating the technical requirements sections of an IEEE 830-1998 SRS. This includes External Interface Requirements, Non-Functional Requirements, Other Requirements, and the Glossary.
+You are the Lead Requirements Engineer specifying the quality attributes and external interfaces of an IEEE 830-1998 SRS. These sections decide whether the delivered system is acceptable, so vagueness here is what makes a specification unenforceable at handover.
 </role>
 
 <task>
@@ -144,13 +158,16 @@ Generate the NFRs, interface requirements, other requirements, and glossary sect
 </task>
 
 <constraints>
-1. NFRs must be specific, measurable, and traceable to the original requirements where possible.
-2. Security requirements must address authentication, authorization, and data privacy appropriate to the product scope.
-3. Performance requirements must include concrete thresholds when the input provides enough context.
-4. The glossary must define all domain-specific terms and acronyms used in the SRS.
-5. Use the "${projectName}-" prefix for requirement identifiers.
-6. Do NOT invent constraints or requirements not supported by the input.
+1. Every quality attribute traces back to a stated need or an unavoidable consequence of one. Say which need, in the requirement's own wording.
+2. Security requirements name what is being protected, what they are protected against, and the control applied — appropriate to this product's actual scope and data sensitivity.
+3. Interface requirements describe the contract at the boundary: what crosses it, in what form, and under what conditions. They do not prescribe the technology on either side unless the input fixed it.
+4. The glossary defines every domain term and acronym the document uses, and the document then uses those terms consistently. One concept, one name.
+5. Do NOT introduce constraints the input does not support.
 </constraints>
+
+${NORMATIVE_LANGUAGE_RULES}
+${NFR_QUANTIFICATION_RULES}
+${identifierRules(projectName)}
 
 ${MERMAID_RULES}
 
@@ -267,7 +284,7 @@ ${rawInput}
 
     const prompt = `
 <role>
-You are the Lead Requirements Engineer authoring a ${spec.name} specification. Produce ONLY the sections requested in this pass, in the exact JSON shape defined by the format guidelines in your system instruction.
+You are the Lead Requirements Engineer authoring a ${spec.name} document. Write it the way a practitioner of THAT method writes it — the conventions below are the method's own, not a house style carried over from another standard. Produce ONLY the sections requested in this pass, in the exact JSON shape defined by the format guidelines in your system instruction.
 </role>
 
 <task>
@@ -276,11 +293,15 @@ Return a JSON object whose top-level keys are EXACTLY the corresponding section 
 </task>
 
 <constraints>
-1. Use the "${projectName}-" prefix for all requirement identifiers where the format uses IDs.
-2. Every requirement must be atomic, verifiable, and unambiguous.
-3. Do NOT invent features or constraints absent from the refined intent, architecture, or raw input.
-4. Maintain consistency with any already-generated sections provided as context.
+1. Every requirement is singular, traceable to the input, and testable by the means this method provides for testability.
+2. Do NOT invent features or constraints absent from the refined intent, architecture, or raw input.
+3. Maintain consistency with any already-generated sections provided as context — terminology, identifiers and stated decisions carry forward unchanged.
+4. Populate every field the section defines. A field the method treats as mandatory (a Volere fit criterion, a PRD acceptance criterion) is not optional because the input was thin — where the input is silent, record a TBD naming what must be decided.
 </constraints>
+
+${draftingConventionFor(spec.id)}
+${qualityAttributeRulesFor(spec.id)}
+${identifierRules(projectName)}
 
 ${MERMAID_RULES}
 
@@ -318,12 +339,14 @@ Apply all feedback items to the '${targetSectionName}' section. Produce a FULLY 
 </task>
 
 <constraints>
-1. Modify ONLY the target section. Do not alter content outside its scope.
-2. Address every feedback item — do not skip any.
-3. Maintain IEEE 830-1998 compliance and formal academic prose.
+1. Modify ONLY the target section. Content outside its scope stays untouched.
+2. Address every feedback item. If one cannot be applied without contradicting the input, say so in the affected text rather than silently ignoring it.
+3. Keep the document's specification register — declarative, third-person, present tense.
 4. If feedback references diagrams, adhere to the Mermaid 11.x syntax standards.
-5. Preserve all requirement identifiers and numbering from the original section.
+5. Identifiers are stable configuration items. Preserve the numbering of every requirement you keep; if a requirement is split, the original keeps its identifier and the new obligation takes the next unused one. Never renumber to close a gap.
 </constraints>
+
+${NORMATIVE_LANGUAGE_RULES}
 
 ${MERMAID_RULES}
 
