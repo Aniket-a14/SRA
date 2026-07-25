@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [4.2.0] - 2026-07-25
 
 ### ⌨️ CLI Overhaul & Bi-Directional Platform Sync
 - **Implemented** `sra reverse` for real (it previously exited 1 as a stub): scans the working tree via `git ls-files` so `.gitignore` is honoured, reduces it to a bounded structural digest — dependency manifests, module layout, HTTP interface, data entities, exported symbols — runs it through the same multi-agent pipeline the web app uses, then proposes `verification_files` for each generated requirement group by matching its terms back against the files scanned. Proposed links are marked `proposed`, never `verified`, until `sra check` confirms them. `--dry-run` writes the digest locally without calling the platform.
