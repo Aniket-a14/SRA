@@ -69,8 +69,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y "postgresql-client-${PG_MAJOR}"
 
+          # Installing the package is not enough. The runner image ships PostgreSQL 16 and
+          # puts its bin directory ahead on PATH, so a bare `pg_dump` still resolved to 16
+          # even with 17 installed — which is the whole failure, one layer down. Put the
+          # versioned bin directory first, for this step and every later one.
+          echo "/usr/lib/postgresql/${PG_MAJOR}/bin" >> "$GITHUB_PATH"
+          export PATH="/usr/lib/postgresql/${PG_MAJOR}/bin:$PATH"
+
           INSTALLED=$(pg_dump --version | grep -oP '\d+' | head -1)
-          echo "pg_dump major version: $INSTALLED"
+          echo "pg_dump resolved to: $(command -v pg_dump) (major $INSTALLED)"
           if [ "$INSTALLED" -lt "$PG_MAJOR" ]; then
             echo "::error::Expected pg_dump >= $PG_MAJOR but got $INSTALLED. pg_dump cannot dump a newer server, so the backup would abort."
             exit 1
