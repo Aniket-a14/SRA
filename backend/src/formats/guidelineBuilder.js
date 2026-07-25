@@ -5,6 +5,15 @@
  */
 
 const requirementModelNote = (model) => {
+    if (model === 'iso-29148') {
+        return 'Each requirement is an object: { "description" (the atomic "The system shall …" statement), "rationale" (why it exists), "verificationMethod", "source" (the stakeholder need it derives from) }. '
+            + 'verificationMethod is mandatory and must be exactly one of Inspection, Analysis, Demonstration, Test — choose by how compliance is actually confirmed: '
+            + 'Inspection for what can be confirmed by examining the product or its documentation without running it; '
+            + 'Analysis for what is established by calculation, modelling or reasoning over evidence rather than direct observation; '
+            + 'Demonstration for observable operation under normal use without instrumentation or measurement; '
+            + 'Test for what requires controlled inputs and measured outputs against a defined pass criterion. '
+            + 'Pick the least costly method that genuinely settles the requirement — do not label everything Test.';
+    }
     if (model === 'volere-shell') {
         return 'Each requirement is a Volere SHELL object: { "description", "rationale" (why it exists), "fitCriterion" (a measurable acceptance test), "source" }. The fitCriterion is mandatory and must be objectively testable.';
     }

@@ -75,7 +75,39 @@ describe('extractFeatures with a format descriptor', () => {
         expect(features[0].name).toBe('Authentication');
         expect(features[0].source).toEqual({ section: 'systemFeatures', index: 0, kind: 'feature-list' });
         expect(features[1].source.index).toBe(1);
-        expect(features[1].functionalRequirements).toEqual(['Charge cards.', 'Refund cards.']);
+        // Bare IEEE strings gain the object form `review` needs to record a decision against.
+        expect(features[1].functionalRequirements.map(r => r.description))
+            .toEqual(['Charge cards.', 'Refund cards.']);
+        expect(features[1].functionalRequirements[0].metadata.verification_status).toBe('DRAFT_AI');
+    });
+
+    test('keeps every attribute of a structured requirement through extraction', () => {
+        // Extraction used to stringify these, so `push` wrote plain text back over the
+        // platform's objects and each requirement lost its rationale, fit criterion, source
+        // and verification method.
+        const features = extractFeatures({
+            systemFunctions: [{
+                name: 'Authentication',
+                functionalRequirements: [{
+                    id: 'FTP-REQ-001',
+                    description: 'The system shall lock an account after five failed attempts.',
+                    rationale: 'Limits credential stuffing.',
+                    verificationMethod: 'Test',
+                    source: 'Security review, 2026-03-02'
+                }]
+            }]
+        }, {
+            id: 'iso29148',
+            name: 'ISO/IEC/IEEE 29148:2018',
+            sections: [{ id: 'systemFunctions', number: '4', title: 'System Functions', kind: 'feature-list' }]
+        });
+
+        const req = features[0].functionalRequirements[0];
+        expect(req.id).toBe('FTP-REQ-001');
+        expect(req.rationale).toBe('Limits credential stuffing.');
+        expect(req.verificationMethod).toBe('Test');
+        expect(req.source).toBe('Security review, 2026-03-02');
+        expect(req.metadata.verification_status).toBe('DRAFT_AI');
     });
 
     test('reads Agile user stories as one group tied to userStories', () => {

@@ -59,6 +59,14 @@ const RequirementItems = ({ items, prefix }: { items?: unknown; prefix: string }
                             <p className="text-foreground/90"><span className="font-mono text-xs text-primary mr-2">{r.id || `${prefix}-${i + 1}`}</span>{boldify(r.description)}</p>
                             {r.rationale && <p className="text-xs text-muted-foreground"><span className="font-medium">Rationale:</span> {r.rationale}</p>}
                             {r.fitCriterion && <p className="text-xs text-muted-foreground"><span className="font-medium">Fit criterion:</span> {r.fitCriterion}</p>}
+                            {r.verificationMethod && (
+                                <p className="text-xs text-muted-foreground">
+                                    <span className="font-medium">Verification:</span>{" "}
+                                    <span className={r.verificationMethod === "TBD" ? "text-amber-700" : undefined}>
+                                        {r.verificationMethod}
+                                    </span>
+                                </p>
+                            )}
                             {r.source && <p className="text-xs text-muted-foreground"><span className="font-medium">Source:</span> {r.source}</p>}
                         </div>
                     )

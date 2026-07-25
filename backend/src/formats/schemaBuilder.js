@@ -34,8 +34,35 @@ const DIAGRAMS_SCHEMA = {
     },
 };
 
+/**
+ * The verification methods ISO/IEC/IEEE 29148:2018 recognises. Exported because the prompt
+ * guideline, the post-generation normaliser and the tests must all agree on the same four.
+ */
+export const VERIFICATION_METHODS = ['Inspection', 'Analysis', 'Demonstration', 'Test'];
+
 /** A single requirement item, shaped by the format's requirement model. */
 const requirementItemSchema = (model) => {
+    if (model === 'iso-29148') {
+        // 29148 §5.2.8 gives requirements attributes rather than leaving them bare sentences.
+        // The text field is named `description` deliberately: it is the key every existing
+        // consumer already reads for object-shaped requirements (the frontend's `isShell`
+        // guard, the DOCX exporter, and the CLI's reqToString), so this model renders and
+        // round-trips without touching any of them.
+        return {
+            type: SchemaType.OBJECT,
+            properties: {
+                id: STR,
+                description: { type: SchemaType.STRING, description: 'The atomic "The system shall …" requirement statement.' },
+                rationale: { type: SchemaType.STRING, description: 'Why this requirement exists — recoverable intent for whoever changes it later.' },
+                verificationMethod: {
+                    type: SchemaType.STRING,
+                    description: `How compliance is confirmed. Exactly one of: ${VERIFICATION_METHODS.join(', ')}.`,
+                },
+                source: { type: SchemaType.STRING, description: 'The stakeholder need or input statement this derives from.' },
+            },
+            required: ['description', 'verificationMethod'],
+        };
+    }
     if (model === 'volere-shell') {
         return {
             type: SchemaType.OBJECT,

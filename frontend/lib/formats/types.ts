@@ -20,7 +20,11 @@ export type SectionKind =
 
 export type FieldKind = 'prose' | 'list' | 'shell-list' | 'user-classes';
 
-export type RequirementModel = 'ieee' | 'volere-shell' | 'story';
+/**
+ * Mirrors `backend/src/formats/schemaBuilder.js`. `ieee` requirements are plain strings; the
+ * other three are objects and are rendered by the `isShell` branch in format-results.tsx.
+ */
+export type RequirementModel = 'ieee' | 'iso-29148' | 'volere-shell' | 'story';
 
 export interface FormatField {
     id: string;
@@ -58,11 +62,17 @@ export interface FormatMeta {
     tier: 'detailed' | 'light';
 }
 
-/** A Volere requirement "shell". */
+/**
+ * A structured requirement item. Covers both the Volere shell (rationale + fitCriterion) and
+ * the ISO 29148 attribute set (rationale + verificationMethod + source); `description` is the
+ * requirement text in both, which is what the renderers key on.
+ */
 export interface RequirementShell {
     id?: string;
     description: string;
     rationale?: string;
     fitCriterion?: string;
+    /** ISO 29148 only: Inspection | Analysis | Demonstration | Test, or TBD when unassigned. */
+    verificationMethod?: string;
     source?: string;
 }

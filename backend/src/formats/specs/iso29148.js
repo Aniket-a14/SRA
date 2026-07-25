@@ -10,7 +10,9 @@ export const iso29148 = {
     description: 'Modern requirements-engineering standard (successor to IEEE 830).',
     tier: 'detailed',
     coverSubtitle: 'System/Software Requirements Specification',
-    requirementModel: 'ieee',
+    // 29148 §5.2.8 expects requirements to carry attributes, not to be bare sentences — most
+    // importantly a verification method, since §6 has to say how each one is confirmed.
+    requirementModel: 'iso-29148',
     // Generation chunks respect Gemini free-tier token limits for the full pipeline.
     chunks: [
         ['introduction', 'references'],
@@ -47,7 +49,7 @@ export const iso29148 = {
         },
         {
             id: 'systemFunctions', number: '4', title: 'System Functions', kind: 'feature-list',
-            requirementModel: 'ieee',
+            requirementModel: 'iso-29148',
             guideline: 'Functional capabilities, one subsection per function with atomic requirements.',
         },
         {
@@ -63,7 +65,10 @@ export const iso29148 = {
         },
         {
             id: 'verification', number: '6', title: 'Verification', kind: 'prose',
-            guideline: 'How the requirements in Section 3-5 will be verified (inspection, analysis, demonstration, test).',
+            guideline: 'The verification approach for Sections 3-5. Each requirement in Section 4 already carries its own '
+                + 'verificationMethod; this clause explains the strategy behind those assignments — what Inspection, Analysis, '
+                + 'Demonstration and Test mean for this product, the environment and evidence each needs, and how the results '
+                + 'are recorded. It must stay consistent with the per-requirement methods rather than restating them.',
         },
         {
             id: 'glossary', number: 'A', title: 'Definitions', kind: 'glossary', appendix: true,

@@ -22,9 +22,15 @@ export function reqToString(item) {
 /**
  * Give a requirement a stable object form (`{id, description, metadata}`).
  *
- * The pipeline emits requirements as bare strings; `sra review` needs somewhere to record
+ * The pipeline emits IEEE requirements as bare strings; `sra review` needs somewhere to record
  * an approval. Ids embedded in the text ("SRA-FR-1.2: The system shall…") are reused so a
  * requirement keeps its identity across syncs rather than getting a fresh random one.
+ *
+ * Structured requirements (Volere shells, ISO 29148 attribute sets) are passed through with
+ * every field intact. Extraction must call this rather than `reqToString`: flattening them to
+ * text at sync time meant `push` later wrote plain strings back over the platform's objects,
+ * silently destroying each requirement's rationale, fit criterion, source and verification
+ * method.
  */
 export function normalizeRequirement(item) {
     if (item && typeof item === 'object' && item.description) {
@@ -74,8 +80,8 @@ function extractByDescriptor(srs, formatSpec) {
             asArray(value).forEach((f, index) => {
                 if (!f || typeof f !== 'object') return;
                 const requirements = asArray(f.functionalRequirements ?? f.requirements)
-                    .map(reqToString)
-                    .filter(Boolean);
+                    .map(normalizeRequirement)
+                    .filter(r => r.description);
                 if (requirements.length === 0 && !f.name) return;
 
                 features.push(makeEntry({
@@ -92,7 +98,7 @@ function extractByDescriptor(srs, formatSpec) {
         }
 
         // Flat carriers — the section itself is the unit.
-        const requirements = asArray(value).map(reqToString).filter(Boolean);
+        const requirements = asArray(value).map(normalizeRequirement).filter(r => r.description);
         if (requirements.length === 0) continue;
 
         features.push(makeEntry({
@@ -125,7 +131,9 @@ function extractByShape(srs) {
     for (const key of featureSections) {
         asArray(srs[key]).forEach((f, index) => {
             if (!looksLikeFeature(f)) return;
-            const requirements = asArray(f.functionalRequirements ?? f.requirements).map(reqToString).filter(Boolean);
+            const requirements = asArray(f.functionalRequirements ?? f.requirements)
+                .map(normalizeRequirement)
+                .filter(r => r.description);
             if (requirements.length === 0 && !f.name) return;
 
             const name = f.name || f.title || `Feature ${features.length + 1}`;

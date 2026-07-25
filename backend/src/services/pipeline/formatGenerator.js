@@ -1,5 +1,6 @@
 import logger from '../../config/logger.js';
 import { getGenerationChunks } from '../../formats/index.js';
+import { normalizeFormatDoc } from '../../formats/normalize.js';
 
 /**
  * Descriptor-driven generation for non-legacy formats (ISO 29148, Volere, Agile PRD).
@@ -49,6 +50,10 @@ export async function generateFormatDoc({
 
         if (i + 1 < chunks.length) await sleep(cooldownMs);
     }
+
+    // Canonicalise attributes the schema can only *ask* for — the non-Gemini providers get no
+    // responseSchema at all, so without this the verification column mixes spellings.
+    doc = normalizeFormatDoc(doc, spec);
 
     doc.formatId = spec.id;
     doc.formatName = spec.name;

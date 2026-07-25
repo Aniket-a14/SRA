@@ -68,7 +68,7 @@ export const iso29148: FormatSpec = {
     description: "Modern requirements-engineering standard (successor to IEEE 830).",
     tier: "detailed",
     coverSubtitle: "System/Software Requirements Specification",
-    requirementModel: "ieee",
+    requirementModel: "iso-29148",
     sections: [
         {
             id: "introduction", number: "1", title: "Introduction", kind: "group",
@@ -92,7 +92,7 @@ export const iso29148: FormatSpec = {
                 { id: "communicationsInterfaces", label: "Communications Interfaces", kind: "prose" },
             ],
         },
-        { id: "systemFunctions", number: "4", title: "System Functions", kind: "feature-list", requirementModel: "ieee" },
+        { id: "systemFunctions", number: "4", title: "System Functions", kind: "feature-list", requirementModel: "iso-29148" },
         {
             id: "systemAttributes", number: "5", title: "Software System Attributes", kind: "group",
             fields: [

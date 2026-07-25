@@ -137,6 +137,14 @@ normative language, that standard asks for more per requirement than IEEE 830 di
    (uses the standard's language conventions).
 3. State the rationale where a requirement's reason is not self-evident from its wording — a
    requirement whose purpose is unrecoverable cannot be safely changed later.
+3a. Every requirement carries a VERIFICATION METHOD, because §6 has to say how each one is
+   confirmed. Choose the least costly method that genuinely settles it:
+     Inspection    — confirmed by examining the product or its documentation, without running it.
+     Analysis      — established by calculation, modelling or reasoning over evidence.
+     Demonstration — observed in normal operation, without instrumentation or measurement.
+     Test          — requires controlled inputs and measured outputs against a pass criterion.
+   Labelling everything "Test" is a sign the requirement was not thought through. If a
+   requirement cannot be verified by any of the four, it is not yet a requirement — sharpen it.
 4. The requirement SET must also hold together: complete, internally consistent, feasible as a
    whole, and able to be validated by the stakeholders who supplied the need.
 5. Distinguish stakeholder needs from system requirements. Do not restate a business goal as a

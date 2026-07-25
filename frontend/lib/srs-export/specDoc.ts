@@ -37,6 +37,7 @@ function requirementBlocks(items: unknown, prefix: string): DocBlock[] {
             }));
             if (r.rationale) out.push(new Paragraph({ spacing: { after: 20 }, indent: { left: 540 }, children: [new TextRun({ text: "Rationale: ", bold: true, size: 20 }), new TextRun({ text: r.rationale, size: 20 })] }));
             if (r.fitCriterion) out.push(new Paragraph({ spacing: { after: 20 }, indent: { left: 540 }, children: [new TextRun({ text: "Fit Criterion: ", bold: true, size: 20 }), new TextRun({ text: r.fitCriterion, size: 20 })] }));
+            if (r.verificationMethod) out.push(new Paragraph({ spacing: { after: 20 }, indent: { left: 540 }, children: [new TextRun({ text: "Verification: ", bold: true, size: 20 }), new TextRun({ text: r.verificationMethod, size: 20 })] }));
             if (r.source) out.push(new Paragraph({ spacing: { after: 100 }, indent: { left: 540 }, children: [new TextRun({ text: "Source: ", bold: true, size: 20 }), new TextRun({ text: r.source, size: 20 })] }));
         }
     });
