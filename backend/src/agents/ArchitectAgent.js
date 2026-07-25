@@ -3,7 +3,7 @@ import { constructMasterPrompt } from '../utils/prompts.js';
 import { ArchitectFoundationSchema, ArchitectDataSchema, ArchitectPrinciplesSchema } from '../utils/aiSchemas.js';
 import { SchemaType } from "@google/generative-ai";
 import logger from '../config/logger.js';
-import { OUTPUT_TOKEN_LIMITS, TEMPERATURES } from '../utils/llmGenerationConfig.js';
+import { TEMPERATURES } from '../utils/llmGenerationConfig.js';
 import { stringifyForPrompt } from '../utils/promptCompaction.js';
 
 const QUERY_EXPANSION_PROMPT = `
@@ -50,7 +50,7 @@ export class ArchitectAgent extends BaseAgent {
         required: ["queries"]
       };
       const result = await this.callLLM(prompt, TEMPERATURES.architect, true, querySchema, 3, 5000, {
-        maxOutputTokens: OUTPUT_TOKEN_LIMITS.smallJson
+        maxOutputTokens: this.tokenLimits.smallJson
       });
       return result.queries || [featureList.substring(0, 100)];
     } catch {
@@ -120,7 +120,7 @@ ${stringifyForPrompt(poOutput)}
     logger.info(`[Architect] Analyzing System Components (1/3)...`);
     return this.callLLM(prompt, TEMPERATURES.architect, true, ArchitectFoundationSchema, 3, 5000, {
       systemInstruction,
-      maxOutputTokens: OUTPUT_TOKEN_LIMITS.architectSection
+      maxOutputTokens: this.tokenLimits.architectSection
     });
   }
 
@@ -157,7 +157,7 @@ ${stringifyForPrompt(poOutput)}
     logger.info(`[Architect] Modeling Product Entities (2/3)...`);
     return this.callLLM(prompt, TEMPERATURES.architect, true, ArchitectDataSchema, 3, 5000, {
       systemInstruction,
-      maxOutputTokens: OUTPUT_TOKEN_LIMITS.architectSection
+      maxOutputTokens: this.tokenLimits.architectSection
     });
   }
 
@@ -195,7 +195,7 @@ ${stringifyForPrompt(poOutput)}
     logger.info(`[Architect] Identifying Product Principles (3/3)...`);
     return this.callLLM(prompt, TEMPERATURES.architect, true, ArchitectPrinciplesSchema, 3, 5000, {
       systemInstruction,
-      maxOutputTokens: OUTPUT_TOKEN_LIMITS.architectSection
+      maxOutputTokens: this.tokenLimits.architectSection
     });
   }
 }

@@ -124,9 +124,17 @@ async function discoverGemini(apiKey) {
     }
     const json = await res.json();
 
+    // inputTokenLimit/outputTokenLimit come free with the list response and vary widely
+    // across models (8k to 65k output). Capturing them here is what lets the pipeline size
+    // each generation against the model actually selected instead of a fixed guess.
     const candidates = (json?.models || [])
         .filter((m) => (m.supportedGenerationMethods || []).includes('generateContent'))
-        .map((m) => ({ id: String(m.name).replace(/^models\//, ''), displayName: m.displayName }))
+        .map((m) => ({
+            id: String(m.name).replace(/^models\//, ''),
+            displayName: m.displayName,
+            inputTokenLimit: m.inputTokenLimit,
+            outputTokenLimit: m.outputTokenLimit
+        }))
         .filter((m) => !GEMINI_EXCLUDE.test(m.id));
 
     // Verify what this specific key can actually run. Bounded concurrency keeps the
@@ -148,7 +156,12 @@ async function discoverGemini(apiKey) {
     // Fail open: if every probe rejected (e.g. the whole key is throttled right now),
     // fall back to the capability-filtered list rather than showing an empty picker.
     const chosen = usable.length > 0 ? usable : candidates;
-    return chosen.map((m) => ({ id: m.id, label: m.displayName || formatModelLabel(m.id) }));
+    return chosen.map((m) => ({
+        id: m.id,
+        label: m.displayName || formatModelLabel(m.id),
+        ...(m.inputTokenLimit && { inputTokenLimit: m.inputTokenLimit }),
+        ...(m.outputTokenLimit && { outputTokenLimit: m.outputTokenLimit })
+    }));
 }
 
 const DISCOVERERS = {

@@ -4,8 +4,9 @@ import { getAdapter, normalizeProvider, DEFAULT_MODELS } from "./providers/index
 import { AnalysisResultSchema } from "../utils/schemas.js";
 import { sanitizePII } from "../utils/sanitizer.js";
 import { repairAndParseJSON } from "../utils/jsonRepair.js";
+import { isExhaustedQuota, buildExhaustedQuotaError } from "../utils/quotaErrors.js";
 import logger from "../config/logger.js";
-import { OUTPUT_TOKEN_LIMITS, TEMPERATURES } from "../utils/llmGenerationConfig.js";
+import { OUTPUT_TOKEN_LIMITS, TEMPERATURES, resolveOutputTokenLimits, clampOutputTokens } from "../utils/llmGenerationConfig.js";
 
 import { retrieveContext, formatRagContext } from "./knowledge/ragService.js";
 
@@ -150,7 +151,10 @@ ${text}
         prompt: systemPrompt ? text : finalPrompt,
         systemInstruction: masterPrompt || (isGemini ? undefined : "Return valid JSON that satisfies the requested task."),
         temperature: settings.temperature ?? TEMPERATURES.developer,
-        maxOutputTokens: settings.maxOutputTokens || OUTPUT_TOKEN_LIMITS.mediumJson,
+        maxOutputTokens: clampOutputTokens(
+          settings.maxOutputTokens || resolveOutputTokenLimits(settings.outputTokenLimit).mediumJson,
+          settings.outputTokenLimit
+        ),
         jsonMode: isGemini ? true : !!targetSchema,
         responseSchema: settings.responseSchema,
         modelName
@@ -162,6 +166,13 @@ ${text}
 
       if (error.message.includes("403") || error.message.includes("Forbidden") || error.message.includes("API key")) {
         throw new Error("AI Service Authentication Failed: API Key is invalid or expired.");
+      }
+
+      // A spent daily quota is a 429 that no backoff can clear. Bail out before burning
+      // the remaining attempts (and, on serverless, the function's execution budget).
+      if (isExhaustedQuota(error)) {
+        logger.error({ msg: "[AI Service] Daily quota exhausted — not retrying", model: modelName });
+        throw buildExhaustedQuotaError(error, modelName);
       }
 
       if (attempt === maxAttempts || !isRetryable) {

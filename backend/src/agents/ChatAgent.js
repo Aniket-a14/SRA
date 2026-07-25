@@ -1,6 +1,6 @@
 import { BaseAgent } from './BaseAgent.js';
 import { CHAT_PROMPT, CHAT_REPLY_PROMPT, CHAT_EDIT_PROMPT } from '../utils/prompts.js';
-import { OUTPUT_TOKEN_LIMITS, TEMPERATURES } from '../utils/llmGenerationConfig.js';
+import { TEMPERATURES } from '../utils/llmGenerationConfig.js';
 
 /**
  * ChatAgent — handles conversational Q&A and targeted SRS edits.
@@ -48,7 +48,7 @@ User: ${userMessage}
             2000,                  // initialDelay
             {
                 systemInstruction: CHAT_PROMPT,
-                maxOutputTokens: OUTPUT_TOKEN_LIMITS.srsRefinement
+                maxOutputTokens: this.tokenLimits.srsRefinement
             }
         );
     }
@@ -75,7 +75,7 @@ User: ${userMessage}
         return this.streamText(prompt, {
             systemInstruction: CHAT_REPLY_PROMPT,
             temperature: TEMPERATURES.critic,
-            maxOutputTokens: OUTPUT_TOKEN_LIMITS.srsRefinement,
+            maxOutputTokens: this.tokenLimits.srsRefinement,
             mockText: 'Mocked AI Reply'
         });
     }
@@ -110,7 +110,7 @@ User: ${userMessage}
             2000,
             {
                 systemInstruction: CHAT_EDIT_PROMPT,
-                maxOutputTokens: OUTPUT_TOKEN_LIMITS.srsRefinement
+                maxOutputTokens: this.tokenLimits.srsRefinement
             }
         );
     }

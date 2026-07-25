@@ -1,6 +1,7 @@
 import logger from '../config/logger.js';
 import { repairAndParseJSON } from '../utils/jsonRepair.js';
-import { OUTPUT_TOKEN_LIMITS } from '../utils/llmGenerationConfig.js';
+import { isExhaustedQuota, buildExhaustedQuotaError } from '../utils/quotaErrors.js';
+import { resolveOutputTokenLimits, clampOutputTokens } from '../utils/llmGenerationConfig.js';
 import { getAdapter, DEFAULT_MODELS, normalizeProvider } from '../services/providers/index.js';
 
 export class BaseAgent {
@@ -13,10 +14,15 @@ export class BaseAgent {
      */
     constructor(name, providerConfig = {}) {
         this.name = name;
-        const { provider, modelName, apiKey } = providerConfig;
+        const { provider, modelName, apiKey, inputTokenLimit, outputTokenLimit } = providerConfig;
         this.provider = normalizeProvider(provider);
         this._modelName = modelName || null;
         this._apiKey = apiKey;
+        // Real ceilings for the selected model, captured during key discovery. Undefined
+        // for older key records — every consumer falls back to the static budgets.
+        this.inputTokenLimit = inputTokenLimit;
+        this.outputTokenLimit = outputTokenLimit;
+        this.tokenLimits = resolveOutputTokenLimits(outputTokenLimit);
         this._adapter = null; // lazily constructed — see getAdapter() below, so a missing
         // non-Gemini key only throws when a real (non-mocked) LLM call is actually made
     }
@@ -107,7 +113,13 @@ export class BaseAgent {
                     modelName: this.modelName,
                     systemInstruction: options.systemInstruction,
                     temperature,
-                    maxOutputTokens: options.maxOutputTokens || OUTPUT_TOKEN_LIMITS.mediumJson,
+                    // Clamped to the model's real ceiling: a budget above it is rejected by
+                    // the provider, and a caller-supplied default sized for a larger model
+                    // would otherwise truncate here.
+                    maxOutputTokens: clampOutputTokens(
+                        options.maxOutputTokens || this.tokenLimits.mediumJson,
+                        this.outputTokenLimit
+                    ),
                     jsonMode,
                     responseSchema
                 }), TIMEOUT_MS);
@@ -120,6 +132,18 @@ export class BaseAgent {
             } catch (error) {
                 const isTimeout = error.message === "AI Request Timeout";
                 const { isRateLimit, isServerError } = isTimeout ? {} : adapter.classifyError(error);
+
+                // A per-day cap reads as a rate limit but never clears inside one run, so
+                // retrying only spends the time budget the pipeline still needs. Fail now
+                // and let the caller surface something the user can act on.
+                if (isRateLimit && isExhaustedQuota(error)) {
+                    logger.error({
+                        msg: `[${this.name}] Daily quota exhausted — not retrying`,
+                        provider: this.provider,
+                        model: this.modelName
+                    });
+                    throw buildExhaustedQuotaError(error, this.modelName);
+                }
 
                 if ((isRateLimit || isServerError || isTimeout) && attempt < retries) {
                     const jitter = delay * 0.2 * (Math.random() * 2 - 1);
@@ -175,7 +199,7 @@ export class BaseAgent {
                 modelName: this.modelName,
                 systemInstruction: options.systemInstruction,
                 temperature: options.temperature,
-                maxOutputTokens: options.maxOutputTokens || OUTPUT_TOKEN_LIMITS.mediumJson
+                maxOutputTokens: clampOutputTokens(options.maxOutputTokens || this.tokenLimits.mediumJson, this.outputTokenLimit)
             })) {
                 yield chunk;
             }

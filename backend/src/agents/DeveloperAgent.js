@@ -2,7 +2,7 @@ import { BaseAgent } from './BaseAgent.js';
 import { constructMasterPrompt } from '../utils/prompts.js';
 import { SRSSchema, SRSShellSchema, SRSFeaturesSchema, SRSRequirementsSchema, SRSAppendicesSchema } from '../utils/aiSchemas.js';
 import { buildFormatSchema, buildFormatGuidelines } from '../formats/index.js';
-import { OUTPUT_TOKEN_LIMITS, TEMPERATURES } from '../utils/llmGenerationConfig.js';
+import { TEMPERATURES } from '../utils/llmGenerationConfig.js';
 import { stringifyForPrompt } from '../utils/promptCompaction.js';
 
 const MERMAID_RULES = `
@@ -75,7 +75,7 @@ ${rawInput}
 
     return this.callLLM(prompt, TEMPERATURES.developer, true, SRSShellSchema, 3, 5000, {
       systemInstruction,
-      maxOutputTokens: OUTPUT_TOKEN_LIMITS.srsShell
+      maxOutputTokens: this.tokenLimits.srsShell
     });
   }
 
@@ -122,7 +122,7 @@ ${rawInput}
 
     return this.callLLM(prompt, TEMPERATURES.developer, true, SRSFeaturesSchema, 3, 5000, {
       systemInstruction,
-      maxOutputTokens: OUTPUT_TOKEN_LIMITS.srsFeatures
+      maxOutputTokens: this.tokenLimits.srsFeatures
     });
   }
 
@@ -169,7 +169,7 @@ ${rawInput}
 
     return this.callLLM(prompt, TEMPERATURES.developerRequirements, true, SRSRequirementsSchema, 3, 5000, {
       systemInstruction,
-      maxOutputTokens: OUTPUT_TOKEN_LIMITS.srsRequirements
+      maxOutputTokens: this.tokenLimits.srsRequirements
     });
   }
 
@@ -222,7 +222,7 @@ ${rawInput}
 
     return this.callLLM(prompt, TEMPERATURES.developer, true, SRSAppendicesSchema, 3, 5000, {
       systemInstruction,
-      maxOutputTokens: OUTPUT_TOKEN_LIMITS.srsAppendices
+      maxOutputTokens: this.tokenLimits.srsAppendices
     });
   }
 
@@ -299,7 +299,7 @@ ${rawInput}
 
     return this.callLLM(prompt, TEMPERATURES.developer, true, schema, 3, 5000, {
       systemInstruction,
-      maxOutputTokens: OUTPUT_TOKEN_LIMITS.srsRequirements
+      maxOutputTokens: this.tokenLimits.srsRequirements
     });
   }
 
@@ -349,7 +349,7 @@ ${rawInput}
     if (targetSectionName === "Requirements") schemaToUse = SRSRequirementsSchema;
 
     return this.callLLM(prompt, TEMPERATURES.developer, true, schemaToUse, 3, 5000, {
-      maxOutputTokens: OUTPUT_TOKEN_LIMITS.srsRefinement
+      maxOutputTokens: this.tokenLimits.srsRefinement
     });
   }
 }

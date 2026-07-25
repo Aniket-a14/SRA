@@ -25,10 +25,23 @@ export async function resolveProviderKey(userId, provider, requestedModelName = 
     });
 
     if (record && record.isActive) {
+        const modelName = requestedModelName || DEFAULT_MODELS[normalized];
+
+        // The token ceilings were captured per model during discovery against this key.
+        // Passing them along is what lets the pipeline size each generation to the model
+        // instead of a fixed budget that truncates on small models and wastes headroom on
+        // large ones. Absent (older key records, or a provider whose list omits them) the
+        // callers fall back to the static defaults.
+        const selected = Array.isArray(record.availableModels)
+            ? record.availableModels.find((m) => m?.id === modelName)
+            : null;
+
         return {
             provider: normalized,
             apiKey: decryptData(record.encryptedKey),
-            modelName: requestedModelName || DEFAULT_MODELS[normalized]
+            modelName,
+            inputTokenLimit: selected?.inputTokenLimit,
+            outputTokenLimit: selected?.outputTokenLimit
         };
     }
 
@@ -64,7 +77,11 @@ export function asAiSettings(providerConfig = {}) {
     return {
         apiKey: providerConfig?.apiKey,
         modelProvider: providerConfig?.provider,
-        modelName: providerConfig?.modelName
+        modelName: providerConfig?.modelName,
+        // Carried through so service-level calls (which bypass BaseAgent) size their
+        // output budget against the same model ceiling the agents use.
+        outputTokenLimit: providerConfig?.outputTokenLimit,
+        inputTokenLimit: providerConfig?.inputTokenLimit
     };
 }
 

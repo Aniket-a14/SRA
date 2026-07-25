@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import { getDefaultModel } from '../../config/models.js';
+import { assertNotTruncated } from '../../utils/truncationError.js';
 
 /** Resolved from OPENAI_MODEL_NAME at call time — no model id is hardcoded here. */
 const DEFAULT_MODEL = () => getDefaultModel('OPENAI');
@@ -23,6 +24,12 @@ export class OpenAIAdapter {
             max_tokens: maxOutputTokens,
             response_format: jsonMode ? { type: 'json_object' } : undefined
         });
+        assertNotTruncated(completion.choices[0]?.finish_reason, {
+            provider: 'OpenAI',
+            modelName: modelName || DEFAULT_MODEL(),
+            maxOutputTokens
+        });
+
         return completion.choices[0].message.content;
     }
 

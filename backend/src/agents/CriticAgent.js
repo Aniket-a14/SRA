@@ -1,7 +1,7 @@
 import { BaseAgent } from './BaseAgent.js';
 import { AuditSchema } from '../utils/aiSchemas.js';
 import { createReviewSnapshot, stringifyForPrompt } from '../utils/promptCompaction.js';
-import { OUTPUT_TOKEN_LIMITS, TEMPERATURES } from '../utils/llmGenerationConfig.js';
+import { TEMPERATURES } from '../utils/llmGenerationConfig.js';
 
 /**
  * Critic Agent (Requirements Auditor)
@@ -73,7 +73,7 @@ ${stringifyForPrompt(AuditSchema)}
 `;
 
         const auditResult = await this.callLLM(prompt, TEMPERATURES.critic, true, AuditSchema, 3, 5000, {
-            maxOutputTokens: OUTPUT_TOKEN_LIMITS.smallJson
+            maxOutputTokens: this.tokenLimits.smallJson
         });
         return auditResult;
     }

@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { getDefaultModel } from '../../config/models.js';
+import { assertNotTruncated } from '../../utils/truncationError.js';
 
 /** Resolved from CLAUDE_MODEL_NAME at call time — no model id is hardcoded here. */
 const DEFAULT_MODEL = () => getDefaultModel('CLAUDE');
@@ -30,6 +31,12 @@ export class ClaudeAdapter {
                         : prompt
                 }
             ]
+        });
+
+        assertNotTruncated(message.stop_reason, {
+            provider: 'Claude',
+            modelName: modelName || DEFAULT_MODEL(),
+            maxOutputTokens: maxOutputTokens || 4096
         });
 
         return message.content

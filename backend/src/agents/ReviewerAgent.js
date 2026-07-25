@@ -1,7 +1,7 @@
 import { BaseAgent } from './BaseAgent.js';
 import { ReviewSchema } from '../utils/aiSchemas.js';
 import { createReviewSnapshot, stringifyForPrompt } from '../utils/promptCompaction.js';
-import { OUTPUT_TOKEN_LIMITS, TEMPERATURES } from '../utils/llmGenerationConfig.js';
+import { TEMPERATURES } from '../utils/llmGenerationConfig.js';
 
 export class ReviewerAgent extends BaseAgent {
   constructor(providerConfig = {}) {
@@ -75,7 +75,7 @@ ${stringifyForPrompt(ReviewSchema)}
 `;
 
     return this.callLLM(prompt, TEMPERATURES.critic, true, ReviewSchema, 3, 5000, {
-      maxOutputTokens: OUTPUT_TOKEN_LIMITS.mediumJson
+      maxOutputTokens: this.tokenLimits.mediumJson
     });
   }
 }

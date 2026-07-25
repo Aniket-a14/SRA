@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { genAI } from '../../config/gemini.js';
 import { getDefaultModel } from '../../config/models.js';
+import { assertNotTruncated } from '../../utils/truncationError.js';
 
 /** Resolved from GEMINI_MODEL_NAME at call time — no model id is hardcoded here. */
 const DEFAULT_MODEL = () => getDefaultModel('GEMINI');
@@ -28,6 +29,16 @@ export class GeminiAdapter {
             }
         });
         const result = await model.generateContent(prompt);
+
+        // `text()` happily returns the partial payload when generation stopped at the
+        // token ceiling, which is how a cut-off SRS section used to reach the JSON
+        // repair pipeline and get "fixed" into a valid but shorter document.
+        assertNotTruncated(result.response?.candidates?.[0]?.finishReason, {
+            provider: 'Gemini',
+            modelName: modelName || DEFAULT_MODEL(),
+            maxOutputTokens
+        });
+
         return result.response.text();
     }
 
