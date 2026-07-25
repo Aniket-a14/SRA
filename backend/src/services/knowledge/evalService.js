@@ -8,8 +8,13 @@ import { stringifyForPrompt } from '../../utils/promptCompaction.js';
  */
 
 export class EvalService extends BaseAgent {
-    constructor() {
-        super("QA Judge");
+    /**
+     * @param {{ provider?: string, apiKey?: string, modelName?: string }} [providerConfig] -
+     *   the run's resolved user key. This is a real LLM call, so it is funded by the user
+     *   like every other one; without a key it runs only under MOCK_AI.
+     */
+    constructor(providerConfig = {}) {
+        super("QA Judge", providerConfig);
     }
 
     async evaluateRAG(query, context, response) {
@@ -76,4 +81,8 @@ ${typeof response === 'string' ? response : stringifyForPrompt(response)}
     }
 }
 
+/**
+ * Keyless singleton kept only for the manual benchmark scripts. Production callers must
+ * construct their own `new EvalService(providerConfig)` so the call is funded by the user.
+ */
 export const evalService = new EvalService();

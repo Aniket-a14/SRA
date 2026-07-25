@@ -1,5 +1,6 @@
 import { ALIGNMENT_CHECK_PROMPT } from '../utils/prompts.js';
 import { analyzeText } from './aiService.js';
+import { asAiSettings } from './providers/providerKeyService.js';
 import { OUTPUT_TOKEN_LIMITS, TEMPERATURES } from '../utils/llmGenerationConfig.js';
 import { stringifyForPrompt } from '../utils/promptCompaction.js';
 
@@ -127,7 +128,8 @@ export const lintRequirements = (analysis, semanticAudit = null) => {
 
 };
 
-export const checkAlignment = async (originalInput, validationContext, srsOutput) => {
+/** Layer-3 alignment check. Runs on the user's own key (`providerConfig`). */
+export const checkAlignment = async (originalInput, validationContext, srsOutput, providerConfig) => {
     // Construct task-specific prompt (system prompt)
     let systemPrompt = ALIGNMENT_CHECK_PROMPT
         .replace('{{projectName}}', originalInput.projectName || "Unknown")
@@ -143,6 +145,7 @@ export const checkAlignment = async (originalInput, validationContext, srsOutput
 
     // Call AI
     const response = await analyzeText(text, {
+        ...asAiSettings(providerConfig),
         systemPrompt: systemPrompt,
         temperature: TEMPERATURES.logic,
         maxOutputTokens: OUTPUT_TOKEN_LIMITS.smallJson

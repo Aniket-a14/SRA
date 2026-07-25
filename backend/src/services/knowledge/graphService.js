@@ -51,19 +51,34 @@ Input Text:
 </input>
 `;
 
-export const extractGraph = async (text, projectId, prismaClient = prisma) => {
+/**
+ * Extract a knowledge graph for a project. Runs on the caller's own key like every other
+ * generation-side call — it used to run on the platform GEMINI_API_KEY.
+ *
+ * @param {{ provider?: string, apiKey?: string, modelName?: string }} [providerConfig] -
+ *   resolved user key; when absent (scripts, backfills) extraction is skipped rather than
+ *   quietly charged to the platform.
+ */
+export const extractGraph = async (text, projectId, prismaClient = prisma, providerConfig = null) => {
     try {
-        if (!process.env.GEMINI_API_KEY) {
-            logger.warn("Skipping Graph Extraction: No API Key.");
+        if (process.env.MOCK_AI !== 'true' && !providerConfig?.apiKey) {
+            logger.warn("Skipping Graph Extraction: no user provider key supplied.");
             return;
         }
 
         // BaseAgent's 2nd arg is a providerConfig object (Phase 4 multi-provider rework),
         // not a bare model-name string — this call site predates that change and was
         // silently falling back to the platform default Gemini model instead of this one.
-        // GEMINI_UTILITY_MODEL_NAME lets this internal, non-user-facing extraction run on a
-        // cheaper/faster model than the main pipeline; it falls back to GEMINI_MODEL_NAME.
-        const agent = new BaseAgent("Graph Extractor", { provider: 'GEMINI', modelName: getUtilityModel() });
+        // On Gemini, GEMINI_UTILITY_MODEL_NAME lets this internal, non-user-facing extraction
+        // use a cheaper/faster model; other providers just use the run's model.
+        const provider = providerConfig?.provider || 'GEMINI';
+        let modelName = providerConfig?.modelName;
+        if (provider === 'GEMINI') {
+            // undefined when no utility/default model is configured (mock runs) — BaseAgent
+            // then resolves lazily and never reads it under MOCK_AI.
+            try { modelName = getUtilityModel(); } catch { modelName = undefined; }
+        }
+        const agent = new BaseAgent("Graph Extractor", { provider, apiKey: providerConfig?.apiKey, modelName });
         const prompt = GRAPH_EXTRACTION_PROMPT.replace("{{text}}", text);
 
         const graphData = await agent.callLLM(prompt, 0.2, true);

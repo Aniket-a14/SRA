@@ -1,4 +1,5 @@
 import { analyzeText } from './aiService.js';
+import { asAiSettings } from './providers/providerKeyService.js';
 import { layoutAllDFD } from './dfdLayoutService.js';
 import { FEATURE_EXPANSION_PROMPT, DFD_STRUCT_GEN_PROMPT } from '../utils/prompts.js';
 import { stringifyForPrompt } from '../utils/promptCompaction.js';
@@ -15,7 +16,7 @@ import { OUTPUT_TOKEN_LIMITS, TEMPERATURES } from '../utils/llmGenerationConfig.
  * Expand a single feature idea into structured detail. Uses a task-specific system prompt and
  * intentionally skips SRS Zod validation (zodSchema: null).
  */
-export async function expandFeatureContent(name, prompt, settings = {}) {
+export async function expandFeatureContent(name, prompt, settings = {}, providerConfig) {
     const systemPrompt = FEATURE_EXPANSION_PROMPT
         .replace('{{name}}', 'Provided in user input')
         .replace('{{prompt}}', 'Provided in user input');
@@ -36,13 +37,14 @@ export async function expandFeatureContent(name, prompt, settings = {}) {
  * Generate a Data Flow Diagram structure and apply auto-layout. Returns the analyzeText result
  * with `result.srs` laid out (dagre positions) when generation succeeded.
  */
-export async function generateDfdStructure(projectName, description, srsContent, settings = {}) {
+export async function generateDfdStructure(projectName, description, srsContent, settings = {}, providerConfig) {
     const systemPrompt = DFD_STRUCT_GEN_PROMPT.replaceAll('{{projectName}}', projectName);
 
     const result = await analyzeText(
         `Project: ${projectName}\nDescription: ${description}\nSRS Content Reference: ${stringifyForPrompt(srsContent || "N/A", 12000)}`,
         {
             ...settings,
+            ...asAiSettings(providerConfig),
             systemPrompt,
             temperature: TEMPERATURES.architect,
             maxOutputTokens: OUTPUT_TOKEN_LIMITS.architectSection,

@@ -1,6 +1,5 @@
 import { getLatestVersion } from "../utils/promptRegistry.js";
 import { constructMasterPrompt, DIAGRAM_REPAIR_PROMPT } from "../utils/prompts.js";
-import { genAI } from "../config/gemini.js";
 import { getAdapter, normalizeProvider, DEFAULT_MODELS } from "./providers/index.js";
 import { AnalysisResultSchema } from "../utils/schemas.js";
 import { sanitizePII } from "../utils/sanitizer.js";
@@ -17,10 +16,10 @@ export async function analyzeText(text, settings = {}) {
   text = sanitizePII(text);
   const {
     modelProvider = "google",
-    // Canonical Gemini default lives in the provider registry (DEFAULT_MODELS.GEMINI), which
-    // resolves GEMINI_MODEL_NAME from the environment — no model id is hardcoded in src/.
-    // A single source of truth, so the aiService path can't drift from the adapter registry.
-    modelName = DEFAULT_MODELS.GEMINI,
+    // Resolved below rather than defaulted here: the canonical Gemini default lives in the
+    // provider registry (DEFAULT_MODELS.GEMINI → GEMINI_MODEL_NAME), and reading it eagerly
+    // would demand model env even on the MOCK_AI path, which never calls a provider.
+    modelName: requestedModelName = null,
     promptVersion = getLatestVersion(),
     systemPrompt = null,
     projectId = null, // Extract projectId if available
@@ -94,6 +93,8 @@ ${text}
   }
 
   let output;
+  // Only resolved on a real call (see the MOCK_AI early return inside the loop).
+  let modelName = requestedModelName;
   const maxAttempts = 3;
   const timeoutMs = 360000; // Increased to 6 mins for large enterprise SRS generation
 
@@ -130,6 +131,7 @@ ${text}
       }
 
       const normalizedProvider = normalizeProvider(modelProvider);
+      modelName ||= DEFAULT_MODELS[normalizedProvider];
       logger.info(`[AI Service] Using Provider: ${normalizedProvider}, Model: ${modelName} (Attempt ${attempt}/${maxAttempts})`);
 
       const targetSchema = settings.zodSchema === null ? null : (settings.zodSchema || AnalysisResultSchema);
@@ -255,9 +257,7 @@ ${text}
 }
 
 export async function repairDiagram(code, error, settings = {}, customInstruction = "") {
-  const {
-    modelName = DEFAULT_MODELS.GEMINI,
-  } = settings;
+  const { modelProvider, modelName: requestedModelName, apiKey } = settings;
 
   const finalPrompt = `
 ${DIAGRAM_REPAIR_PROMPT}
@@ -278,23 +278,28 @@ ${error.includes("Trying to inactivate an inactive participant") ? "CRITICAL: Th
 Return ONLY the corrected code.
 `;
 
-  const model = genAI.getGenerativeModel({
-    model: modelName,
-    generationConfig: {
-      temperature: TEMPERATURES.logic,
-      maxOutputTokens: OUTPUT_TOKEN_LIMITS.smallJson
-    }
-  });
+  // Goes through the adapter registry on the caller's own key, like every other
+  // generation call — this used to reach for the shared platform client directly,
+  // which meant diagram repair was billed to the platform's Gemini quota.
+  const normalizedProvider = normalizeProvider(modelProvider);
+  const modelName = requestedModelName || DEFAULT_MODELS[normalizedProvider];
+  const adapter = getAdapter(normalizedProvider, apiKey);
 
   // Optimize for speed: Frontend handles high-level retries.
   // Backend should fail fast so UI can show "Retrying..." state.
   const MAX_RETRIES = 1;
   let attempt = 0;
-  let result;
+  let output = "";
 
   while (attempt < MAX_RETRIES) {
     try {
-      result = await model.generateContent(finalPrompt);
+      output = await adapter.generateContent({
+        prompt: finalPrompt,
+        modelName,
+        temperature: TEMPERATURES.logic,
+        maxOutputTokens: OUTPUT_TOKEN_LIMITS.smallJson,
+        jsonMode: false
+      }) || "";
       break;
     } catch (error) {
       if (error.message.includes("429") || error.status === 429) {
@@ -306,13 +311,6 @@ Return ONLY the corrected code.
         throw error;
       }
     }
-  }
-
-  let output = "";
-  if (result && result.response && typeof result.response.text === "function") {
-    output = result.response.text();
-  } else if (result && result.candidates && result.candidates[0]) {
-    output = result.candidates[0].content || result.candidates[0].output || JSON.stringify(result.candidates[0]);
   }
 
   // Sanitization: Extract code block if present, otherwise clean markdown

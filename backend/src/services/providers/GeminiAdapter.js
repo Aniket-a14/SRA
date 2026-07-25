@@ -6,11 +6,12 @@ import { getDefaultModel } from '../../config/models.js';
 const DEFAULT_MODEL = () => getDefaultModel('GEMINI');
 
 export class GeminiAdapter {
-    // SRS generation now always runs on the user's own Gemini key (BYOK) — the
-    // platform's GEMINI_API_KEY is reserved for embeddings only. When a per-user
-    // key is supplied we build a dedicated client for it; the shared platform
-    // `genAI` client is only used by internal/embedding-adjacent callers that
-    // pass no key (and by the MOCK_AI path, which never actually calls out).
+    // Every Gemini call the platform makes on a user's behalf runs on that user's own
+    // key (BYOK) — generation, validation, auto-fix, alignment, refinement, diagram
+    // repair, graph extraction. The platform's GEMINI_API_KEY funds embeddings only,
+    // because the pgvector columns are one shared embedding space that cannot be
+    // per-user. The `genAI` fallback below is therefore reached only by the MOCK_AI
+    // path, which never actually calls out.
     constructor(apiKey = null) {
         this.client = apiKey ? new GoogleGenerativeAI(apiKey) : genAI;
     }

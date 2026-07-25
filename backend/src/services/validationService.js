@@ -1,4 +1,5 @@
 import { analyzeText } from "./aiService.js";
+import { asAiSettings } from "./providers/providerKeyService.js";
 import crypto from 'crypto';
 import { OUTPUT_TOKEN_LIMITS, TEMPERATURES } from "../utils/llmGenerationConfig.js";
 import { stringifyForPrompt } from "../utils/promptCompaction.js";
@@ -112,12 +113,13 @@ Correct output: ["Undefined SSO Provider"]
 </input>
 `;
 
-async function filterFalsePositives(issues) {
+async function filterFalsePositives(issues, providerConfig) {
   if (!issues || issues.length === 0) return issues;
 
   try {
     const issuesJson = stringifyForPrompt(issues.map(i => ({ title: i.title, description: i.description })));
     const response = await analyzeText(issuesJson, {
+      ...asAiSettings(providerConfig),
       systemPrompt: FILTER_PROMPT_TEMPLATE.replace('{{issues}}', 'Issues are provided in the user input.'),
       temperature: TEMPERATURES.logic,
       maxOutputTokens: OUTPUT_TOKEN_LIMITS.smallJson,
@@ -144,10 +146,17 @@ async function filterFalsePositives(issues) {
   }
 }
 
-export async function validateRequirements(srsData) {
+/**
+ * Layer-2 quality gate. Runs on the user's own key (`providerConfig`) like every other
+ * generation-side call — the platform key funds embeddings only.
+ * @param {object} srsData
+ * @param {{ provider?: string, apiKey?: string, modelName?: string }} [providerConfig]
+ */
+export async function validateRequirements(srsData, providerConfig) {
   const jsonString = stringifyForPrompt(srsData);
 
   const response = await analyzeText(jsonString, {
+    ...asAiSettings(providerConfig),
     systemPrompt: VALIDATION_PROMPT_TEMPLATE.replace('{{srsData}}', 'Project description data is provided in the user input.'),
     temperature: TEMPERATURES.logic,
     maxOutputTokens: OUTPUT_TOKEN_LIMITS.smallJson,
@@ -182,7 +191,7 @@ export async function validateRequirements(srsData) {
 
   // Pass 2: Filter false positives
   if (result.issues && Array.isArray(result.issues) && result.issues.length > 0) {
-    result.issues = await filterFalsePositives(result.issues);
+    result.issues = await filterFalsePositives(result.issues, providerConfig);
 
     // If all issues were filtered out, upgrade to PASS
     if (result.issues.length === 0 && result.validation_status === 'CLARIFICATION_REQUIRED') {
@@ -212,7 +221,7 @@ export async function validateRequirements(srsData) {
   return result;
 }
 
-export async function autoFixRequirements(srsData, issueId) {
+export async function autoFixRequirements(srsData, issueId, providerConfig) {
   const issues = srsData.validationResult?.issues || [];
   const targetIssue = issues.find(i => i.id === issueId);
 
@@ -239,6 +248,7 @@ Suggested Fix: ${targetIssue.suggested_fix}
 `;
 
   const response = await analyzeText("Please fix the identified issue.", {
+    ...asAiSettings(providerConfig),
     systemPrompt: AUTO_FIX_PROMPT,
     temperature: TEMPERATURES.evaluator,
     maxOutputTokens: OUTPUT_TOKEN_LIMITS.smallJson,

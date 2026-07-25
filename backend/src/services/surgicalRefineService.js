@@ -1,4 +1,5 @@
 import { analyzeText } from "./aiService.js";
+import { asAiSettings } from "./providers/providerKeyService.js";
 import logger from "../config/logger.js";
 import { OUTPUT_TOKEN_LIMITS, TEMPERATURES } from "../utils/llmGenerationConfig.js";
 import { stringifyForPrompt } from "../utils/promptCompaction.js";
@@ -51,7 +52,7 @@ Do NOT wrap in markdown. Do NOT include explanations. ONLY the JSON partial.
  * @param {string[]} affectedSections - Section keys to focus on (optional)
  * @returns {object} Partial JSON with only the modified sections
  */
-export async function surgicalRefine(currentSRS, improvementNotes, affectedSections = []) {
+export async function surgicalRefine(currentSRS, improvementNotes, affectedSections = [], providerConfig) {
     const sectionFocus = affectedSections.length > 0
         ? `\nFOCUS ON THESE SECTIONS: ${affectedSections.join(', ')}`
         : '\nThe user did not specify sections. Determine the relevant sections from their feedback.';
@@ -78,6 +79,7 @@ Apply the user's feedback as a surgical edit. Return ONLY the modified sections 
     while (attempt < maxRetries) {
         try {
             const response = await analyzeText(userPrompt, {
+                ...asAiSettings(providerConfig),
                 systemPrompt: SURGICAL_REFINE_PROMPT,
                 temperature: TEMPERATURES.critic,
                 maxOutputTokens: OUTPUT_TOKEN_LIMITS.srsRefinement,

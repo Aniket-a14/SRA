@@ -15,6 +15,7 @@ import crypto from 'crypto';
 import { successResponse } from '../utils/response.js';
 import logger from '../config/logger.js';
 import { createNextVersion } from '../services/versioning.js';
+import { resolveProviderForUser, asAiSettings } from '../services/providers/providerKeyService.js';
 
 export const analyze = async (req, res, next) => {
     try {
@@ -331,7 +332,12 @@ export const updateAnalysis = async (req, res, next) => {
             try {
                 // Only run expensive AI check if standard quality passes or logic dictates
                 // Running parallel to Diff Service
-                const alignmentResult = await checkAlignment(layer1Intent, layer2Context, newResultJson);
+                const alignmentResult = await checkAlignment(
+                    layer1Intent,
+                    layer2Context,
+                    newResultJson,
+                    await resolveProviderForUser(req.user.userId, currentAnalysis.metadata?.promptSettings)
+                );
 
                 if (alignmentResult.status === 'MISMATCH_DETECTED') {
                     // Attach mismatches to the result so backend/frontend knows
@@ -518,7 +524,8 @@ export const regenerate = async (req, res, next) => {
         const partialUpdate = await surgicalRefine(
             currentAnalysis.resultJson,
             improvementNotes,
-            affectedSections || []
+            affectedSections || [],
+            await resolveProviderForUser(req.user.userId, currentAnalysis.metadata?.promptSettings)
         );
 
         // 4. Merge: Overlay the partial AI output onto the existing SRS
@@ -756,7 +763,10 @@ export const validateAnalysis = async (req, res, next) => {
         try {
             // Transform draftData into format expected by validationService if needed,
             // but validateRequirements handles the raw structure mostly.
-            validationResult = await validateRequirements(draftData);
+            validationResult = await validateRequirements(
+                draftData,
+                await resolveProviderForUser(req.user.userId, analysis.metadata?.promptSettings)
+            );
         } catch (validationErr) {
             logger.error({ msg: "AI Validation Failed", error: validationErr.message });
             let friendlyMessage = validationErr.message;
@@ -827,7 +837,12 @@ export const expandFeature = async (req, res, next) => {
             throw error;
         }
 
-        const result = await expandFeatureContent(name, prompt, settings);
+        const result = await expandFeatureContent(
+            name,
+            prompt,
+            settings,
+            await resolveProviderForUser(req.user.userId, settings)
+        );
         return successResponse(res, result);
     } catch (error) {
         next(error);
@@ -845,7 +860,12 @@ export const repairDiagram = async (req, res, next) => {
             throw err;
         }
 
-        const repairedCode = await aiRepairDiagram(code, error, settings || {}, req.body.syntaxExplanation || "");
+        const repairedCode = await aiRepairDiagram(
+            code,
+            error,
+            { ...(settings || {}), ...asAiSettings(await resolveProviderForUser(req.user.userId, settings)) },
+            req.body.syntaxExplanation || ""
+        );
         return successResponse(res, { code: repairedCode });
     } catch (error) {
         if (error.message.includes("429") || error.status === 429) {
@@ -868,7 +888,13 @@ export const generateDFD = async (req, res, next) => {
             throw err;
         }
 
-        const result = await generateDfdStructure(projectName, description, srsContent, settings);
+        const result = await generateDfdStructure(
+            projectName,
+            description,
+            srsContent,
+            settings,
+            await resolveProviderForUser(req.user.userId, settings)
+        );
         res.json(result);
     } catch (error) {
         next(error);
@@ -893,7 +919,11 @@ export const autoFixValidationIssue = async (req, res, next) => {
             throw error;
         }
 
-        const fixedText = await autoFixRequirements(analysis.metadata, issueId);
+        const fixedText = await autoFixRequirements(
+            analysis.metadata,
+            issueId,
+            await resolveProviderForUser(req.user.userId, analysis.metadata?.promptSettings)
+        );
         res.json({ fixedText });
     } catch (error) {
         next(error);

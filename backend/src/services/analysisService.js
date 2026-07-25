@@ -13,9 +13,9 @@ import { ArchitectAgent } from '../agents/ArchitectAgent.js';
 import { DeveloperAgent } from '../agents/DeveloperAgent.js';
 import { ReviewerAgent } from '../agents/ReviewerAgent.js';
 import { CriticAgent } from '../agents/CriticAgent.js';
-import { resolveProviderKey } from './providers/providerKeyService.js';
+import { resolveProviderKey, asAiSettings } from './providers/providerKeyService.js';
 import { publishProgress } from './progressService.js';
-import { evalService } from './knowledge/evalService.js';
+import { EvalService } from './knowledge/evalService.js';
 import { retrieveContext, formatRagContext } from './knowledge/ragService.js';
 import { createReviewSnapshot } from '../utils/promptCompaction.js';
 import { createCooldown } from '../utils/throttle.js';
@@ -43,6 +43,10 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
     let analysisMeta = {};
     let finalIndustryAudit = null;
     let srsDraft = null; // Declare upfront to avoid ReferenceError in catch block
+    // The run's resolved BYOK provider/model/key. Function-scoped because the post-pipeline
+    // steps below (Layer-3 alignment, async graph extraction) run outside the try that
+    // resolves it, and they are user-funded AI calls too.
+    let providerConfig = null;
 
     // Resolve the target SRS format up front (outside the try) so it's available for the
     // final lint/persist step too. Defaults to IEEE-830 (the legacy sectional pipeline).
@@ -93,7 +97,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         const { provider, apiKey, modelName } = process.env.MOCK_AI === 'true'
             ? { provider: 'GEMINI', apiKey: null, modelName: null }
             : await resolveProviderKey(userId, settings.modelProvider, settings.modelName);
-        const providerConfig = { provider, apiKey, modelName };
+        providerConfig = { provider, apiKey, modelName };
 
         // Provider-aware cooldown: the sleeps below exist only to respect Gemini free-tier
         // RPM limits. On a paid BYOK provider (or paid Gemini tier) they'd be dead latency,
@@ -243,7 +247,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
             // Repair diagrams BEFORE auditing so a minor syntax slip doesn't tank the audit.
             logger.info("--> Service: Pre-Audit Diagram Repair");
             emitProgress('diagram_repair', 'Validating and auto-repairing diagrams...');
-            await validateAndAutoRepairDiagrams(srsDraft, settings);
+            await validateAndAutoRepairDiagrams(srsDraft, { ...settings, ...asAiSettings(providerConfig) });
 
             // 4. Pillar 1: Reflection Loop (Max 2 refinement passes)
             const reflection = await runReflectionLoop({
@@ -270,7 +274,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
             if (spec.tier === 'detailed') {
                 logger.info("--> Service: Pre-Audit Diagram Repair (format)");
                 emitProgress('diagram_repair', 'Validating and auto-repairing diagrams...');
-                await validateAndAutoRepairDiagrams(srsDraft, settings);
+                await validateAndAutoRepairDiagrams(srsDraft, { ...settings, ...asAiSettings(providerConfig) });
                 finalIndustryAudit = await auditFormatDoc({
                     spec, poOutput, doc: srsDraft,
                     agents: { qaAgent, criticAgent },
@@ -308,7 +312,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         emitProgress('final_evaluation', 'Running final RAG faithfulness evaluation...');
         const contextString = typeof archOutput === 'string' ? archOutput : JSON.stringify(archOutput);
         const evalSnapshot = createReviewSnapshot(poOutput, finalSRS);
-        const ragEval = await evalService.evaluateRAG(text, contextString, evalSnapshot);
+        const ragEval = await new EvalService(providerConfig).evaluateRAG(text, contextString, evalSnapshot);
 
         const response = {
             success: true,
@@ -444,7 +448,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                     purpose: draftData.details?.fullDescription?.content || "Purpose"
                 };
 
-                const alignmentResult = await checkAlignment(layer1Intent, layer2Context, resultJson);
+                const alignmentResult = await checkAlignment(layer1Intent, layer2Context, resultJson, providerConfig);
                 resultJson.alignmentResult = alignmentResult;
 
                 if (alignmentResult.status === 'MISMATCH_DETECTED') {
@@ -532,7 +536,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         // Synchronize Knowledge Graph (Async)
         if (transactionResult.finalProjectId) {
             logger.info(`[Analysis Service] Triggering Graph Extraction for Project: ${transactionResult.finalProjectId}`);
-            extractGraph(transactionResult.text, transactionResult.finalProjectId).catch(e => logger.error({ msg: "Async Graph Extraction failed", error: e }));
+            extractGraph(transactionResult.text, transactionResult.finalProjectId, undefined, providerConfig).catch(e => logger.error({ msg: "Async Graph Extraction failed", error: e }));
         }
 
         return transactionResult.result;
