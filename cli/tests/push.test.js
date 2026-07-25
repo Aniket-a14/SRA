@@ -204,3 +204,123 @@ describe('push writeback', () => {
         expect(process.exitCode).toBe(1);
     });
 });
+
+/**
+ * The platform owns requirement content; the CLI owns verification state. Push used to write
+ * the whole local array back, so any edit made on the website after the last sync was
+ * silently reverted by the next push.
+ */
+describe('push merges rather than overwrites', () => {
+    const localSpec = (functionalRequirements) => ({
+        analysisId: 'analysis-1',
+        version: 1,
+        formatId: 'ieee830',
+        features: [{
+            name: 'Authentication',
+            source: { section: 'systemFeatures', index: 0, kind: 'feature-list' },
+            status: 'verified',
+            verification_files: ['src/auth.js'],
+            functionalRequirements
+        }]
+    });
+
+    const remoteFeature = (functionalRequirements) => remote({
+        formatId: 'ieee830',
+        systemFeatures: [{ name: 'Authentication', functionalRequirements }]
+    });
+
+    const pushed = () => lastPayload().systemFeatures[0].functionalRequirements;
+
+    test('keeps a requirement edited on the website after the last sync', async () => {
+        get.mockResolvedValue(remoteFeature(['The system shall sign users in via SSO.']));
+        await writeLocalSpec(localSpec([
+            { id: 'R1', description: 'The system shall sign users in.', metadata: { verification_status: 'APPROVED_HUMAN' } }
+        ]));
+
+        await push({});
+
+        // The website's wording survives, and the stale approval does not ride along with it.
+        expect(pushed()).toEqual(['The system shall sign users in via SSO.']);
+    });
+
+    test('records the decision when the wording still matches', async () => {
+        get.mockResolvedValue(remoteFeature(['The system shall sign users in.']));
+        await writeLocalSpec(localSpec([
+            { id: 'R1', description: 'The system shall sign users in.', metadata: { verification_status: 'APPROVED_HUMAN', verifiedBy: 'ada' } }
+        ]));
+
+        await push({});
+
+        expect(pushed()[0]).toEqual({
+            description: 'The system shall sign users in.',
+            metadata: { verification_status: 'APPROVED_HUMAN', verifiedBy: 'ada' }
+        });
+    });
+
+    test('leaves a requirement added on the website since the sync untouched', async () => {
+        get.mockResolvedValue(remoteFeature([
+            'The system shall sign users in.',
+            'The system shall support passkeys.'
+        ]));
+        await writeLocalSpec(localSpec([
+            { id: 'R1', description: 'The system shall sign users in.', metadata: { verification_status: 'APPROVED_HUMAN' } }
+        ]));
+
+        await push({});
+
+        expect(pushed()).toHaveLength(2);
+        expect(pushed()[1]).toBe('The system shall support passkeys.');
+    });
+
+    test('does not resurrect a requirement deleted on the website', async () => {
+        get.mockResolvedValue(remoteFeature(['The system shall sign users in.']));
+        await writeLocalSpec(localSpec([
+            { id: 'R1', description: 'The system shall sign users in.', metadata: { verification_status: 'APPROVED_HUMAN' } },
+            { id: 'R2', description: 'The system shall delete accounts.', metadata: { verification_status: 'APPROVED_HUMAN' } }
+        ]));
+
+        await push({});
+
+        expect(pushed()).toHaveLength(1);
+    });
+
+    test('preserves the structured attributes of an ISO 29148 requirement', async () => {
+        // The shape that push previously flattened to prose.
+        get.mockResolvedValue(remoteFeature([{
+            id: 'FTP-REQ-001',
+            description: 'The system shall lock an account after five failed attempts.',
+            rationale: 'Limits credential stuffing.',
+            verificationMethod: 'Test',
+            source: 'Security review'
+        }]));
+        await writeLocalSpec(localSpec([{
+            id: 'FTP-REQ-001',
+            description: 'The system shall lock an account after five failed attempts.',
+            metadata: { verification_status: 'APPROVED_HUMAN' }
+        }]));
+
+        await push({});
+
+        expect(pushed()[0]).toEqual({
+            id: 'FTP-REQ-001',
+            description: 'The system shall lock an account after five failed attempts.',
+            rationale: 'Limits credential stuffing.',
+            verificationMethod: 'Test',
+            source: 'Security review',
+            metadata: { verification_status: 'APPROVED_HUMAN' }
+        });
+    });
+
+    test('still writes the CLI-owned verification fields on the feature itself', async () => {
+        get.mockResolvedValue(remoteFeature(['The system shall sign users in.']));
+        await writeLocalSpec(localSpec([
+            { id: 'R1', description: 'The system shall sign users in.', metadata: { verification_status: 'APPROVED_HUMAN' } }
+        ]));
+
+        await push({});
+
+        const feature = lastPayload().systemFeatures[0];
+        expect(feature.status).toBe('verified');
+        expect(feature.verification_files).toEqual(['src/auth.js']);
+    });
+});
