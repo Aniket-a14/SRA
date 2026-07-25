@@ -16,8 +16,9 @@ This document outlines the operational procedures, backup strategies, and disast
 - **PITR (Point-In-Time Recovery):** Enabled for 7-day retention (Allows recovery to any specific second).
 - **Manual Backups:** Recommended before major migrations.
   ```bash
-  # Example: Export schema and data
-  pg_dump -h db.your-project.supabase.co -U postgres -d postgres > backup_$(date +%Y%m%d).sql
+  # Export schema and data. Use the DIRECT_URL host and port 5432 (session mode) — a dump
+  # cannot be taken through the transaction pooler on 6543. See §3 below.
+  pg_dump -h <direct-host> -p 5432 -U <user> -d postgres > backup_$(date +%Y%m%d).sql
   ```
 
 ### 2. File Assets (If applicable)
@@ -29,6 +30,34 @@ This document outlines the operational procedures, backup strategies, and disast
 - **Encryption:** All backups are encrypted using AES-256-GCM before storage.
 - **Retention:** Backups are retained for 30 days, with automatic cleanup.
 - **Verification:** Each backup is verified for integrity using SHA-256 checksums.
+
+#### Two rules that keep this working
+
+**1. Dump through `DIRECT_URL` (port 5432), never the transaction pooler (6543).**
+`pg_dump` needs a session-mode connection. Supabase's transaction pooler is PgBouncer in
+transaction mode and cannot serve a dump — it rejects the attempt during authentication with
+`FATAL: (ENOTFOUND) tenant/user … not found`, which reads like a credentials problem and is
+not. `backupService.resolveDumpTargets()` now filters port 6543 out entirely and fails with
+an explanatory error if that is all that is configured.
+
+**2. The `pg_dump` client must be at least the server's major version.**
+`pg_dump` refuses to dump any server newer than itself. This is what silently broke the
+weekly backup for five weeks: the workflow step titled "Install PostgreSQL 17 client"
+actually installed 16.14 (its `apt-key add` is a no-op on Ubuntu 24.04, so the pgdg repo
+stayed untrusted and apt fell back to Ubuntu's own package), and once the database moved to
+PostgreSQL 17 every run aborted. The workflow now trusts the repo via a `signed-by` keyring
+and **asserts** the installed major version instead of merely printing it;
+`backupService.assertDumpClientIsCompatible()` repeats the check at runtime so a manual or
+local run fails with the same clear message.
+
+#### If a backup fails
+1. Read the error — it now names every target tried, with host, port and reason. Previously
+   only the last attempt's error survived, so the reported cause could belong to a different
+   target than the one that actually mattered.
+2. `server version mismatch` → the client is too old; install `postgresql-client-<server major>`.
+3. `tenant/user not found` → something is pointing at port 6543; set `DIRECT_URL`.
+4. Failure opens **one** GitHub issue labelled `backup`/`critical` and comments on it for
+   each recurrence, rather than opening a new issue every week.
 
 #### Manual Backup Commands
 ```bash

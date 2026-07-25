@@ -8,6 +8,9 @@ import os from 'os';
 
 const execFileAsync = promisify(execFile);
 
+// Supabase's transaction pooler. PgBouncer in transaction mode cannot serve pg_dump.
+const TRANSACTION_POOLER_PORT = 6543;
+
 /**
  * Automated Backup Service
  * Handles database backups, encryption, and retention management
@@ -18,6 +21,79 @@ class BackupService {
         this.encryptionKey = process.env.BACKUP_ENCRYPTION_KEY;
         this.retentionDays = parseInt(process.env.BACKUP_RETENTION_DAYS || '30');
         this.salt = process.env.BACKUP_ENCRYPTION_SALT; // Used for key derivation
+    }
+
+    /**
+     * Connection strings worth handing to pg_dump, best first.
+     *
+     * DIRECT_URL leads because pg_dump needs a session-mode connection. Supabase's
+     * transaction pooler (port 6543) is PgBouncer in transaction mode, which cannot serve a
+     * dump at all — it rejects the attempt at authentication with a "tenant/user not found"
+     * that looks like a credentials problem and is not. Including it as a fallback did
+     * nothing but overwrite the real error from the previous target.
+     *
+     * @returns {string[]}
+     * @throws {Error} when nothing usable is configured
+     */
+    resolveDumpTargets() {
+        const candidates = [process.env.DIRECT_URL, process.env.DATABASE_URL].filter(Boolean);
+        if (candidates.length === 0) {
+            throw new Error('Neither DIRECT_URL nor DATABASE_URL is configured');
+        }
+
+        const targets = [...new Set(candidates)].filter((connectionString) => {
+            try {
+                return new URL(connectionString).port !== String(TRANSACTION_POOLER_PORT);
+            } catch {
+                return false;
+            }
+        });
+
+        if (targets.length === 0) {
+            throw new Error(
+                `Every configured connection string points at the transaction pooler (port ${TRANSACTION_POOLER_PORT}), ` +
+                'which cannot serve pg_dump. Set DIRECT_URL to the session-mode connection (port 5432).'
+            );
+        }
+
+        return targets;
+    }
+
+    /**
+     * Refuse to start a dump that pg_dump will abort anyway.
+     *
+     * pg_dump will not dump a server newer than itself. This is exactly how the scheduled
+     * backup broke: the runner installed client 16 against a server that had moved to 17,
+     * so every run failed — and because the error was then masked by a pooler fallback, the
+     * logs blamed credentials for five weeks.
+     *
+     * Non-fatal if the versions can't be read; a real incompatibility still surfaces from
+     * pg_dump itself, just less clearly.
+     */
+    async assertDumpClientIsCompatible(connectionString) {
+        let clientMajor;
+        try {
+            const { stdout } = await execFileAsync('pg_dump', ['--version']);
+            clientMajor = parseInt(stdout.match(/(\d+)/)?.[1], 10);
+        } catch {
+            throw new Error('pg_dump is not installed or not on PATH.');
+        }
+
+        let serverMajor;
+        try {
+            const { stdout } = await execFileAsync('psql', [connectionString, '-tAc', 'show server_version']);
+            serverMajor = parseInt(stdout.trim().match(/(\d+)/)?.[1], 10);
+        } catch {
+            console.warn('⚠️  Could not read the server version; proceeding without a compatibility check.');
+            return;
+        }
+
+        if (Number.isFinite(clientMajor) && Number.isFinite(serverMajor) && clientMajor < serverMajor) {
+            throw new Error(
+                `pg_dump ${clientMajor} cannot dump a PostgreSQL ${serverMajor} server — pg_dump refuses any server ` +
+                `newer than itself. Install postgresql-client-${serverMajor} (or newer) and retry.`
+            );
+        }
     }
 
     /**
@@ -35,13 +111,16 @@ class BackupService {
             // Create database dump (Windows-compatible approach)
             console.log(`Creating backup: ${backupFileName}`);
 
-            const connectionStrings = [...new Set([process.env.DIRECT_URL, process.env.DATABASE_URL].filter(Boolean))];
-            if (connectionStrings.length === 0) {
-                throw new Error('Neither DIRECT_URL nor DATABASE_URL is configured');
-            }
+            const connectionStrings = this.resolveDumpTargets();
+
+            // Fail before spending a connection attempt on a client that cannot possibly
+            // work: pg_dump refuses any server newer than itself. This check is what turns
+            // "tenant/user not found" (the misleading error from a doomed pooler fallback)
+            // into a message naming the actual problem.
+            await this.assertDumpClientIsCompatible(connectionStrings[0]);
 
             let dumpSuccessful = false;
-            let lastError = null;
+            const failures = [];
 
             for (const connectionString of connectionStrings) {
                 const dbUrl = new URL(connectionString);
@@ -73,7 +152,10 @@ class BackupService {
                     dumpSuccessful = true;
                     break;
                 } catch (error) {
-                    lastError = error;
+                    // Collect every attempt. Keeping only the last one meant a real failure
+                    // on the first target was overwritten by the second target's error, and
+                    // the log named a cause that was not the cause.
+                    failures.push(`${host}:${port} — ${(error.stderr || error.message || '').toString().trim().split('\n')[0]}`);
                 } finally {
                     // Clean up pgpass file on Windows
                     if (isWindows && pgpassFile) {
@@ -89,7 +171,9 @@ class BackupService {
                 }
             }
 
-            if (!dumpSuccessful) throw lastError;
+            if (!dumpSuccessful) {
+                throw new Error(`pg_dump failed against every candidate:\n  ${failures.join('\n  ')}`);
+            }
 
             // Encrypt backup if encryption key is provided
             let finalPath = backupPath;

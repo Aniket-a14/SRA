@@ -43,16 +43,34 @@ jobs:
         run: pnpm install
         working-directory: .
 
-      - name: Install PostgreSQL 17 client
+      - name: Install PostgreSQL client
+        # This step was titled "Install PostgreSQL 17 client" and installed 16.14, because
+        # `apt-key add` is a no-op on Ubuntu 24.04 — the pgdg repo stayed untrusted, apt
+        # silently fell back to Ubuntu's own postgresql-client-16, and the `pg_dump
+        # --version` line printed the wrong version without failing. Once the database moved
+        # to PostgreSQL 17, every backup aborted on "server version mismatch".
+        #
+        # Fixed by trusting the repo with a signed-by keyring, and by asserting the result
+        # instead of printing it.
+        env:
+          PG_MAJOR: '17'
         run: |
-          # Add PostgreSQL APT repository
-          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+          set -euo pipefail
+          sudo install -d /usr/share/postgresql-common/pgdg
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+            | sudo gpg --dearmor -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg] \
+            https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
           sudo apt-get update
-          # Install PostgreSQL 17 client tools
-          sudo apt-get install -y postgresql-client-17
-          # Verify version
-          pg_dump --version
+          sudo apt-get install -y "postgresql-client-${PG_MAJOR}"
+
+          INSTALLED=$(pg_dump --version | grep -oP '\d+' | head -1)
+          echo "pg_dump major version: $INSTALLED"
+          if [ "$INSTALLED" -lt "$PG_MAJOR" ]; then
+            echo "::error::Expected pg_dump >= $PG_MAJOR but got $INSTALLED. pg_dump cannot dump a newer server, so the backup would abort."
+            exit 1
+          fi
 
       - name: Create backup
         working-directory: ./backend
@@ -71,6 +89,10 @@ jobs:
           name: database-backup-${{ github.run_number }}
           path: backend/backups/*.enc
           retention-days: 30
+          # Without this the step defaults to a warning: if BACKUP_ENCRYPTION_KEY were ever
+          # unset the dump would stay unencrypted, this glob would match nothing, and the
+          # run would report success having stored no backup at all.
+          if-no-files-found: error
 
       - name: Verify backup integrity
         working-directory: ./backend
@@ -96,14 +118,39 @@ jobs:
         if: failure()
         uses: actions/github-script@v8
         with:
+          # Comment on the existing alert instead of opening a new one. A weekly outage
+          # opened a fresh identical issue every Sunday — five accumulated before anyone
+          # noticed, which is noise that trains you to ignore the alert rather than read it.
+          # One issue per outage, with a comment per recurrence, keeps the signal.
           script: |
-            github.rest.issues.create({
+            const title = '🚨 Automated Backup Failed';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = `Automated database backup failed on ${new Date().toISOString()}\n\nWorkflow run: ${runUrl}`;
+
+            const existing = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: '🚨 Automated Backup Failed',
-              body: `Automated database backup failed on ${new Date().toISOString()}\n\nWorkflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-              labels: ['backup', 'critical']
-            })
+              state: 'open',
+              labels: 'backup',
+            });
+            const open = existing.data.find((issue) => issue.title === title);
+
+            if (open) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: open.number,
+                body: `Still failing.\n\n${body}`,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ['backup', 'critical'],
+              });
+            }
 
       - name: Send success notification
         if: success()
