@@ -2,7 +2,6 @@ packages:
   - 'frontend'
   - 'backend'
   - 'cli'
-  - 'model'
 allowBuilds:
   '@prisma/engines': false
   '@scarf/scarf': false

@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-SRA (Smart Requirements Analyzer) is a pnpm monorepo that turns raw stakeholder text into IEEE-830 requirements specs via a multi-agent LLM pipeline, plus a CLI that traces generated specs back to real source code. Workspaces: `frontend` (Next.js 16), `backend` (Node/Express API + worker), `cli` (`@sra-srs/sra-cli`), `model` (offline dataset/fine-tuning scripts, not part of the runtime app).
+SRA (Smart Requirements Analyzer) is a pnpm monorepo that turns raw stakeholder text into IEEE-830 requirements specs via a multi-agent LLM pipeline, plus a CLI that traces generated specs back to real source code. Workspaces: `frontend` (Next.js 16), `backend` (Node/Express API + worker), `cli` (`@sra-srs/sra-cli`).
 
 ## Commands
 
-Run from repo root unless noted. Package manager is **pnpm** (see `pnpm-workspace.yaml`: `frontend`, `backend`, `cli`, `model`).
+Run from repo root unless noted. Package manager is **pnpm** (see `pnpm-workspace.yaml`: `frontend`, `backend`, `cli`).
 
 ```bash
 pnpm install                      # install all workspaces
@@ -111,6 +111,8 @@ The behaviour worth knowing before editing:
 - `GEMINI_MODEL_NAME` — overrides the default model in `BaseAgent`.
 - `RAG_SIMILARITY_THRESHOLD` — cosine similarity cutoff for RAG retrieval (default 0.25).
 
-## Roadmap context
+## Removed: the self-hosted model track
 
-`v5.0_roadmap.md` documents an in-progress plan (not yet started beyond data prep) to replace Gemini with a self-hosted model stack (Ollama/vLLM), swap `gemini-embedding-001` for a local embedding model, and migrate Upstash QStash to BullMQ. If asked to touch `aiService.js`, `BaseAgent.js`, or `embeddingService.js` in ways that assume a "local provider" concept, check that doc first — it defines the target adapter shape.
+There was a `model/` workspace (dataset harvesting, benchmarking, QLoRA fine-tuning scripts) and a `v5.0_roadmap.md` planning a self-hosted stack — Ollama/vLLM for generation, a local embedding model, BullMQ for the queue. Both were deleted on 2026-07-25.
+
+BYOK made the premise obsolete: users supply a key for the provider they choose, so the platform hosts no model and has no reason to fine-tune one. Don't reintroduce a "local provider" concept into `aiService.js`, `BaseAgent.js` or `embeddingService.js` on the strength of that old plan — the provider adapters under `backend/src/services/providers/` are the extension point, and a new provider is a new adapter.

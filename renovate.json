@@ -12,7 +12,7 @@
       "automerge": true
     },
     {
-      "matchFileNames": ["cli/package.json", "model/package.json"],
+      "matchFileNames": ["cli/package.json"],
       "automerge": false
     }
   ],

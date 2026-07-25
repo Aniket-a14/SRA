@@ -10,10 +10,6 @@ cli:
   - changed-files:
     - any-glob-to-any-file: 'cli/**'
 
-model:
-  - changed-files:
-    - any-glob-to-any-file: 'model/**'
-
 ci:
   - changed-files:
     - any-glob-to-any-file: '.github/**'

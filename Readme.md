@@ -399,7 +399,6 @@ SRA/
 │   ├── app/                # Server-driven App Router
 │   ├── components/         # High-fidelity React components
 ├── cli/                    # SRA Toolkit npm workspace
-├── model/                  # AI Model and testing workspace
 ├── terraform/              # Infrastructure as Code (Platform config)
 ├── docs/                   # Documentation & Security policies
 └── package.json            # Root monorepo workspace definition
