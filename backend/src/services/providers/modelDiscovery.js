@@ -73,24 +73,82 @@ async function discoverClaude(apiKey) {
         .map((m) => ({ id: m.id, label: m.display_name || formatModelLabel(m.id) }));
 }
 
+const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
+
+// `supportedGenerationMethods: ['generateContent']` is necessary but nowhere near
+// sufficient — image, speech, music, robotics, computer-use and deep-research models all
+// advertise it while being useless (or outright erroring) for structured SRS text. Probed
+// live 2026-07-25: deep-research/antigravity return 400 "only supports Interactions API".
+// Gemma is excluded too: open models on this endpoint don't reliably honour system
+// instructions or JSON response mime types, which the whole pipeline depends on.
+const GEMINI_EXCLUDE = /(embedding|aqa|-tts|tts-|image|nano-banana|lyria|robotics|computer-use|deep-research|antigravity|^gemma|veo|imagen|audio|-live)/i;
+
+/**
+ * Ask the model to emit one token. This is the only reliable availability signal: the
+ * list endpoint advertises models the key's tier cannot actually call — on a free-tier key
+ * every *-pro model returns 429 "exceeded your current quota" and gemini-2.5-flash-lite
+ * returns 404 "no longer available to new users", yet all of them appear in the list.
+ *
+ * @returns {Promise<boolean>} true when the model is genuinely callable with this key
+ */
+async function isGeminiModelCallable(apiKey, id, timeoutMs = 12000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        const res = await fetch(`${GEMINI_BASE}/models/${id}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: 'hi' }] }],
+                generationConfig: { maxOutputTokens: 1, temperature: 0 }
+            }),
+            signal: controller.signal
+        });
+        return res.ok;
+    } catch {
+        // Network failure/abort is not evidence the model is unusable — keep it and let the
+        // pipeline surface a real error rather than silently hiding a working model.
+        return true;
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
 async function discoverGemini(apiKey) {
-    // The @google/generative-ai JS SDK has no list-models call, so hit the REST
-    // endpoint directly. Keep only models that support generateContent and aren't
-    // embedding models.
-    const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`;
-    const res = await fetch(url);
+    // The @google/generative-ai JS SDK has no list-models call, so hit REST directly.
+    const res = await fetch(`${GEMINI_BASE}/models?pageSize=1000&key=${encodeURIComponent(apiKey)}`);
     if (!res.ok) {
         const err = new Error(`Gemini models list failed (${res.status})`);
         err.status = res.status;
         throw err;
     }
     const json = await res.json();
-    return (json?.models || [])
-        .filter((m) => (m.supportedGenerationMethods || []).includes('generateContent') && !/embedding|aqa/i.test(m.name))
-        .map((m) => {
-            const id = String(m.name).replace(/^models\//, '');
-            return { id, label: m.displayName || formatModelLabel(id) };
-        });
+
+    const candidates = (json?.models || [])
+        .filter((m) => (m.supportedGenerationMethods || []).includes('generateContent'))
+        .map((m) => ({ id: String(m.name).replace(/^models\//, ''), displayName: m.displayName }))
+        .filter((m) => !GEMINI_EXCLUDE.test(m.id));
+
+    // Verify what this specific key can actually run. Bounded concurrency keeps the
+    // one-time key-verification latency reasonable; per-model quota means parallel probes
+    // of *different* models don't contend with each other.
+    const usable = [];
+    const CONCURRENCY = 5;
+    for (let i = 0; i < candidates.length; i += CONCURRENCY) {
+        const batch = candidates.slice(i, i + CONCURRENCY);
+        const results = await Promise.all(batch.map((m) => isGeminiModelCallable(apiKey, m.id)));
+        batch.forEach((m, idx) => { if (results[idx]) usable.push(m); });
+    }
+
+    const rejected = candidates.length - usable.length;
+    if (rejected > 0) {
+        logger.info({ msg: '[modelDiscovery] Gemini models rejected by live probe (tier/availability)', rejected, kept: usable.length });
+    }
+
+    // Fail open: if every probe rejected (e.g. the whole key is throttled right now),
+    // fall back to the capability-filtered list rather than showing an empty picker.
+    const chosen = usable.length > 0 ? usable : candidates;
+    return chosen.map((m) => ({ id: m.id, label: m.displayName || formatModelLabel(m.id) }));
 }
 
 const DISCOVERERS = {

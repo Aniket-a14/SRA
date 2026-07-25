@@ -3,6 +3,7 @@ import { constructMasterPrompt, DIAGRAM_REPAIR_PROMPT } from "../utils/prompts.j
 import { getAdapter, normalizeProvider, DEFAULT_MODELS } from "./providers/index.js";
 import { AnalysisResultSchema } from "../utils/schemas.js";
 import { sanitizePII } from "../utils/sanitizer.js";
+import { repairAndParseJSON } from "../utils/jsonRepair.js";
 import logger from "../config/logger.js";
 import { OUTPUT_TOKEN_LIMITS, TEMPERATURES } from "../utils/llmGenerationConfig.js";
 
@@ -193,15 +194,16 @@ ${text}
   // 4. Parse JSON & Validate
   try {
     let parsedSRS;
-    // Native JSON mode should return clean JSON, but we keep a safety parse
+    // Native JSON mode usually returns clean JSON; when it doesn't, fall back to the same
+    // repair pipeline BaseAgent uses. This path previously only retried a bad-escape fix,
+    // so a stray trailing comma or unquoted key ("Expected double-quoted property name")
+    // failed the whole validation gate on output jsonrepair handles trivially.
     try {
       parsedSRS = JSON.parse(output);
-    } catch (primaryError) {
-      logger.warn("[AI Service] Native JSON parse failed, attempting secondary fix for bad escapes...");
-      // Secondary Fix: Handle unescaped backslashes that aren't valid JSON escapes
-      let fixedOutput = output.replace(/\\(?!(["\\/bfnrt]|u[0-9a-fA-F]{4}))/g, "\\\\");
-      parsedSRS = JSON.parse(fixedOutput);
-      logger.info("[AI Service] Secondary parse SUCCESS after manual escaping.");
+    } catch {
+      logger.warn("[AI Service] Native JSON parse failed, running the shared repair pipeline...");
+      parsedSRS = repairAndParseJSON(output, { label: 'AI Service' });
+      logger.info("[AI Service] Recovered malformed JSON via repair pipeline.");
     }
 
     // 5. Type-Safe Validation (Zod)

@@ -142,5 +142,75 @@ describe('modelDiscovery', () => {
             expect(thrown).toBeInstanceOf(ModelDiscoveryError);
             expect(thrown.kind).toBe('auth');
         });
+
+        // ListModels advertises plenty of models that advertise generateContent but cannot
+        // produce structured SRS text (speech, image, music, robotics, computer-use,
+        // deep-research) — and Gemma, which does not reliably honour system instructions
+        // or JSON response types on this endpoint.
+        it('drops non-text-generation model families', async () => {
+            const listed = [
+                'gemini-3.5-flash', 'gemini-2.5-flash-preview-tts', 'gemini-2.5-flash-image',
+                'nano-banana-pro-preview', 'lyria-3-pro-preview', 'gemini-robotics-er-1.6-preview',
+                'gemini-2.5-computer-use-preview-10-2025', 'deep-research-pro-preview-12-2025',
+                'antigravity-preview-05-2026', 'gemma-4-31b-it', 'gemini-embedding-2'
+            ];
+            global.fetch = jest.fn().mockImplementation((url) =>
+                String(url).includes(':generateContent')
+                    ? Promise.resolve({ ok: true, json: async () => ({}) })
+                    : Promise.resolve({
+                        ok: true,
+                        json: async () => ({
+                            models: listed.map(id => ({
+                                name: `models/${id}`,
+                                supportedGenerationMethods: id.includes('embedding') ? ['embedContent'] : ['generateContent']
+                            }))
+                        })
+                    })
+            );
+
+            const { models } = await discoverModels('GEMINI', 'AIza-valid');
+            expect(models.map(m => m.id)).toEqual(['gemini-3.5-flash']);
+        });
+
+        // The list endpoint shows models the key's tier cannot call: on a free-tier key
+        // every *-pro returns 429 and retired ids return 404, yet all are listed.
+        it('drops models the key cannot actually call', async () => {
+            global.fetch = jest.fn().mockImplementation((url) => {
+                const u = String(url);
+                if (u.includes(':generateContent')) {
+                    const callable = u.includes('gemini-3.5-flash');
+                    return Promise.resolve({ ok: callable, status: callable ? 200 : 429, json: async () => ({}) });
+                }
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => ({
+                        models: [
+                            { name: 'models/gemini-3.5-flash', supportedGenerationMethods: ['generateContent'] },
+                            { name: 'models/gemini-3.1-pro-preview', supportedGenerationMethods: ['generateContent'] }
+                        ]
+                    })
+                });
+            });
+
+            const { models } = await discoverModels('GEMINI', 'AIza-freetier');
+            expect(models.map(m => m.id)).toEqual(['gemini-3.5-flash']);
+        });
+
+        it('falls back to the capability-filtered list when every probe fails', async () => {
+            // A wholly throttled key must not produce an empty picker.
+            global.fetch = jest.fn().mockImplementation((url) =>
+                String(url).includes(':generateContent')
+                    ? Promise.resolve({ ok: false, status: 429, json: async () => ({}) })
+                    : Promise.resolve({
+                        ok: true,
+                        json: async () => ({
+                            models: [{ name: 'models/gemini-3.5-flash', supportedGenerationMethods: ['generateContent'] }]
+                        })
+                    })
+            );
+
+            const { models } = await discoverModels('GEMINI', 'AIza-throttled');
+            expect(models.map(m => m.id)).toEqual(['gemini-3.5-flash']);
+        });
     });
 });

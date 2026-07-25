@@ -1,5 +1,5 @@
-import { jsonrepair } from 'jsonrepair';
 import logger from '../config/logger.js';
+import { repairAndParseJSON } from '../utils/jsonRepair.js';
 import { OUTPUT_TOKEN_LIMITS } from '../utils/llmGenerationConfig.js';
 import { getAdapter, DEFAULT_MODELS, normalizeProvider } from '../services/providers/index.js';
 
@@ -194,73 +194,15 @@ export class BaseAgent {
         }
     }
 
+    /**
+     * Recover JSON from model output. The pipeline itself lives in utils/jsonRepair.js so
+     * aiService.analyzeText runs the exact same stages — they used to diverge, and output
+     * this method recovered from would hard-fail there.
+     */
     parseJSON(text) {
-        let cleanText = text;
         try {
-            // 1. Remove markdown code blocks if present
-            cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-
-            // 2. Robust Extraction: Find the first '{' and the last '}'
-            const firstBrace = cleanText.indexOf('{');
-            const lastBrace = cleanText.lastIndexOf('}');
-
-            if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-                cleanText = cleanText.substring(firstBrace, lastBrace + 1);
-            }
-
-            // 3. Pre-fix common LLM JSON hallucinations before repair
-            // a) Remove accidentally doubled close braces or brackets followed by a comma
-            cleanText = cleanText.replace(/\}\s*\}\s*,\s*\{/g, '}, {');
-            cleanText = cleanText.replace(/\]\s*\]\s*,\s*\[/g, '], [');
-            // b) Remove trailing commas before a closing brace/bracket
-            cleanText = cleanText.replace(/,\s*\}/g, '}').replace(/,\s*\]/g, ']');
-            // c) Fix missing colons in key-value pairs (very common in large Flash outputs)
-            // Pattern: "key" "value" -> "key": "value"
-            cleanText = cleanText.replace(/"([^"]+)"\s+"([^"]*)"/g, '"$1": "$2"');
-            cleanText = cleanText.replace(/"([^"]+)"\s+([0-9.]+)/g, '"$1": $2');
-            cleanText = cleanText.replace(/"([^"]+)"\s+(true|false|null)/g, '"$1": $2');
-
-            // 4. Handle Truncation: If the JSON is obviously truncated (unbalanced braces)
-            let openBraces = (cleanText.match(/\{/g) || []).length;
-            let closeBraces = (cleanText.match(/\}/g) || []).length;
-            if (openBraces > closeBraces) {
-                const truncationSnippet = cleanText.substring(cleanText.length - 100);
-                logger.warn({
-                    msg: `[${this.name}] Detected truncated JSON. Attempting to auto-balance.`,
-                    open: openBraces,
-                    close: closeBraces,
-                    missing: openBraces - closeBraces,
-                    tailContent: `...${truncationSnippet}`
-                });
-                cleanText += '}'.repeat(openBraces - closeBraces);
-            }
-
-            // 5. Use professional jsonrepair library for fault-tolerant parsing
-            try {
-                const repaired = jsonrepair(cleanText);
-                return JSON.parse(repaired);
-            } catch (repairError) {
-                // If repair fails, try one last time with primitive JSON.parse
-                return JSON.parse(cleanText);
-            }
+            return repairAndParseJSON(text, { label: this.name });
         } catch (error) {
-            logger.error({ msg: `[${this.name}] JSON Parsing Failed`, error: error.message });
-
-            // Helpful debugging: show where it failed if possible
-            if (error.message.includes('at position')) {
-                const posStr = error.message.match(/at position (\d+)/);
-                if (posStr) {
-                    const pos = parseInt(posStr[1]);
-                    const start = Math.max(0, pos - 50);
-                    const end = Math.min(cleanText.length, pos + 50);
-                    logger.debug({
-                        msg: 'JSON Parse Context',
-                        position: pos,
-                        contextSnippet: '...' + cleanText.substring(start, pos) + ' >>> ' + (cleanText[pos] || '') + ' <<< ' + cleanText.substring(pos + 1, end) + '...'
-                    });
-                }
-            }
-
             throw new Error(`${this.name} failed to parse JSON output. ${error.message}`);
         }
     }
