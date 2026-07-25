@@ -3,7 +3,7 @@ import { asAiSettings } from './providers/providerKeyService.js';
 import { layoutAllDFD } from './dfdLayoutService.js';
 import { FEATURE_EXPANSION_PROMPT, DFD_STRUCT_GEN_PROMPT } from '../utils/prompts.js';
 import { stringifyForPrompt } from '../utils/promptCompaction.js';
-import { sanitizePromptLabel, fillTemplate } from '../utils/promptSanitizer.js';
+import { fillTemplate } from '../utils/promptSanitizer.js';
 import { OUTPUT_TOKEN_LIMITS, TEMPERATURES } from '../utils/llmGenerationConfig.js';
 
 /**
@@ -24,6 +24,10 @@ export async function expandFeatureContent(name, prompt, settings = {}, provider
 
     const result = await analyzeText(`Feature Name: ${name}\nDescription/Prompt: ${prompt}`, {
         ...settings,
+        // providerConfig was accepted and then never applied, so this endpoint ran on
+        // whatever the request happened to carry rather than on the user's own stored key —
+        // a BYOK bypass. It is spread after `settings` so the resolved credential wins.
+        ...asAiSettings(providerConfig),
         systemPrompt,
         temperature: TEMPERATURES.developer,
         maxOutputTokens: OUTPUT_TOKEN_LIMITS.mediumJson,
@@ -39,12 +43,13 @@ export async function expandFeatureContent(name, prompt, settings = {}, provider
  * with `result.srs` laid out (dagre positions) when generation succeeded.
  */
 export async function generateDfdStructure(projectName, description, srsContent, settings = {}, providerConfig) {
-    // projectName reaches the system role, so it is reduced to a single safe line first —
-    // `fillTemplate` also stops `$&`/`$'` in the name from splicing the template into itself.
+    // The project name is user-supplied, and it already travels in the user turn below. Keeping
+    // it out of the system prompt entirely is stronger than sanitising it on the way in: there
+    // is no longer a path from request input to the system role to get wrong.
     const systemPrompt = fillTemplate(
         DFD_STRUCT_GEN_PROMPT,
         '{{projectName}}',
-        sanitizePromptLabel(projectName) || 'Project'
+        'the project named in the user message'
     );
 
     const result = await analyzeText(

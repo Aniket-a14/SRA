@@ -1,6 +1,31 @@
 import { z } from 'zod';
 import { listAllSectionIds } from '../formats/index.js';
 
+/**
+ * The AI settings a client is allowed to choose, and nothing else.
+ *
+ * `settings` used to be `.passthrough()` (or `z.record(z.any())`), so any key a caller invented
+ * travelled all the way into `analyzeText`. Two of those keys steer the *system* prompt —
+ * `systemPrompt` replaces it outright and `systemPromptExtension` is interpolated into it — and
+ * `apiKey` would let a request nominate the credential the call is billed to. None of the three
+ * are the client's to set: the key is resolved server-side from the user's stored provider keys
+ * (`asAiSettings`), and the prompts are the platform's.
+ *
+ * Zod strips unknown keys by default, and `validate()` writes the parsed body back, so leaving
+ * `.passthrough()` off is what actually enforces this. Every key here is one both the web app
+ * and the CLI already send; `promptVersion` is the documented pin for reproducing an older
+ * prompt revision.
+ */
+export const clientAiSettingsSchema = z.object({
+    profile: z.string().optional(),
+    depth: z.number().int().min(1).max(5).optional(),
+    strictness: z.number().int().min(1).max(5).optional(),
+    modelProvider: z.string().optional(),
+    modelName: z.string().optional(),
+    promptVersion: z.string().max(20).optional(),
+    format: z.enum(['ieee830', 'iso29148', 'volere', 'agile-prd']).optional()
+});
+
 export const analyzeSchema = z.object({
     body: z.object({
         text: z.string()
@@ -9,14 +34,7 @@ export const analyzeSchema = z.object({
         projectId: z.union([z.string().uuid(), z.literal(""), z.null()]).optional(),
         parentId: z.string().uuid().optional(),
         rootId: z.string().uuid().optional(),
-        settings: z.object({
-            profile: z.string().optional(),
-            depth: z.number().int().min(1).max(5).optional(),
-            strictness: z.number().int().min(1).max(5).optional(),
-            modelProvider: z.string().optional(),
-            modelName: z.string().optional(),
-            format: z.enum(['ieee830', 'iso29148', 'volere', 'agile-prd']).optional()
-        }).passthrough().optional(),
+        settings: clientAiSettingsSchema.optional(),
         srsData: z.object({
             details: z.object({
                 projectName: z.object({ content: z.string().optional() }).optional(),
@@ -158,10 +176,7 @@ export const expandFeatureSchema = z.object({
     body: z.object({
         name: z.string().min(1, "Feature name is required").max(200),
         prompt: z.string().min(1, "Prompt is required").max(5000),
-        settings: z.object({
-            modelProvider: z.string().optional(),
-            modelName: z.string().optional()
-        }).passthrough().optional()
+        settings: clientAiSettingsSchema.optional()
     })
 });
 
@@ -169,7 +184,7 @@ export const repairDiagramSchema = z.object({
     body: z.object({
         code: z.string().min(1, "Diagram code is required").max(20000),
         error: z.string().min(1, "Error message is required").max(2000),
-        settings: z.record(z.any()).optional(),
+        settings: clientAiSettingsSchema.optional(),
         syntaxExplanation: z.string().max(5000).optional()
     })
 });
@@ -179,7 +194,7 @@ export const generateDFDSchema = z.object({
         projectName: z.string().min(1, "Project name is required").max(200),
         description: z.string().min(1, "Description is required").max(10000),
         srsContent: z.any().optional(),
-        settings: z.record(z.any()).optional()
+        settings: clientAiSettingsSchema.optional()
     })
 });
 
