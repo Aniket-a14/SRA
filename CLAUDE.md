@@ -98,6 +98,8 @@ MDX plumbing: `@next/mdx` in `next.config.ts` with `remark-gfm` (tables), `remar
 
 `frontend/lib/changelog.test.ts` reads the frontmatter with its own small parser rather than importing the MDX — vitest has no MDX transform configured, so importing `content/changelog` from a test breaks the suite. Keep pure logic in `lib/`, not beside the registry.
 
+Frontend tests run under vitest in a **jsdom** environment (`pnpm --filter frontend test`), covering both pure `lib/` logic and component render tests (`components/**/*.test.tsx`) via `@testing-library/react`. Test through a component's exported surface rather than exporting internals to reach them. Don't configure a JSX transform: vitest 4 uses oxc, which handles the automatic runtime, and an `esbuild.jsx` block is silently ignored with a warning. `tests/setup-dom.ts` stubs `matchMedia` and `ResizeObserver`, which jsdom does not implement and several components read on mount.
+
 ### CLI (`cli/`)
 
 Commands (`cli/src/commands`): `init` (link a folder to an analysis), `analyze` (start a run from a file/stdin), `reverse` (generate a spec *from* the local codebase), `sync` (pull the document → `sra.spec.json`), `check` (trace requirements to files), `review` (human approve/reject), `push` (publish traceability), `status`, `list`, `projects`, `formats`, `doctor`.

@@ -53,6 +53,12 @@ jobs:
       run: npx tsc --noEmit
       working-directory: ./frontend
 
+    # This job has been called build-and-test since it was written, but never ran the tests —
+    # lib/ unit tests and the component render tests were green locally and unenforced here.
+    - name: Run Tests
+      run: pnpm --filter frontend run test
+      working-directory: ./frontend
+
     - name: Security Scan
       # --prod scopes this to runtime dependencies. pnpm audits the whole workspace lockfile
       # even from here, so this sees the backend's graph too. No allowlist: the
