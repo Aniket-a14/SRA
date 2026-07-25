@@ -49,9 +49,24 @@ describe('BYOK: platform key funds embeddings only', () => {
 
 describe('BYOK: graph extraction', () => {
     const originalMock = process.env.MOCK_AI;
+    const originalKey = process.env.GEMINI_API_KEY;
 
-    beforeEach(() => { process.env.MOCK_AI = 'false'; });
-    afterEach(() => { process.env.MOCK_AI = originalMock; });
+    beforeEach(() => {
+        // Turning MOCK_AI off is the point of this test — it exercises the real BYOK path.
+        // But that also re-arms config/gemini.js's module-load guard, which throws when no
+        // GEMINI_API_KEY is set outside mock mode. A placeholder satisfies the guard so the
+        // import succeeds; the test asserts no call is made, so the value is never used.
+        // Without it the test passes only on a machine that happens to have a local .env,
+        // and fails in CI.
+        process.env.MOCK_AI = 'false';
+        if (!process.env.GEMINI_API_KEY) process.env.GEMINI_API_KEY = 'test-placeholder-not-a-real-key';
+    });
+
+    afterEach(() => {
+        process.env.MOCK_AI = originalMock;
+        if (originalKey === undefined) delete process.env.GEMINI_API_KEY;
+        else process.env.GEMINI_API_KEY = originalKey;
+    });
 
     it('skips extraction rather than falling back to the platform key', async () => {
         jest.resetModules();
