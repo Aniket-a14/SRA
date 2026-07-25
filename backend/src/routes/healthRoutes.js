@@ -13,10 +13,11 @@ router.get('/', async (req, res) => {
         services: {}
     };
 
-    // Quick env check (non-blocking)
-    health.services.ai_provider = (process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY)
-        ? 'CONFIGURED'
-        : 'MISSING';
+    // Quick env check (non-blocking). Scoped to embeddings on purpose: GEMINI_API_KEY is
+    // the only credential the platform holds, and generation runs on per-user BYOK keys
+    // this endpoint can't meaningfully check. The old name implied the service could
+    // generate as long as some key existed, which stopped being true under BYOK.
+    health.services.embeddings = process.env.GEMINI_API_KEY ? 'CONFIGURED' : 'MISSING';
 
     // Attempt DB check with timeout (don't block response)
     const dbCheckPromise = Promise.race([

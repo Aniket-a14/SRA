@@ -23,7 +23,6 @@ services:
     environment:
       - NODE_ENV=development
       - AI_NAME=SRA
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
     deploy:
       replicas: 2 # Simulate Load Balancing with 2 instances
       resources:

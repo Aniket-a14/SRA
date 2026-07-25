@@ -282,9 +282,10 @@ Ensure the following variables are defined in your infrastructure (see `.env.exa
 | **Database** | `DATABASE_URL` | Yes | Postgres connection string with transaction pooling (typically port `6543`). |
 | **Database** | `DIRECT_URL` | Yes | Direct connection string bypassing transaction pooler (typically port `5432`) for Prisma migrations and heavy-duty database backup/restore operations. |
 | **Database** | `REDIS_URL` | Optional | Redis connection string for rate limiting/caching. |
-| **AI (Gemini)** | `GEMINI_API_KEY` | Yes | Platform-wide Gemini key — the default provider for every user, and the fixed embedding provider regardless of which generation provider a user picks. |
+| **AI (Gemini)** | `GEMINI_API_KEY` | Yes | The only provider credential the platform holds, and it funds **embeddings only**. Embeddings are fixed to Gemini regardless of which generation provider a user picks, because the pgvector columns are one shared embedding space. |
 | **AI (Gemini)** | `RAG_SIMILARITY_THRESHOLD` | Optional | Cosine similarity threshold for RAG retrieval matching, defaults to `0.25`. |
-| **AI (BYOK)** | `OPENAI_API_KEY`, `ANTHROPIC_API_KEY` | Optional | **Not** read as platform-wide fallbacks — only used to set the `*_MODEL_NAME` default for local dev. End users bring their own OpenAI/Claude/Grok key via **Settings → AI Providers**, stored encrypted (AES-256-GCM) per user, and choose the model per analysis. |
+| **AI (models)** | `GEMINI_MODEL_NAME`, `GEMINI_UTILITY_MODEL_NAME`, `GEMINI_EMBEDDING_MODEL`, `GEMINI_EMBEDDING_DIMENSIONS`, `OPENAI_MODEL_NAME`, `CLAUDE_MODEL_NAME`, `GROK_MODEL_NAME` | Yes (embeddings pair), otherwise default fallbacks | No model id is hardcoded in `src/` — every one is read from the environment via `backend/src/config/models.js`, so a retired model is an env edit plus a restart. `GEMINI_EMBEDDING_DIMENSIONS` must equal the `vector(N)` width in `schema.prisma`. |
+| **AI (BYOK)** | *(none)* | — | There are deliberately **no** platform OpenAI/Anthropic/xAI keys. Every generation-side call — generation, validation gate, auto-fix, alignment, refinement, feature expansion, diagram repair, graph extraction, RAG scoring — runs on the requesting user's own key, added via **Settings → AI Providers** and stored encrypted (AES-256-GCM) per user. |
 | **Async** | `QSTASH_TOKEN` | Yes | Bearer token for Upstash QStash job publishing. |
 | **Async** | `QSTASH_SIGNING_KEYS` | Yes | Signing keys for verifying QStash webhooks. |
 | **Auth** | `JWT_SECRET` | Yes | Secret key for signing authorization tokens. |

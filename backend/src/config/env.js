@@ -30,9 +30,10 @@ const envSchema = z.object({
     DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
     DIRECT_URL: z.string().optional(),
 
-    // AI providers (Gemini is the platform default/fallback; others are BYOK-only)
-    GEMINI_API_KEY: z.string().min(1, 'GEMINI_API_KEY is required'),
-    OPENAI_API_KEY: z.string().optional(),
+    // The one and only platform-held provider credential, and it funds embeddings alone.
+    // Every generation-side call runs on the requesting user's own key (see
+    // providerKeyService). There are deliberately no platform OpenAI/Anthropic/xAI keys.
+    GEMINI_API_KEY: z.string().min(1, 'GEMINI_API_KEY is required (embeddings)'),
 
     // Auth / crypto — all master secrets that MUST be present and non-trivial
     JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters'),
