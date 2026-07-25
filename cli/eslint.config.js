@@ -18,4 +18,14 @@ export default [
             "no-undef": "error"
         },
     },
+    {
+        // Jest injects describe/test/expect; without this they read as undefined globals.
+        files: ["tests/**/*.js"],
+        languageOptions: {
+            globals: {
+                ...globals.node,
+                ...globals.jest,
+            },
+        },
+    },
 ];

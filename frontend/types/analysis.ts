@@ -1,4 +1,5 @@
 import type { DFDInput } from "@/components/DFDViewer";
+import type { CliTraceability } from "@/components/analysis/cli-traceability-panel";
 
 export interface RevisionHistoryItem {
     version: string;
@@ -181,6 +182,8 @@ export interface Analysis extends AnalysisResult {
         reusedFrom?: string
         ragSources?: string[]
         promptSettings?: Record<string, unknown> | null
+        /** Implementation traceability written by `sra push`; see CliTraceabilityPanel. */
+        cliTraceability?: CliTraceability
     }
     reusedFrom?: string
     promptSettings?: Record<string, unknown> | null

@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### ⌨️ CLI Overhaul & Bi-Directional Platform Sync
+- **Implemented** `sra reverse` for real (it previously exited 1 as a stub): scans the working tree via `git ls-files` so `.gitignore` is honoured, reduces it to a bounded structural digest — dependency manifests, module layout, HTTP interface, data entities, exported symbols — runs it through the same multi-agent pipeline the web app uses, then proposes `verification_files` for each generated requirement group by matching its terms back against the files scanned. Proposed links are marked `proposed`, never `verified`, until `sra check` confirms them. `--dry-run` writes the digest locally without calling the platform.
+- **Added** `sra analyze` (start a run from a file or stdin), `sra status [--watch]`, `sra list`, `sra projects`, and `sra formats`. `analyze`/`reverse`/`status --watch` consume the platform's SSE progress channel — the same one the web workspace uses — and fall back to polling when live progress is unavailable.
+- **Fixed** a spec-corrupting round-trip: `sync` extracted requirements format-agnostically but `push` wrote them all back as IEEE's `systemFeatures`. On a Volere, ISO 29148 or Agile PRD document that injected a section the format does not define, flattened structured user stories into prose, and rendered nowhere. `sync` now records the source section of every group (read from the new format endpoint) and `push` writes content back only into feature-shaped sections.
+- **Added** `metadata.cliTraceability` — a format-independent traceability record — plus the `CliTraceabilityPanel` that renders it in the web workspace for **every** format, not just IEEE.
+- **Upgraded** `sra check` with `--deep` (confirms linked files still carry the requirement's own identifiers, catching links that rotted as code moved), `--suggest` (proposes files for unlinked groups) and `--strict` (CI gate).
+- **Upgraded** `sra doctor` to report BYOK provider keys, backend service health, format-registry reachability and git availability, and to exit non-zero on real faults.
+- **Upgraded** `sra init` to use the real Projects API instead of listing analyses as "projects", with a `--analysis` flag for non-interactive use.
+- **Added** `--json` to every read-only command, with stdout carrying the payload and nothing else (banner suppressed, dotenv quieted, human output routed away).
+- **Added** the CLI's first test suite (51 tests) and enabled the CLI CI test step, which had been commented out for want of tests.
+- **Renamed** `sra.config.json`'s `projectId` to `analysisId` — it always held an analysis id, from before the platform had Projects. Legacy files keep working. An API key supplied through the environment is no longer written to disk.
+
+### 🔌 Platform
+- **Added** `GET /api/formats` and `GET /api/formats/:id`, exposing the format registry so clients stop duplicating it.
+- **Fixed** the `updateAnalysis` write whitelist, which was hand-listed and therefore only ever covered IEEE 830's sections — edits to any other format's sections were silently stripped by validation. It is now derived from the format registry.
+- **Fixed** `inPlace` and `skipAlignment` being merged into the stored `resultJson`. These steer how an update is applied, not what the document contains; every in-place save left two stray control flags in the SRS, which then persisted through every later read and export.
+
+### 🔧 CI
+- **Fixed** Backend CI and Frontend CI, both red on their Security Scan step. Root cause: `nodemon` — a dev-only file watcher — sat in the backend's production `dependencies`, dragging `minimatch` → `brace-expansion` into the graph that `pnpm audit --prod` scans. Moving it to `devDependencies` (nothing in production invokes it: both the start script and the Dockerfile run `node src/server.js` directly) removes both high-severity advisories, so the named `GHSA-3jxr-9vmj-r5cp` allowlist could be dropped from both workflows.
+- **Fixed** a latent second failure in Backend CI: `pnpm --filter backend test -- --coverage` forwarded a literal `--` to Jest, which read it as a test path filter, matched nothing and exited 1. Replaced with a dedicated `test:coverage` script. The step had never run, because Security Scan failed first.
+
 ## [4.1.0] - 2026-07-23
 
 ### 🔑 Multi-Provider BYOK Architecture

@@ -14,20 +14,34 @@ class ConfigManager {
         try {
             const data = await fs.readFile(this.configPath, 'utf-8');
             localConfig = JSON.parse(data);
-        } catch (e) {
+        } catch {
             // Local config might not exist yet
         }
 
         this.memoryConfig = {
             ...localConfig,
+            // `projectId` used to hold an *analysis* id — the platform had no Projects when
+            // this key was named. It does now, and the two are different objects, so the
+            // field is `analysisId`. Old config files keep working: their `projectId` is
+            // read as the analysis link, and the next `save()` writes the new name.
+            analysisId: localConfig.analysisId || localConfig.projectId || null,
             token: process.env.SRA_TOKEN || process.env.SRA_API_KEY || localConfig.token
         };
         return this.memoryConfig;
     }
 
     async save(config) {
+        await this.load();
         this.memoryConfig = { ...this.memoryConfig, ...config };
-        await fs.writeFile(this.configPath, JSON.stringify(this.memoryConfig, null, 2));
+
+        // The token is resolved from the environment on every load and only persisted if
+        // it was already in the file — writing an env-supplied token to disk would
+        // silently turn a process-scoped secret into a checked-out one.
+        const { token, ...persistable } = this.memoryConfig;
+        const fromEnv = token && (token === process.env.SRA_TOKEN || token === process.env.SRA_API_KEY);
+        const onDisk = fromEnv ? persistable : { ...persistable, token };
+
+        await fs.writeFile(this.configPath, JSON.stringify(onDisk, null, 2));
         await this._ensureGitignored();
     }
 
@@ -65,6 +79,12 @@ class ConfigManager {
         } catch {
             return false;
         }
+    }
+
+    /** Drop the in-memory cache so the next load() re-reads disk (used by tests). */
+    reset() {
+        this.memoryConfig = null;
+        this.configPath = path.join(process.cwd(), 'sra.config.json');
     }
 }
 

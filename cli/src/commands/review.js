@@ -1,113 +1,144 @@
-import fs from 'fs/promises';
 import inquirer from 'inquirer';
 import chalk from 'chalk';
-import { logger } from '../utils/logger.js';
-
-import { execSync } from 'child_process';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
 import os from 'os';
+import { logger } from '../utils/logger.js';
+import { readSpec, writeSpec, SPEC_FILE, normalizeRequirement, reqToString } from '../lib/spec.js';
+import { push } from './push.js';
 
+const execFileAsync = promisify(execFile);
+
+/** Who is signing off. Git identity first — that is what a reviewer is known by in a repo. */
 async function getUserIdentity() {
     if (process.env.SRA_USER) return process.env.SRA_USER;
 
     try {
-        const gitName = execSync('git config user.name', { encoding: 'utf8' }).trim();
-        if (gitName) return gitName;
-    } catch (e) { /* ignore */ }
+        const { stdout } = await execFileAsync('git', ['config', 'user.name']);
+        const name = stdout.trim();
+        if (name) return name;
+    } catch {
+        // Not a repo, or git unconfigured.
+    }
 
     try {
-        const osUser = os.userInfo().username;
-        if (osUser) return osUser;
-    } catch (e) { /* ignore */ }
-
-    return 'CLI_USER';
+        return os.userInfo().username || 'CLI_USER';
+    } catch {
+        return 'CLI_USER';
+    }
 }
 
-export async function review() {
+/**
+ * Walk the AI-generated requirements and record a human decision on each.
+ *
+ * Approvals are the one piece of spec state the platform cannot produce for itself, which
+ * is why `--push` exists: leaving them on disk means the web app keeps showing every
+ * requirement as unreviewed.
+ *
+ * @param {{ all?: boolean, push?: boolean }} [options]
+ */
+export async function review(options = {}) {
+    if (!process.stdin.isTTY) {
+        logger.error('`sra review` is interactive and needs a terminal.');
+        process.exitCode = 1;
+        return;
+    }
+
     const user = await getUserIdentity();
-    logger.info(`Starting Interactive Review Mode as "${chalk.bold(user)}"...`);
+    logger.info(`Interactive review as ${chalk.bold(user)}`);
 
+    let spec;
     try {
-        const specPath = 'sra.spec.json';
-        const data = await fs.readFile(specPath, 'utf-8');
-        const spec = JSON.parse(data);
-
-        let changed = false;
-        let pendingCount = 0;
-
-        if (spec.features) {
-            for (const feature of spec.features) {
-                if (!feature.functionalRequirements) continue;
-
-                for (let i = 0; i < feature.functionalRequirements.length; i++) {
-                    let req = feature.functionalRequirements[i];
-
-                    if (typeof req === 'string') {
-                        const idMatch = req.match(/^([A-Z]+-[A-Z]+-\d+(\.\d+)?)/);
-                        const id = idMatch ? idMatch[1] : `REQ-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-                        req = {
-                            id: id,
-                            description: req,
-                            metadata: { verification_status: 'DRAFT_AI' }
-                        };
-                        feature.functionalRequirements[i] = req;
-                        changed = true;
-                    }
-                    const status = req.metadata?.verification_status;
-                    if (!status || status === 'DRAFT_AI') {
-                        pendingCount++;
-
-                        console.log('\n------------------------------------------------');
-                        console.log(chalk.cyan(`Feature: ${feature.name}`));
-                        console.log(chalk.yellow(`Requirement: ${req.description}`));
-                        console.log(chalk.gray(`ID: ${req.id}`));
-
-                        const answer = await inquirer.prompt([
-                            {
-                                type: 'list',
-                                name: 'action',
-                                message: 'Review this requirement:',
-                                choices: [
-                                    { name: 'Approve (Mark as Human Verified)', value: 'approve' },
-                                    { name: 'Reject (Remove from Spec)', value: 'reject' },
-                                    { name: 'Skip', value: 'skip' }
-                                ]
-                            }
-                        ]);
-
-                        if (answer.action === 'approve') {
-                            req.metadata = req.metadata || {};
-                            req.metadata.verification_status = 'APPROVED_HUMAN';
-                            req.metadata.verifiedAt = new Date().toISOString();
-                            req.metadata.verifiedBy = user;
-                            logger.success('Approved.');
-                            changed = true;
-                        } else if (answer.action === 'reject') {
-                            req.metadata = req.metadata || {};
-                            req.metadata.verification_status = 'REJECTED_HUMAN';
-                            logger.warn('Rejected.');
-                            changed = true;
-                        }
-                    }
-                }
-            }
-        }
-
-        if (changed) {
-            await fs.writeFile(specPath, JSON.stringify(spec, null, 2));
-            logger.success('Spec updated with review results.');
-        } else {
-            if (pendingCount === 0) {
-                logger.info('No pending requirements to review. Great job!');
-            } else {
-                logger.info('Review session ended without changes.');
-            }
-        }
-
+        spec = await readSpec();
     } catch (error) {
-        if (error.code === 'ENOENT') {
-            logger.error('sra.spec.json not found. Run "sra sync" first.');
-        } else {
-            logger.error(`Review failed: ${error.message}`);
+        logger.error(
+            error.code === 'ENOENT'
+                ? `${SPEC_FILE} not found. Run "sra sync" first.`
+                : `Could not read ${SPEC_FILE}`,
+            error.code === 'ENOENT' ? null : error.message
+        );
+        process.exitCode = 1;
+        return;
+    }
+
+    let changed = false;
+    let reviewed = 0;
+    let pending = 0;
+    let quit = false;
+
+    for (const feature of spec.features || []) {
+        if (quit) break;
+        if (!Array.isArray(feature.functionalRequirements)) continue;
+
+        for (let i = 0; i < feature.functionalRequirements.length; i++) {
+            // Bare strings carry nowhere to record a decision; promoting them to the object
+            // form is itself a spec change, so it counts as a modification.
+            const original = feature.functionalRequirements[i];
+            const req = normalizeRequirement(original);
+            if (typeof original === 'string') {
+                feature.functionalRequirements[i] = req;
+                changed = true;
+            }
+
+            const status = req.metadata?.verification_status;
+            const needsReview = options.all || !status || status === 'DRAFT_AI';
+            if (!needsReview) continue;
+
+            pending++;
+
+            logger.raw('');
+            logger.raw(chalk.gray('─'.repeat(60)));
+            logger.raw(chalk.cyan(`Feature: ${feature.name}`));
+            logger.raw(chalk.gray(`ID: ${req.id}${status ? `  ·  current: ${status}` : ''}`));
+            logger.raw(chalk.yellow(reqToString(req)));
+
+            const { action } = await inquirer.prompt([{
+                type: 'list',
+                name: 'action',
+                message: 'Decision:',
+                choices: [
+                    { name: 'Approve — mark as human verified', value: 'approve' },
+                    { name: 'Reject — flag as not accepted', value: 'reject' },
+                    { name: 'Skip', value: 'skip' },
+                    new inquirer.Separator(),
+                    { name: 'Save and quit', value: 'quit' }
+                ]
+            }]);
+
+            if (action === 'quit') {
+                quit = true;
+                break;
+            }
+            if (action === 'skip') continue;
+
+            req.metadata = {
+                ...req.metadata,
+                verification_status: action === 'approve' ? 'APPROVED_HUMAN' : 'REJECTED_HUMAN',
+                verifiedAt: new Date().toISOString(),
+                verifiedBy: user
+            };
+            feature.functionalRequirements[i] = req;
+            changed = true;
+            reviewed++;
+
+            if (action === 'approve') logger.success('Approved.');
+            else logger.warn('Rejected.');
         }
+    }
+
+    logger.raw('');
+
+    if (!changed) {
+        logger.info(pending === 0 ? 'Nothing left to review.' : 'Review ended without changes.');
+        return;
+    }
+
+    await writeSpec(spec);
+    logger.success(`Recorded ${reviewed} decision(s) in ${SPEC_FILE}.`);
+
+    if (options.push) {
+        await push();
+    } else {
+        logger.info(`Run ${chalk.bold('sra push')} to publish these decisions to the platform.`);
     }
 }

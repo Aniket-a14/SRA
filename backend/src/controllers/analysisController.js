@@ -262,7 +262,11 @@ export const getAnalysis = async (req, res, next) => {
 export const updateAnalysis = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { metadata, ...resultUpdates } = req.body;
+        // `inPlace` and `skipAlignment` steer *how* this update is applied; they are not
+        // part of the document. Left in the rest object they were merged straight into
+        // resultJson, so every in-place save (the web editor's, and `sra push`'s) wrote two
+        // stray control flags into the stored SRS and they persisted from then on.
+        const { metadata, inPlace, skipAlignment, ...resultUpdates } = req.body;
 
         // 1. Fetch existing analysis
         const currentAnalysis = await getAnalysisById(req.user.userId, id);
@@ -283,9 +287,9 @@ export const updateAnalysis = async (req, res, next) => {
         // lifecycle column, which stays 'DRAFT' for the whole pre-pipeline flow) —
         // only the literal pre-validation DRAFT sub-state should stay in-place-editable.
         const isDraft = newMetadata.status === 'DRAFT';
-        const inPlace = req.body.inPlace || isDraft;
+        const applyInPlace = inPlace || isDraft;
 
-        if (inPlace) {
+        if (applyInPlace) {
             // Update in place (Layer 1 drafting or explicit request)
             const updated = await prisma.analysis.update({
                 where: { id },
@@ -326,7 +330,7 @@ export const updateAnalysis = async (req, res, next) => {
             purpose: currentAnalysis.resultJson?.introduction?.purpose || "Unknown"
         };
 
-        if (req.body.skipAlignment) {
+        if (skipAlignment) {
             newResultJson.layer3Status = currentAnalysis.resultJson?.layer3Status || 'ALIGNED';
         } else {
             try {

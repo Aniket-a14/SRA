@@ -55,5 +55,6 @@ jobs:
           exit 1
         fi
 
-    # - name: Run Tests
-    #   run: pnpm run --if-present test
+    - name: Run Tests
+      working-directory: ./cli
+      run: pnpm test

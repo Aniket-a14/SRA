@@ -17,9 +17,9 @@
 [![Dependabot](https://img.shields.io/badge/Dependabot-enabled-success)](https://github.com/Aniket-a14/SRA/blob/main/.github/dependabot.yml)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/Aniket-a14/SRA/graphs/commit-activity)
 [![Frontend Deploy](https://img.shields.io/badge/Frontend-Live-brightgreen?logo=vercel)](https://sra-xi.vercel.app/)
-[![Socket Badge](https://badge.socket.dev/npm/package/@sra-srs/sra-cli/4.0.3)](https://badge.socket.dev/npm/package/@sra-srs/sra-cli/4.0.3)
+[![Socket Badge](https://badge.socket.dev/npm/package/@sra-srs/sra-cli/4.1.0)](https://badge.socket.dev/npm/package/@sra-srs/sra-cli/4.1.0)
 
-**SRA** is an enterprise-grade, AI-orchestrated ecosystem designed to formalize the software requirements engineering lifecycle. By combining Large Language Model (LLM) reasoning with rigorous architectural standards, SRA transforms fragmented project visions into high-fidelity, production-ready technical specifications (IEEE-830).
+**SRA** is an enterprise-grade, AI-orchestrated ecosystem designed to formalize the software requirements engineering lifecycle. By combining Large Language Model (LLM) reasoning with rigorous architectural standards, SRA transforms fragmented project visions into high-fidelity, production-ready technical specifications — in IEEE 830-1998, ISO/IEC/IEEE 29148:2018, Volere or Agile PRD form — and traces them back to the code that implements them.
 
 ---
 
@@ -62,15 +62,16 @@ graph TD
         L4[<b>Layer 4: Refinement Hub</b><br/>Live Workspace & Diff Tracking]
         L5[<b>Layer 5: Knowledge Persistence</b><br/>Semantic Indexing & Hybrid Search]
 
-        Reliability[(<b>Reliability Layer</b><br/>360s Timeout & Jittered Retries)]
+        Reliability[(<b>Reliability Layer</b><br/>Stage Chaining, Checkpoints & Jittered Retries)]
         L2 & L3 -.-> Reliability
     end
 
     subgraph "Local Execution Layer (CLI Toolkit)"
         CLI["SRA CLI (@sra-srs/sra-cli)"] -->|Auth/Sync| L1
+        CLI -->|Reverse: codebase digest| L1
         CLI -->|Verify| Code[(Local Source Code)]
         Code -->|Verification Data| CLI
-        CLI -->|Push Audit Trail| L4
+        CLI -->|Push Traceability| L4
     end
 
     Stakeholder((Stakeholder)) -->|Raw Vision| L1
@@ -78,9 +79,11 @@ graph TD
     L2 --> L3
     L3 -->|FAIL: Poor Score| L2
     L3 -->|PASS| L4
-    L4 -->|Export| Artifacts[IEEE SRS, PDF, DFD, API Spec]
+    L4 -->|Export| Artifacts[SRS Document, DOCX, DFD, Diagrams]
     L4 --> L5
 ```
+
+The pipeline runs entirely server-side and survives the browser being closed: work is checkpointed per stage, and an invocation that runs out of its serverless budget re-enqueues itself and resumes from the last checkpoint rather than restarting or truncating.
 
 <details>
 <summary><strong>📐 Click to Expand Layer Details</strong></summary>
@@ -98,14 +101,17 @@ graph TD
 ## ✨ Enterprise Feature Modules
 
 ### 📊 Professional Requirements Engineering
-*   **IEEE-830 v2.1.0 Compliance**: Automated generation with strict identifier governance and academic prose discipline.
+*   **Four Specification Standards**: IEEE 830-1998, ISO/IEC/IEEE 29148:2018, Volere, and Agile PRD. The chosen format drives generation, rendering, export and CLI round-trip end to end from a single descriptor — see `backend/src/formats/` and `GET /api/formats`.
+*   **IEEE-830 Compliance**: Automated generation with strict identifier governance and academic prose discipline.
 *   **6Cs Quality Audit**: Automated internal scoring for Clarity, Completeness, Conciseness, Consistency, Correctness, and Context — gates every draft in the Reviewer/Critic reflection loop before it reaches the user.
 *   **RAG Benchmarking**: Real-time evaluation of LLM Faithfulness and Answer Relevancy.
 *   **User Story Evolution**: Generates "Jira-Ready" user stories with granular acceptance criteria.
 
 ### 🔑 Bring Your Own Key (BYOK) & Model Choice
-*   **Multi-Provider Support**: Gemini (platform default, zero setup), OpenAI, Claude, and Grok.
+*   **Multi-Provider Support**: Gemini, OpenAI, Claude, and Grok.
+*   **BYOK on Every Provider, Including Gemini**: Generation has no platform-funded fallback. The platform's own Gemini key funds embeddings only — the pgvector columns are one shared embedding space that cannot be per-user. Enqueue, chat and the UI all gate on a configured key.
 *   **Encrypted Key Storage**: User-supplied keys are AES-256-GCM encrypted at rest and never returned in plaintext by the API — only a masked preview is shown back.
+*   **Model Discovery Tied to the Key**: The model list offered is the one that specific key can actually call, discovered on save, with per-model token ceilings used to size generation budgets.
 *   **Per-Analysis Model Selection**: Choose provider and specific model (e.g. Gemini 2.5 Flash/Pro, GPT-5.6, Claude Opus 4.8/Sonnet 5, Grok 4.5) when starting a new analysis.
 *   **Fixed Embedding Provider**: RAG embeddings always run on Gemini regardless of the chosen generation provider, since the vector column is dimensioned to its embedding model.
 
@@ -120,12 +126,13 @@ graph TD
 *   **Revision History**: Complete versioning system with visual diff tracking between requirement updates.
 *   **Audit-Ready Exports**: One-click professional PDF generation with table of contents and revision logs.
 
-### 🛠️ SRA CLI Toolkit (v4.0.3)
-*   **Spec-to-Code Traceability**: Direct link between cloud requirements and local source code implementations.
-*   **Local Compliance Engine**: Run `sra check` locally to verify that your code matches the official specification.
-*   **Automated Sync**: One-command synchronization of requirements into your developer workspace.
-*   **System Diagnostics**: Professional `sra doctor` utility for environment validation and connectivity troubleshooting.
-*   **Reverse Engineering**: Beta support for generating requirements directly from existing codebases.
+### 🛠️ SRA CLI Toolkit (v4.1.0)
+*   **Spec-to-Code Traceability**: Requirement groups link to the source files that implement them, surfaced back on the web workspace for every format.
+*   **Reverse Engineering**: `sra reverse` reduces an existing codebase to a structural digest — interfaces, entities, module layout, dependencies — runs it through the same multi-agent pipeline, and proposes source links for the requirements it produces.
+*   **Local Compliance Engine**: `sra check` confirms links resolve; `--deep` re-checks that the linked files still carry the requirement's own identifiers, catching links that rotted as code moved.
+*   **Live Pipeline Progress**: `sra analyze` and `sra status --watch` stream real pipeline stages over the platform's SSE channel, falling back to polling when live progress is unavailable.
+*   **Format-Aware Round-Trip**: Reads the format registry from the platform, so `sync`/`push` never write IEEE's sections into a Volere, ISO 29148 or Agile PRD document.
+*   **System Diagnostics**: `sra doctor` validates environment, credentials, connectivity, and whether a BYOK provider key is actually configured.
 
 ---
 
@@ -312,11 +319,16 @@ docker compose up --build -d
 *   **API Service**: `http://localhost:3000` (Optimized Multi-stage Build)
 *   **Application UI**: `http://localhost:3001` (Next.js Standalone Build)
 
-### ⌨️ CLI (v4.0.3)
-The SRA toolkit operates cross-workspace for unified project control.
+### ⌨️ CLI (v4.1.0)
+The SRA toolkit operates cross-workspace for unified project control. See [`cli/README.md`](cli/README.md) for the full command reference.
 ```bash
 pnpm install -g @sra-srs/sra-cli
-sra init
+
+sra doctor                 # verify setup, credentials and provider keys
+sra init                   # link this folder to an analysis
+sra reverse                # or: generate a spec from the code already here
+sra check --deep --suggest # trace requirements to source
+sra push                   # publish traceability back to the platform
 ```
 
 #### ⚒️ Local Infrastructure & Testing Setup
@@ -341,14 +353,12 @@ pre-commit install
 pre-commit run --all-files
 ```
 
-##### 3. Run Backend Jest Unit Tests
-SRA has a comprehensive unit and E2E testing suite in the backend workspace. To run them locally:
+##### 3. Run the Test Suites
+The backend holds the unit/contract/E2E suite; the CLI has its own. Both run natively on ESM Jest.
 ```bash
-# Run all tests using pnpm filter
-pnpm --filter backend test
-
-# Or run tests using monorepo root npm script
-pnpm test:backend
+pnpm test:backend   # backend unit, contract and E2E suites (MOCK_AI=true — no real model calls)
+pnpm test:cli       # CLI suite
+pnpm test:all       # both
 ```
 
 ##### 4. Launch Local Development Services

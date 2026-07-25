@@ -5,7 +5,9 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue)
 ![Redis](https://img.shields.io/badge/Redis-Upstash-red)
 
-The SRA Backend is a high-performance Express.js ecosystem powered by Google Gemini, designed to orchestrate the transition from raw project intent to validated IEEE-830 requirements.
+The SRA Backend is a high-performance Express.js ecosystem that orchestrates the transition from raw project intent to a validated requirements specification — in IEEE 830, ISO/IEC/IEEE 29148, Volere or Agile PRD form.
+
+Generation is **bring-your-own-key on every provider** (Gemini, OpenAI, Claude, Grok) with no platform-funded fallback; the platform's own Gemini key funds embeddings only, because the `vector(768)` pgvector columns are a single shared embedding space that cannot be per-user.
 
 ## 🏗️ 5-Layer Service Architecture
 
@@ -44,20 +46,26 @@ Shreds finalized requirements into **PostgreSQL + pgvector** and extracts semant
 
 ---
 
-## 🛠️ CLI & Local Environment Sync (v4.0.3)
-The backend now supports bi-directional synchronization with the **SRA CLI**:
-- **Verification Metadata**: Handlers in `analysisController` specifically manage `verification_files` and `status` updates pushed from the CLI.
-- **Data Integrity Layer**: Robust merge logic ensures that local implementation audits do not overwrite requirement refinements.
+## 🛠️ CLI & Local Environment Sync
+The backend supports bi-directional synchronization with the **SRA CLI**:
+- **Format Discovery**: `GET /api/formats` and `GET /api/formats/:id` expose the format registry (unauthenticated — it is static, non-sensitive metadata already shipped in the public frontend bundle), so the CLI round-trips a document using the platform's own section definitions instead of assuming IEEE's.
+- **Verification Metadata**: `updateAnalysis` accepts `verification_files`/`status` patched onto feature-shaped sections, plus the format-independent `metadata.cliTraceability` record that the web workspace renders for **every** format.
+- **Writable Section Whitelist**: derived from the format registry (`listAllSectionIds()`), not hand-listed — hand-listing it meant edits to Volere/ISO/Agile sections were silently stripped by validation.
+- **Data Integrity**: `inPlace` updates merge rather than replace, and a verification push sets `skipAlignment` so it does not pay for an LLM alignment check it cannot affect.
 
 ## 🛠️ Performance & Reliability
 
 ### Background Processing
 -   **Upstash QStash**: Serverless async messaging for scalable AI operations.
--   **Atomic Responses**: Users receive immediate "Analysis Started" responses, with progress updates delivered via subsequent polling.
+-   **Stage Chaining**: The pipeline checkpoints after every stage and runs against a time budget. An invocation approaching the serverless ceiling persists its progress and re-enqueues itself, so a long run continues across invocations instead of being truncated (`services/pipelineBudget.js`).
+-   **Live Progress**: Stage events publish to Redis pub/sub and stream to clients over SSE (`GET /api/analyze/:id/stream`); the browser is never required for the run to finish.
+-   **Reconciliation**: A scheduled sweep fails out runs stuck `IN_PROGRESS` past a safe threshold and prunes stale drafts.
 
 ### AI Robustness
--   **Dynamic Provider Switching**: Abstraction layer supports Gemini 2.5 and OpenAI GPT-4o.
--   **Error Backoff**: Automated exponential backoff for 429 (Rate Limit) and 5xx (AI Downtime) errors.
+-   **Multi-Provider Adapters**: One interface over Gemini, OpenAI, Claude and Grok (`services/providers/`). Every generation call runs on the user's own key.
+-   **Fail Loudly on Truncation**: A `MAX_TOKENS`/`length` finish reason raises at the adapter boundary rather than being "repaired" into a valid-but-shorter document that would pass schema validation and be scored as complete.
+-   **Budgets Sized to the Model**: Output ceilings discovered per model with the key drive generation budgets, instead of one fixed constant that truncates small models and wastes headroom on large ones.
+-   **Error Backoff**: Jittered exponential backoff on 429/5xx, honouring the provider's own `RetryInfo`; an exhausted daily quota fails fast instead of burning the invocation on doomed retries.
 
 ## 📂 Architecture
 
@@ -65,11 +73,14 @@ The backend now supports bi-directional synchronization with the **SRA CLI**:
 
 | Path | Purpose |
 |------|---------|
-| `src/app.js` | Express app configuration and middleware setup. |
-| `src/controllers/analysisController.js` | Main entry point for starting analysis and handling refinements. |
-| `src/services/geminiService.js` | Wrapper for Google Gemini API interactions. |
-| `src/workers/analysisWorker.js` | Background worker that executes the heavy AI analysis tasks. |
-| `prisma/schema.prisma` | Database schema definition (PostgreSQL). |
+| `src/app.js` | Express app configuration, middleware order and route mounting. |
+| `src/controllers/analysisController.js` | Entry point for starting analyses and handling refinements. |
+| `src/services/analysisService.js` | The pipeline orchestrator — read this to understand the whole flow. |
+| `src/services/providers/` | Per-provider adapters + the BYOK key/model resolver. |
+| `src/formats/` | Format descriptors driving generation, schema, prompts and the writable-key whitelist. |
+| `src/agents/BaseAgent.js` | Shared retry, timeout, token-budget and JSON-repair layer for all agents. |
+| `src/controllers/workerController.js` | QStash callback target; handles continuations and duplicate deliveries. |
+| `prisma/schema.prisma` | Database schema definition (PostgreSQL + pgvector). |
 
 ### Dependencies
 
@@ -120,15 +131,14 @@ The backend now supports bi-directional synchronization with the **SRA CLI**:
     Or inside the `backend/` directory:
     ```bash
     pnpm run dev
-    ```pnpm run dev
     ```
 
 ## 🔒 Security Features
 
 ### Authentication
-The backend uses JWT (JSON Web Tokens) for stateless authentication.
-- **JWT**: Tokens are issued upon successful login/signup and must be included in the `Authorization: Bearer <token>` header for protected routes.
-- **Security**: Mandatory `JWT_SECRET` validation in production.
+Two credential types share one `Authorization: Bearer <token>` header, distinguished by prefix in `middleware/authMiddleware.js`:
+- **JWT**: issued on login/signup for browser sessions. Mandatory `JWT_SECRET` validation in production.
+- **API keys** (`sra_live_…`): long-lived credentials for the CLI and CI, created via `POST /api/auth/keys`. The plaintext key is returned once as `rawKey`; only a SHA-256 hash is stored.
 
 ### Content Security Policy (CSP)
 We use `helmet` to enforce a strict CSP.

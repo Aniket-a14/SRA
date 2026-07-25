@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { listAllSectionIds } from '../formats/index.js';
 
 export const analyzeSchema = z.object({
     body: z.object({
@@ -95,35 +96,38 @@ export const diffParamSchema = z.object({
     })
 });
 
-// updateAnalysis merges `resultUpdates` directly into the stored resultJson —
-// this explicitly whitelists which top-level SRS keys may be overwritten (unlisted
-// keys are stripped, not just rejected, since the schema has no .passthrough()).
+// Cross-format document keys: pipeline-derived analysis attached to every result
+// regardless of which standard produced it, so they aren't in any format's section list.
+const CROSS_FORMAT_RESULT_KEYS = [
+    'projectTitle',
+    'systemArchitecture',
+    'qualityAudit',
+    'benchmarks',
+    'alignmentResult',
+    'layer3Status',
+    'diff',
+    'missingLogic',
+    'contradictions'
+];
+
+// updateAnalysis merges `resultUpdates` directly into the stored resultJson — this
+// whitelists which top-level SRS keys may be overwritten (unlisted keys are stripped, not
+// just rejected, since the schema has no .passthrough()).
+//
+// The section half is derived from the format registry rather than hand-listed. Hand-listed
+// it only ever covered IEEE 830's sections, so an edit to a Volere, ISO 29148 or Agile PRD
+// section — from the web editor or from `sra push` — was silently dropped by validation.
+const writableResultKeys = Object.fromEntries(
+    [...new Set([...CROSS_FORMAT_RESULT_KEYS, ...listAllSectionIds()])].map(key => [key, z.any().optional()])
+);
+
 export const updateAnalysisSchema = z.object({
     params: z.object({ id: z.string().uuid("Invalid analysis ID") }),
     body: z.object({
         metadata: z.record(z.any()).optional(),
         inPlace: z.boolean().optional(),
         skipAlignment: z.boolean().optional(),
-        projectTitle: z.string().optional(),
-        introduction: z.any().optional(),
-        overallDescription: z.any().optional(),
-        externalInterfaceRequirements: z.any().optional(),
-        systemFeatures: z.any().optional(),
-        nonFunctionalRequirements: z.any().optional(),
-        otherRequirements: z.any().optional(),
-        glossary: z.any().optional(),
-        appendices: z.any().optional(),
-        userStories: z.any().optional(),
-        features: z.any().optional(),
-        systemArchitecture: z.any().optional(),
-        revisionHistory: z.any().optional(),
-        qualityAudit: z.any().optional(),
-        benchmarks: z.any().optional(),
-        alignmentResult: z.any().optional(),
-        layer3Status: z.any().optional(),
-        diff: z.any().optional(),
-        missingLogic: z.any().optional(),
-        contradictions: z.any().optional()
+        ...writableResultKeys
     })
 });
 

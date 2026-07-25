@@ -11,6 +11,8 @@
     "install:all": "pnpm install",
     "build:frontend": "pnpm --filter frontend build",
     "test:backend": "pnpm --filter backend test",
+    "test:cli": "pnpm --filter @sra-srs/sra-cli test",
+    "test:all": "pnpm --filter backend test && pnpm --filter @sra-srs/sra-cli test",
     "lint:all": "pnpm -r lint"
   },
   "engines": {

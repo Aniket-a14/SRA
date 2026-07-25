@@ -1,12 +1,15 @@
 # Backend test suite
 
 Run everything: `pnpm --filter backend test` (native ESM Jest, `MOCK_AI=true` so no real LLM calls).
+With coverage (what CI runs): `pnpm --filter backend run test:coverage` — a dedicated script, because `test -- --coverage` makes pnpm forward a literal `--` that Jest reads as a test path filter.
+
+The CLI workspace has its own suite: `pnpm test:cli`. `pnpm test:all` runs both.
 
 | Type | Location | What it covers |
 |---|---|---|
 | **Unit** | `tests/unit/` | Pure service/agent logic in isolation — `modelDiscovery`, `providerKeyService`, `versioning`, `json_repair`, `graph_service`, `reconciliation_service`, chat dedup/stream, `BaseAgent` streaming, RAG, backup. Provider SDKs and Prisma are mocked via Jest's `unstable_mockModule`. |
 | **Regression** | `tests/regression/` | Guards for specific bugs so they can't silently return. `response_envelope.regression.test.js` pins the `{success,message,data}` contract that the frontend version-view bugs violated; `provider_key_verify.regression.test.js` covers the BYOK verify→list-models→cache-on-save flow (auth-fail rejects, transient-fail still saves). |
-| **Contract** | `tests/contract/` | API request/response shape checks against the route layer. |
+| **Contract** | `tests/contract/` | API request/response shape checks against the route layer. `format_routes.contract.test.js` additionally pins that the `updateAnalysis` write whitelist covers every section of every registered format — hand-listed, it only ever covered IEEE's, and edits to other formats were silently stripped. |
 | **E2E** | `tests/e2e/` | Full analysis golden-path through the orchestrator with mocked AI. |
 | **Snapshots** | `tests/snapshots/` | Prompt-template snapshots — catch unintended prompt drift. |
 | **Mutation** | `stryker.config.json` (run: `pnpm --filter backend test:mutation`) | Stryker mutates `modelDiscovery.js` + `response.js` and re-runs the fast unit/regression suites to measure how many mutants the tests actually kill (test *effectiveness*, not just coverage). Scoped narrowly on purpose — mutation testing re-runs the suite once per mutant. |

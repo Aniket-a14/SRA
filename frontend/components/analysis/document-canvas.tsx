@@ -24,6 +24,7 @@ import { updateAnalysis } from "@/lib/analysis-api"
 import type { Analysis, SystemFeature } from "@/types/analysis"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { SourcesPanel } from "@/components/analysis/sources-panel"
+import { CliTraceabilityPanel } from "@/components/analysis/cli-traceability-panel"
 import { FormatResults } from "@/components/analysis/format-results"
 import { getFormatSpec, resolveFormatId } from "@/lib/formats"
 
@@ -252,6 +253,12 @@ export function DocumentCanvas({
                 <div className="flex flex-col gap-4 w-full max-w-5xl mx-auto">
                     <div className="px-4 sm:px-6 pt-4">
                         <SourcesPanel sources={analysis.metadata?.ragSources || []} />
+                    </div>
+                    {/* Above the document body, and outside the format switch on purpose:
+                        CLI traceability lives in metadata, so it renders identically for
+                        every format instead of only for IEEE's feature section. */}
+                    <div className="px-4 sm:px-6">
+                        <CliTraceabilityPanel traceability={analysis.metadata?.cliTraceability} />
                     </div>
                     <ErrorBoundary name="Results View">
                         {resolveFormatId(analysis) === "ieee830" ? (

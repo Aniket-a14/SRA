@@ -42,6 +42,24 @@ export const getFormat = (id) => REGISTRY[id] || REGISTRY[DEFAULT_FORMAT_ID];
 export const listFormats = () =>
     Object.values(REGISTRY).map(({ id, name, description, tier }) => ({ id, name, description, tier }));
 
+/**
+ * Every section id across every registered format.
+ *
+ * Used to build the `updateAnalysis` write whitelist. Hand-listing those keys meant the
+ * whitelist only ever knew IEEE's sections, so an edit to a Volere/ISO/Agile section was
+ * stripped by validation and silently discarded — deriving them here keeps the writable
+ * surface in step with the registry as formats are added.
+ *
+ * @returns {string[]}
+ */
+export const listAllSectionIds = () => {
+    const ids = new Set();
+    for (const spec of Object.values(REGISTRY)) {
+        for (const section of spec.sections) ids.add(section.id);
+    }
+    return [...ids];
+};
+
 /** Section-id chunks for generation; falls back to one chunk of all non-appendix sections. */
 export const getGenerationChunks = (spec) => {
     if (Array.isArray(spec.chunks) && spec.chunks.length) return spec.chunks;

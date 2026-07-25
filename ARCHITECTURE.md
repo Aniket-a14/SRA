@@ -2,7 +2,7 @@
 
 ## 📑 Executive Overview
 
-The **SRA (Smart Requirements Analyzer)** is engineered as a high-fidelity, decoupled multi-layer analysis pipeline. Unlike traditional one-shot AI applications, SRA treats requirements engineering as a structured manufacturing process, where raw intent is iteratively refined, validated, and formalized into IEEE-830 artifacts.
+The **SRA (Smart Requirements Analyzer)** is engineered as a high-fidelity, decoupled multi-layer analysis pipeline. Unlike traditional one-shot AI applications, SRA treats requirements engineering as a structured manufacturing process, where raw intent is iteratively refined, validated, and formalized into a requirements specification in one of four standards (IEEE 830-1998, ISO/IEC/IEEE 29148:2018, Volere, Agile PRD), then traced back to the code that implements it.
 
 ---
 
@@ -43,16 +43,16 @@ graph TD
 
         subgraph "Reliability Layer"
             PO & Arch & Dev & Critic & Eval -.->|Timeout / Retry| Adapter{{Provider Adapter Registry}}
-            Adapter --> Gemini[Gemini — platform default]
-            Adapter --> BYOK[OpenAI / Claude / Grok — user's own key]
+            Adapter --> BYOK[Gemini / OpenAI / Claude / Grok<br/>always the user's own key]
+            Adapter -.-> Embed[Platform Gemini key<br/>embeddings only]
         end
     end
 
     subgraph "Local Execution Layer (CLI Toolkit)"
-        CLI["SRA CLI (@sra-srs/sra-cli)"] -->|Auth/Sync| Gateway
+        CLI["SRA CLI (@sra-srs/sra-cli)"] -->|Sync / Analyze / Reverse| Gateway
         CLI -->|Verify| Code[(Local Source Code)]
-        Code -->|Verification Data| CLI
-        CLI -->|Push Audit Trail| Gateway
+        Code -->|Codebase digest + verification| CLI
+        CLI -->|Push traceability| Gateway
     end
 ```
 
@@ -64,14 +64,14 @@ The core innovation of SRA is its rigid, automated pipeline that ensures require
 
 ### Layer 1: Strategic Intake Mapping
 *   **Purpose**: Translates unstructured stakeholder vision into a standardized JSON intake model.
-*   **Logic**: Uses semantic mapping to categorize input into draft IEEE sections (Scope, Perspective, etc.).
+*   **Logic**: Uses semantic mapping to categorize input into the draft sections of the chosen format (Scope, Perspective, etc.).
 
 ### Layer 2: Multi-Agent Analysis (MAS)
 *   **Purpose**: Parallelize technical and business reasoning.
 *   **Implementation**: A Multi-Agent System using the **v2.1.0 Gold Standard** prompt registry.
     *   **PO Agent**: Business value and scope refinement.
     *   **Architect Agent**: Technical stack and schema design with RAG context.
-    *   **Developer Agent**: IEEE 830-1998 document synthesis.
+    *   **Developer Agent**: Document synthesis against the chosen format descriptor. IEEE 830 keeps a dedicated sectional path; the other formats are generated from their descriptor.
 
 ### Layer 3: Objective Review & Benchmarking
 *   **Purpose**: Automated quality assurance.
@@ -92,14 +92,24 @@ The core innovation of SRA is its rigid, automated pipeline that ensures require
 
 ## 🛠️ The Traceability Loop (Local Execution)
 
-SRA v4.0 introduces the **Local Execution Layer**, bridging the gap between cloud-based requirements and local engineering efforts.
+The **Local Execution Layer** bridges cloud-based requirements and local engineering effort, in both directions.
 
 ### SRA CLI Toolkit
 The CLI acts as the "Compliance Officer" in the developer's workspace:
-1. **Intake & Sync**: Polls finalized SRS data and generates `sra.spec.json`.
-2. **Implementation Verification**: Scans the source code to ensure every functional requirement is backed by a code implementation.
-3. **Audit Trail Synchronization**: Pushes local verification statuses (Verified, Failed, Pending) back to the SRA Platform.
-4. **Professional Reporting**: Enables the generation of "Spec-to-Code" audit trails in the finalized PDF exports.
+1. **Format-Aware Sync**: Reads the platform's format registry (`GET /api/formats/:id`) and extracts requirement groups using *that* format's section definitions, recording where each came from. Assuming IEEE's layout would corrupt every other format on the way back.
+2. **Implementation Verification**: `sra check` confirms linked files resolve; `--deep` re-checks that they still carry the requirement's own identifiers, catching links that rotted as the code moved. Neither is a correctness proof, and the CLI says so.
+3. **Traceability Synchronization**: `sra push` patches verification onto feature-shaped sections where the format has them, and always writes `metadata.cliTraceability` — a format-independent record the web workspace renders for every format.
+4. **Reverse Engineering**: `sra reverse` inverts the pipeline. It reduces the repository to a bounded structural digest (interfaces, entities, module layout, dependencies) and submits it as analysis input, then proposes source links for the requirements that come back. Generation stays server-side because BYOK puts the user's provider key there.
+5. **Live Progress**: `sra analyze` and `sra status --watch` consume the same SSE channel as the web workspace, degrading to polling when Redis-backed progress is unavailable.
+
+```mermaid
+graph LR
+    Code[(Local Source)] -->|reverse: digest| Platform[SRA Platform]
+    Platform -->|sync: format-aware extract| Spec[sra.spec.json]
+    Spec -->|check: trace to files| Code
+    Spec -->|push: cliTraceability| Platform
+    Platform -->|render for every format| UI[Web Workspace]
+```
 
 ---
 
@@ -117,13 +127,13 @@ SRA implements a **Recursive Versioning Tree**, ensuring that every change is no
 ## 🛡️ Security & Operational Integrity
 
 ### Authentication Architecture
-- **JWT-First**: All API interactions are governed by signed JWT tokens.
+- **Two Credential Types**: signed JWTs for browser sessions, and long-lived `sra_live_` API keys for the CLI and CI. Both arrive as `Authorization: Bearer` and are told apart by prefix; API keys are stored only as a SHA-256 hash and returned in plaintext exactly once.
 - **Provider Abstraction**: Unified support for Google Workspace and GitHub Enterprise OAuth.
 - **RLS (Row Level Security)**: Supabase-level security ensuring that even at the database layer, users can only access their authorized project fragments.
 
 ### Resilience & Observability Patterns
-- **Standardized API Bridge**: All endpoints follow a unified bridge pattern: `{ success: boolean, data: any, message: string, errorCode: string }`.
-- **Deep Health Probes**: Real-time monitoring via `/api/health` checking Prisma connectivity and LLM configurations.
+- **API Response Envelopes**: Most endpoints use `{ success, data, message }` via `utils/response.js`, but this is **not universal** — several endpoints (auth token issuance, API key creation) return bare objects, and clients handle both (`response?.data || response`). The heterogeneity is a frozen contract: normalizing it would silently break every existing client and the published CLI. Treat it as fixed, not as debt.
+- **Deep Health Probes**: Real-time monitoring via `/api/health` checking Prisma connectivity and embedding-key configuration. It deliberately does *not* claim generation readiness — that depends on a per-user BYOK key the endpoint cannot check.
 - **Graceful Shutdown**: The server implements clean process exit logic, allowing in-flight requests to complete before releasing resources.
 - **Exponential Backoff**: Used in QStash for AI service failures.
 - **JWT Auth**: Secure, stateless authentication using JSON Web Tokens.
@@ -157,7 +167,7 @@ The system utilizes a **Prompt Factory** pattern to maintain consistent AI outpu
     - `GeminiAdapter` — the only adapter constructed from the **platform's own key** (`GEMINI_API_KEY`); it's the default for every user and the sole embedding provider (`embeddingService.js` is fixed to Gemini regardless of the chosen generation provider, since the `vector(768)` pgvector column is dimensioned to its embedding model).
     - `OpenAIAdapter`, `ClaudeAdapter`, `GrokAdapter` — **bring-your-own-key (BYOK)**. Each requires a user-supplied key; there is no silent fallback to the platform key for these providers.
     - `providerKeyService.js` resolves `(userId, provider)` to a decrypted key at the top of `performAnalysis`, using the existing AES-256-GCM field-level encryption (`dataEncryption.js`) — keys are stored in the `UserProviderKey` model and never returned in plaintext by the API, only as a masked preview.
-    - Users add/remove keys per provider under **Settings → AI Providers**, and pick provider + model on a per-analysis basis from the New Analysis screen; Gemini is pre-selected and requires no setup.
+    - Users add/remove keys per provider under **Settings → AI Providers**, and pick provider + model on a per-analysis basis from the New Analysis screen; a key is required for every provider including Gemini, since generation has no platform-funded fallback.
 
 ### 🧪 Unit Testing Architecture & Dynamic ESM Mocking
 SRA establishes a rigorous, ESM-compliant testing suite powered by **Jest** (`cross-env NODE_OPTIONS=--experimental-vm-modules jest`). Testing in a native ES Module environment introduces read-only binding constraints, which SRA resolves using advanced asynchronous dynamic mock orchestration:
@@ -234,8 +244,9 @@ To understand how these components interact, let's walk through a typical requir
 - **Scenario**: Exporting the final SRS.
 - **Architectural Flow**:
     -   **Knowledge Base**: "Shredder" workers break down the final JSON into vector embeddings for future retrieval (RAG).
-    -   **Client-Side PDF**: The **Layer 5 Document Compiler** (`export-utils.ts`) generates the PDF entirely in the browser, ensuring scalability by offloading compute from the server.
+    -   **Client-Side DOCX**: The **Layer 5 Document Compiler** (`frontend/lib/srs-export/`) builds a structured Word document entirely in the browser, ensuring scalability by offloading compute from the server. It renders from the same format descriptor that drove generation, so the export matches the chosen standard rather than always emitting an IEEE layout. (Client-side PDF generation was retired in favour of this.)
     -   **Code Bundle**: Zips raw JSON and Markdown contracts for developer handoff.
+    -   **Traceability**: If the CLI has pushed verification, `metadata.cliTraceability` carries the requirement→file links alongside the document.
 
 ## Deployment & Infrastructure
 

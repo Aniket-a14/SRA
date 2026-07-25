@@ -20,8 +20,9 @@ pnpm run lint:all                 # eslint across all workspaces (also run by pr
 pnpm --filter backend lint        # single workspace
 pnpm --filter frontend lint
 
-pnpm test:backend                 # backend Jest suite (only workspace with tests)
-pnpm --filter backend test        # equivalent
+pnpm test:backend                 # backend Jest suite
+pnpm test:cli                     # CLI Jest suite
+pnpm test:all                     # both
 ```
 
 Backend test internals (`backend/package.json`):
@@ -30,6 +31,8 @@ Backend test internals (`backend/package.json`):
 - Run by name: `pnpm --filter backend exec jest -t "some test name"`
 - Test layout: `backend/tests/{unit,contract,e2e,snapshots}`.
 - Tests mock ESM natively via Jest's `unstable_mockModule` at the top of the test file (not `jest.mock`), then `await import(...)` the module under test afterward — required because this is a native ESM codebase (`"type": "module"`), not transpiled CJS.
+
+CLI tests (`cli/tests`) use the same native-ESM Jest setup, minus `MOCK_AI` (the CLI makes no model calls). They mock the network only — the local `sra.spec.json`/`sra.config.json` are written to a real temp dir and `process.chdir`'d into, so file handling is exercised rather than stubbed. A command that signals failure via `process.exitCode` must reset it in `afterAll`, or the flag leaks out and fails the whole Jest run.
 
 Backend/local dev without external services — set in `backend/.env`:
 - `MOCK_AI=true` — skips Gemini, returns canned agent JSON (see `BaseAgent.callLLM`).
@@ -82,9 +85,17 @@ Postgres with `pgvector` + `uuid-ossp` extensions. Key models: `User` → `Proje
 
 Next.js App Router under `frontend/app/`: `/analysis/[id]` (workspace + version compare), `/projects/[id]`, `/auth/{login,signup}`, `/settings`. Result tabs and diagram components are lazy-loaded via `next/dynamic` for bundle size. Diagrams render through `@xyflow/react` + Mermaid. All API calls funnel through the `useAuthFetch` hook (bearer token handling). Client-side auth/theme state is deferred to `useEffect` post-hydration to avoid Next.js SSR hydration mismatches — don't move that logic back into render.
 
-### CLI (`cli/src/commands`)
+### CLI (`cli/`)
 
-`init`, `sync` (pull finalized SRS → `sra.spec.json`), `check` (scan local source, verify functional requirements are implemented), `push` (send verification results back to the platform), `review`, `doctor` (env/connectivity diagnostics), `reverse` (beta: generate requirements from an existing codebase).
+Commands (`cli/src/commands`): `init` (link a folder to an analysis), `analyze` (start a run from a file/stdin), `reverse` (generate a spec *from* the local codebase), `sync` (pull the document → `sra.spec.json`), `check` (trace requirements to files), `review` (human approve/reject), `push` (publish traceability), `status`, `list`, `projects`, `formats`, `doctor`.
+
+The behaviour worth knowing before editing:
+
+- **`src/lib/` holds the logic; `src/commands/` is mostly orchestration.** `spec.js` (extract/merge requirement groups), `formats.js` (platform registry client), `scanner.js` (codebase scan + evidence matching), `progress.js` (SSE consumer with polling fallback), `traceability.js` (the record `push` writes). Tests target `lib/`, not the commands.
+- **Round-trip is format-aware, and must stay that way.** `sync` records `source: {section, index, kind}` on every extracted group, read from `GET /api/formats/:id`. `push` writes content back **only** into `feature-list` sections; for every other format it writes just `metadata.cliTraceability`. Writing IEEE's `systemFeatures` into a Volere/ISO/Agile document injects a section the format does not define and that nothing renders — `cli/tests/push.test.js` guards this.
+- **`metadata.cliTraceability` is the format-independent contract** between CLI and web app, rendered by `frontend/components/analysis/cli-traceability-panel.tsx` for every format. Extend it rather than adding new document keys.
+- **Generation is always server-side.** `reverse` builds a local digest and posts it to `POST /api/analyze`; it never calls a model itself, because BYOK means the user's key lives on the platform.
+- **`sra reverse` proposes, it does not assert.** Heuristic links are marked `proposed` and only `check` promotes them to `verified`.
 
 ### Env flags worth knowing when reading code
 
