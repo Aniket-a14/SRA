@@ -57,8 +57,12 @@ jobs:
         run: |
           set -euo pipefail
           sudo install -d /usr/share/postgresql-common/pgdg
+          # gpg runs unprivileged and the write is done by tee. Under `sudo gpg -o …` it
+          # tries to open /dev/tty, which a runner does not have, and dies with
+          # "cannot open '/dev/tty'".
           curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
-            | sudo gpg --dearmor -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg
+            | gpg --dearmor --batch --yes \
+            | sudo tee /usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg > /dev/null
           echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg] \
             https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
             | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
