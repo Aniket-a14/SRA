@@ -60,7 +60,13 @@ const envSchema = z.object({
     // Optional tuning / flags
     REDIS_URL: z.string().optional(),
     LOG_LEVEL: z.string().optional(),
+    // Model ids are configuration, never code (see config/models.js). They are declared
+    // optional here so a deployment that only uses one provider isn't forced to name the
+    // others; each is required at the point of use, with an error naming the variable.
     GEMINI_MODEL_NAME: z.string().optional(),
+    GEMINI_UTILITY_MODEL_NAME: z.string().optional(),
+    GEMINI_EMBEDDING_MODEL: z.string().optional(),
+    GEMINI_EMBEDDING_DIMENSIONS: z.string().optional(),
     OPENAI_MODEL_NAME: z.string().optional(),
     CLAUDE_MODEL_NAME: z.string().optional(),
     GROK_MODEL_NAME: z.string().optional(),

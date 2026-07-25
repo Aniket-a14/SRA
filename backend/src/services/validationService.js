@@ -118,7 +118,6 @@ async function filterFalsePositives(issues) {
   try {
     const issuesJson = stringifyForPrompt(issues.map(i => ({ title: i.title, description: i.description })));
     const response = await analyzeText(issuesJson, {
-      modelName: process.env.GEMINI_MODEL_NAME || 'gemini-2.5-flash',
       systemPrompt: FILTER_PROMPT_TEMPLATE.replace('{{issues}}', 'Issues are provided in the user input.'),
       temperature: TEMPERATURES.logic,
       maxOutputTokens: OUTPUT_TOKEN_LIMITS.smallJson,
@@ -149,7 +148,6 @@ export async function validateRequirements(srsData) {
   const jsonString = stringifyForPrompt(srsData);
 
   const response = await analyzeText(jsonString, {
-    modelName: process.env.GEMINI_MODEL_NAME || 'gemini-2.5-flash',
     systemPrompt: VALIDATION_PROMPT_TEMPLATE.replace('{{srsData}}', 'Project description data is provided in the user input.'),
     temperature: TEMPERATURES.logic,
     maxOutputTokens: OUTPUT_TOKEN_LIMITS.smallJson,
@@ -242,7 +240,6 @@ Suggested Fix: ${targetIssue.suggested_fix}
 
   const response = await analyzeText("Please fix the identified issue.", {
     systemPrompt: AUTO_FIX_PROMPT,
-    modelName: process.env.GEMINI_MODEL_NAME || 'gemini-3-flash-preview',
     temperature: TEMPERATURES.evaluator,
     maxOutputTokens: OUTPUT_TOKEN_LIMITS.smallJson,
     zodSchema: null

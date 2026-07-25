@@ -1,5 +1,6 @@
 import prisma from '../../config/prisma.js';
 import { BaseAgent } from '../../agents/BaseAgent.js';
+import { getUtilityModel } from '../../config/models.js';
 import logger from '../../config/logger.js';
 
 // Graph Extraction Prompt
@@ -60,7 +61,9 @@ export const extractGraph = async (text, projectId, prismaClient = prisma) => {
         // BaseAgent's 2nd arg is a providerConfig object (Phase 4 multi-provider rework),
         // not a bare model-name string — this call site predates that change and was
         // silently falling back to the platform default Gemini model instead of this one.
-        const agent = new BaseAgent("Graph Extractor", { provider: 'GEMINI', modelName: 'gemini-flash-latest' });
+        // GEMINI_UTILITY_MODEL_NAME lets this internal, non-user-facing extraction run on a
+        // cheaper/faster model than the main pipeline; it falls back to GEMINI_MODEL_NAME.
+        const agent = new BaseAgent("Graph Extractor", { provider: 'GEMINI', modelName: getUtilityModel() });
         const prompt = GRAPH_EXTRACTION_PROMPT.replace("{{text}}", text);
 
         const graphData = await agent.callLLM(prompt, 0.2, true);

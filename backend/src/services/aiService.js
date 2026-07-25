@@ -17,10 +17,9 @@ export async function analyzeText(text, settings = {}) {
   text = sanitizePII(text);
   const {
     modelProvider = "google",
-    // Canonical Gemini default lives in the provider registry (DEFAULT_MODELS.GEMINI, which
-    // already honors GEMINI_MODEL_NAME). Previously this file hardcoded its own divergent
-    // fallbacks ("gemini-2.5-flash" here, "gemini-3-flash-preview" below) — a single source
-    // of truth now, so there's no drift between the aiService path and the adapter registry.
+    // Canonical Gemini default lives in the provider registry (DEFAULT_MODELS.GEMINI), which
+    // resolves GEMINI_MODEL_NAME from the environment — no model id is hardcoded in src/.
+    // A single source of truth, so the aiService path can't drift from the adapter registry.
     modelName = DEFAULT_MODELS.GEMINI,
     promptVersion = getLatestVersion(),
     systemPrompt = null,

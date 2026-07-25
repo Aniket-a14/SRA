@@ -1,7 +1,8 @@
-import { GeminiAdapter, DEFAULT_MODEL as GEMINI_DEFAULT_MODEL } from './GeminiAdapter.js';
-import { OpenAIAdapter, DEFAULT_MODEL as OPENAI_DEFAULT_MODEL } from './OpenAIAdapter.js';
-import { ClaudeAdapter, DEFAULT_MODEL as CLAUDE_DEFAULT_MODEL } from './ClaudeAdapter.js';
-import { GrokAdapter, DEFAULT_MODEL as GROK_DEFAULT_MODEL } from './GrokAdapter.js';
+import { GeminiAdapter } from './GeminiAdapter.js';
+import { OpenAIAdapter } from './OpenAIAdapter.js';
+import { ClaudeAdapter } from './ClaudeAdapter.js';
+import { GrokAdapter } from './GrokAdapter.js';
+import { getDefaultModel } from '../../config/models.js';
 
 // Accepts both the Prisma AiProvider enum values (GEMINI/OPENAI/CLAUDE/GROK) and
 // the legacy free-text strings already stored in Analysis.metadata.promptSettings
@@ -16,11 +17,16 @@ const PROVIDER_ALIASES = {
     xai: 'GROK'
 };
 
+/**
+ * Per-provider default model. Lazy getters, not values: model ids live in the environment
+ * (see config/models.js), so reading one must happen at call time — a module-scope snapshot
+ * would both freeze the value at import and throw during import when a variable is unset.
+ */
 export const DEFAULT_MODELS = Object.freeze({
-    GEMINI: GEMINI_DEFAULT_MODEL,
-    OPENAI: OPENAI_DEFAULT_MODEL,
-    CLAUDE: CLAUDE_DEFAULT_MODEL,
-    GROK: GROK_DEFAULT_MODEL
+    get GEMINI() { return getDefaultModel('GEMINI'); },
+    get OPENAI() { return getDefaultModel('OPENAI'); },
+    get CLAUDE() { return getDefaultModel('CLAUDE'); },
+    get GROK() { return getDefaultModel('GROK'); }
 });
 
 export function normalizeProvider(provider) {

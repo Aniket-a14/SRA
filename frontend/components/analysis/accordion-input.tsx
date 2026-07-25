@@ -26,9 +26,11 @@ export function AccordionInput({
 
     return (
         <div className="w-full max-w-4xl mx-auto space-y-6 pb-20">
+            {/* Editing surface for a brief that was already captured in the composer —
+                not a second entry form. Fields arrive pre-filled. */}
             <div className="space-y-2">
-                <h2 className="text-2xl font-bold tracking-tight">Structured Requirements Input</h2>
-                <p className="text-muted-foreground">Complete each section to proceed to validation.</p>
+                <h2 className="text-2xl font-bold tracking-tight">Edit your project brief</h2>
+                <p className="text-muted-foreground">Refine the details below, then re-run the validation check.</p>
             </div>
 
             <Accordion type="single" collapsible value={openItem} onValueChange={setOpenItem} className="w-full border rounded-lg bg-card">
@@ -114,10 +116,10 @@ export function AccordionInput({
 
             <div className="flex justify-end items-center gap-4 fixed bottom-0 left-0 right-0 p-4 bg-background border-t z-10 md:pl-64">
                 <div className="text-sm text-muted-foreground">
-                    Layer 1: Input Phase
+                    Layer 1: Project brief
                 </div>
                 <Button onClick={onValidate} disabled={isValidating} size="lg">
-                    {isValidating ? "Validating..." : "Run Validation Check (Layer 2)"}
+                    {isValidating ? "Validating..." : "Re-run validation check (Layer 2)"}
                 </Button>
             </div>
         </div>

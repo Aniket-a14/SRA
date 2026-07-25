@@ -3,6 +3,7 @@ import prisma from '../config/prisma.js';
 import { createChatSnapshot } from '../utils/promptCompaction.js';
 import { createNextVersion } from './versioning.js';
 import { resolveProviderKey } from './providers/providerKeyService.js';
+import { DEFAULT_MODELS } from './providers/index.js';
 import logger from '../config/logger.js';
 
 /**
@@ -72,6 +73,15 @@ async function loadChatContext(userId, analysisId, clientMessageId) {
     return { currentAnalysis, historyText, srsSnapshot };
 }
 
+/** Configured default Gemini model, or null when none is set (mock/test runs). */
+function configuredGeminiModel() {
+    try {
+        return DEFAULT_MODELS.GEMINI;
+    } catch {
+        return null;
+    }
+}
+
 /**
  * Persists the turn (dedup-safe) and, if an edit was produced, creates a new
  * versioned analysis record. Shared tail end of both processChat and processChatStream.
@@ -109,11 +119,14 @@ async function finalizeChatTurn(userId, currentAnalysis, userMessage, clientMess
                 metadata: {
                     trigger: 'chat',
                     source: 'ai',
+                    // Records which model produced this version. Inherit the parent's
+                    // setting; otherwise fall back to the configured Gemini default — but
+                    // only when one is configured (mock/test runs have no model env and
+                    // never called a provider, so there is nothing honest to record).
                     promptSettings: {
                         ...(currentAnalysis.metadata?.promptSettings || {}),
                         modelName: currentAnalysis.metadata?.promptSettings?.modelName
-                            || process.env.GEMINI_MODEL_NAME
-                            || 'gemini-3-flash-preview',
+                            || configuredGeminiModel(),
                         modelProvider: currentAnalysis.metadata?.promptSettings?.modelProvider || 'google'
                     }
                 }

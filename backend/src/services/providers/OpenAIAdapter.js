@@ -1,6 +1,8 @@
 import OpenAI from 'openai';
+import { getDefaultModel } from '../../config/models.js';
 
-export const DEFAULT_MODEL = process.env.OPENAI_MODEL_NAME || 'gpt-5.6';
+/** Resolved from OPENAI_MODEL_NAME at call time — no model id is hardcoded here. */
+const DEFAULT_MODEL = () => getDefaultModel('OPENAI');
 
 export class OpenAIAdapter {
     constructor(apiKey) {
@@ -12,7 +14,7 @@ export class OpenAIAdapter {
 
     async generateContent({ prompt, systemInstruction, temperature, maxOutputTokens, jsonMode, modelName }) {
         const completion = await this.client.chat.completions.create({
-            model: modelName || DEFAULT_MODEL,
+            model: modelName || DEFAULT_MODEL(),
             messages: [
                 ...(systemInstruction ? [{ role: 'system', content: systemInstruction }] : []),
                 { role: 'user', content: prompt }
@@ -27,7 +29,7 @@ export class OpenAIAdapter {
     /** Plain-text token stream for conversational replies (ChatAgent.chatStream) — jsonMode is never used here. */
     async *generateContentStream({ prompt, systemInstruction, temperature, maxOutputTokens, modelName }) {
         const stream = await this.client.chat.completions.create({
-            model: modelName || DEFAULT_MODEL,
+            model: modelName || DEFAULT_MODEL(),
             messages: [
                 ...(systemInstruction ? [{ role: 'system', content: systemInstruction }] : []),
                 { role: 'user', content: prompt }

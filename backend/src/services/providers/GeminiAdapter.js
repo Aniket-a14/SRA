@@ -1,7 +1,9 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { genAI } from '../../config/gemini.js';
+import { getDefaultModel } from '../../config/models.js';
 
-export const DEFAULT_MODEL = process.env.GEMINI_MODEL_NAME || 'gemini-2.5-flash';
+/** Resolved from GEMINI_MODEL_NAME at call time — no model id is hardcoded here. */
+const DEFAULT_MODEL = () => getDefaultModel('GEMINI');
 
 export class GeminiAdapter {
     // SRS generation now always runs on the user's own Gemini key (BYOK) — the
@@ -15,7 +17,7 @@ export class GeminiAdapter {
 
     async generateContent({ prompt, systemInstruction, temperature, maxOutputTokens, jsonMode, responseSchema, modelName }) {
         const model = this.client.getGenerativeModel({
-            model: modelName || DEFAULT_MODEL,
+            model: modelName || DEFAULT_MODEL(),
             ...(systemInstruction && { systemInstruction }),
             generationConfig: {
                 temperature,
@@ -31,7 +33,7 @@ export class GeminiAdapter {
     /** Plain-text token stream for conversational replies (ChatAgent.chatStream) — jsonMode is never used here. */
     async *generateContentStream({ prompt, systemInstruction, temperature, maxOutputTokens, modelName }) {
         const model = this.client.getGenerativeModel({
-            model: modelName || DEFAULT_MODEL,
+            model: modelName || DEFAULT_MODEL(),
             ...(systemInstruction && { systemInstruction }),
             generationConfig: { temperature, maxOutputTokens, responseMimeType: 'text/plain' }
         });
@@ -43,7 +45,7 @@ export class GeminiAdapter {
     }
 
     async countTokens(text, modelName) {
-        const model = this.client.getGenerativeModel({ model: modelName || DEFAULT_MODEL });
+        const model = this.client.getGenerativeModel({ model: modelName || DEFAULT_MODEL() });
         const { totalTokens } = await model.countTokens(text);
         return totalTokens;
     }

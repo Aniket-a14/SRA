@@ -22,14 +22,35 @@ export interface DiscoveredModel {
 }
 
 /**
- * Curated Gemini model list, offered when the user has a Gemini key configured
- * (whether or not discovery ran). These ids match GeminiAdapter's defaults and the
- * values the pipeline sends to the Gemini SDK, so nothing here can 404 at generation time.
+ * Fallback Gemini model list, offered when the user has a Gemini key saved but live
+ * discovery hasn't run for it. Model ids are configuration, not code: they come from
+ * NEXT_PUBLIC_GEMINI_MODELS (comma-separated ids, optionally `id|Label|Hint`) so a model
+ * that a provider retires can be swapped without a code change. Empty when unset —
+ * better an empty picker that tells the user to verify their key than a hardcoded id
+ * that 404s or has no free-tier quota at generation time.
  */
-export const GEMINI_PLATFORM_MODELS: ModelOption[] = [
-    { provider: "GEMINI", value: "gemini-2.5-flash", label: "Gemini 2.5 Flash", hint: "Fast" },
-    { provider: "GEMINI", value: "gemini-2.5-pro", label: "Gemini 2.5 Pro", hint: "Advanced" },
-]
+export const GEMINI_PLATFORM_MODELS: ModelOption[] = parseModelEnv(
+    process.env.NEXT_PUBLIC_GEMINI_MODELS
+)
+
+/** Parse `id|Label|Hint, id2|Label2` into ModelOptions. Label/hint are optional. */
+export function parseModelEnv(raw: string | undefined): ModelOption[] {
+    if (!raw?.trim()) return []
+    return raw
+        .split(",")
+        .map((entry) => entry.trim())
+        .filter(Boolean)
+        .map((entry) => {
+            const [value, label, hint] = entry.split("|").map((p) => p.trim())
+            return {
+                provider: "GEMINI" as const,
+                value,
+                label: label || formatModelLabel(value),
+                ...(hint ? { hint } : {}),
+            }
+        })
+        .filter((m) => m.value.length > 0)
+}
 
 /** Turn a raw model id into a short human label (fallback when the API gives none). */
 export function formatModelLabel(id: string): string {

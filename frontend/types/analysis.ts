@@ -198,6 +198,7 @@ export interface StartAnalysisInput {
         strictness?: number;
         modelProvider?: string;
         modelName?: string;
+        format?: string;
     }
     srsData?: {
         details?: {

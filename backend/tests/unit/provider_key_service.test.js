@@ -30,6 +30,16 @@ const { resolveProviderKey, listProviderKeys, upsertProviderKey, deleteProviderK
 
 describe('providerKeyService', () => {
     const originalGeminiKey = process.env.GEMINI_API_KEY;
+    // Model ids come from the environment (config/models.js) and resolveProviderKey falls
+    // back to them, so pin them here rather than depending on whatever the machine or CI
+    // happens to have set — these assertions are about key resolution, not model choice.
+    const MODEL_ENV = {
+        GEMINI_MODEL_NAME: 'test-gemini-model',
+        OPENAI_MODEL_NAME: 'test-openai-model',
+        CLAUDE_MODEL_NAME: 'test-claude-model',
+        GROK_MODEL_NAME: 'test-grok-model'
+    };
+    const originalModelEnv = {};
 
     beforeEach(() => {
         mockFindUnique.mockReset();
@@ -37,10 +47,18 @@ describe('providerKeyService', () => {
         mockUpsert.mockReset();
         mockDelete.mockReset();
         process.env.GEMINI_API_KEY = 'platform-gemini-key';
+        for (const [key, value] of Object.entries(MODEL_ENV)) {
+            originalModelEnv[key] = process.env[key];
+            process.env[key] = value;
+        }
     });
 
     afterEach(() => {
         process.env.GEMINI_API_KEY = originalGeminiKey;
+        for (const key of Object.keys(MODEL_ENV)) {
+            if (originalModelEnv[key] === undefined) delete process.env[key];
+            else process.env[key] = originalModelEnv[key];
+        }
     });
 
     describe('resolveProviderKey', () => {

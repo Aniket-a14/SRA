@@ -1,20 +1,58 @@
 import { describe, it, expect } from "vitest"
-import { buildModelOptions, formatModelLabel, GEMINI_PLATFORM_MODELS } from "./models"
+import { buildModelOptions, formatModelLabel, parseModelEnv } from "./models"
 
 describe("formatModelLabel", () => {
     it("humanizes raw model ids consistently with the backend formatter", () => {
         expect(formatModelLabel("gpt-5.6")).toBe("GPT 5.6")
-        expect(formatModelLabel("gemini-2.5-flash")).toBe("Gemini 2.5 Flash")
-        expect(formatModelLabel("models/gemini-2.5-pro")).toBe("Gemini 2.5 Pro")
+        expect(formatModelLabel("gemini-3.5-flash")).toBe("Gemini 3.5 Flash")
+        expect(formatModelLabel("models/gemini-3.5-flash-lite")).toBe("Gemini 3.5 Flash Lite")
         expect(formatModelLabel("grok-4.5")).toBe("Grok 4.5")
     })
 })
 
+describe("parseModelEnv", () => {
+    it("returns nothing when the variable is unset or blank", () => {
+        expect(parseModelEnv(undefined)).toEqual([])
+        expect(parseModelEnv("   ")).toEqual([])
+    })
+
+    it("parses bare ids and derives their labels", () => {
+        expect(parseModelEnv("gemini-3.5-flash,gemini-2.5-flash")).toEqual([
+            { provider: "GEMINI", value: "gemini-3.5-flash", label: "Gemini 3.5 Flash" },
+            { provider: "GEMINI", value: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
+        ])
+    })
+
+    it("honours explicit id|Label|Hint entries and tolerates loose spacing", () => {
+        expect(parseModelEnv(" gemini-3.5-flash | Flash | Balanced , gemini-3.5-flash-lite|Lite ")).toEqual([
+            { provider: "GEMINI", value: "gemini-3.5-flash", label: "Flash", hint: "Balanced" },
+            { provider: "GEMINI", value: "gemini-3.5-flash-lite", label: "Lite" },
+        ])
+    })
+})
+
 describe("buildModelOptions", () => {
-    it("always offers the Gemini platform models even with no user keys", () => {
-        const options = buildModelOptions([])
-        expect(options).toEqual(GEMINI_PLATFORM_MODELS)
-        expect(options.every((o) => o.provider === "GEMINI")).toBe(true)
+    it("offers nothing when the user has configured no provider keys", () => {
+        // Generation is BYOK for every provider, so an empty picker is the correct,
+        // honest state — the UI prompts the user to add a key rather than showing a
+        // model they have no way to call.
+        expect(buildModelOptions([])).toEqual([])
+    })
+
+    it("uses the models discovery returned for a verified Gemini key", () => {
+        const options = buildModelOptions([
+            { provider: "GEMINI", availableModels: [{ id: "gemini-3.5-flash", label: "Gemini 3.5 Flash" }] },
+        ])
+        expect(options).toEqual([
+            { provider: "GEMINI", value: "gemini-3.5-flash", label: "Gemini 3.5 Flash" },
+        ])
+    })
+
+    it("falls back to the env-configured list for a Gemini key with no discovered models", () => {
+        // The fallback is configuration (NEXT_PUBLIC_GEMINI_MODELS), so this asserts the
+        // wiring rather than any particular model id.
+        const options = buildModelOptions([{ provider: "GEMINI", availableModels: [] }])
+        expect(options).toEqual(parseModelEnv(process.env.NEXT_PUBLIC_GEMINI_MODELS))
     })
 
     it("appends discovered models for each configured non-Gemini key", () => {
@@ -22,31 +60,17 @@ describe("buildModelOptions", () => {
             { provider: "OPENAI", availableModels: [{ id: "gpt-5.6", label: "GPT-5.6" }] },
             { provider: "CLAUDE", availableModels: [{ id: "claude-opus-4-8", label: "Claude Opus 4.8" }] },
         ])
-        const values = options.map((o) => o.value)
-        expect(values).toContain("gemini-2.5-flash")
-        expect(values).toContain("gpt-5.6")
-        expect(values).toContain("claude-opus-4-8")
+        expect(options.map((o) => o.value)).toEqual(["gpt-5.6", "claude-opus-4-8"])
     })
 
-    it("never surfaces a model that wasn't returned by the provider (no hardcoded 404 risk)", () => {
-        // A key with no discovered models contributes nothing — the picker can only
-        // ever offer models the provider actually confirmed for that key.
-        const options = buildModelOptions([{ provider: "GROK", availableModels: [] }])
-        expect(options).toEqual(GEMINI_PLATFORM_MODELS)
-    })
-
-    it("ignores a user-supplied Gemini key's models (platform list is authoritative for Gemini)", () => {
-        const options = buildModelOptions([
-            { provider: "GEMINI", availableModels: [{ id: "gemini-x-experimental", label: "X" }] },
-        ])
-        expect(options.map((o) => o.value)).not.toContain("gemini-x-experimental")
+    it("never surfaces a model the provider didn't return (no hardcoded 404 risk)", () => {
+        expect(buildModelOptions([{ provider: "GROK", availableModels: [] }])).toEqual([])
     })
 
     it("falls back to the formatter when a discovered model has no label", () => {
         const options = buildModelOptions([
             { provider: "OPENAI", availableModels: [{ id: "gpt-5.6", label: "" }] },
         ])
-        const gpt = options.find((o) => o.value === "gpt-5.6")
-        expect(gpt?.label).toBe("GPT 5.6")
+        expect(options.find((o) => o.value === "gpt-5.6")?.label).toBe("GPT 5.6")
     })
 })

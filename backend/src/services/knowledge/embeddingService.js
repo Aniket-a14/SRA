@@ -1,4 +1,5 @@
 import { genAI } from "../../config/gemini.js";
+import { getEmbeddingModel, getEmbeddingDimensions } from "../../config/models.js";
 import { getRedisClient } from "../../config/redis.js";
 import { createHash } from "crypto";
 import logger from "../../config/logger.js";
@@ -26,10 +27,14 @@ export async function embedText(text, retries = 3, initialDelay = 2000) {
 
     while (attempt < retries) {
         try {
-            const model = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
+            // Model + width are env-driven (GEMINI_EMBEDDING_MODEL / GEMINI_EMBEDDING_DIMENSIONS).
+            // The width must match the vector(N) column in schema.prisma — and changing the
+            // *model* invalidates every vector already stored, since cosine similarity across
+            // two different embedding spaces is meaningless. Re-embed before switching.
+            const model = genAI.getGenerativeModel({ model: getEmbeddingModel() });
             const result = await model.embedContent({
                 content: { parts: [{ text }] },
-                outputDimensionality: 768
+                outputDimensionality: getEmbeddingDimensions()
             });
 
             const embedding = result.embedding.values;

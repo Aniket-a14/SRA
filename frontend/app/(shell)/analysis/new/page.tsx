@@ -16,13 +16,16 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils"
 import { buildModelOptions } from "@/lib/models"
 import { listFormatSpecs } from "@/lib/formats"
+import { runValidation } from "@/lib/analysis-api"
 
+// No model id is hardcoded here — the picker fills modelName in from the models the
+// user's own provider keys expose (see buildModelOptions + NEXT_PUBLIC_GEMINI_MODELS).
 const DEFAULT_SETTINGS: PromptSettings = {
     profile: "default",
     depth: 3,
     strictness: 3,
     modelProvider: "google",
-    modelName: "gemini-2.5-flash",
+    modelName: "",
     format: "ieee830",
 }
 
@@ -131,7 +134,7 @@ function NewAnalysisContent() {
         const effectiveName = projectName.trim() || deriveName(desc) || "Untitled System"
 
         setIsAnalyzing(true)
-        const loadingToast = toast.loading("Initializing analysis...")
+        const loadingToast = toast.loading("Capturing your brief...")
 
         try {
             const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, {
@@ -143,10 +146,14 @@ function NewAnalysisContent() {
                 },
                 body: JSON.stringify({
                     text: desc,
+                    // Must be the `details` shape — that is what createDraftAnalysis, the
+                    // draft editor, and the pipeline all read. Sending anything else
+                    // creates an empty draft and makes the next screen ask for the same
+                    // name + description all over again.
                     srsData: {
-                        introduction: {
+                        details: {
                             projectName: { content: effectiveName },
-                            purpose: { content: desc },
+                            fullDescription: { content: desc },
                         },
                     },
                     projectId: projectId || undefined,
@@ -163,7 +170,20 @@ function NewAnalysisContent() {
             const json = await response.json()
             const data = json.data || json
             if (data.status === "draft" && data.id) {
-                toast.success("Analysis initialized!", { id: loadingToast })
+                // This composer is the one and only input layer. Run the Layer-2 quality
+                // gate right here so the user goes straight to the validation report —
+                // previously they hit a second form re-asking for name + description
+                // before they could click "Run validation".
+                toast.loading("Checking your brief for gaps...", { id: loadingToast })
+                try {
+                    await runValidation(data.id, token)
+                    toast.success("Brief captured — reviewing it now.", { id: loadingToast })
+                } catch {
+                    // Validation is an AI call and can be rate-limited/unavailable. The draft
+                    // is already saved with everything the user typed, so drop them into the
+                    // draft editor (pre-filled) where they can retry the check.
+                    toast.info("Saved your brief — validation is busy, you can retry it here.", { id: loadingToast })
+                }
                 router.push(`/analysis/${data.id}`)
             } else {
                 throw new Error("Unexpected response from server.")
@@ -232,7 +252,7 @@ function NewAnalysisContent() {
                                 Radix portal inside another breaks the dropdown's collision
                                 detection, which is what clipped the list before. */}
                             <Select
-                                value={settings.modelName || "gemini-2.5-flash"}
+                                value={settings.modelName || ""}
                                 onValueChange={(val) => {
                                     const model = modelOptions.find(m => m.value === val)
                                     setSettings(prev => ({

@@ -78,7 +78,6 @@ Apply the user's feedback as a surgical edit. Return ONLY the modified sections 
     while (attempt < maxRetries) {
         try {
             const response = await analyzeText(userPrompt, {
-                modelName: process.env.GEMINI_MODEL_NAME || 'gemini-2.5-flash',
                 systemPrompt: SURGICAL_REFINE_PROMPT,
                 temperature: TEMPERATURES.critic,
                 maxOutputTokens: OUTPUT_TOKEN_LIMITS.srsRefinement,

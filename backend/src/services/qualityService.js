@@ -143,7 +143,6 @@ export const checkAlignment = async (originalInput, validationContext, srsOutput
 
     // Call AI
     const response = await analyzeText(text, {
-        modelName: process.env.GEMINI_MODEL_NAME || 'gemini-2.5-flash',
         systemPrompt: systemPrompt,
         temperature: TEMPERATURES.logic,
         maxOutputTokens: OUTPUT_TOKEN_LIMITS.smallJson

@@ -26,7 +26,9 @@ describe('BaseAgent.streamText', () => {
 
     it('delegates to the adapter and yields its chunks', async () => {
         process.env.MOCK_AI = 'false';
-        const agent = new BaseAgent('Test Agent', { provider: 'gemini' });
+        // Explicit model: these assertions are about streaming plumbing, and the default
+        // would otherwise be resolved from GEMINI_MODEL_NAME, which CI does not set.
+        const agent = new BaseAgent('Test Agent', { provider: 'gemini', modelName: 'test-model' });
 
         agent.getAdapter = () => ({
             generateContentStream: async function* () {
@@ -41,7 +43,9 @@ describe('BaseAgent.streamText', () => {
 
     it('wraps an adapter streaming failure in a named error', async () => {
         process.env.MOCK_AI = 'false';
-        const agent = new BaseAgent('Test Agent', { provider: 'gemini' });
+        // Explicit model: these assertions are about streaming plumbing, and the default
+        // would otherwise be resolved from GEMINI_MODEL_NAME, which CI does not set.
+        const agent = new BaseAgent('Test Agent', { provider: 'gemini', modelName: 'test-model' });
 
         agent.getAdapter = () => ({
             generateContentStream: async function* () {

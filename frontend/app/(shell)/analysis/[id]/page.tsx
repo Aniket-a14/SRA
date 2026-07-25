@@ -308,6 +308,10 @@ function AnalysisDetailContent() {
                 srsData: draftData as unknown as StartAnalysisInput['srsData'],
                 validationResult: { validation_status: 'PASS', issues: validationIssues },
                 parentId: id,
+                // Carry the model/provider/format the user picked in the composer — it is
+                // stored on the draft, and generation is BYOK-gated, so dropping it here
+                // would silently fall back to defaults the user may have no key for.
+                settings: (analysis?.metadata?.promptSettings || undefined) as StartAnalysisInput['settings'],
                 draft: false
             });
 
@@ -459,7 +463,7 @@ function AnalysisDetailContent() {
                         <Button variant="ghost" size="icon" onClick={() => router.push('/analysis')}><ArrowLeft className="h-4 w-4" /></Button>
                         <div>
                             <h1 className="text-xl font-display">{analysis?.title?.replace(" (Draft)", "") || "New Analysis"}</h1>
-                            <span className="text-xs font-mono text-muted-foreground">Draft mode · Layer 1</span>
+                            <span className="text-xs font-mono text-muted-foreground">Editing brief · Layer 1</span>
                         </div>
                     </div>
                     <div className="flex gap-2">

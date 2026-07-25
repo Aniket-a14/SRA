@@ -15,10 +15,24 @@ export class BaseAgent {
         this.name = name;
         const { provider, modelName, apiKey } = providerConfig;
         this.provider = normalizeProvider(provider);
-        this.modelName = modelName || DEFAULT_MODELS[this.provider];
+        this._modelName = modelName || null;
         this._apiKey = apiKey;
         this._adapter = null; // lazily constructed — see getAdapter() below, so a missing
         // non-Gemini key only throws when a real (non-mocked) LLM call is actually made
+    }
+
+    /**
+     * Resolved lazily for the same reason the adapter is: model ids live in the environment
+     * (config/models.js), and several services construct agents at module scope. Resolving in
+     * the constructor would make merely importing them fail when a variable is unset — even
+     * under MOCK_AI, where no model is ever used.
+     */
+    get modelName() {
+        return this._modelName || DEFAULT_MODELS[this.provider];
+    }
+
+    set modelName(value) {
+        this._modelName = value;
     }
 
     getAdapter() {
@@ -29,8 +43,8 @@ export class BaseAgent {
     }
 
     async callLLM(prompt, temperature = 0.7, jsonMode = true, responseSchema = null, retries = 3, initialDelay = 5000, options = {}) {
-        logger.debug({ msg: `[${this.name}] Calling LLM`, model: this.modelName });
-
+        // Mock check first: reading this.modelName resolves the env-backed default, which
+        // mock runs neither have nor need.
         if (process.env.MOCK_AI === 'true') {
             logger.warn(`[${this.name}] MOCK MODE ACTIVE. Returning dummy response.`);
             await new Promise(resolve => setTimeout(resolve, 100));
@@ -72,6 +86,8 @@ export class BaseAgent {
             }
             return "This is a mocked text response.";
         }
+
+        logger.debug({ msg: `[${this.name}] Calling LLM`, model: this.modelName });
 
         let attempt = 0;
         let delay = initialDelay;
@@ -140,8 +156,7 @@ export class BaseAgent {
      * call isn't meaningful — a mid-stream failure just ends the stream with an error.
      */
     async *streamText(prompt, options = {}) {
-        logger.debug({ msg: `[${this.name}] Streaming LLM`, model: this.modelName });
-
+        // Mock check before touching this.modelName — see callLLM.
         if (process.env.MOCK_AI === 'true') {
             const mockReply = options.mockText || 'This is a mocked streaming reply.';
             for (const word of mockReply.split(' ')) {
@@ -150,6 +165,8 @@ export class BaseAgent {
             }
             return;
         }
+
+        logger.debug({ msg: `[${this.name}] Streaming LLM`, model: this.modelName });
 
         const adapter = this.getAdapter();
         try {
