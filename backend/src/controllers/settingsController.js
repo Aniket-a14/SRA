@@ -1,4 +1,4 @@
-import { listProviderKeys, upsertProviderKey, deleteProviderKey } from '../services/providers/providerKeyService.js';
+import { listProviderKeys, upsertProviderKey, deleteProviderKey, refreshProviderModels } from '../services/providers/providerKeyService.js';
 import { discoverModels, ModelDiscoveryError } from '../services/providers/modelDiscovery.js';
 import { successResponse } from '../utils/response.js';
 
@@ -51,6 +51,24 @@ export const putProviderKey = async (req, res, next) => {
         return successResponse(res, saved, 'Provider key saved');
     } catch (error) {
         error.statusCode = error.statusCode || 400;
+        next(error);
+    }
+};
+
+/**
+ * Re-discover the models for the key already stored, without asking the user to paste it
+ * again. What a key can call changes over time (tier upgrade, model retirement), and the
+ * cached list is otherwise frozen at whatever was true on the day it was saved.
+ */
+export const refreshProviderKeyModels = async (req, res, next) => {
+    try {
+        const { provider } = req.params;
+        const updated = await refreshProviderModels(req.user.userId, provider, discoverModels);
+        return successResponse(res, updated, 'Models refreshed');
+    } catch (error) {
+        if (error instanceof ModelDiscoveryError) {
+            error.statusCode = error.statusCode || 400;
+        }
         next(error);
     }
 };

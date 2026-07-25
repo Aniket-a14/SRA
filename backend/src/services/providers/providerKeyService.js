@@ -85,12 +85,50 @@ export async function upsertProviderKey(userId, provider, rawKey, label = null, 
     const encryptedKey = encryptData(rawKey.trim());
     const maskedKey = maskSensitiveData(rawKey.trim());
 
+    // The model list belongs to the KEY, not the provider. Writing DbNull (rather than
+    // skipping the field with `?? undefined`) is deliberate: a replaced key must never
+    // inherit the previous key's models. Two keys for the same provider can differ
+    // completely — a free-tier Gemini key cannot call any *-pro model that a paid key
+    // can — so a stale list would offer models that 429 at generation time.
+    const models = availableModels ?? Prisma.DbNull;
+
     return prisma.userProviderKey.upsert({
         where: { userId_provider: { userId, provider: normalized } },
-        create: { userId, provider: normalized, encryptedKey, maskedKey, label, availableModels: availableModels ?? undefined, isActive: true },
-        update: { encryptedKey, maskedKey, label, availableModels: availableModels ?? undefined, isActive: true },
+        create: { userId, provider: normalized, encryptedKey, maskedKey, label, availableModels: models, isActive: true },
+        update: { encryptedKey, maskedKey, label, availableModels: models, isActive: true },
         select: { id: true, provider: true, maskedKey: true, label: true, availableModels: true, isActive: true, createdAt: true, updatedAt: true }
     });
+}
+
+/**
+ * Re-run discovery against the key already stored for this user/provider and refresh the
+ * cached model list. Model availability is a property of the key over time, not just at
+ * save: a tier upgrade adds models and a retired model disappears, neither of which the
+ * cached list would ever reflect otherwise.
+ *
+ * @param {(provider: string, apiKey: string) => Promise<{models: Array<{id:string,label:string}>}>} discover
+ * @returns {Promise<{ provider: string, availableModels: Array }>}
+ */
+export async function refreshProviderModels(userId, provider, discover) {
+    const normalized = normalizeProvider(provider);
+    const record = await prisma.userProviderKey.findUnique({
+        where: { userId_provider: { userId, provider: normalized } }
+    });
+
+    if (!record || !record.isActive) {
+        const error = new Error(`No active ${normalized} key to refresh. Add one in Settings first.`);
+        error.statusCode = 404;
+        throw error;
+    }
+
+    const { models } = await discover(normalized, decryptData(record.encryptedKey));
+
+    const updated = await prisma.userProviderKey.update({
+        where: { userId_provider: { userId, provider: normalized } },
+        data: { availableModels: models },
+        select: { id: true, provider: true, maskedKey: true, label: true, availableModels: true, isActive: true, createdAt: true, updatedAt: true }
+    });
+    return updated;
 }
 
 export async function deleteProviderKey(userId, provider) {

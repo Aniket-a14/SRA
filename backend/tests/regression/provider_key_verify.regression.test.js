@@ -22,10 +22,12 @@ jest.unstable_mockModule('../../src/services/providers/modelDiscovery.js', () =>
 const mockUpsert = jest.fn();
 const mockList = jest.fn();
 const mockDelete = jest.fn();
+const mockRefresh = jest.fn();
 jest.unstable_mockModule('../../src/services/providers/providerKeyService.js', () => ({
     listProviderKeys: mockList,
     upsertProviderKey: mockUpsert,
-    deleteProviderKey: mockDelete
+    deleteProviderKey: mockDelete,
+    refreshProviderModels: mockRefresh
 }));
 
 const { verifyProviderKey, putProviderKey } = await import('../../src/controllers/settingsController.js');

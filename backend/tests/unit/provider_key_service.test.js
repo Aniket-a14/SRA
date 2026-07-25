@@ -5,6 +5,7 @@ const mockFindUnique = jest.fn();
 const mockFindMany = jest.fn();
 const mockUpsert = jest.fn();
 const mockDelete = jest.fn();
+const mockUpdate = jest.fn();
 
 jest.unstable_mockModule('../../src/config/prisma.js', () => ({
     default: {
@@ -12,6 +13,7 @@ jest.unstable_mockModule('../../src/config/prisma.js', () => ({
             findUnique: mockFindUnique,
             findMany: mockFindMany,
             upsert: mockUpsert,
+            update: mockUpdate,
             delete: mockDelete
         }
     }
@@ -26,7 +28,7 @@ jest.unstable_mockModule('../../src/utils/dataEncryption.js', () => ({
     maskSensitiveData: jest.fn(() => '****masked****')
 }));
 
-const { resolveProviderKey, listProviderKeys, upsertProviderKey, deleteProviderKey } = await import('../../src/services/providers/providerKeyService.js');
+const { resolveProviderKey, listProviderKeys, upsertProviderKey, deleteProviderKey, refreshProviderModels } = await import('../../src/services/providers/providerKeyService.js');
 
 describe('providerKeyService', () => {
     const originalGeminiKey = process.env.GEMINI_API_KEY;
@@ -46,6 +48,7 @@ describe('providerKeyService', () => {
         mockFindMany.mockReset();
         mockUpsert.mockReset();
         mockDelete.mockReset();
+        mockUpdate.mockReset();
         process.env.GEMINI_API_KEY = 'platform-gemini-key';
         for (const [key, value] of Object.entries(MODEL_ENV)) {
             originalModelEnv[key] = process.env[key];
@@ -164,6 +167,64 @@ describe('providerKeyService', () => {
             mockDelete.mockRejectedValue(new Error('connection reset'));
 
             await expect(deleteProviderKey('user-1', 'openai')).rejects.toThrow('connection reset');
+        });
+
+        // The model list is a property of the KEY, not the provider. Replacing a key with
+        // one on a different tier must not leave the old key's models behind — a free-tier
+        // Gemini key cannot call the *-pro models a paid key can.
+        it('clears the cached model list when a replacement key could not be discovered', async () => {
+            mockUpsert.mockImplementation(({ update }) => Promise.resolve({ ...update, id: 'key-1' }));
+
+            await upsertProviderKey('user-1', 'gemini', 'AIza-new-key', null, null);
+
+            const { update, create } = mockUpsert.mock.calls[0][0];
+            expect(update.availableModels).toBe(Prisma.DbNull);
+            expect(create.availableModels).toBe(Prisma.DbNull);
+            // Must not be `undefined`, which Prisma skips — that is what let a replaced
+            // key inherit the previous key's models.
+            expect(update.availableModels).not.toBeUndefined();
+        });
+
+        it('stores the discovered models when discovery succeeded', async () => {
+            mockUpsert.mockImplementation(({ update }) => Promise.resolve({ ...update, id: 'key-1' }));
+            const models = [{ id: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash' }];
+
+            await upsertProviderKey('user-1', 'gemini', 'AIza-key', null, models);
+
+            expect(mockUpsert.mock.calls[0][0].update.availableModels).toEqual(models);
+        });
+    });
+
+    describe('refreshProviderModels', () => {
+        it('re-discovers against the stored key and updates the cached list', async () => {
+            mockFindUnique.mockResolvedValue({
+                userId: 'user-1', provider: 'GEMINI', encryptedKey: 'ENC(AIza-stored)', isActive: true
+            });
+            mockUpdate.mockImplementation(({ data }) => Promise.resolve({ provider: 'GEMINI', ...data }));
+            const discover = jest.fn().mockResolvedValue({ models: [{ id: 'gemini-3.6-flash', label: 'Gemini 3.6 Flash' }] });
+
+            const result = await refreshProviderModels('user-1', 'gemini', discover);
+
+            // Uses the key already on file — the user never re-pastes it.
+            expect(discover).toHaveBeenCalledWith('GEMINI', 'AIza-stored');
+            expect(result.availableModels).toEqual([{ id: 'gemini-3.6-flash', label: 'Gemini 3.6 Flash' }]);
+        });
+
+        it('404s when there is no active key to refresh', async () => {
+            mockFindUnique.mockResolvedValue(null);
+            const discover = jest.fn();
+
+            const error = await refreshProviderModels('user-1', 'openai', discover).catch(e => e);
+            expect(error.statusCode).toBe(404);
+            expect(discover).not.toHaveBeenCalled();
+        });
+
+        it('does not refresh a deactivated key', async () => {
+            mockFindUnique.mockResolvedValue({ userId: 'user-1', provider: 'OPENAI', encryptedKey: 'ENC(x)', isActive: false });
+            const discover = jest.fn();
+
+            await expect(refreshProviderModels('user-1', 'openai', discover)).rejects.toThrow(/No active OPENAI key/);
+            expect(discover).not.toHaveBeenCalled();
         });
     });
 });

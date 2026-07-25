@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Sparkles, Trash2, Plus, CheckCircle2, Loader2 } from "lucide-react"
+import { Sparkles, Trash2, Plus, CheckCircle2, Loader2, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 import type { DiscoveredModel } from "@/lib/models"
 
@@ -44,6 +44,7 @@ export function ProviderKeyManager() {
     const [isSaving, setIsSaving] = useState(false)
     const [isVerifying, setIsVerifying] = useState(false)
     const [verifiedModels, setVerifiedModels] = useState<DiscoveredModel[] | null>(null)
+    const [refreshing, setRefreshing] = useState<AiProvider | null>(null)
 
     const fetchKeys = useCallback(async () => {
         try {
@@ -78,9 +79,11 @@ export function ProviderKeyManager() {
         setVerifiedModels(null)
     }
 
-    // Gemini keys can be saved without the verify-to-list round-trip (model list is fixed);
-    // the other providers surface their available models only after a verify call.
-    const needsVerify = provider !== "GEMINI"
+    // Every provider verifies, Gemini included. Gemini used to be exempt on the assumption
+    // its model list was fixed, but the list is per-key: a free-tier key cannot call any
+    // *-pro model a paid key can, and discovery now probes each model against the actual
+    // key rather than trusting the provider's catalogue.
+    const needsVerify = true
 
     const verifyKey = async () => {
         if (!apiKey.trim()) return
@@ -135,6 +138,32 @@ export function ProviderKeyManager() {
             toast.error("Error saving provider key")
         } finally {
             setIsSaving(false)
+        }
+    }
+
+    // Re-run discovery against the stored key. What a key can call is not fixed at save
+    // time — a tier upgrade adds models, a retired model disappears — and the cached list
+    // is otherwise frozen at whatever was true the day it was saved.
+    const refreshModels = async (p: AiProvider) => {
+        setRefreshing(p)
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/settings/provider-keys/${p}/refresh`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token}` }
+            })
+            const json = await res.json()
+            if (res.ok) {
+                const updated = json.data || json
+                setKeys(prev => prev.map(k => (k.provider === p ? { ...k, availableModels: updated.availableModels } : k)))
+                const count = updated.availableModels?.length || 0
+                toast.success(`${PROVIDER_LABELS[p]}: ${count} model${count === 1 ? "" : "s"} available`)
+            } else {
+                toast.error(json.message || json.error || "Could not refresh models")
+            }
+        } catch {
+            toast.error("Error refreshing models")
+        } finally {
+            setRefreshing(null)
         }
     }
 
@@ -272,15 +301,30 @@ export function ProviderKeyManager() {
                                 </div>
                             )}
                         </div>
-                        <Button
-                            variant="destructive"
-                            size="sm"
-                            className="w-full sm:w-auto rounded-full"
-                            onClick={() => removeKey(key.provider)}
-                        >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Remove
-                        </Button>
+                        <div className="flex w-full gap-2 sm:w-auto">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1 sm:flex-none rounded-full"
+                                onClick={() => refreshModels(key.provider)}
+                                disabled={refreshing === key.provider}
+                                title="Re-check which models this key can use"
+                            >
+                                {refreshing === key.provider
+                                    ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    : <RefreshCw className="h-4 w-4 mr-2" />}
+                                Refresh models
+                            </Button>
+                            <Button
+                                variant="destructive"
+                                size="sm"
+                                className="flex-1 sm:flex-none rounded-full"
+                                onClick={() => removeKey(key.provider)}
+                            >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Remove
+                            </Button>
+                        </div>
                     </div>
                 ))}
             </div>
