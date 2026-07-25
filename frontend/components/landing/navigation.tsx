@@ -6,11 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Menu, X, LayoutDashboard } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
+// Root-relative so the nav still works from pages that aren't the landing page
+// (a bare "#features" from /changelog resolves to that page and scrolls nowhere).
 const navLinks = [
-  { name: "Features", href: "#features" },
-  { name: "How it works", href: "#how-it-works" },
-  { name: "Architecture", href: "#architecture" },
-  { name: "CLI", href: "#developers" },
+  { name: "Features", href: "/#features" },
+  { name: "How it works", href: "/#how-it-works" },
+  { name: "Architecture", href: "/#architecture" },
+  { name: "CLI", href: "/#developers" },
+  { name: "Changelog", href: "/changelog" },
 ];
 
 export function Navigation() {

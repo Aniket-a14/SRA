@@ -1,0 +1,163 @@
+---
+title: "Closed-loop traceability between specification and source"
+description: "The SRA CLI becomes a full platform client: generate a specification from an existing codebase, trace every requirement to the files that implement it, and publish the result back — correctly, in any supported document format."
+date: "2026-07-25"
+version: "4.2.0"
+tags: ["CLI", "Traceability", "Platform API"]
+milestone: true
+---
+
+Until this release the CLI moved in one direction. A specification was authored on
+the platform, pulled down, and checked against the working tree. Teams with an
+existing system had no entry point, and teams working in anything other than
+IEEE 830 found that publishing results back quietly damaged their document.
+
+Release 4.2.0 closes that loop. The CLI now generates specifications *from* source,
+verifies requirements against it, and writes results back through a
+format-independent contract that every document type understands.
+
+## Specifications from an existing codebase
+
+`sra reverse` documents a system that was built before it was specified. It reads
+the working tree through `git ls-files`, so `.gitignore` is honoured and nothing
+untracked leaks into the request, then reduces the repository to a bounded
+structural digest — dependency manifests, module layout, HTTP interface, data
+entities and exported symbols. That digest runs through the same multi-agent
+pipeline the web application uses, and each generated requirement group is matched
+back against the files that produced it.
+
+Those matches are recorded as **proposed**, never verified. Promotion to `verified`
+requires `sra check`, which confirms the link independently. Heuristic evidence is
+labelled as such, so a reverse-engineered specification never overstates what it
+knows.
+
+Generation is server-side by design. `reverse` builds the digest locally and posts
+it to the platform; it never calls a model itself, because under bring-your-own-key
+the provider credential lives on the platform, not on the developer's machine.
+
+Run `sra reverse --dry-run` to inspect the digest locally before any of it leaves
+the machine.
+
+## Traceability that survives a change of format
+
+Previously `sync` extracted requirements without regard to document format, and
+`push` wrote all of them back as IEEE 830's `systemFeatures`. On a Volere, ISO 29148
+or Agile PRD document that injected a section the format does not define, flattened
+structured user stories into prose, and rendered nowhere in the workspace.
+
+Two changes fix this permanently:
+
+- `sync` now records the originating section of every requirement group, read from
+  the platform's own format registry rather than inferred.
+- `push` writes content back only into feature-shaped sections. For every other
+  format it publishes to `metadata.cliTraceability` — a format-independent
+  traceability record — and leaves the document structure untouched.
+
+That record is rendered in the analysis workspace for **every** format, not only
+IEEE 830, by a new traceability panel. It is the supported contract between the CLI
+and the web application; future traceability data belongs in it rather than in new
+document keys.
+
+## Verification you can put in a pipeline
+
+`sra check` gains three modes that make it useful as a gate rather than a report:
+
+| Flag | Behaviour |
+| --- | --- |
+| `--deep` | Confirms linked files still carry the requirement's own identifiers, catching links that rotted as code moved |
+| `--suggest` | Proposes candidate files for requirement groups that have no link yet |
+| `--strict` | Exits non-zero on any unverified requirement, for use in CI |
+
+## Five new commands
+
+`sra analyze` starts a run from a file or standard input. `sra status --watch`,
+`sra list`, `sra projects` and `sra formats` cover the read paths that previously
+required the web interface. `analyze`, `reverse` and `status --watch` consume the
+platform's live progress channel — the same stream the web workspace uses — and
+fall back to polling automatically when it is unavailable.
+
+Every read-only command accepts `--json`, with the payload on standard output and
+nothing else: the banner is suppressed, configuration loading is quieted, and human
+output is routed away. The CLI is scriptable without parsing decorated text.
+
+<Accordion type="multiple" className="w-full not-prose">
+  <AccordionItem value="platform">
+    <AccordionTrigger>Platform changes</AccordionTrigger>
+    <AccordionContent>
+      <ul className="list-disc space-y-2 pl-4 text-sm text-muted-foreground">
+        <li>
+          <strong className="text-foreground">Format registry endpoints.</strong>{" "}
+          <code>GET /api/formats</code> and <code>GET /api/formats/:id</code> expose the
+          supported document formats and their section structure, so clients no longer
+          duplicate that definition. The endpoints are unauthenticated: the data is static,
+          non-sensitive metadata that already ships inside the public web bundle, and
+          requiring a key would stop <code>sra formats</code> working before <code>sra init</code>.
+        </li>
+        <li>
+          <strong className="text-foreground">Document edits are no longer silently dropped.</strong>{" "}
+          The write whitelist on analysis updates was hand-maintained and therefore only
+          ever covered IEEE 830&apos;s sections; edits to any other format&apos;s sections passed
+          validation and were discarded. It is now derived from the format registry, so a
+          new format is writable the moment it is registered.
+        </li>
+        <li>
+          <strong className="text-foreground">Control flags no longer persist into documents.</strong>{" "}
+          <code>inPlace</code> and <code>skipAlignment</code> steer how an update is applied, not what the
+          document contains. Both were being merged into stored specifications, where they
+          survived every subsequent read and export.
+        </li>
+      </ul>
+    </AccordionContent>
+  </AccordionItem>
+
+  <AccordionItem value="upgrade">
+    <AccordionTrigger>Upgrade notes</AccordionTrigger>
+    <AccordionContent>
+      <ul className="list-disc space-y-2 pl-4 text-sm text-muted-foreground">
+        <li>
+          Install or update with <code>npm install -g @sra-srs/sra-cli</code>. The package moved from
+          <code>@aniket_a14/sra-cli</code>; remove the old global install to avoid two <code>sra</code> binaries
+          on <code>PATH</code>.
+        </li>
+        <li>
+          <code>sra.config.json</code> renames <code>projectId</code> to <code>analysisId</code>, which is what the field
+          always held — it predates the platform having projects. Existing files continue
+          to work unchanged.
+        </li>
+        <li>
+          An API key supplied through the environment is no longer written to disk during
+          <code>sra init</code>. Configuration files created by earlier versions should be rotated
+          if they contain a key.
+        </li>
+        <li>
+          <code>sra init</code> now lists real projects rather than presenting analyses as projects, and
+          accepts <code>--analysis</code> for non-interactive setup.
+        </li>
+      </ul>
+    </AccordionContent>
+  </AccordionItem>
+
+  <AccordionItem value="quality">
+    <AccordionTrigger>Quality and tooling</AccordionTrigger>
+    <AccordionContent>
+      <ul className="list-disc space-y-2 pl-4 text-sm text-muted-foreground">
+        <li>
+          The CLI ships its first test suite — 51 tests covering specification extraction,
+          the format-aware write path, codebase scanning, progress consumption and
+          configuration handling. The continuous integration test step, previously disabled
+          for want of tests, is enabled.
+        </li>
+        <li>
+          <code>sra doctor</code> now reports provider key configuration, backend service health,
+          format-registry reachability and git availability, and exits non-zero on real
+          faults rather than always reporting success.
+        </li>
+        <li>
+          Backend and frontend security scans were failing on a development-only file
+          watcher declared as a production dependency. Moving it corrected the dependency
+          graph and removed the advisory allowlist both pipelines had been carrying.
+        </li>
+      </ul>
+    </AccordionContent>
+  </AccordionItem>
+</Accordion>

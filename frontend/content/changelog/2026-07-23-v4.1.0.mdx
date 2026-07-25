@@ -1,0 +1,105 @@
+---
+title: "Bring your own model provider"
+description: "Choose the model behind every analysis — Gemini, OpenAI, Claude or Grok — running on your own provider key. Pipeline progress streams live instead of polling, and the entire interface has been rebuilt on one design system."
+date: "2026-07-23"
+version: "4.1.0"
+tags: ["AI Providers", "Streaming", "Interface"]
+milestone: true
+---
+
+The analysis pipeline was built against a single model provider, with the provider
+name threaded through the code as a string that only one branch ever checked.
+Selecting anything other than the default silently routed back to it. This release
+replaces that with a real provider abstraction and puts the choice — and the
+credential — in your hands.
+
+## One interface, four providers
+
+Every model call now goes through a shared adapter contract covering content
+generation, streaming, token counting and error classification. Gemini, OpenAI,
+Claude and Grok each implement it, so the pipeline treats them identically and a
+fifth provider is an adapter rather than a rewrite.
+
+Generation runs on **your** provider key. Keys are stored per user and per provider,
+encrypted with AES-256-GCM, and are never returned to the browser in plaintext —
+only a masked form for confirmation. Add them under **Settings → AI Providers**, and
+pick the provider and model per analysis when you start a run.
+
+The platform's own credential funds exactly one thing: embeddings. Nothing about
+generation falls back to it, so a run either uses the key you chose or fails with a
+clear message naming the missing one. There is no silent substitution.
+
+## Embeddings stay on a single provider
+
+Retrieval embeddings remain fixed to Gemini regardless of which provider generates
+your document. This is deliberate: the vector column backing semantic retrieval is
+dimensioned to that model, and mixing embedding providers within one index corrupts
+similarity scores in a way that degrades results without producing an error.
+
+## Progress you can watch
+
+The workspace previously discovered progress by re-requesting the analysis every few
+seconds. A multi-minute, multi-stage pipeline reported through that channel looks
+identical to one that has stalled.
+
+Progress is now published as the pipeline advances and streamed to the browser over
+a live connection, so each stage appears as it completes. Conversational refinement
+streams too: the reply arrives token by token, while the structured document edit is
+computed separately and only when an edit was actually requested — which keeps
+partial JSON off your screen.
+
+## A single interface
+
+The web application and the marketing site were two codebases with two visual
+languages. They are now one: the landing page, authentication, projects, the full
+analysis workspace and settings share a single application and component library.
+
+<Accordion type="multiple" className="w-full not-prose">
+  <AccordionItem value="removed">
+    <AccordionTrigger>Removed features</AccordionTrigger>
+    <AccordionContent>
+      <ul className="list-disc space-y-2 pl-4 text-sm text-muted-foreground">
+        <li>
+          <strong className="text-foreground">Code Assets tab.</strong> Generated
+          scaffolding was removed along with the service behind it. It produced
+          illustrative code that no team adopted, and maintaining it implied a level of
+          code generation the product does not offer.
+        </li>
+        <li>
+          <strong className="text-foreground">Quality Audit tab.</strong> The six-dimension
+          quality score is an internal gate, not a deliverable. It still governs whether a
+          draft is accepted or sent back for refinement, and material findings surface in
+          the validation report; it is no longer presented as a user-facing artefact.
+        </li>
+        <li>
+          Marketing copy was rewritten to describe the system that exists — real pipeline
+          stages, real integrations, real security measures — replacing template
+          placeholders. Testimonial and pricing sections were removed rather than filled
+          with invented content.
+        </li>
+      </ul>
+    </AccordionContent>
+  </AccordionItem>
+
+  <AccordionItem value="models">
+    <AccordionTrigger>Model configuration</AccordionTrigger>
+    <AccordionContent>
+      <ul className="list-disc space-y-2 pl-4 text-sm text-muted-foreground">
+        <li>
+          Model identifiers are configuration, not code. They are read from the
+          environment so a model a provider retires can be replaced without a release.
+        </li>
+        <li>
+          Default identifiers were refreshed to models that are currently available; the
+          previous Grok default had been retired upstream and would have failed on first
+          use.
+        </li>
+        <li>
+          When you verify a saved key, the platform queries that provider for the models
+          the key can actually call, so the picker reflects your entitlements rather than
+          a hardcoded list.
+        </li>
+      </ul>
+    </AccordionContent>
+  </AccordionItem>
+</Accordion>

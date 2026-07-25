@@ -1,0 +1,46 @@
+---
+title: "A multi-agent pipeline with measurable output quality"
+description: "Specification drafting is split across specialist agents with distinct responsibilities, and every document is scored against retrieval faithfulness and a six-dimension quality rubric before it reaches you."
+date: "2026-02-12"
+version: "3.2.0"
+tags: ["Analysis Pipeline", "Quality"]
+milestone: true
+---
+
+A single model asked to produce an entire specification does every job at once:
+scoping, architecture and drafting. The result reads as one voice with no separation
+between commercial intent and technical design, and there is no point at which the
+work is reviewed before delivery.
+
+This release restructures generation as a pipeline of specialists.
+
+## Specialist agents with distinct mandates
+
+| Agent | Responsibility |
+| --- | --- |
+| Product Owner | Refines raw stakeholder input into scope and features, weighted by business value |
+| System Architect | Designs the technical solution, informed by retrieved context from prior work |
+| Lead Developer | Produces the standards-compliant specification document |
+
+Each stage receives the previous stage's output as its input, so scope decisions are
+made before architecture, and architecture before drafting — the order in which the
+decisions actually depend on each other.
+
+## Quality measured, not assumed
+
+Two independent evaluations run against every document.
+
+A **critic** scores the draft on six dimensions — clarity, completeness,
+conciseness, consistency, correctness and context — and a **retrieval evaluation**
+measures faithfulness and answer relevancy against the source material the pipeline
+actually retrieved. A draft that fails either gate is refined rather than delivered.
+
+Both scores are recorded with the analysis, so quality is a number you can compare
+across runs instead of an impression.
+
+## Consistent requirement identity
+
+Prompt governance moved into a versioned registry, so the exact instructions that
+produced a given document are recoverable rather than lost to an edit. Requirement
+identifiers are project-prefixed and sequential, making them stable enough to cite
+in a change request or a test plan.

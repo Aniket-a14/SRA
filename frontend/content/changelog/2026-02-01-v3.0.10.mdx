@@ -1,0 +1,41 @@
+---
+title: "Encrypted backups, audit logging and continuous security checks"
+description: "Weekly encrypted database backups with integrity verification, an audit trail across every sensitive operation, and automated security auditing on a daily schedule."
+date: "2026-02-01"
+version: "3.0.10"
+tags: ["Backups", "Security", "Auditability"]
+---
+
+This release establishes the operational controls a system holding customer
+specifications is expected to have.
+
+## Backups that are encrypted and verified
+
+Database backups run weekly, are encrypted with AES-256-GCM before they are stored,
+and carry a SHA-256 checksum so integrity can be confirmed rather than trusted.
+Retention is configurable and enforced automatically.
+
+A command line tool covers the manual path — creating, listing, verifying and
+restoring a backup — so recovery does not depend on the scheduled job or on access
+to a dashboard.
+
+## An audit trail
+
+Sensitive operations — creation, deletion, finalisation and export — are recorded
+with full metadata by middleware rather than by each handler, which is what makes
+the coverage complete. Real-time monitoring flags brute-force attempts, mass
+deletions and unusual access patterns.
+
+Field-level encryption utilities were added for personally identifiable data.
+
+## Security checks on a schedule
+
+Automated auditing runs daily: dependency vulnerability scanning, secret leak
+detection, permission checks and security header validation. Findings arrive on
+their own rather than waiting for someone to look.
+
+## Data fetching
+
+Analysis views moved to declarative data fetching with caching and background
+revalidation, replacing hand-written polling timers. Roughly 150 lines of
+coordination code were removed, and stale views now refresh on their own.

@@ -1,0 +1,32 @@
+---
+title: "A formal analysis pipeline with semantic retrieval"
+description: "Requirements engineering is restructured into five defined layers, grounded in prior work through semantic retrieval and executed asynchronously so that generation is no longer bound to a request."
+date: "2026-01-28"
+version: "2.0.0"
+tags: ["Analysis Pipeline", "Retrieval", "Architecture"]
+milestone: true
+---
+
+The first release proved that a specification could be generated. This one makes
+the process defined, grounded and durable.
+
+## Five defined layers
+
+Requirements engineering was formalised into five architectural layers, each with a
+stated input and output. A specification is now produced by a process that can be
+inspected and reasoned about at each stage, rather than by one opaque step whose
+behaviour can only be judged from its output.
+
+## Grounded in prior work
+
+Requirements from previous analyses are stored as embeddings and retrieved by
+semantic similarity when a new analysis runs. Drafting is informed by the
+organisation's own accumulated specifications instead of starting from nothing every
+time — which is what makes terminology and structure consistent across documents
+produced months apart.
+
+## Work that outlives the request
+
+Analysis moved onto a durable job queue. Generation takes minutes and no longer
+happens inside a request that a browser, proxy or platform timeout can end. A run
+survives a worker restart, and delivery is retried rather than lost.

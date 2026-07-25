@@ -1,0 +1,21 @@
+---
+title: "Automated quality control on every change"
+description: "Continuous integration for linting and security analysis, executable operational workflows, and documentation raised to a standard the project can be handed over on."
+date: "2026-01-30"
+version: "2.2.0"
+tags: ["Engineering Practice", "Documentation"]
+---
+
+Quality that depends on remembering to check it degrades as soon as the project gets
+busy. This release moves those checks into automation.
+
+- **Continuous integration** runs linting and static security analysis on every
+  change, and stale work is triaged automatically rather than accumulating
+  indefinitely.
+- **Executable workflows** cover setup, test and deployment, so those procedures are
+  runnable definitions instead of prose someone has to follow correctly.
+- **Documentation** — the overview, architecture and change history — was rewritten
+  to a standard that lets a new contributor become productive without a walkthrough.
+
+The frontend codebase reached a zero-warning state, which is what makes a warning
+meaningful again: from here, a new one is signal.

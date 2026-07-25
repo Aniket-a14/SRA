@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import createMDX from "@next/mdx";
 
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -56,4 +57,20 @@ const nextConfig: NextConfig = {
   }
 };
 
-export default nextConfig;
+// Release notes are authored as MDX under content/changelog. Plugins are named as
+// strings rather than imported: Turbopack serializes this config, so a function
+// reference here fails the build.
+const withMDX = createMDX({
+  options: {
+    remarkPlugins: [
+      // MDX is CommonMark by default; release notes use GFM tables.
+      "remark-gfm",
+      "remark-frontmatter",
+      // Re-exports the YAML frontmatter as a named `meta` export, so a release's
+      // title, date and tags are typed data rather than something to scrape.
+      ["remark-mdx-frontmatter", { name: "meta" }],
+    ],
+  },
+});
+
+export default withMDX(nextConfig);

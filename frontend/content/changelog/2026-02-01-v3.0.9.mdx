@@ -1,0 +1,14 @@
+---
+title: "Project creation regression resolved"
+description: "A patch release correcting a response-shape mismatch introduced during the preceding audit, which prevented new projects from initialising."
+date: "2026-02-01"
+version: "3.0.9"
+tags: ["Fix"]
+---
+
+The system-wide audit in 3.0.0 changed the shape of an API response that project
+initialisation depended on. The client continued to read the previous shape and
+treated a successful creation as a failure.
+
+The mismatch is corrected and project creation succeeds again. No data was lost —
+projects created during the affected window exist and are reachable.

@@ -1,0 +1,39 @@
+---
+title: "The SRA command line interface"
+description: "A published CLI that links a repository to its specification and traces every requirement to the source files that implement it, closing the gap between an approved document and the code that is supposed to satisfy it."
+date: "2026-02-18"
+version: "4.0.0"
+tags: ["CLI", "Traceability"]
+milestone: true
+---
+
+A specification stops being useful the moment nobody can tell whether the code still
+matches it. This release introduces the SRA command line interface so that question
+has an answer that lives with the code, in version control, next to the work.
+
+## Specification-to-code traceability
+
+`sra init` links a working directory to an approved analysis. `sra sync` pulls the
+finalised specification down as a local file. `sra check` walks each requirement and
+confirms the source files it claims are present. `sra push` publishes those results
+back to the platform, where they appear against the requirement itself.
+
+The check is deliberately modest about what it proves: it establishes that the files
+a requirement points at exist, which is a fast and honest signal, not an assertion
+that the requirement is correctly implemented. Overstating that would make the
+traceability record worse than having none.
+
+## Verification visible on both sides
+
+Requirement displays in the web workspace reflect verification status synced from
+the CLI, and exported documents carry a full audit trail listing the implementing
+files for every requirement. The specification and the repository stop being two
+disconnected records of the same intent.
+
+## Built as a maintainable client
+
+The CLI is structured as a layered application rather than a collection of scripts:
+a resilient API client with retry behaviour, layered configuration resolution, and
+command modules that stay thin over shared logic. Merging CLI verification data into
+a cloud-side analysis was made safe against concurrent edits, so publishing results
+cannot discard changes made in the browser.

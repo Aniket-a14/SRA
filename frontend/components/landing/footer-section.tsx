@@ -3,16 +3,19 @@
 import Link from "next/link";
 import { AnimatedWave } from "./animated-wave";
 
+// Root-relative: the footer renders on /changelog too, where a bare hash would
+// resolve against that page instead of the landing sections.
 const footerLinks = {
   Product: [
-    { name: "Features", href: "#features" },
-    { name: "How it works", href: "#how-it-works" },
-    { name: "Architecture", href: "#architecture" },
-    { name: "Integrations", href: "#integrations" },
+    { name: "Features", href: "/#features" },
+    { name: "How it works", href: "/#how-it-works" },
+    { name: "Architecture", href: "/#architecture" },
+    { name: "Integrations", href: "/#integrations" },
+    { name: "Changelog", href: "/changelog" },
   ],
   Developers: [
-    { name: "CLI", href: "#developers" },
-    { name: "Security", href: "#security" },
+    { name: "CLI", href: "/#developers" },
+    { name: "Security", href: "/#security" },
   ],
 };
 

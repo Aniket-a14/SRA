@@ -83,7 +83,15 @@ Postgres with `pgvector` + `uuid-ossp` extensions. Key models: `User` → `Proje
 
 ### Frontend
 
-Next.js App Router under `frontend/app/`: `/analysis/[id]` (workspace + version compare), `/projects/[id]`, `/auth/{login,signup}`, `/settings`. Result tabs and diagram components are lazy-loaded via `next/dynamic` for bundle size. Diagrams render through `@xyflow/react` + Mermaid. All API calls funnel through the `useAuthFetch` hook (bearer token handling). Client-side auth/theme state is deferred to `useEffect` post-hydration to avoid Next.js SSR hydration mismatches — don't move that logic back into render.
+Next.js App Router under `frontend/app/`: `/analysis/[id]` (workspace + version compare), `/projects/[id]`, `/auth/{login,signup}`, `/settings`, `/changelog`. Result tabs and diagram components are lazy-loaded via `next/dynamic` for bundle size. Diagrams render through `@xyflow/react` + Mermaid. All API calls funnel through the `useAuthFetch` hook (bearer token handling). Client-side auth/theme state is deferred to `useEffect` post-hydration to avoid Next.js SSR hydration mismatches — don't move that logic back into render. There is no dark theme — the design system is light-only, so components should use the semantic tokens (`foreground`, `muted-foreground`, `background`) rather than hardcoded colours, but no `dark:` variants are expected.
+
+`/changelog` publishes customer-facing **release notes**, which are a different document from the repo-root `CHANGELOG.md`. That file stays the terse engineering log of what changed; the notes explain what a release means for someone using the platform. Both need updating for a release — they are not generated from each other.
+
+Notes are MDX under `frontend/content/changelog/`, one file per release named `YYYY-MM-DD-vX.Y.Z.mdx`. YAML frontmatter (`title`, `description`, `date`, `version`, optional `tags`, `milestone`) is typed as `ReleaseMeta` and exposed as a `meta` export by `remark-mdx-frontmatter`; `frontend/types/mdx.d.ts` declares it. **A new note must be registered in `content/changelog/index.ts`** — imports are static, not globbed, so an unregistered file simply never appears. Ordering is `compareReleases` in `lib/changelog.ts` (date, then numeric version — four releases share 2026-02-01, and `3.0.10` must outrank `3.0.9`).
+
+MDX plumbing: `@next/mdx` in `next.config.ts` with `remark-gfm` (tables), `remark-frontmatter` and `remark-mdx-frontmatter`. Turbopack serializes the config, so **plugins must be named as strings, not imported** — a function reference fails the build. Element styling lives in `frontend/mdx-components.tsx`; there is no `@tailwindcss/typography`, so there is no `prose` class to fall back on. Inline code is the exception, styled in `globals.css` under `.release-note code`: a note may write `<code>` as JSX inside an `<Accordion>`, and JSX authored directly in MDX bypasses the component map entirely.
+
+`frontend/lib/changelog.test.ts` reads the frontmatter with its own small parser rather than importing the MDX — vitest has no MDX transform configured, so importing `content/changelog` from a test breaks the suite. Keep pure logic in `lib/`, not beside the registry.
 
 ### CLI (`cli/`)
 

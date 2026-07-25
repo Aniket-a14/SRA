@@ -1,0 +1,28 @@
+---
+title: "Reliability for long-form generation"
+description: "Timeouts, retry behaviour and diagnostics tuned for documents that take minutes to produce, plus a substantially smaller initial page load."
+date: "2026-02-14"
+version: "3.2.1"
+tags: ["Reliability", "Performance"]
+---
+
+Generating a full specification is not a request-response interaction; it is a
+sequence of long model calls where any one of them can be slow, rate-limited or
+truncated. This release makes that path survivable.
+
+## Failures that recover instead of ending the run
+
+Every model call now runs under a six-minute ceiling with jittered exponential
+backoff on transient failures, so a rate limit or a slow response is retried on a
+schedule that does not amplify the problem. Requests that were previously abandoned
+now complete.
+
+When a response cannot be parsed, the raw output is retained in full. Diagnosing a
+malformed generation previously meant reproducing it; now the evidence is already
+captured.
+
+## Faster first paint
+
+Heavy components — diagram renderers, result tabs — are loaded on demand rather than
+in the initial bundle, so the workspace becomes interactive well before the parts of
+it you are not looking at have loaded.

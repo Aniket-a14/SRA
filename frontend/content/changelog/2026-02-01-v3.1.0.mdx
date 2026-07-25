@@ -1,0 +1,33 @@
+---
+title: "Infrastructure as code"
+description: "The platform's hosting configuration moves into version-controlled Terraform, making environments reproducible and disaster recovery a documented procedure rather than an exercise in recollection."
+date: "2026-02-01"
+version: "3.1.0"
+tags: ["Infrastructure", "Security"]
+---
+
+Infrastructure configured by hand is understood only by whoever configured it, and
+recovering it after a loss depends on that person's memory. This release moves the
+platform's hosting configuration into code.
+
+## Reproducible environments
+
+A complete Terraform configuration now defines the hosting projects for both the
+application and the API, with variables, outputs and a worked example separated so
+that standing up an environment is a parameter change rather than a rebuild.
+
+The practical effects are the ones that matter during an incident: infrastructure
+changes go through review like any other change, the current state is described by
+something readable, and recovery is a command rather than a reconstruction.
+
+## Security practice, written down
+
+Two operational documents were added and are maintained alongside the code:
+
+- **Encryption** — what is encrypted, with which algorithm, and where the keys live.
+- **Incident response** — severity classification from P0 to P3, with the procedure
+  for each.
+
+Row-level security policies on the database were confirmed active rather than
+assumed, and the content delivery and caching strategy was documented so that
+performance behaviour is intentional rather than emergent.

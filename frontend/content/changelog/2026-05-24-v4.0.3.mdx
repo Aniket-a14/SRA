@@ -1,0 +1,21 @@
+---
+title: "Documentation brought back in line with the platform"
+description: "A maintenance release that reconciles every guide, prerequisite and setup instruction across the monorepo with what the code actually requires."
+date: "2026-05-24"
+version: "4.0.3"
+tags: ["Documentation"]
+---
+
+Documentation drifts more quietly than code. This release audits it against the
+running system rather than against itself.
+
+- Setup, testing and operational guides now use the workspace commands the monorepo
+  actually supports, replacing single-package instructions that no longer worked
+  from the repository root.
+- The Node.js prerequisite is stated once and enforced consistently, so a supported
+  version is unambiguous before installation rather than discovered during it.
+- Broken cross-references in the encryption, incident-response and infrastructure
+  guides were repaired; a runbook that links nowhere is worse than one that is
+  missing, because it is trusted.
+- Every document targets the same release version, so no guide silently describes an
+  older platform.

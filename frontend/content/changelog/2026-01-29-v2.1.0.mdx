@@ -1,0 +1,31 @@
+---
+title: "Interactive diagrams that repair themselves"
+description: "Data flow diagrams become explorable rather than static, export at presentation resolution, and recover automatically from malformed diagram syntax."
+date: "2026-01-29"
+version: "2.1.0"
+tags: ["Diagrams", "Export"]
+---
+
+A diagram in a specification is read more often than the prose around it, and a
+diagram that fails to render takes the credibility of the document with it.
+
+## Explorable, exportable
+
+Data flow diagrams are now interactive: pan, zoom and inspect rather than squint at
+a fixed image. Any diagram exports as a high-resolution image suitable for a
+document or a presentation, without a screenshot.
+
+## Diagrams that repair themselves
+
+Generated diagram syntax occasionally contains errors that prevent rendering
+entirely. Diagrams are now checked before they are presented, and a malformed one is
+repaired automatically and re-rendered.
+
+This matters beyond appearance: the quality evaluation scores what it is shown, so a
+diagram that failed to render used to depress the assessed quality of a document
+whose content was sound.
+
+## Progress worth watching
+
+Loading sequences show the pipeline phase actually in progress, replacing an
+indeterminate spinner during a process that takes minutes.

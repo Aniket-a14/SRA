@@ -1,0 +1,30 @@
+---
+title: "Database layer upgraded for serverless connection behaviour"
+description: "A major ORM upgrade with driver adapters, and a connection strategy that separates pooled application traffic from the direct connections migrations require."
+date: "2026-02-01"
+version: "3.1.1"
+tags: ["Database", "Infrastructure"]
+---
+
+Serverless workloads open and discard database connections far more aggressively
+than long-lived servers, and the same connection string cannot serve both
+application queries and schema migrations correctly.
+
+## Connection strategy
+
+Application queries run through the pooled connection; migrations and any operation
+requiring session state run through a direct one. Configuring both explicitly
+removes a class of failure that presents as intermittent timeouts under load and is
+easy to misread as a capacity problem.
+
+The ORM was upgraded a major version and moved onto driver adapters, with
+configuration centralised so that connection behaviour is defined in one place
+rather than inferred from where the client happens to be constructed.
+
+## Supporting changes
+
+- Infrastructure definitions and container builds were updated for the new runtime
+  requirements, including non-root execution in the image.
+- A supported Node.js version is now declared and enforced by the package manager,
+  so an unsupported runtime fails at install rather than at run time.
+- Transitive dependency advisories were resolved through targeted overrides.

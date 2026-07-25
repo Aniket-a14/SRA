@@ -1,0 +1,35 @@
+---
+title: "Full-stack audit and security hardening"
+description: "A system-wide review across the interface, API, agent orchestration and deployment pipeline, with the findings applied rather than filed."
+date: "2026-01-31"
+version: "3.0.0"
+tags: ["Security", "Architecture"]
+milestone: true
+---
+
+Growth had outpaced structure. This release is the result of auditing the whole
+system at once — interface, API, agent orchestration and deployment — and acting on
+what the audit found.
+
+## Consistent, authenticated API access
+
+Every authenticated request now goes through a single client path that handles token
+attachment and cross-site request forgery protection. Previously each call site
+implemented its own approach, which meant a new call site could omit a protection
+without anything failing.
+
+Cross-site request forgery protection is mandatory in production: the application
+refuses to start without its secret configured, rather than starting with the
+protection quietly disabled.
+
+## A workspace that scales with the document
+
+The results view was decomposed into specialised, memoised components. A
+specification with many features previously re-rendered the entire view on any
+change; the sections are now independent, which is what keeps a large document
+responsive to edit.
+
+## Known follow-up
+
+This release introduced a regression in project creation, corrected in 3.0.9 the
+following day.
