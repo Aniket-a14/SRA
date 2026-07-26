@@ -18,6 +18,7 @@ import { buildModelOptions } from "@/lib/models"
 import { listFormatSpecs } from "@/lib/formats"
 import { runValidation } from "@/lib/analysis-api"
 import { requestNotificationPermission } from "@/lib/notifications"
+import { useModelQuota, describeQuota, quotaKey } from "@/lib/model-quota"
 
 // No model id is hardcoded here — the picker fills modelName in from the models the
 // user's own provider keys expose (see buildModelOptions + NEXT_PUBLIC_GEMINI_MODELS).
@@ -70,6 +71,7 @@ function NewAnalysisContent() {
     const [keysLoaded, setKeysLoaded] = useState(false)
     const [contextProjectName, setContextProjectName] = useState<string>("")
     const [isAnalyzing, setIsAnalyzing] = useState(false)
+    const { quota } = useModelQuota()
     const textareaRef = useRef<HTMLTextAreaElement>(null)
 
     useEffect(() => {
@@ -288,11 +290,32 @@ function NewAnalysisContent() {
                                         <div className="px-2 py-1.5 text-xs text-muted-foreground">
                                             Add a provider key in Settings
                                         </div>
-                                    ) : modelOptions.map(m => (
-                                        <SelectItem key={`${m.provider}:${m.value}`} value={m.value}>
-                                            {m.label}{m.hint ? ` · ${m.hint}` : ""}
-                                        </SelectItem>
-                                    ))}
+                                    ) : modelOptions.map(m => {
+                                        const q = quota[quotaKey(m.provider, m.value)]
+                                        const note = describeQuota(q)
+                                        return (
+                                            <SelectItem
+                                                key={`${m.provider}:${m.value}`}
+                                                value={m.value}
+                                                // Out of quota means the run would die partway
+                                                // through, so the choice is removed rather than
+                                                // merely warned about.
+                                                disabled={q?.isExhausted}
+                                            >
+                                                <span className="flex flex-col items-start gap-0.5">
+                                                    <span>{m.label}{m.hint ? ` · ${m.hint}` : ""}</span>
+                                                    {note && (
+                                                        <span className={cn(
+                                                            "text-[10px]",
+                                                            q?.isExhausted ? "text-destructive" : "text-muted-foreground"
+                                                        )}>
+                                                            {note}
+                                                        </span>
+                                                    )}
+                                                </span>
+                                            </SelectItem>
+                                        )
+                                    })}
                                 </SelectContent>
                             </Select>
 

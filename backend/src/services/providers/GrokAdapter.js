@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { getDefaultModel } from '../../config/models.js';
 import { assertNotTruncated } from '../../utils/truncationError.js';
+import { parseRateLimitHeaders } from '../../utils/rateLimitHeaders.js';
 
 /** Resolved from GROK_MODEL_NAME at call time — no model id is hardcoded here. */
 const DEFAULT_MODEL = () => getDefaultModel('GROK');
@@ -15,10 +16,12 @@ export class GrokAdapter {
             throw new Error('Grok API key is required — add one in Settings before selecting Grok as the provider.');
         }
         this.client = new OpenAI({ apiKey, baseURL: XAI_BASE_URL });
+        /** Rate-limit figures from the last response; null when xAI sends none. */
+        this.lastRateLimit = null;
     }
 
     async generateContent({ prompt, systemInstruction, temperature, maxOutputTokens, jsonMode, modelName }) {
-        const completion = await this.client.chat.completions.create({
+        const { data: completion, response } = await this.client.chat.completions.create({
             model: modelName || DEFAULT_MODEL(),
             messages: [
                 ...(systemInstruction ? [{ role: 'system', content: systemInstruction }] : []),
@@ -27,7 +30,10 @@ export class GrokAdapter {
             temperature,
             max_tokens: maxOutputTokens,
             response_format: jsonMode ? { type: 'json_object' } : undefined
-        });
+        }).withResponse();
+
+        this.lastRateLimit = parseRateLimitHeaders(response?.headers);
+
         assertNotTruncated(completion.choices[0]?.finish_reason, {
             provider: 'Grok',
             modelName: modelName || DEFAULT_MODEL(),

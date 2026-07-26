@@ -17,8 +17,7 @@ import {
     expandFeatureSchema,
     repairDiagramSchema,
     generateDFDSchema,
-    deleteAnalysisSchema
-} from '../utils/validationSchemas.js';
+    deleteAnalysisSchema, resumeAnalysisSchema } from '../utils/validationSchemas.js';
 
 const router = express.Router();
 
@@ -35,7 +34,7 @@ router.get('/:id', validate(getAnalysisSchema), getAnalysis);
 router.put('/:id', validate(updateAnalysisSchema), updateAnalysis);
 router.delete('/:id', requireScope('admin'), validate(deleteAnalysisSchema), deleteAnalysis);
 router.post('/:id/regenerate', validate(regenerateSchema), regenerate);
-router.post('/:id/resume', validate(idParamSchema), resumeAnalysis);
+router.post('/:id/resume', validate(resumeAnalysisSchema), resumeAnalysis);
 router.post('/:id/validate', validate(idParamSchema), validateAnalysis);
 router.post('/:id/finalize', validate(idParamSchema), finalizeAnalysis);
 router.post('/:id/auto-fix', validate(autoFixSchema), autoFixValidationIssue);

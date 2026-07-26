@@ -15,6 +15,13 @@ export class GeminiAdapter {
     // path, which never actually calls out.
     constructor(apiKey = null) {
         this.client = apiKey ? new GoogleGenerativeAI(apiKey) : genAI;
+        /**
+         * Always null for Gemini, and deliberately present anyway so every adapter has the
+         * same surface. Gemini sends no rate-limit headers and offers no usage endpoint — its
+         * 429 points at the AI Studio dashboard — so the only figure available is the one
+         * modelQuotaService counts, which is why Gemini rows are recorded as COUNTED.
+         */
+        this.lastRateLimit = null;
     }
 
     async generateContent({ prompt, systemInstruction, temperature, maxOutputTokens, jsonMode, responseSchema, modelName }) {

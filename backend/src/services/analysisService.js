@@ -113,10 +113,13 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         // run shares one provider so a mid-pipeline mismatch (e.g. PO on Claude, Architect on
         // Gemini) can't happen. Throws early with a clear message if a non-Gemini provider
         // was selected without a configured key, rather than silently falling back to Gemini.
-        const { provider, apiKey, modelName } = process.env.MOCK_AI === 'true'
+        const { provider, apiKey, modelName, inputTokenLimit, outputTokenLimit } = process.env.MOCK_AI === 'true'
             ? { provider: 'GEMINI', apiKey: null, modelName: null }
             : await resolveProviderKey(userId, settings.modelProvider, settings.modelName);
-        providerConfig = { provider, apiKey, modelName };
+        // userId rides along so every agent call can be attributed to the key it spends —
+        // quota is tracked per user per model, which is what lets the picker say *which*
+        // model is out and lets a failed run be resumed on a different one.
+        providerConfig = { provider, apiKey, modelName, inputTokenLimit, outputTokenLimit, userId };
 
         // Provider-aware cooldown: the sleeps below exist only to respect Gemini free-tier
         // RPM limits. On a paid BYOK provider (or paid Gemini tier) they'd be dead latency,

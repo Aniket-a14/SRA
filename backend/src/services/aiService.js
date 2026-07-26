@@ -5,6 +5,8 @@ import { AnalysisResultSchema } from "../utils/schemas.js";
 import { sanitizePII } from "../utils/sanitizer.js";
 import { repairAndParseJSON } from "../utils/jsonRepair.js";
 import { isExhaustedQuota, buildExhaustedQuotaError } from "../utils/quotaErrors.js";
+import { parseQuotaFailure, isPerDayQuota } from "../utils/rateLimitHeaders.js";
+import { recordUsage, recordExhausted } from "./providers/modelQuotaService.js";
 import logger from "../config/logger.js";
 import { OUTPUT_TOKEN_LIMITS, TEMPERATURES, resolveOutputTokenLimits, clampOutputTokens } from "../utils/llmGenerationConfig.js";
 
@@ -170,6 +172,14 @@ ${text}
         responseSchema: settings.responseSchema,
         modelName
       }), timeoutMs);
+
+      // Observation of the call, never part of it — see modelQuotaService.
+      void recordUsage({
+        userId: settings.userId,
+        provider: normalizedProvider,
+        modelName,
+        rateLimit: adapter.lastRateLimit
+      });
       break;
     } catch (error) {
       // ... retry logic remains ...
@@ -183,6 +193,16 @@ ${text}
       // the remaining attempts (and, on serverless, the function's execution budget).
       if (isExhaustedQuota(error)) {
         logger.error({ msg: "[AI Service] Daily quota exhausted — not retrying", model: modelName });
+        const { limit, retryAfterMs } = parseQuotaFailure(error);
+        void recordExhausted({
+          userId: settings.userId,
+          provider: normalizeProvider(modelProvider),
+          modelName,
+          limit,
+          retryAfterMs,
+          perDay: isPerDayQuota(error),
+          message: error.message
+        });
         throw buildExhaustedQuotaError(error, modelName);
       }
 

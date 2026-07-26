@@ -1,5 +1,5 @@
 import express from 'express';
-import { getProviderKeys, putProviderKey, removeProviderKey, verifyProviderKey, refreshProviderKeyModels } from '../controllers/settingsController.js';
+import { getProviderKeys, putProviderKey, removeProviderKey, verifyProviderKey, refreshProviderKeyModels, getModelQuota } from '../controllers/settingsController.js';
 import { authenticate, requireScope } from '../middleware/authMiddleware.js';
 import { validate } from '../middleware/validationMiddleware.js';
 import { providerKeyBodySchema, providerParamSchema, verifyProviderKeySchema } from '../utils/validationSchemas.js';
@@ -12,6 +12,8 @@ router.use(authenticate);
 // ordinary; writing, replacing or deleting one requires 'admin', so a CI key that runs
 // analyses cannot swap out the credential those analyses are charged to.
 router.get('/provider-keys', getProviderKeys);
+// Read-only view of what is left; no scope gate, since it discloses no credential.
+router.get('/model-quota', getModelQuota);
 router.post('/provider-keys/verify', requireScope('admin'), validate(verifyProviderKeySchema), verifyProviderKey);
 router.put('/provider-keys', requireScope('admin'), validate(providerKeyBodySchema), putProviderKey);
 router.post('/provider-keys/:provider/refresh', requireScope('admin'), validate(providerParamSchema), refreshProviderKeyModels);

@@ -57,6 +57,7 @@ model User {
   sessions     Session[]
   providerKeys UserProviderKey[]
   auditLogs    AuditLog[]
+  modelQuotas  ModelQuotaState[]
 
   @@index([deletedAt])
 }
@@ -274,5 +275,64 @@ model UserProviderKey {
   user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, provider])
+  @@index([userId])
+}
+
+/// Where a quota reading came from. The distinction is the whole point of the model: one of
+/// these is the provider's own number and one is our arithmetic, and the UI must not present
+/// them as equally trustworthy.
+enum QuotaSource {
+  /// Read from rate-limit response headers. Authoritative, and automatically correct for
+  /// whatever tier the key is on — OpenAI (`x-ratelimit-*-requests`) and Anthropic
+  /// (`anthropic-ratelimit-requests-*`) both report limit, remaining and reset on every call.
+  PROVIDER
+  /// Counted by us, because the provider reports nothing. Gemini has no usage endpoint and no
+  /// rate-limit headers — its 429 points at the AI Studio dashboard — so the only number
+  /// available is how many calls *this platform* made. A key also used elsewhere makes that a
+  /// lower bound, never an exact remaining.
+  COUNTED
+}
+
+/// What we know about a model's remaining allowance, per user, per model.
+///
+/// Per model rather than per key because that is how the limits are actually enforced: Gemini's
+/// RPD is per-model-per-day, and Anthropic/OpenAI publish separate per-model limits. It is also
+/// what makes "this one is spent, pick another" a real remedy.
+model ModelQuotaState {
+  id             String      @id @default(uuid())
+  userId         String
+  provider       AiProvider
+  modelName      String
+
+  source         QuotaSource
+
+  /// Requests allowed in the window. From headers where the provider sends them, otherwise
+  /// learned from a 429's `quotaValue` — null until we have seen either.
+  requestLimit     Int?
+  /// Requests left in the window. Provider-reported only; for COUNTED sources the UI derives
+  /// it from `requestLimit - requestsUsed` and labels it as an estimate.
+  requestsRemaining Int?
+  /// Tokens left in the window, where the provider reports them (Anthropic and OpenAI do).
+  tokensRemaining  Int?
+
+  /// Calls made through SRA during `usageDate`; the only signal available for COUNTED sources.
+  requestsUsed   Int         @default(0)
+  /// The Pacific-time date `requestsUsed` belongs to, as YYYY-MM-DD. Gemini's RPD resets at
+  /// midnight Pacific, so rolling the counter on a UTC date would roll it at the wrong moment.
+  usageDate      String
+
+  /// Set when the provider said the allowance is spent; cleared once past `resetsAt`.
+  exhaustedAt    DateTime?
+  /// When the allowance returns: the provider's reset header, or next midnight Pacific for a
+  /// per-day quota, or now + `retry-after`.
+  resetsAt       DateTime?
+  /// The provider's own words for why it refused, shown verbatim rather than paraphrased.
+  lastErrorText  String?
+
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider, modelName])
   @@index([userId])
 }

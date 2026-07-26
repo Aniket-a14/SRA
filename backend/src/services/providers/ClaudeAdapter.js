@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { getDefaultModel } from '../../config/models.js';
 import { assertNotTruncated } from '../../utils/truncationError.js';
+import { parseRateLimitHeaders } from '../../utils/rateLimitHeaders.js';
 
 /** Resolved from CLAUDE_MODEL_NAME at call time — no model id is hardcoded here. */
 const DEFAULT_MODEL = () => getDefaultModel('CLAUDE');
@@ -11,10 +12,12 @@ export class ClaudeAdapter {
             throw new Error('Claude API key is required — add one in Settings before selecting Claude as the provider.');
         }
         this.client = new Anthropic({ apiKey });
+        /** Rate-limit figures from the last response (anthropic-ratelimit-* headers). */
+        this.lastRateLimit = null;
     }
 
     async generateContent({ prompt, systemInstruction, temperature, maxOutputTokens, jsonMode, modelName }) {
-        const message = await this.client.messages.create({
+        const { data: message, response } = await this.client.messages.create({
             model: modelName || DEFAULT_MODEL(),
             max_tokens: maxOutputTokens || 4096,
             // Disabled rather than adaptive: this call is used for structured JSON
@@ -31,7 +34,9 @@ export class ClaudeAdapter {
                         : prompt
                 }
             ]
-        });
+        }).withResponse();
+
+        this.lastRateLimit = parseRateLimitHeaders(response?.headers);
 
         assertNotTruncated(message.stop_reason, {
             provider: 'Claude',

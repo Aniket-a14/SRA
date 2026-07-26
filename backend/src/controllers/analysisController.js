@@ -172,7 +172,10 @@ export const deleteAnalysis = async (req, res, next) => {
 export const resumeAnalysis = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const result = await resumeAnalysisJob(req.user.userId, id);
+        // An optional model switch: the usual reason a run died is that the selected model
+        // ran out of daily quota, and the checkpoint is provider-agnostic.
+        const { modelProvider, modelName } = req.body || {};
+        const result = await resumeAnalysisJob(req.user.userId, id, { modelProvider, modelName });
         return successResponse(res, result, 'Analysis resuming');
     } catch (error) {
         next(error);

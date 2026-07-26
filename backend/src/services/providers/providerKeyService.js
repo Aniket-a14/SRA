@@ -62,8 +62,10 @@ export async function resolveProviderKey(userId, provider, requestedModelName = 
  * @param {{ modelProvider?: string, modelName?: string }} [settings]
  */
 export async function resolveProviderForUser(userId, settings = {}) {
-    if (process.env.MOCK_AI === 'true') return {};
-    return resolveProviderKey(userId, settings?.modelProvider, settings?.modelName);
+    // userId is carried on the config even under MOCK_AI so quota attribution and RAG
+    // scoping both have it — the two consumers that must never guess whose data this is.
+    if (process.env.MOCK_AI === 'true') return { userId };
+    return { ...(await resolveProviderKey(userId, settings?.modelProvider, settings?.modelName)), userId };
 }
 
 /**
@@ -81,7 +83,10 @@ export function asAiSettings(providerConfig = {}) {
         // Carried through so service-level calls (which bypass BaseAgent) size their
         // output budget against the same model ceiling the agents use.
         outputTokenLimit: providerConfig?.outputTokenLimit,
-        inputTokenLimit: providerConfig?.inputTokenLimit
+        inputTokenLimit: providerConfig?.inputTokenLimit,
+        // Whose key this spends. analyzeText needs it to attribute quota and to scope RAG;
+        // both fail closed without it rather than guessing.
+        userId: providerConfig?.userId
     };
 }
 

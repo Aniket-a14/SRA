@@ -1,6 +1,8 @@
 import logger from '../config/logger.js';
 import { repairAndParseJSON } from '../utils/jsonRepair.js';
 import { isExhaustedQuota, buildExhaustedQuotaError } from '../utils/quotaErrors.js';
+import { parseQuotaFailure, isPerDayQuota } from '../utils/rateLimitHeaders.js';
+import { recordUsage, recordExhausted } from '../services/providers/modelQuotaService.js';
 import { resolveOutputTokenLimits, clampOutputTokens } from '../utils/llmGenerationConfig.js';
 import { getAdapter, DEFAULT_MODELS, normalizeProvider } from '../services/providers/index.js';
 
@@ -14,7 +16,10 @@ export class BaseAgent {
      */
     constructor(name, providerConfig = {}) {
         this.name = name;
-        const { provider, modelName, apiKey, inputTokenLimit, outputTokenLimit } = providerConfig;
+        const { provider, modelName, apiKey, inputTokenLimit, outputTokenLimit, userId } = providerConfig;
+        // Whose key is being spent. Quota is tracked per user per model, so a run that
+        // cannot say who it is for is simply not counted rather than counted against someone.
+        this.userId = userId || null;
         this.provider = normalizeProvider(provider);
         this._modelName = modelName || null;
         this._apiKey = apiKey;
@@ -124,6 +129,14 @@ export class BaseAgent {
                     responseSchema
                 }), TIMEOUT_MS);
 
+                // Observation of the call, never part of it — see modelQuotaService.
+                void recordUsage({
+                    userId: this.userId,
+                    provider: this.provider,
+                    modelName: this.modelName,
+                    rateLimit: adapter.lastRateLimit
+                });
+
                 if (jsonMode) {
                     return this.parseJSON(text);
                 }
@@ -141,6 +154,16 @@ export class BaseAgent {
                         msg: `[${this.name}] Daily quota exhausted — not retrying`,
                         provider: this.provider,
                         model: this.modelName
+                    });
+                    const { limit, retryAfterMs } = parseQuotaFailure(error);
+                    void recordExhausted({
+                        userId: this.userId,
+                        provider: this.provider,
+                        modelName: this.modelName,
+                        limit,
+                        retryAfterMs,
+                        perDay: isPerDayQuota(error),
+                        message: error.message
                     });
                     throw buildExhaustedQuotaError(error, this.modelName);
                 }

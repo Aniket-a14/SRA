@@ -99,6 +99,22 @@ export const idParamSchema = z.object({
     params: z.object({ id: z.string().uuid("Invalid analysis ID") })
 });
 
+/**
+ * Resume, optionally on a different model.
+ *
+ * Only the model may be changed — not the prompt, the format, or anything else that would
+ * make the already-completed stages in the checkpoint inconsistent with the ones still to run.
+ * Zod strips unknown keys, so that restriction is enforced by omission.
+ */
+export const resumeAnalysisSchema = z.object({
+    params: z.object({ id: z.string().uuid("Invalid analysis ID") }),
+    body: z.object({
+        modelProvider: z.enum(['google', 'gemini', 'openai', 'claude', 'anthropic', 'grok', 'xai',
+                               'GEMINI', 'OPENAI', 'CLAUDE', 'GROK']).optional(),
+        modelName: z.string().min(1).max(200).optional()
+    }).optional()
+});
+
 export const getAnalysisSchema = z.object({
     params: z.object({ id: z.string().uuid("Invalid analysis ID") }),
     query: z.object({ mode: z.string().optional() }).passthrough().optional()

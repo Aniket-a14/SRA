@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import { createNextVersion } from './versioning.js';
 import { assertWithinQuota } from './quotaService.js';
 import { resolveProviderKey } from './providers/providerKeyService.js';
+import { isModelExhausted } from './providers/modelQuotaService.js';
 
 const qstashClient = new Client({
     token: process.env.QSTASH_TOKEN,
@@ -218,7 +219,7 @@ export const enqueueContinuation = async (payload, stage) => {
  * worker; performAnalysis then loads `metadata.checkpoint` and skips the stages that
  * already completed. Ownership + BYOK key are re-validated first.
  */
-export const resumeAnalysisJob = async (userId, analysisId) => {
+export const resumeAnalysisJob = async (userId, analysisId, modelOverride = {}) => {
     if (!BACKEND_URL) throw new Error("BACKEND_URL is not defined");
 
     const analysis = await prisma.analysis.findUnique({
@@ -236,7 +237,17 @@ export const resumeAnalysisJob = async (userId, analysisId) => {
         const err = new Error(`Only a failed analysis can be resumed (current status: ${analysis.status}).`); err.statusCode = 409; throw err;
     }
 
-    const settings = analysis.metadata?.promptSettings || {};
+    const stored = analysis.metadata?.promptSettings || {};
+
+    // Switching model on resume is the remedy for the most common reason a run dies: the
+    // selected model's daily quota ran out partway through. The checkpoint is provider-
+    // agnostic — it holds finished stage *output*, not anything model-specific — so the
+    // remaining stages can be completed by a different model without redoing the earlier ones.
+    const settings = {
+        ...stored,
+        ...(modelOverride.modelProvider ? { modelProvider: modelOverride.modelProvider } : {}),
+        ...(modelOverride.modelName ? { modelName: modelOverride.modelName } : {})
+    };
 
     // BYOK pre-flight (same rule as a fresh submit) — the platform key funds embeddings only.
     if (process.env.MOCK_AI !== 'true') {
@@ -245,13 +256,28 @@ export const resumeAnalysisJob = async (userId, analysisId) => {
         } catch (keyErr) {
             keyErr.statusCode = 400; throw keyErr;
         }
+
+        // Refuse a model we already know is spent, rather than letting the run restart, burn
+        // its checkpoint progress and die at the same wall.
+        if (await isModelExhausted(userId, settings?.modelProvider, settings?.modelName)) {
+            const err = new Error(
+                `${settings.modelName} has no quota left right now. Pick a different model to resume with.`
+            );
+            err.statusCode = 429;
+            throw err;
+        }
     }
 
     // Reset to PENDING so the worker's atomic PENDING → IN_PROGRESS transition fires. The
-    // checkpoint lives in metadata and is intentionally preserved here.
+    // checkpoint lives in metadata and is intentionally preserved here. The chosen model is
+    // persisted so the worker (and any later resume) uses it rather than the original.
     await prisma.analysis.update({
         where: { id: analysisId },
-        data: { status: 'PENDING', title: 'Resuming analysis…' }
+        data: {
+            status: 'PENDING',
+            title: 'Resuming analysis…',
+            metadata: { ...(analysis.metadata || {}), promptSettings: settings }
+        }
     });
     await invalidateUserAnalysesCache(userId);
 

@@ -4,6 +4,7 @@ import { SecuritySettings } from "@/components/security-settings"
 import { ApiKeyManager } from "@/components/api-key-manager"
 import { ProviderKeyManager } from "@/components/provider-key-manager"
 import { PrivacySettings } from "@/components/privacy-settings"
+import { ModelQuotaPanel } from "@/components/model-quota-panel"
 import { useAuth } from "@/lib/auth-context"
 import { redirect } from "next/navigation"
 
@@ -29,6 +30,11 @@ export default function SettingsPage() {
                 <div className="space-y-4">
                     <h2 className="text-xs font-mono uppercase tracking-wide text-muted-foreground">AI providers</h2>
                     <ProviderKeyManager />
+                </div>
+
+                <div className="space-y-4">
+                    <h2 className="text-xs font-mono uppercase tracking-wide text-muted-foreground">Usage &amp; limits</h2>
+                    <ModelQuotaPanel />
                 </div>
 
                 <div className="space-y-4">

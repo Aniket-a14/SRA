@@ -78,11 +78,26 @@ export async function finalizeAnalysis(id: string, token: string) {
     return true;
 }
 
-/** Resume a FAILED analysis from its last checkpoint (re-runs the same analysis id). */
-export async function resumeAnalysis(id: string, token: string) {
+/**
+ * Resume a FAILED analysis from its last checkpoint (re-runs the same analysis id).
+ *
+ * `model` switches provider/model for the remaining stages. The usual reason a run dies is
+ * that the chosen model ran out of daily quota, and the checkpoint holds finished stage
+ * output rather than anything model-specific — so the rest can be completed by another model
+ * without redoing the work already paid for.
+ */
+export async function resumeAnalysis(
+    id: string,
+    token: string,
+    model?: { modelProvider?: string; modelName?: string }
+) {
     const res = await fetch(`${BACKEND_URL}/analyze/${id}/resume`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` }
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(model ?? {})
     });
     await handleResponse(res); // throws if not ok
     return true;

@@ -1,6 +1,21 @@
 import { listProviderKeys, upsertProviderKey, deleteProviderKey, refreshProviderModels } from '../services/providers/providerKeyService.js';
 import { discoverModels, ModelDiscoveryError } from '../services/providers/modelDiscovery.js';
+import { listQuotaStates } from '../services/providers/modelQuotaService.js';
 import { successResponse } from '../utils/response.js';
+
+/**
+ * Per-model quota state, so the picker can grey out a spent model and Settings can show what
+ * is left. Each row carries its `source`: PROVIDER rows are the provider's own headers (and
+ * therefore already correct for the key's tier), COUNTED rows are our own tally because the
+ * provider publishes nothing. The client must label the two differently.
+ */
+export const getModelQuota = async (req, res, next) => {
+    try {
+        return successResponse(res, await listQuotaStates(req.user.userId));
+    } catch (error) {
+        next(error);
+    }
+};
 
 export const getProviderKeys = async (req, res, next) => {
     try {
