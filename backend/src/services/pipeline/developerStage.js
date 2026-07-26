@@ -1,4 +1,5 @@
 import logger from '../../config/logger.js';
+import { createTokenBroadcaster } from './tokenStream.js';
 
 export const FEATURE_CHUNK_SIZE = 2;
 
@@ -38,58 +39,70 @@ export async function generateSrsSections({
             { profile: 'developer', noSchema: true }
         )
     ]);
+    // Relays the prose out of each section's JSON token stream to the live progress channel.
+    const tokens = createTokenBroadcaster(emitProgress);
     const developerPromptSettings = {
         projectName,
         version: promptVersion,
         ragContext,
         systemInstruction: developerSystemInstruction,
-        appendicesSystemInstruction
+        appendicesSystemInstruction,
+        onStream: tokens.onStream
     };
 
-    logger.info("--> Agent: Developer (Sectional Generation: Shell)");
-    emitProgress('developer_shell', 'Drafting the SRS shell (introduction, scope, overview)...');
-    const srsShell = await devAgent.generateShell(text, poOutput, archOutput, developerPromptSettings);
+    try {
+        logger.info("--> Agent: Developer (Sectional Generation: Shell)");
+        emitProgress('developer_shell', 'Drafting the SRS shell (introduction, scope, overview)...');
+        tokens.newDocument();
+        const srsShell = await devAgent.generateShell(text, poOutput, archOutput, developerPromptSettings);
 
-    await sleep(cooldownMs); // Cooling period
+        await sleep(cooldownMs); // Cooling period
 
-    logger.info("--> Agent: Developer (Sectional Generation: Features)");
-    emitProgress('developer_features', `Writing system features (0/${featureList.length})...`);
-    let allFeatures = [];
+        logger.info("--> Agent: Developer (Sectional Generation: Features)");
+        emitProgress('developer_features', `Writing system features (0/${featureList.length})...`);
+        let allFeatures = [];
 
-    for (let i = 0; i < featureList.length; i += FEATURE_CHUNK_SIZE) {
-        const chunk = featureList.slice(i, i + FEATURE_CHUNK_SIZE);
-        logger.info(`    [Features] Processing chunk ${Math.floor(i / FEATURE_CHUNK_SIZE) + 1}/${Math.ceil(featureList.length / FEATURE_CHUNK_SIZE)}`);
-        const featuresOutput = await devAgent.generateFeatures(text, srsShell, poOutput, archOutput, chunk, developerPromptSettings);
-        if (featuresOutput.systemFeatures) {
-            allFeatures = [...allFeatures, ...featuresOutput.systemFeatures];
+        for (let i = 0; i < featureList.length; i += FEATURE_CHUNK_SIZE) {
+            const chunk = featureList.slice(i, i + FEATURE_CHUNK_SIZE);
+            logger.info(`    [Features] Processing chunk ${Math.floor(i / FEATURE_CHUNK_SIZE) + 1}/${Math.ceil(featureList.length / FEATURE_CHUNK_SIZE)}`);
+            tokens.newDocument();
+            const featuresOutput = await devAgent.generateFeatures(text, srsShell, poOutput, archOutput, chunk, developerPromptSettings);
+            if (featuresOutput.systemFeatures) {
+                allFeatures = [...allFeatures, ...featuresOutput.systemFeatures];
+            }
+            emitProgress('developer_features', `Writing system features (${Math.min(i + FEATURE_CHUNK_SIZE, featureList.length)}/${featureList.length})...`);
+            if (i + FEATURE_CHUNK_SIZE < featureList.length) {
+                await sleep(cooldownMs); // Delay between feature chunks
+            }
         }
-        emitProgress('developer_features', `Writing system features (${Math.min(i + FEATURE_CHUNK_SIZE, featureList.length)}/${featureList.length})...`);
-        if (i + FEATURE_CHUNK_SIZE < featureList.length) {
-            await sleep(cooldownMs); // Delay between feature chunks
-        }
+
+        await sleep(cooldownMs); // Cooling period
+
+        logger.info("--> Agent: Developer (Sectional Generation: Requirements & Glossary)");
+        emitProgress('developer_requirements', 'Writing functional/non-functional requirements and glossary...');
+        tokens.newDocument();
+        const sections1And2 = { ...srsShell, systemFeatures: allFeatures };
+        const srsRequirements = await devAgent.generateRequirements(text, sections1And2, poOutput, archOutput, developerPromptSettings);
+
+        await sleep(cooldownMs); // Cooling period
+
+        logger.info("--> Agent: Developer (Sectional Generation: Appendices & Diagrams)");
+        emitProgress('developer_appendices', 'Generating appendices and diagrams...');
+        tokens.newDocument();
+        const sections123 = { ...sections1And2, ...srsRequirements };
+        const srsAppendices = await devAgent.generateAppendices(text, sections123, poOutput, archOutput, developerPromptSettings);
+
+        // STITCHING: Assemble the final draft
+        const srsDraft = {
+            ...srsShell,
+            systemFeatures: allFeatures,
+            ...srsRequirements,
+            ...srsAppendices
+        };
+
+        return { srsShell, allFeatures, srsRequirements, srsAppendices, srsDraft };
+    } finally {
+        // A pending flush timer would hold the worker's event loop open past the stage.
+        tokens.clear();
     }
-
-    await sleep(cooldownMs); // Cooling period
-
-    logger.info("--> Agent: Developer (Sectional Generation: Requirements & Glossary)");
-    emitProgress('developer_requirements', 'Writing functional/non-functional requirements and glossary...');
-    const sections1And2 = { ...srsShell, systemFeatures: allFeatures };
-    const srsRequirements = await devAgent.generateRequirements(text, sections1And2, poOutput, archOutput, developerPromptSettings);
-
-    await sleep(cooldownMs); // Cooling period
-
-    logger.info("--> Agent: Developer (Sectional Generation: Appendices & Diagrams)");
-    emitProgress('developer_appendices', 'Generating appendices and diagrams...');
-    const sections123 = { ...sections1And2, ...srsRequirements };
-    const srsAppendices = await devAgent.generateAppendices(text, sections123, poOutput, archOutput, developerPromptSettings);
-
-    // STITCHING: Assemble the final draft
-    const srsDraft = {
-        ...srsShell,
-        systemFeatures: allFeatures,
-        ...srsRequirements,
-        ...srsAppendices
-    };
-
-    return { srsShell, allFeatures, srsRequirements, srsAppendices, srsDraft };
 }

@@ -1,6 +1,7 @@
 import logger from '../../config/logger.js';
 import { getGenerationChunks } from '../../formats/index.js';
 import { normalizeFormatDoc } from '../../formats/normalize.js';
+import { createTokenBroadcaster } from './tokenStream.js';
 
 /**
  * Descriptor-driven generation for non-legacy formats (ISO 29148, Volere, Agile PRD).
@@ -29,26 +30,32 @@ export async function generateFormatDoc({
     projectName, promptVersion, ragContext, sleep, emitProgress, cooldownMs
 }) {
     const chunks = getGenerationChunks(spec);
+    const tokens = createTokenBroadcaster(emitProgress);
     let doc = {};
 
-    for (let i = 0; i < chunks.length; i++) {
-        const sectionIds = chunks[i];
-        logger.info(`--> Agent: Developer (${spec.name} chunk ${i + 1}/${chunks.length}: ${sectionIds.join(', ')})`);
-        emitProgress('developer_format', `Drafting ${spec.name} document (section group ${i + 1}/${chunks.length})...`);
+    try {
+        for (let i = 0; i < chunks.length; i++) {
+            const sectionIds = chunks[i];
+            logger.info(`--> Agent: Developer (${spec.name} chunk ${i + 1}/${chunks.length}: ${sectionIds.join(', ')})`);
+            emitProgress('developer_format', `Drafting ${spec.name} document (section group ${i + 1}/${chunks.length})...`);
+            tokens.newDocument();
 
-        const chunkResult = await devAgent.generateFormatChunk(text, {
-            spec,
-            sectionIds,
-            poOutput,
-            architecture: archOutput,
-            priorSections: doc,
-            settings: { projectName, version: promptVersion, ragContext }
-        });
+            const chunkResult = await devAgent.generateFormatChunk(text, {
+                spec,
+                sectionIds,
+                poOutput,
+                architecture: archOutput,
+                priorSections: doc,
+                settings: { projectName, version: promptVersion, ragContext, onStream: tokens.onStream }
+            });
 
-        // Merge chunk sections into the growing document (top-level keyed by section id).
-        doc = { ...doc, ...chunkResult };
+            // Merge chunk sections into the growing document (top-level keyed by section id).
+            doc = { ...doc, ...chunkResult };
 
-        if (i + 1 < chunks.length) await sleep(cooldownMs);
+            if (i + 1 < chunks.length) await sleep(cooldownMs);
+        }
+    } finally {
+        tokens.clear();
     }
 
     // Canonicalise attributes the schema can only *ask* for — the non-Gemini providers get no

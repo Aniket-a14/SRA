@@ -86,7 +86,8 @@ ${rawInput}
 
     return this.callLLM(prompt, TEMPERATURES.developer, true, SRSShellSchema, 3, 5000, {
       systemInstruction,
-      maxOutputTokens: this.tokenLimits.srsShell
+      maxOutputTokens: this.tokenLimits.srsShell,
+      onStream: settings.onStream
     });
   }
 
@@ -136,7 +137,8 @@ ${rawInput}
 
     return this.callLLM(prompt, TEMPERATURES.developer, true, SRSFeaturesSchema, 3, 5000, {
       systemInstruction,
-      maxOutputTokens: this.tokenLimits.srsFeatures
+      maxOutputTokens: this.tokenLimits.srsFeatures,
+      onStream: settings.onStream
     });
   }
 
@@ -186,7 +188,8 @@ ${rawInput}
 
     return this.callLLM(prompt, TEMPERATURES.developerRequirements, true, SRSRequirementsSchema, 3, 5000, {
       systemInstruction,
-      maxOutputTokens: this.tokenLimits.srsRequirements
+      maxOutputTokens: this.tokenLimits.srsRequirements,
+      onStream: settings.onStream
     });
   }
 
@@ -239,7 +242,8 @@ ${rawInput}
 
     return this.callLLM(prompt, TEMPERATURES.developer, true, SRSAppendicesSchema, 3, 5000, {
       systemInstruction,
-      maxOutputTokens: this.tokenLimits.srsAppendices
+      maxOutputTokens: this.tokenLimits.srsAppendices,
+      onStream: settings.onStream
     });
   }
 
@@ -320,7 +324,8 @@ ${rawInput}
 
     return this.callLLM(prompt, TEMPERATURES.developer, true, schema, 3, 5000, {
       systemInstruction,
-      maxOutputTokens: this.tokenLimits.srsRequirements
+      maxOutputTokens: this.tokenLimits.srsRequirements,
+      onStream: settings.onStream
     });
   }
 

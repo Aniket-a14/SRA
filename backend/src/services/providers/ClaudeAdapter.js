@@ -50,21 +50,43 @@ export class ClaudeAdapter {
             .join('');
     }
 
-    /** Plain-text token stream for conversational replies (ChatAgent.chatStream) — jsonMode is never used here. */
-    async *generateContentStream({ prompt, systemInstruction, temperature, maxOutputTokens, modelName }) {
+    /** Token stream: plain text for chat replies, JSON for the live SRS drafting view. */
+    async *generateContentStream({ prompt, systemInstruction, temperature, maxOutputTokens, jsonMode, modelName }) {
         const stream = this.client.messages.stream({
             model: modelName || DEFAULT_MODEL(),
             max_tokens: maxOutputTokens || 4096,
             thinking: { type: 'disabled' },
             ...(temperature !== undefined && { temperature }),
             ...(systemInstruction && { system: systemInstruction }),
-            messages: [{ role: 'user', content: prompt }]
+            messages: [
+                {
+                    role: 'user',
+                    content: jsonMode
+                        ? `${prompt}\n\nRespond with valid JSON only — no markdown code fences, no commentary.`
+                        : prompt
+                }
+            ]
         });
+
+        this.lastRateLimit = null;
 
         for await (const event of stream) {
             if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
                 yield event.delta.text;
             }
+        }
+
+        // Read after the loop — MessageStream.response is populated once connected.
+        this.lastRateLimit = parseRateLimitHeaders(stream.response?.headers);
+
+        // JSON only — see the note in GeminiAdapter.generateContentStream.
+        if (jsonMode) {
+            const finished = await stream.finalMessage();
+            assertNotTruncated(finished?.stop_reason, {
+                provider: 'Claude',
+                modelName: modelName || DEFAULT_MODEL(),
+                maxOutputTokens: maxOutputTokens || 4096
+            });
         }
     }
 

@@ -10,6 +10,15 @@ export interface AnalysisProgressEvent {
     terminal?: boolean;
     status?: string;
     resultQuality?: string;
+    /** A slice of readable prose from the drafting stream; carries no `message`. */
+    token?: string;
+    /** The attempt that produced the text so far was abandoned and is being retried. */
+    tokenReset?: boolean;
+}
+
+export interface AnalysisProgress {
+    event: AnalysisProgressEvent | null;
+    text: string;
 }
 
 /**
@@ -106,9 +115,10 @@ export function useAuthFetch() {
  * connects (Redis not configured, network hiccup), that existing polling still
  * eventually shows the completed result.
  */
-export function useAnalysisProgress(id: string | null, active: boolean, onTerminal?: () => void) {
+export function useAnalysisProgress(id: string | null, active: boolean, onTerminal?: () => void): AnalysisProgress {
     const { token } = useAuth();
     const [progress, setProgress] = useState<AnalysisProgressEvent | null>(null);
+    const [text, setText] = useState("");
     const onTerminalRef = useRef(onTerminal);
 
     useEffect(() => {
@@ -130,6 +140,17 @@ export function useAnalysisProgress(id: string | null, active: boolean, onTermin
 
                 await readSSEStream(res, (data) => {
                     const parsed = data as AnalysisProgressEvent;
+
+                    // Token frames carry no message and must not displace the stage label.
+                    if (parsed.tokenReset) {
+                        setText("");
+                        return;
+                    }
+                    if (typeof parsed.token === "string") {
+                        setText(prev => prev + parsed.token);
+                        return;
+                    }
+
                     setProgress(parsed);
                     if (parsed.terminal) onTerminalRef.current?.();
                 }, controller.signal);
@@ -143,5 +164,5 @@ export function useAnalysisProgress(id: string | null, active: boolean, onTermin
         };
     }, [id, token, active]);
 
-    return progress;
+    return { event: progress, text };
 }

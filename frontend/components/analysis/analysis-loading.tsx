@@ -1,7 +1,7 @@
 "use client"
 
 import { motion, AnimatePresence } from "framer-motion"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Sparkles, Brain, Cpu, Database, Network } from "lucide-react"
 
 const messages = [
@@ -13,7 +13,15 @@ const messages = [
     "Optimizing project vision...",
 ]
 
-export function AnalysisLoading({ liveMessage }: { liveMessage?: string | null }) {
+/** How much of the newest text is still "wet" — rendered progressively out of focus. */
+const TAIL_LENGTH = 190
+const TAIL_SEGMENTS = 7
+
+/** Only the drafting stages emit tokens; everything after them audits what was written. */
+const isWritingStage = (stage?: string | null) =>
+    !!stage && (stage.startsWith("developer_") || stage === "drafting")
+
+export function AnalysisLoading({ liveMessage, liveText, liveStage }: { liveMessage?: string | null, liveText?: string, liveStage?: string | null }) {
     const [msgIndex, setMsgIndex] = useState(0)
 
     useEffect(() => {
@@ -26,6 +34,13 @@ export function AnalysisLoading({ liveMessage }: { liveMessage?: string | null }
         }, 3000)
         return () => clearInterval(interval)
     }, [liveMessage])
+
+    const status = liveMessage || messages[msgIndex]
+
+    // The orb covers the stages before drafting, which have nothing to show.
+    if (liveText) {
+        return <StreamingDraft text={liveText} status={status} writing={isWritingStage(liveStage)} />
+    }
 
     return (
         <div className="flex h-[calc(100vh-64px)] w-full items-center justify-center bg-background overflow-hidden relative">
@@ -151,6 +166,134 @@ export function AnalysisLoading({ liveMessage }: { liveMessage?: string | null }
                         style={{ width: "50%" }}
                     />
                 </div>
+            </div>
+        </div>
+    )
+}
+
+// Settled text is sharp; the newest characters grade out of focus toward the caret. Graded in
+// segments because a CSS filter cannot be a gradient and a span per character would thrash.
+// `writing` is false for the audit stages after drafting, which emit no tokens.
+function StreamingDraft({ text, status, writing }: { text: string, status: string, writing: boolean }) {
+    const scrollRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        // Jump, never smooth-scroll — chunks land every ~180ms and animations would queue up.
+        const el = scrollRef.current
+        if (el) el.scrollTop = el.scrollHeight
+    }, [text])
+
+    const showTail = writing && text.length > TAIL_LENGTH
+    const settled = showTail ? text.slice(0, text.length - TAIL_LENGTH) : text
+    const tail = showTail ? text.slice(-TAIL_LENGTH) : ""
+
+    const segments = useMemo(() => {
+        const size = Math.ceil(tail.length / TAIL_SEGMENTS) || 1
+        const out: string[] = []
+        for (let i = 0; i < tail.length; i += size) out.push(tail.slice(i, i + size))
+        return out
+    }, [tail])
+
+    return (
+        <div className="flex h-[calc(100vh-64px)] w-full flex-col items-center bg-background overflow-hidden relative">
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <motion.div
+                    animate={{ scale: [1, 1.15, 1], opacity: [0.06, 0.14, 0.06] }}
+                    transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute -top-1/3 left-1/2 -translate-x-1/2 w-2/3 h-1/2 bg-primary/20 rounded-full blur-[140px]"
+                />
+            </div>
+
+            <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+                className="relative z-10 w-full max-w-2xl px-6 pt-8 pb-4 shrink-0"
+            >
+                <div className="flex items-center gap-2.5">
+                    <motion.span
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                        className="inline-block shrink-0"
+                    >
+                        <Sparkles className="h-3.5 w-3.5 text-primary" />
+                    </motion.span>
+                    <AnimatePresence mode="wait">
+                        <motion.p
+                            key={status}
+                            initial={{ opacity: 0, y: 4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -4 }}
+                            transition={{ duration: 0.35 }}
+                            className="text-xs font-medium text-muted-foreground truncate"
+                        >
+                            {status}
+                        </motion.p>
+                    </AnimatePresence>
+                </div>
+
+                <div className="mt-3 h-px w-full bg-foreground/10 overflow-hidden relative">
+                    <motion.div
+                        className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-primary to-transparent"
+                        animate={{ x: ["-100%", "300%"] }}
+                        transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+                    />
+                </div>
+            </motion.div>
+
+            <div
+                ref={scrollRef}
+                className="relative z-10 w-full max-w-2xl flex-1 overflow-y-auto px-6 pb-10"
+                style={{
+                    maskImage: "linear-gradient(to bottom, transparent 0%, black 8%)",
+                    WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 8%)"
+                }}
+            >
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5 }}
+                    className="whitespace-pre-wrap break-words text-[0.9375rem] leading-7 text-foreground/90"
+                >
+                    {settled}
+                    {segments.map((segment, i) => {
+                        const t = segments.length === 1 ? 0 : i / (segments.length - 1)
+                        return (
+                            <span
+                                key={i}
+                                style={{
+                                    filter: `blur(${(t * t * 2.4).toFixed(2)}px)`,
+                                    opacity: 1 - t * 0.55
+                                }}
+                            >
+                                {segment}
+                            </span>
+                        )
+                    })}
+                    {writing && (
+                        <motion.span
+                            aria-hidden
+                            animate={{ opacity: [1, 0.15, 1] }}
+                            transition={{ duration: 1.1, repeat: Infinity, ease: "easeInOut" }}
+                            className="inline-block w-[2px] h-[1.1em] translate-y-[0.2em] ml-0.5 rounded-full bg-primary"
+                        />
+                    )}
+                </motion.div>
+
+                {/* The shape of the sentences that have not arrived yet. */}
+                {writing && (
+                    <div className="mt-4 space-y-2.5" aria-hidden>
+                        {[88, 96, 62].map((width, i) => (
+                            <motion.div
+                                key={i}
+                                className="h-2.5 rounded-full bg-foreground/10"
+                                style={{ width: `${width}%` }}
+                                animate={{ opacity: [0.3, 0.65, 0.3] }}
+                                transition={{ duration: 1.9, repeat: Infinity, delay: i * 0.22, ease: "easeInOut" }}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     )

@@ -385,7 +385,13 @@ function AnalysisDetailContent() {
         );
 
     if (isActuallyInProgress) {
-        return <AnalysisLoading liveMessage={liveProgress?.message} />
+        return (
+            <AnalysisLoading
+                liveMessage={liveProgress.event?.message}
+                liveText={liveProgress.text}
+                liveStage={liveProgress.event?.stage}
+            />
+        )
     }
 
     if (authLoading || (isLoading && !analysis)) {

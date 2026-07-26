@@ -45,9 +45,11 @@ export class OpenAIAdapter {
         return completion.choices[0].message.content;
     }
 
-    /** Plain-text token stream for conversational replies (ChatAgent.chatStream) — jsonMode is never used here. */
-    async *generateContentStream({ prompt, systemInstruction, temperature, maxOutputTokens, modelName }) {
-        const stream = await this.client.chat.completions.create({
+    /** Token stream: plain text for chat replies, JSON for the live SRS drafting view. */
+    async *generateContentStream({ prompt, systemInstruction, temperature, maxOutputTokens, jsonMode, modelName }) {
+        // withResponse() so a streamed call still records rate-limit headers for the quota service.
+        this.lastRateLimit = null;
+        const { data: stream, response } = await this.client.chat.completions.create({
             model: modelName || DEFAULT_MODEL(),
             messages: [
                 ...(systemInstruction ? [{ role: 'system', content: systemInstruction }] : []),
@@ -55,12 +57,27 @@ export class OpenAIAdapter {
             ],
             temperature,
             max_tokens: maxOutputTokens,
+            response_format: jsonMode ? { type: 'json_object' } : undefined,
             stream: true
-        });
+        }).withResponse();
 
+        this.lastRateLimit = parseRateLimitHeaders(response?.headers);
+
+        let finishReason = null;
         for await (const chunk of stream) {
-            const delta = chunk.choices?.[0]?.delta?.content;
+            const choice = chunk.choices?.[0];
+            if (choice?.finish_reason) finishReason = choice.finish_reason;
+            const delta = choice?.delta?.content;
             if (delta) yield delta;
+        }
+
+        // JSON only — see the note in GeminiAdapter.generateContentStream.
+        if (jsonMode) {
+            assertNotTruncated(finishReason, {
+                provider: 'OpenAI',
+                modelName: modelName || DEFAULT_MODEL(),
+                maxOutputTokens
+            });
         }
     }
 

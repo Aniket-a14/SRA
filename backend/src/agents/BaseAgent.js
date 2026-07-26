@@ -6,6 +6,43 @@ import { recordUsage, recordExhausted } from '../services/providers/modelQuotaSe
 import { resolveOutputTokenLimits, clampOutputTokens } from '../utils/llmGenerationConfig.js';
 import { getAdapter, DEFAULT_MODELS, normalizeProvider } from '../services/providers/index.js';
 
+// One MOCK_AI answer, defined once so the streamed replay and the returned object cannot drift.
+const MOCK_JSON_RESPONSE = {
+    projectTitle: "Mocked Project",
+    scopeSummary: "This is a mocked scope summary for testing purposes.",
+    features: [
+        { name: "Mock Feature", description: "This is a mock description.", priority: "High" }
+    ],
+    userStories: [
+        { role: "As a user", action: "I want to test", benefit: "the system works", acceptanceCriteria: ["Test 1", "Test 2"] }
+    ],
+    // Lead Developer / Architect specific fields
+    systemArchitecture: { tier: "3-tier", components: ["Frontend", "Backend", "DB"] },
+    introduction: { purpose: "Mocked purpose", scope: "Mocked scope" },
+    systemFeatures: [],
+    nonFunctionalRequirements: {
+        performance: ["Fast"],
+        security: ["Secure"]
+    },
+    // Reviewer / Critic specific fields
+    score: 85,
+    status: "APPROVED",
+    feedback: [],
+    overallScore: 90,
+    criticalIssues: [],
+    suggestions: [],
+    scores: {
+        clarity: 90, completeness: 80, conciseness: 90, consistency: 80, correctness: 90, context: 80
+    },
+    // Eval Service (RAG) specific fields
+    faithfulness: 90,
+    contextPrecision: 80,
+    answerRelevancy: 90,
+    reasoning: "Mocked reasoning"
+};
+
+const MOCK_TEXT_RESPONSE = "This is a mocked text response.";
+
 export class BaseAgent {
     /**
      * @param {string} name - agent display name, used only for logging
@@ -59,43 +96,19 @@ export class BaseAgent {
         if (process.env.MOCK_AI === 'true') {
             logger.warn(`[${this.name}] MOCK MODE ACTIVE. Returning dummy response.`);
             await new Promise(resolve => setTimeout(resolve, 100));
-            if (jsonMode) {
-                // Return a generic valid JSON structure that hopefully satisfies most agents
-                return {
-                    projectTitle: "Mocked Project",
-                    scopeSummary: "This is a mocked scope summary for testing purposes.",
-                    features: [
-                        { name: "Mock Feature", description: "This is a mock description.", priority: "High" }
-                    ],
-                    userStories: [
-                        { role: "As a user", action: "I want to test", benefit: "the system works", acceptanceCriteria: ["Test 1", "Test 2"] }
-                    ],
-                    // Lead Developer / Architect specific fields
-                    systemArchitecture: { tier: "3-tier", components: ["Frontend", "Backend", "DB"] },
-                    introduction: { purpose: "Mocked purpose", scope: "Mocked scope" },
-                    systemFeatures: [],
-                    nonFunctionalRequirements: {
-                        performance: ["Fast"],
-                        security: ["Secure"]
-                    },
-                    // Reviewer / Critic specific fields
-                    score: 85,
-                    status: "APPROVED",
-                    feedback: [],
-                    overallScore: 90,
-                    criticalIssues: [],
-                    suggestions: [],
-                    scores: {
-                        clarity: 90, completeness: 80, conciseness: 90, consistency: 80, correctness: 90, context: 80
-                    },
-                    // Eval Service (RAG) specific fields
-                    faithfulness: 90,
-                    contextPrecision: 80,
-                    answerRelevancy: 90,
-                    reasoning: "Mocked reasoning"
-                };
+
+            // Replay the canned answer as a stream, so MOCK_AI runs can exercise the live view.
+            if (options.onStream) {
+                const mockPayload = jsonMode ? JSON.stringify(MOCK_JSON_RESPONSE) : MOCK_TEXT_RESPONSE;
+                for (let i = 0; i < mockPayload.length; i += 24) {
+                    await new Promise(resolve => setTimeout(resolve, 15));
+                    options.onStream({ type: 'delta', text: mockPayload.slice(i, i + 24) });
+                }
             }
-            return "This is a mocked text response.";
+
+            // Cloned: agents mutate what they get back, and a shared object would leak edits.
+            if (jsonMode) return structuredClone(MOCK_JSON_RESPONSE);
+            return MOCK_TEXT_RESPONSE;
         }
 
         logger.debug({ msg: `[${this.name}] Calling LLM`, model: this.modelName });
@@ -112,8 +125,11 @@ export class BaseAgent {
         const adapter = this.getAdapter();
 
         while (true) {
+            // Set when the timeout wins the race below, so an abandoned stream stops consuming.
+            let streamAbandoned = false;
+
             try {
-                const text = await callWithTimeout(adapter.generateContent({
+                const request = {
                     prompt,
                     modelName: this.modelName,
                     systemInstruction: options.systemInstruction,
@@ -127,7 +143,24 @@ export class BaseAgent {
                     ),
                     jsonMode,
                     responseSchema
-                }), TIMEOUT_MS);
+                };
+
+                // A mode of callLLM, not a separate method: the retry/backoff/quota handling
+                // around it is unchanged, so a rate limit mid-draft is still survivable.
+                const consumeStream = async () => {
+                    let full = '';
+                    for await (const chunk of adapter.generateContentStream(request)) {
+                        if (streamAbandoned) break;
+                        full += chunk;
+                        options.onStream({ type: 'delta', text: chunk });
+                    }
+                    return full;
+                };
+
+                const text = await callWithTimeout(
+                    options.onStream ? consumeStream() : adapter.generateContent(request),
+                    TIMEOUT_MS
+                );
 
                 // Observation of the call, never part of it — see modelQuotaService.
                 void recordUsage({
@@ -143,6 +176,7 @@ export class BaseAgent {
                 return text;
 
             } catch (error) {
+                streamAbandoned = true;
                 const isTimeout = error.message === "AI Request Timeout";
                 const { isRateLimit, isServerError } = isTimeout ? {} : adapter.classifyError(error);
 
@@ -180,6 +214,9 @@ export class BaseAgent {
                         retries,
                         nextRetryIn: Math.round(finalDelay)
                     });
+
+                    // Drop what the abandoned attempt drew; the retry's tokens must not append to it.
+                    options.onStream?.({ type: 'reset' });
 
                     await new Promise(resolve => setTimeout(resolve, finalDelay));
                     delay *= 2;

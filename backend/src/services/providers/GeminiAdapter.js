@@ -49,17 +49,33 @@ export class GeminiAdapter {
         return result.response.text();
     }
 
-    /** Plain-text token stream for conversational replies (ChatAgent.chatStream) — jsonMode is never used here. */
-    async *generateContentStream({ prompt, systemInstruction, temperature, maxOutputTokens, modelName }) {
+    /** Token stream: plain text for chat replies, JSON for the live SRS drafting view. */
+    async *generateContentStream({ prompt, systemInstruction, temperature, maxOutputTokens, jsonMode, responseSchema, modelName }) {
         const model = this.client.getGenerativeModel({
             model: modelName || DEFAULT_MODEL(),
             ...(systemInstruction && { systemInstruction }),
-            generationConfig: { temperature, maxOutputTokens, responseMimeType: 'text/plain' }
+            generationConfig: {
+                temperature,
+                maxOutputTokens,
+                responseMimeType: jsonMode ? 'application/json' : 'text/plain',
+                ...(responseSchema && { responseSchema })
+            }
         });
-        const { stream } = await model.generateContentStream(prompt);
+        const { stream, response } = await model.generateContentStream(prompt);
         for await (const chunk of stream) {
             const text = chunk.text();
             if (text) yield text;
+        }
+
+        // JSON only: a truncated payload would be "repaired" into a valid but shorter document,
+        // whereas a chat reply that runs long is just a long reply.
+        if (jsonMode) {
+            const finished = await response;
+            assertNotTruncated(finished?.candidates?.[0]?.finishReason, {
+                provider: 'Gemini',
+                modelName: modelName || DEFAULT_MODEL(),
+                maxOutputTokens
+            });
         }
     }
 
