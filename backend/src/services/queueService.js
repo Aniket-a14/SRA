@@ -11,6 +11,29 @@ const qstashClient = new Client({
     token: process.env.QSTASH_TOKEN,
 });
 
+// Which QStash endpoint this actually resolved to.
+//
+// QStash is regional and there is no global router: `https://qstash.upstash.io` IS the
+// eu-central-1 endpoint, and it is what the SDK falls back to when QSTASH_URL is unset. A
+// us-east-1 account therefore authenticates against the wrong region by default and every
+// publish fails with "user … not found in this region" — a message that reads like a bad
+// credential and is not one. Setting QSTASH_URL is what picks the region; the us-east-1
+// endpoint is `https://qstash-us-east-1.upstash.io`.
+//
+// Passing `token` alone also does not mean the SDK uses it: `resolveCredentials` only honours
+// a config token verbatim when `baseUrl` is supplied alongside it. Otherwise it reads
+// QSTASH_REGION and, if the matching <REGION>_QSTASH_URL / <REGION>_QSTASH_TOKEN pair exists,
+// uses those instead — silently replacing the token on the line above.
+//
+// Both failures are invisible from our own configuration, so log the resolved endpoint once
+// at boot and make it a glance rather than an excavation. The token is never logged.
+log.info({
+    msg: 'QStash client initialised',
+    baseUrl: qstashClient.http?.baseUrl,
+    region: process.env.QSTASH_REGION || 'unset (defaults to eu-central-1)',
+    tokenConfigured: Boolean(process.env.QSTASH_TOKEN)
+});
+
 const BACKEND_URL = process.env.BACKEND_URL;
 
 export const addAnalysisJob = async (userId, text, projectId, settings, parentId = null, rootId = null) => {
@@ -163,11 +186,23 @@ export const addAnalysisJob = async (userId, text, projectId, settings, parentId
         log.info({ msg: "Job sent to QStash", jobId: result.messageId, analysisId: newId });
         return { id: newId, status: 'PENDING' };
     } catch (error) {
-        log.error({ msg: "Failed to send job to QStash", error: error.message });
-        // Optional: Update status to FAILED if QStash fails
+        log.error({ msg: "Failed to send job to QStash", error: error.message, analysisId: newId });
+        // Record *why*, not just that it failed. This path used to write a bare `FAILED` with
+        // no reason, so a dispatch outage (an expired QSTASH_TOKEN, QStash unreachable) was
+        // indistinguishable in the UI from a model that ran and gave up — the actual cause was
+        // only recoverable from the platform logs. The in-process path already stored a reason;
+        // this one did not. The provider's raw message stays in the log because it carries
+        // infrastructure identifiers that have no business being rendered to the person who
+        // submitted the analysis.
         await prisma.analysis.update({
             where: { id: newId },
-            data: { status: 'FAILED' }
+            data: {
+                status: 'FAILED',
+                metadata: {
+                    ...(analysis.metadata || {}),
+                    failureReason: 'Could not queue this analysis for processing. Nothing was wrong with your input — the job queue rejected the request. Retry, and if it keeps happening the queue credentials need attention.'
+                }
+            }
         });
         throw error;
     }
@@ -308,8 +343,31 @@ export const resumeAnalysisJob = async (userId, analysisId, modelOverride = {}) 
     }
 
     const baseUrl = BACKEND_URL.replace(/\/$/, "");
-    const result = await qstashClient.publishJSON({ url: `${baseUrl}/api/worker/process`, body: payload, retries: 3 });
-    log.info({ msg: "Resume job sent to QStash", jobId: result.messageId, analysisId });
+    try {
+        const result = await qstashClient.publishJSON({ url: `${baseUrl}/api/worker/process`, body: payload, retries: 3 });
+        log.info({ msg: "Resume job sent to QStash", jobId: result.messageId, analysisId });
+    } catch (error) {
+        // The row was flipped FAILED → PENDING above so the worker's atomic PENDING →
+        // IN_PROGRESS guard would fire. If the dispatch itself fails there is no worker
+        // coming, and leaving it PENDING is worse than where it started: the analysis sits
+        // there looking queued until the reconciliation sweep, and the resume control is gone
+        // because that only offers itself for FAILED or IN_PROGRESS. Put it back to FAILED so
+        // the row stays honest and the user keeps the one action that can recover it.
+        log.error({ msg: "Failed to send resume job to QStash", error: error.message, analysisId });
+        await prisma.analysis.update({
+            where: { id: analysisId },
+            data: {
+                status: 'FAILED',
+                metadata: {
+                    ...(analysis.metadata || {}),
+                    promptSettings: settings,
+                    failureReason: 'Could not queue this analysis for processing. Nothing was wrong with your input — the job queue rejected the request. Retry, and if it keeps happening the queue credentials need attention.'
+                }
+            }
+        });
+        await invalidateUserAnalysesCache(userId);
+        throw error;
+    }
     return { id: analysisId, status: 'PENDING' };
 };
 

@@ -45,6 +45,14 @@ const envSchema = z.object({
     QSTASH_TOKEN: z.string().min(1, 'QSTASH_TOKEN is required'),
     QSTASH_CURRENT_SIGNING_KEY: z.string().optional(),
     QSTASH_NEXT_SIGNING_KEY: z.string().optional(),
+    // Declared because the QStash SDK reads them whether we mention them or not, and between
+    // them they decide which region a publish is authenticated against. QStash has no global
+    // router: unset means eu-central-1, so a us-east-1 account must set QSTASH_URL to
+    // https://qstash-us-east-1.upstash.io or every publish is rejected as a wrong-region
+    // lookup. An undeclared variable that can redirect the queue is a variable nobody thinks
+    // to check when the queue stops working.
+    QSTASH_URL: z.string().optional(),
+    QSTASH_REGION: z.string().optional(),
 
     // OAuth (optional per-provider; completeness enforced below if partially set)
     GOOGLE_CLIENT_ID: z.string().optional(),
@@ -86,6 +94,16 @@ const checkConditional = (env) => {
         if (!env.BACKEND_URL) errors.push('BACKEND_URL is required in production (QStash callback + signature URL)');
         if (!env.QSTASH_CURRENT_SIGNING_KEY) errors.push('QSTASH_CURRENT_SIGNING_KEY is required in production (worker signature verification)');
         if (!env.QSTASH_NEXT_SIGNING_KEY) errors.push('QSTASH_NEXT_SIGNING_KEY is required in production (worker signature key rotation)');
+
+        // Setting a region without the credential pair it names is worse than not setting it:
+        // the SDK warns and quietly falls back to the default endpoint, so the deployment runs
+        // against an account nobody chose.
+        if (env.QSTASH_REGION) {
+            const prefix = env.QSTASH_REGION.replaceAll('-', '_').toUpperCase();
+            if (!process.env[`${prefix}_QSTASH_URL`] || !process.env[`${prefix}_QSTASH_TOKEN`]) {
+                errors.push(`QSTASH_REGION is set to "${env.QSTASH_REGION}" but ${prefix}_QSTASH_URL and ${prefix}_QSTASH_TOKEN are not both set — the queue would silently fall back to the default endpoint`);
+            }
+        }
     }
 
     // OAuth is optional overall, but a half-configured provider is almost always a mistake.
