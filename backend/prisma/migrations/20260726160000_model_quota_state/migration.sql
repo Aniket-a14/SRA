@@ -30,4 +30,3 @@ CREATE UNIQUE INDEX "ModelQuotaState_userId_provider_modelName_key" ON "ModelQuo
 
 -- AddForeignKey
 ALTER TABLE "ModelQuotaState" ADD CONSTRAINT "ModelQuotaState_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
