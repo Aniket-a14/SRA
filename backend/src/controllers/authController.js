@@ -5,6 +5,7 @@ import { getGithubAuthURL, getGithubTokens, getGithubUser } from '../config/gith
 import { validateSession, rotateSession, revokeSession, getUserSessions } from '../services/auth/sessionService.js';
 import { signToken } from '../config/jwt.js';
 import { createExchangeCode, consumeExchangeCode } from '../services/auth/oauthExchangeService.js';
+import { exportUserData } from '../services/auth/dataExportService.js';
 
 const OAUTH_STATE_COOKIE = 'oauth_state';
 // Exported so authRoutes can point the CSRF guard at the same cookie this controller reads.
@@ -205,6 +206,30 @@ export const getMe = async (req, res, next) => {
     try {
         const user = await getUserById(req.user.userId);
         res.json(user);
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * GET /auth/me/export — the caller's own data, as a downloadable JSON file.
+ *
+ * Satisfies the access and portability rights (GDPR Art. 15/20, CCPA right to know), which
+ * previously had no implementation at all: answering a request meant someone running queries
+ * by hand. Scoped to `req.user.userId` throughout, so it is a self-service export and never
+ * an admin one.
+ */
+export const exportMyData = async (req, res, next) => {
+    try {
+        const data = await exportUserData(req.user.userId);
+
+        // Content-Disposition so a browser saves it rather than rendering it, and no-store
+        // so this response is never held in a shared cache — it is the densest collection of
+        // one user's personal data the API will ever return.
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="sra-export-${Date.now()}.json"`);
+        res.setHeader('Cache-Control', 'no-store');
+        res.status(200).send(JSON.stringify(data, null, 2));
     } catch (error) {
         next(error);
     }

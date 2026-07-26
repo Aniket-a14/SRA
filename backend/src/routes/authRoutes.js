@@ -1,6 +1,6 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
-import { signup, login, googleStart, googleCallback, githubStart, githubCallback, exchangeToken, getMe, refreshToken, logout, getSessions, revokeSessionEndpoint, REFRESH_TOKEN_COOKIE } from '../controllers/authController.js';
+import { signup, login, googleStart, googleCallback, githubStart, githubCallback, exchangeToken, getMe, refreshToken, logout, getSessions, revokeSessionEndpoint, exportMyData, REFRESH_TOKEN_COOKIE } from '../controllers/authController.js';
 import { authenticate } from '../middleware/authMiddleware.js';
 import { loginLimiter } from '../middleware/rateLimiters.js';
 import { validate } from '../middleware/validationMiddleware.js';
@@ -27,6 +27,9 @@ router.get('/github/start', githubStart);
 router.get('/github/callback', githubCallback);
 router.post('/exchange', exchangeToken);
 router.get('/me', authenticate, getMe);
+// Data access/portability (GDPR Art. 15/20). Bearer-authenticated like /me, so it is not
+// reachable with the ambient refresh cookie and needs no CSRF guard.
+router.get('/me/export', authenticate, exportMyData);
 router.post('/refresh', guardRefreshCookie, refreshToken);
 router.post('/logout', guardRefreshCookie, logout);
 router.get('/sessions', authenticate, getSessions);
