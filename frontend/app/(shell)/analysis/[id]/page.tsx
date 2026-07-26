@@ -23,11 +23,27 @@ import { AnalysisConversation } from "@/components/analysis/analysis-conversatio
 import { DocumentCanvas } from "@/components/analysis/document-canvas"
 
 const ImprovementDialog = dynamic(() => import("@/components/improvement-dialog").then(mod => mod.ImprovementDialog))
-const AccordionInput = dynamic(() => import("@/components/analysis/accordion-input").then(mod => mod.AccordionInput))
 const ValidationReport = dynamic(() => import("@/components/analysis/validation-report").then(mod => mod.ValidationReport))
 
+/**
+ * The pre-generation sub-states, all of which render the same screen.
+ *
+ * DRAFT is not a separate "input step": the composer already collected the only two fields
+ * that exist (name + description), so a distinct form layer could only re-ask for them. It
+ * is also where a *failed* check leaves an analysis, which is exactly when the user needs to
+ * see the failure rather than an unexplained blank form.
+ */
+const PRE_GENERATION_STATUSES = new Set(['DRAFT', 'VALIDATING', 'VALIDATED', 'NEEDS_FIX'])
+
 export default function AnalysisDetailPage() {
-    return <AnalysisDetailContent />
+    const params = useParams()
+    const id = params?.id as string
+    // Remount when the analysis changes. This screen keeps a lot of state that belongs to one
+    // specific analysis — unsaved brief edits, validation findings, the chat/document toggle —
+    // and navigating between two of them (proceeding to a run, or picking another from the
+    // sidebar) reuses the component, so without this the next one opens showing the last
+    // one's data. A key is the whole-component version of the reset, and cannot miss a field.
+    return <AnalysisDetailContent key={id} />
 }
 
 function AnalysisDetailContent() {
@@ -119,12 +135,15 @@ function AnalysisDetailContent() {
             setError("");
 
             const metadataStatus = analysis.metadata?.status;
-            if (metadataStatus === 'DRAFT') {
-                unlockAndNavigate(1);
-                setDraftData((analysis.metadata?.draftData as unknown as SRSIntakeModel) || null);
-            } else if (metadataStatus === 'VALIDATING' || metadataStatus === 'VALIDATED' || metadataStatus === 'NEEDS_FIX') {
-                unlockAndNavigate(2);
-                setDraftData((analysis.metadata?.draftData as unknown as SRSIntakeModel) || null);
+            if (PRE_GENERATION_STATUSES.has(metadataStatus || '')) {
+                // One pre-generation step, not two. DRAFT used to route to a separate input
+                // wizard and only the VALIDATED states to the report; a check that failed
+                // left the status at DRAFT, which dumped the user back into a form re-asking
+                // for the brief they had just typed.
+                unlockAndNavigate(metadataStatus === 'DRAFT' ? 1 : 2);
+                // Don't clobber in-progress edits with the polled copy — SWR revalidates on
+                // focus, and overwriting here would discard whatever is being typed.
+                setDraftData(prev => prev ?? ((analysis.metadata?.draftData as unknown as SRSIntakeModel) || null));
                 setValidationIssues(prev => {
                     const next = analysis.metadata?.validationResult?.issues || [];
                     return JSON.stringify(prev) === JSON.stringify(next) ? prev : next;
@@ -207,16 +226,19 @@ function AnalysisDetailContent() {
     const handleDraftUpdate = useCallback((section: string, field: string, value: string) => {
         setDraftData((prev: SRSIntakeModel | null) => {
             const newData = (prev ? { ...prev } : {}) as Record<string, Record<string, { content: string }>>;
-            const sectionData = newData[section] || {};
-            const fieldData = sectionData[field] || { content: "" };
+            const sectionData = { ...(newData[section] || {}) };
 
-            fieldData.content = value;
-            sectionData[field] = fieldData;
+            sectionData[field] = { ...(sectionData[field] || { content: "" }), content: value };
             newData[section] = sectionData;
 
             return newData as unknown as SRSIntakeModel;
         });
     }, []);
+
+    /** The brief is only ever name + description — the two fields the composer collects. */
+    const handleBriefChange = useCallback((field: 'projectName' | 'description', value: string) => {
+        handleDraftUpdate('details', field === 'projectName' ? 'projectName' : 'fullDescription', value);
+    }, [handleDraftUpdate]);
 
     const handleSaveDraft = async () => {
         if (!id || !draftData) return;
@@ -254,8 +276,11 @@ function AnalysisDetailContent() {
 
             mutate(response.data, false);
 
-            setValidationIssues(result.metadata?.validationResult?.issues || []);
-            toast.success("Validation Complete");
+            const found = result.metadata?.validationResult?.issues || [];
+            setValidationIssues(found);
+            toast.success(found.length === 0
+                ? "Checked — nothing to flag."
+                : `Checked — ${found.length} thing${found.length === 1 ? "" : "s"} to look at.`);
         } catch (err: unknown) {
             console.error("Validation failed:", err);
             toast.error("Failed to run validation. Please check your connection and try again.");
@@ -320,25 +345,13 @@ function AnalysisDetailContent() {
                 draft: false
             });
 
-            toast.success("Analysis Generation Started (Layer 3)");
+            toast.success("Generating your specification…");
             router.push(`/analysis/${result.data.id}`);
 
         } catch (e) {
             console.error("Failed to proceed to analysis", e);
             toast.error("Failed to proceed to analysis");
             setIsProceeding(false);
-        }
-    }
-
-    const handleBackToEdit = async () => {
-        try {
-            await updateAnalysis(id, token!, {
-                metadata: { ...analysis?.metadata, status: 'DRAFT' }
-            });
-            mutate();
-        } catch (e) {
-            console.error("Failed to reset draft status", e);
-            toast.error("Failed to go back to editing — please try again.");
         }
     }
 
@@ -458,48 +471,45 @@ function AnalysisDetailContent() {
     const modelStatus = (analysis?.status || '').toUpperCase();
     const metadataStatus = analysis?.metadata?.status;
     const isTerminal = modelStatus === 'COMPLETED' || modelStatus === 'FAILED';
-    const isValidatingOrValidated = metadataStatus === 'VALIDATING' || metadataStatus === 'VALIDATED' || metadataStatus === 'NEEDS_FIX';
 
-    if (metadataStatus === 'DRAFT') {
+    if (PRE_GENERATION_STATUSES.has(metadataStatus || '')) {
+        const validationResult = analysis?.metadata?.validationResult;
+        // A verdict we actually received, as opposed to a check that could not run. Only the
+        // former should drive the findings UI or gate generation.
+        const serviceError = validationResult?.validation_status === 'SERVICE_ERROR'
+            ? (validationResult.service_error || { title: 'Quality check unavailable' })
+            : null;
+        const hasValidated = !!validationResult && !serviceError;
+
         return (
             <div className="min-h-screen flex flex-col bg-background">
                 <div className="border-b border-foreground/10 px-6 py-4 flex items-center justify-between sticky top-0 bg-background z-20">
-                    <div className="flex items-center gap-4">
-                        <Button variant="ghost" size="icon" onClick={() => router.push('/analysis')}><ArrowLeft className="h-4 w-4" /></Button>
-                        <div>
-                            <h1 className="text-xl font-display">{analysis?.title?.replace(" (Draft)", "") || "New Analysis"}</h1>
-                            <span className="text-xs font-mono text-muted-foreground">Editing brief · Layer 1</span>
-                        </div>
-                    </div>
-                    <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="rounded-full" onClick={handleSaveDraft}>
-                            <Save className="h-4 w-4 mr-2" /> Save draft
+                    <div className="flex items-center gap-4 min-w-0">
+                        <Button variant="ghost" size="icon" onClick={() => router.push('/analysis')} aria-label="Back to analyses">
+                            <ArrowLeft className="h-4 w-4" />
                         </Button>
+                        <h1 className="text-xl font-display truncate">
+                            {draftData?.details?.projectName?.content || analysis?.title?.replace(" (Draft)", "") || "New Analysis"}
+                        </h1>
                     </div>
+                    <Button variant="outline" size="sm" className="rounded-full shrink-0" onClick={handleSaveDraft}>
+                        <Save className="h-4 w-4 mr-2" /> Save
+                    </Button>
                 </div>
-                <div className="flex-1 overflow-auto p-6">
-                    <AccordionInput
-                        data={(draftData as unknown as SRSIntakeModel) || {}}
-                        onUpdate={handleDraftUpdate}
-                        onValidate={handleRunValidation}
-                        isValidating={isValidating}
-                    />
-                </div>
-            </div>
-        )
-    }
-
-    if (isValidatingOrValidated) {
-        return (
-            <div className="min-h-screen flex flex-col bg-background">
-                <div className="flex-1 overflow-auto p-6">
+                <div className="flex-1 overflow-auto">
                     <ValidationReport
-                        issues={analysis?.metadata?.validationResult?.issues || []}
+                        issues={validationResult?.issues || []}
                         onProceed={handleProceedToAnalysis}
-                        onEdit={handleBackToEdit}
                         isProceeding={isProceeding}
                         onAutoFix={handleAutoFix}
                         isFixing={isFixing}
+                        projectName={draftData?.details?.projectName?.content || ""}
+                        description={draftData?.details?.fullDescription?.content || ""}
+                        onBriefChange={handleBriefChange}
+                        onRevalidate={handleRunValidation}
+                        isValidating={isValidating}
+                        validationError={serviceError}
+                        hasValidated={hasValidated}
                     />
                 </div>
             </div>

@@ -9,11 +9,11 @@ export const TEMPERATURES = Object.freeze({
 });
 
 /**
- * Static budgets, tuned against a 20k-output reference model. Used verbatim whenever the
- * active model's real ceiling is unknown, so behaviour is unchanged for any caller that
- * does not supply model metadata.
+ * The per-call shapes, tuned against a 20k-output reference model. These express the
+ * *relative* size of each call (a requirements pass needs ~5x a small JSON pass); they are
+ * the basis for the ratios below, not the numbers actually sent to a provider.
  */
-export const OUTPUT_TOKEN_LIMITS = Object.freeze({
+const TUNED_BUDGETS = Object.freeze({
     smallJson: 2048,
     mediumJson: 4096,
     architectSection: 6144,
@@ -24,17 +24,48 @@ export const OUTPUT_TOKEN_LIMITS = Object.freeze({
     srsRefinement: 18000,
 });
 
+/**
+ * Extra room added to every budget for a reasoning model's private thinking.
+ *
+ * The budgets above were tuned when `maxOutputTokens` meant "room for the answer". On a
+ * reasoning model it does not: thinking is billed against the same allowance and is spent
+ * *before* the first visible character, so a budget sized only for the answer truncates
+ * mid-JSON. That is overhead on top of the response, not a floor under it — which is why it
+ * is added rather than maxed, and why it keeps the relative shape of the budgets intact.
+ *
+ * Measured on gemini-3.5-flash: 1,274–1,490 thinking tokens across prompts from a one-line
+ * instruction to a twelve-feature SRS draft, so the cost is roughly fixed rather than
+ * proportional to input. 4,096 leaves headroom for the variance and for longer documents.
+ *
+ * What this fixes: at the old 2,048 `smallJson`, the Layer-2 validation prompt spent 1,490
+ * tokens thinking and needed 625 more for its JSON — finishing `MAX_TOKENS` with unparseable
+ * output on *every* run. That failure pinned every draft in its pre-validation state, so the
+ * user was returned to the brief they had just written and no amount of re-running advanced
+ * it. The same starvation hit the Reviewer at `mediumJson` and failed the reflection loop.
+ */
+const THINKING_HEADROOM = 4096;
+
 /** The output ceiling the constants above were sized for; the basis for the ratios below. */
 const REFERENCE_CEILING = 20000;
 
 /**
- * Each budget as a share of the model's real output ceiling. Derived from the static
- * numbers so the relative shape (a requirements pass gets ~5x a small JSON pass) survives
- * regardless of which model is in use.
+ * Static budgets. Used verbatim whenever the active model's real ceiling is unknown, so a
+ * caller that supplies no model metadata still gets a budget a reasoning model can complete.
+ */
+export const OUTPUT_TOKEN_LIMITS = Object.freeze(
+    Object.fromEntries(
+        Object.entries(TUNED_BUDGETS).map(([key, value]) => [key, value + THINKING_HEADROOM])
+    )
+);
+
+/**
+ * Each budget as a share of the model's real output ceiling. Derived from the tuned numbers
+ * rather than the headroom-inclusive ones, so the headroom is added once — scaling a value
+ * that already contains it would inflate it in proportion to the model's size.
  */
 const BUDGET_RATIOS = Object.freeze(
     Object.fromEntries(
-        Object.entries(OUTPUT_TOKEN_LIMITS).map(([key, value]) => [key, value / REFERENCE_CEILING])
+        Object.entries(TUNED_BUDGETS).map(([key, value]) => [key, value / REFERENCE_CEILING])
     )
 );
 
@@ -62,9 +93,10 @@ export function resolveOutputTokenLimits(outputCeiling) {
         Object.fromEntries(
             Object.entries(BUDGET_RATIOS).map(([key, ratio]) => [
                 key,
-                // Never exceed the ceiling (the API rejects it), never drop below a floor
-                // that would truncate even a trivial response.
-                Math.max(512, Math.min(ceiling, Math.round(ratio * ceiling)))
+                // Scale the answer to the model, then add the thinking overhead — and never
+                // exceed the ceiling, which the API rejects outright. On a model too small to
+                // hold both, the ceiling wins and the call simply has less room to think in.
+                Math.min(ceiling, Math.round(ratio * ceiling) + THINKING_HEADROOM)
             ])
         )
     );

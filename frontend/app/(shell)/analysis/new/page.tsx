@@ -177,18 +177,25 @@ function NewAnalysisContent() {
             const data = json.data || json
             if (data.status === "draft" && data.id) {
                 // This composer is the one and only input layer. Run the Layer-2 quality
-                // gate right here so the user goes straight to the validation report —
-                // previously they hit a second form re-asking for name + description
-                // before they could click "Run validation".
+                // gate right here so the user goes straight to the review screen — there is
+                // no second form re-asking for name + description.
                 toast.loading("Checking your brief for gaps...", { id: loadingToast })
                 try {
-                    await runValidation(data.id, token)
-                    toast.success("Brief captured — reviewing it now.", { id: loadingToast })
+                    const validation = await runValidation(data.id, token)
+                    // A check that cannot run comes back 200 with SERVICE_ERROR in the body,
+                    // not as a thrown error. Reporting that as success sent the user to a
+                    // review screen whose findings were missing with no reason given.
+                    const status = (validation?.data || validation)?.metadata?.validationResult?.validation_status
+                    if (status === 'SERVICE_ERROR') {
+                        toast.warning("Saved your brief — the quality check is unavailable. You can retry it or generate anyway.", { id: loadingToast })
+                    } else {
+                        toast.success("Brief captured — reviewing it now.", { id: loadingToast })
+                    }
                 } catch {
                     // Validation is an AI call and can be rate-limited/unavailable. The draft
                     // is already saved with everything the user typed, so drop them into the
-                    // draft editor (pre-filled) where they can retry the check.
-                    toast.info("Saved your brief — validation is busy, you can retry it here.", { id: loadingToast })
+                    // review screen (pre-filled) where they can retry the check.
+                    toast.warning("Saved your brief — the quality check is busy, you can retry it there.", { id: loadingToast })
                 }
                 router.push(`/analysis/${data.id}`)
             } else {

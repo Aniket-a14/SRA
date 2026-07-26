@@ -173,8 +173,16 @@ export interface Analysis extends AnalysisResult {
         status?: 'DRAFT' | 'VALIDATING' | 'VALIDATED' | 'NEEDS_FIX' | 'COMPLETED'
         draftData?: Record<string, unknown> | null
         validationResult?: {
-            timestamp: Date | string
+            timestamp?: Date | string
             issues: ValidationIssue[]
+            /**
+             * The verdict, or SERVICE_ERROR when the check could not run at all. The two are
+             * not interchangeable: SERVICE_ERROR carries no opinion about the brief, so it
+             * must not be rendered as findings or used to gate generation.
+             */
+            validation_status?: 'PASS' | 'FAIL' | 'CLARIFICATION_REQUIRED' | 'SERVICE_ERROR'
+            service_error?: { title?: string; message?: string }
+            clarification_questions?: string[]
         }
         trigger?: string
         source?: string

@@ -36,18 +36,44 @@ describe('resolveOutputTokenLimits', () => {
 
     it('preserves the relative shape of the budgets across model sizes', () => {
         // A requirements pass must stay the largest and a small JSON pass the smallest,
-        // whatever the ceiling — the prompts are tuned around that proportion.
+        // whatever the ceiling — the prompts are tuned around that proportion. The
+        // comparison is non-strict because the viability floor legitimately collapses the
+        // smaller budgets onto each other on a small model (see the next test).
         for (const ceiling of [8192, 20000, 65536]) {
             const l = resolveOutputTokenLimits(ceiling);
-            expect(l.srsRequirements).toBeGreaterThan(l.srsFeatures);
-            expect(l.srsFeatures).toBeGreaterThan(l.architectSection);
-            expect(l.architectSection).toBeGreaterThan(l.smallJson);
+            expect(l.srsRequirements).toBeGreaterThanOrEqual(l.srsFeatures);
+            expect(l.srsFeatures).toBeGreaterThanOrEqual(l.architectSection);
+            expect(l.architectSection).toBeGreaterThanOrEqual(l.smallJson);
+        }
+
+        // On a large model, where nothing is floored, the ordering is still strict.
+        const large = resolveOutputTokenLimits(65536);
+        expect(large.srsRequirements).toBeGreaterThan(large.srsFeatures);
+        expect(large.srsFeatures).toBeGreaterThan(large.architectSection);
+        expect(large.architectSection).toBeGreaterThan(large.smallJson);
+    });
+
+    it('keeps every budget large enough for a reasoning model to finish', () => {
+        // The bug this guards: a reasoning model bills its private thinking against
+        // maxOutputTokens. Measured on gemini-3.5-flash, the Layer-2 validation prompt spent
+        // 1,490 tokens thinking and needed 625 more for its JSON — so the old 2,048
+        // smallJson budget hit MAX_TOKENS and returned unparseable JSON on every single run.
+        // That failure pinned drafts in their pre-validation state, so the whole flow stalled.
+        const THINKING_OVERHEAD_OBSERVED = 1490;
+
+        for (const limits of [OUTPUT_TOKEN_LIMITS, resolveOutputTokenLimits(65536), resolveOutputTokenLimits(20000)]) {
+            Object.entries(limits).forEach(([name, budget]) => {
+                expect({ name, budget }).toMatchObject({ budget: expect.any(Number) });
+                expect(budget).toBeGreaterThan(THINKING_OVERHEAD_OBSERVED * 2);
+            });
         }
     });
 
-    it('never returns a budget below a usable floor', () => {
-        const limits = resolveOutputTokenLimits(1024);
-        Object.values(limits).forEach((v) => expect(v).toBeGreaterThanOrEqual(512));
+    it('lets the model ceiling override the floor, so the request is never rejected', () => {
+        // A budget above what the model accepts is an API error; a small model simply has
+        // less room to think in. The ceiling has to win.
+        const limits = resolveOutputTokenLimits(2048);
+        Object.values(limits).forEach((v) => expect(v).toBeLessThanOrEqual(2048));
     });
 });
 
