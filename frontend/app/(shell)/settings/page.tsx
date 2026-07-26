@@ -3,6 +3,7 @@
 import { SecuritySettings } from "@/components/security-settings"
 import { ApiKeyManager } from "@/components/api-key-manager"
 import { ProviderKeyManager } from "@/components/provider-key-manager"
+import { PrivacySettings } from "@/components/privacy-settings"
 import { useAuth } from "@/lib/auth-context"
 import { redirect } from "next/navigation"
 
@@ -33,6 +34,11 @@ export default function SettingsPage() {
                 <div className="space-y-4">
                     <h2 className="text-xs font-mono uppercase tracking-wide text-muted-foreground">API access</h2>
                     <ApiKeyManager />
+                </div>
+
+                <div className="space-y-4">
+                    <h2 className="text-xs font-mono uppercase tracking-wide text-muted-foreground">Privacy</h2>
+                    <PrivacySettings />
                 </div>
             </div>
         </div>

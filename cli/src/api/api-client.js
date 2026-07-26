@@ -55,6 +55,15 @@ export function describeError(error) {
     if (error?.response?.status === 429) {
         return 'Rate limited — the platform asked the CLI to slow down. Retry in a moment.';
     }
+    // 403 on a valid key means a missing scope, which is a different fix from a bad key:
+    // the server's message names the scope required, and re-authenticating will not help.
+    // Without this it fell through to the generic handler and read as an auth failure.
+    if (error?.response?.status === 403) {
+        const detail = typeof data === 'object' ? (data?.message || data?.error) : null;
+        return detail
+            ? `Forbidden — ${detail}`
+            : 'Forbidden — this API key is not permitted to perform that operation. Check its scopes in the web app under Settings.';
+    }
 
     if (typeof data === 'string' && data.trim()) return data.trim();
     if (data && typeof data === 'object') {
