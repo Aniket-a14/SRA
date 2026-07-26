@@ -16,7 +16,11 @@ const verifyQStash = async (req, res, next) => {
     // In dev without QStash signatures, verify using a shared secret
     if (process.env.NODE_ENV === 'development' && !req.headers['upstash-signature']) {
         const devToken = req.headers['x-worker-secret'];
-        if (devToken === process.env.QSTASH_TOKEN || process.env.MOCK_QSTASH === 'true') {
+        const devSecret = process.env.QSTASH_TOKEN;
+        // `devToken === devSecret` alone was true when both were undefined — with
+        // QSTASH_TOKEN unset, sending no header at all authenticated as the worker. Requiring
+        // the secret to exist is what makes the comparison mean anything.
+        if ((devSecret && devToken === devSecret) || process.env.MOCK_QSTASH === 'true') {
             return next();
         }
         log.error("Worker endpoint called in dev without valid x-worker-secret header");

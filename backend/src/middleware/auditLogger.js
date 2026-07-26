@@ -1,4 +1,4 @@
-import prisma from '../config/prisma.js';
+import logger from '../config/logger.js';
 
 /**
  * Audit Logger Middleware
@@ -40,14 +40,21 @@ async function logAuditEvent(event) {
             changes: event.changes || null
         };
 
-        console.log('📋 AUDIT LOG:', JSON.stringify(auditEntry));
+        // Emitted through pino rather than console.log so audit records are structured JSON
+        // on one stream with everything else, carry the redaction rules, and are actually
+        // collectable by a log aggregator. console.log wrote `📋 AUDIT LOG: {...}` — a
+        // decorated prefix in front of a JSON blob, which no collector parses as a field.
+        //
+        // `audit: true` is the marker to filter/alert on.
+        logger.info({ audit: true, ...auditEntry }, `AUDIT ${auditEntry.action}`);
 
-        // TODO: Store in database when AuditLog model is added to schema
-        // await prisma.auditLog.create({ data: auditEntry });
-
+        // NOTE: still not persisted. A log stream is evidence for an investigation, but it
+        // is not a queryable, retention-controlled audit trail, which is what SOC 2 / GDPR
+        // Art. 30 actually ask for. Adding an AuditLog model is a schema migration and is
+        // called out in the audit report rather than done silently here.
         return auditEntry;
     } catch (error) {
-        console.error('Failed to log audit event:', error);
+        logger.error({ msg: 'Failed to log audit event', error: error.message });
         // Don't throw - audit logging should never break the main operation
     }
 }

@@ -13,7 +13,7 @@ router.use(authenticate);
 // Get the full Knowledge Graph for a project
 router.get('/:id/graph', async (req, res, next) => {
     try {
-        const graph = await getFullProjectGraph(req.params.id);
+        const graph = await getFullProjectGraph(req.params.id, req.user.userId);
         return successResponse(res, graph, 'Knowledge Graph retrieved successfully');
     } catch (error) {
         next(error);

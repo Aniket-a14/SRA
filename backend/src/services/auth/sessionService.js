@@ -9,7 +9,10 @@ const GEOLOCATION_TIMEOUT_MS = 3000;
 const getLocationFromIp = async (ip) => {
     if (!ip || ip === '::1' || ip === '127.0.0.1') return 'Localhost';
     try {
-        const response = await axios.get(`http://ip-api.com/json/${ip}`, { timeout: GEOLOCATION_TIMEOUT_MS });
+        // `trust proxy` is on, so `ip` derives from X-Forwarded-For — a client-controlled
+        // header. Interpolated raw, a value like `1.2.3.4/../../some/other/path` reshapes the
+        // request path. Encoding pins it to a single path segment.
+        const response = await axios.get(`http://ip-api.com/json/${encodeURIComponent(ip)}`, { timeout: GEOLOCATION_TIMEOUT_MS });
         if (response.data.status === 'success') {
             return `${response.data.city}, ${response.data.country}`;
         }
@@ -103,6 +106,31 @@ export const rotateSession = async (oldSession, newUserAgent, newIp) => {
     });
 
     return newRefreshToken;
+};
+
+/**
+ * Is the session behind an access token still live?
+ *
+ * Called on every bearer-authenticated request (see authMiddleware), so it selects the
+ * three fields the decision needs and nothing else — no `include: { user: true }`, which
+ * would pull the password hash into memory on every request to answer a boolean.
+ *
+ * `userId` is checked too: the session id comes out of a signed token, but binding it back
+ * to the subject means a token can never be presented against a session that has since been
+ * reassigned or that belongs to a different account.
+ */
+export const isSessionActive = async (sessionId, userId) => {
+    if (!sessionId) return false;
+
+    const session = await prisma.session.findUnique({
+        where: { id: sessionId },
+        select: { userId: true, revoked: true, expiresAt: true }
+    });
+
+    if (!session) return false;               // revoked sessions are deleted outright
+    if (session.userId !== userId) return false;
+    if (session.revoked) return false;
+    return new Date() <= session.expiresAt;
 };
 
 export const revokeSession = async (sessionId, userId) => {

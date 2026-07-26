@@ -21,8 +21,17 @@ export const createApiKey = async (userId, name, expiresInDays = 365) => {
         }
     });
 
-    // Return RAW key to user (only once!), store HASH in DB
-    return { ...apiKey, rawKey };
+    // Return the RAW key once (this is the only time it exists outside the caller's hands),
+    // but not the stored SHA-256 `key` column. Spreading the whole row published the hash to
+    // the client and into the response logs of anything in between, for no purpose — nothing
+    // reads it, and `listApiKeys` already withholds it.
+    return {
+        id: apiKey.id,
+        name: apiKey.name,
+        createdAt: apiKey.createdAt,
+        expiresAt: apiKey.expiresAt,
+        rawKey
+    };
 };
 
 export const listApiKeys = async (userId) => {

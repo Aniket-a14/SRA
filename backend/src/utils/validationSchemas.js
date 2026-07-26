@@ -198,6 +198,30 @@ export const generateDFDSchema = z.object({
     })
 });
 
+// POST /validation took `req.body` whole, with no schema at all, and passed it to an LLM.
+// The only guard was Express's 10mb JSON limit, so a caller could post megabytes of
+// arbitrary structure into a paid generation call. `settings` goes through the same shared
+// schema as every other AI route so `systemPrompt`/`apiKey` are stripped here too — this
+// route reads `srsData?.settings` directly and would otherwise be the one way around it.
+export const validateRequirementsSchema = z.object({
+    body: z.object({
+        settings: clientAiSettingsSchema.optional(),
+        details: z.object({
+            projectName: z.object({ content: z.string().max(500).optional() }).passthrough().optional(),
+            fullDescription: z.object({ content: z.string().max(50000).optional() }).passthrough().optional()
+        }).passthrough().optional()
+    }).passthrough()
+});
+
+// POST /reuse/suggest embeds `query` and runs a vector search. Unbounded, it was an
+// embedding call sized by the caller.
+export const reuseSuggestSchema = z.object({
+    body: z.object({
+        query: z.string().min(1, "Search query is required").max(5000),
+        type: z.string().max(100).optional()
+    })
+});
+
 export const providerKeyBodySchema = z.object({
     body: z.object({
         provider: z.enum(['GEMINI', 'OPENAI', 'CLAUDE', 'GROK']),

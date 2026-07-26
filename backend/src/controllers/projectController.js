@@ -1,5 +1,6 @@
 import prisma from '../config/prisma.js';
 import { successResponse } from '../utils/response.js';
+import logger from '../config/logger.js';
 
 export const createProject = async (req, res, next) => {
     try {
@@ -27,18 +28,14 @@ export const createProject = async (req, res, next) => {
 
 export const getProjects = async (req, res, next) => {
     try {
-        console.log("getProjects: Start");
-
+        // This used to log `req.headers` wholesale on the no-user branch, which writes the
+        // caller's `Authorization: Bearer <jwt>` — a live credential — into stdout, where it
+        // is picked up by the platform's log aggregator and retained. Log the fact, never
+        // the headers. (The route is behind `authenticate`, so this branch is unreachable in
+        // practice; it stays as a defensive assertion.)
         if (!req.user || !req.user.userId) {
-            console.error("getProjects: No user in request!", req.headers);
+            logger.error({ msg: 'getProjects reached without a user context', requestId: req.id });
             return res.status(401).json({ error: "User context missing" });
-        }
-
-        console.log("getProjects: Fetching projects for authenticated user");
-
-        if (!prisma) {
-            console.error("getProjects: Prisma instance is null!");
-            throw new Error("Database connection not initialized");
         }
 
         const projects = await prisma.project.findMany({
@@ -51,11 +48,9 @@ export const getProjects = async (req, res, next) => {
             }
         });
 
-        console.log(`getProjects: Found ${projects.length} projects`);
         return successResponse(res, projects);
     } catch (error) {
-        console.error("getProjects: Fatal Error:", error);
-        console.error("getProjects: Stack:", error.stack);
+        // errorHandler already logs the stack at error level with the request id.
         next(error);
     }
 };

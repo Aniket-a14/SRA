@@ -2,6 +2,8 @@ import express from 'express';
 import { validateRequirements } from '../services/validationService.js';
 import { resolveProviderForUser } from '../services/providers/providerKeyService.js';
 import { authenticate } from '../middleware/authMiddleware.js';
+import { validate } from '../middleware/validationMiddleware.js';
+import { validateRequirementsSchema } from '../utils/validationSchemas.js';
 
 const router = express.Router();
 
@@ -10,7 +12,7 @@ const router = express.Router();
 // drain on the platform Gemini quota that BYOK makes unfundable anyway.
 router.use(authenticate);
 
-router.post('/', async (req, res, next) => {
+router.post('/', validate(validateRequirementsSchema), async (req, res, next) => {
     try {
         const srsData = req.body;
 

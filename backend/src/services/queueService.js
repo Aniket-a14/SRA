@@ -296,10 +296,24 @@ const invalidateUserAnalysesCache = async (userId) => {
     } catch { /* cache invalidation is best-effort */ }
 };
 
-export const getJobStatus = async (jobId) => {
-    // Now we can actually query the DB!
-    const analysis = await prisma.analysis.findUnique({
-        where: { id: jobId },
+/**
+ * Poll a job's status and, once finished, its result.
+ *
+ * `userId` is required and filtered in the query. This looked up the row by id alone, and
+ * the row it returns carries `resultJson` — the entire generated SRS. Any authenticated
+ * caller who had an analysis id could therefore read another user's whole document through
+ * the polling endpoint, while every other read path (`getAnalysisById`) checked ownership.
+ * Analysis ids are not a secret: they sit in URLs, in `sra.config.json`, and in the
+ * traceability records the CLI publishes.
+ *
+ * An id belonging to someone else is reported as `unknown`, exactly like an id that does
+ * not exist — a "not yours" answer would still confirm the id is real.
+ */
+export const getJobStatus = async (jobId, userId) => {
+    if (!userId) throw new Error('getJobStatus requires a userId');
+
+    const analysis = await prisma.analysis.findFirst({
+        where: { id: jobId, userId },
         select: {
             status: true,
             resultQuality: true,

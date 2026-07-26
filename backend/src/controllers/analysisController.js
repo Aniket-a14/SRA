@@ -129,7 +129,7 @@ export const analyze = async (req, res, next) => {
 export const checkJobStatus = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const status = await getJobStatus(id);
+        const status = await getJobStatus(id, req.user.userId);
 
         if (!status) {
             const error = new Error('Job not found');
@@ -473,9 +473,13 @@ export const getChatHistory = async (req, res, next) => {
 
         const rootId = analysis.rootId || analysis.id;
 
-        // Find all analyses in this chain
+        // Find all analyses in this chain. Scoped to the caller as well as the chain: a
+        // version tree should only ever contain one user's rows, but this query is what
+        // decides which chat transcripts get returned, and it should not depend on that
+        // invariant holding everywhere it is maintained.
         const chainAnalyses = await prisma.analysis.findMany({
             where: {
+                userId: req.user.userId,
                 OR: [
                     { id: rootId },
                     { rootId: rootId }

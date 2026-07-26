@@ -62,9 +62,14 @@ export const getGoogleTokens = async (code) => {
 
 export const getGoogleUser = async (id_token, access_token) => {
     try {
-        const res = await axios.get(`https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=${access_token}`, {
+        // The access token is sent as a bearer header, not `?access_token=` in the URL.
+        // A query-string credential is written to every access log and proxy along the way,
+        // and leaks via Referer. (The previous call did both: it put the access token in the
+        // URL *and* sent the id_token as the bearer — the header was simply ignored by
+        // Google, since the query parameter is what authenticated the request.)
+        const res = await axios.get('https://www.googleapis.com/oauth2/v1/userinfo?alt=json', {
             headers: {
-                Authorization: `Bearer ${id_token}`,
+                Authorization: `Bearer ${access_token}`,
             },
         });
         return res.data;

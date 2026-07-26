@@ -214,7 +214,34 @@ export const traverseGraph = async (nodeNames, projectId, depth, prismaClient = 
     }
 }
 
-export const getFullProjectGraph = async (projectId) => {
+/**
+ * The knowledge graph for one project.
+ *
+ * `userId` is required and enforced against the owning Project. This took a projectId
+ * alone, so any authenticated caller could read the entity graph of any project — and
+ * that graph is derived from the SRS, so its node names and relations disclose the
+ * substance of another user's document.
+ *
+ * The ownership check is a separate query rather than a filter on GraphNode because a
+ * project with no nodes yet must 404 the same way a project belonging to someone else
+ * does; filtering alone would return an empty graph for both and quietly confirm nothing.
+ */
+export const getFullProjectGraph = async (projectId, userId) => {
+    if (!userId) throw new Error('getFullProjectGraph requires a userId');
+
+    // Outside the try: a 404 here is an authorization outcome, not a database failure, and
+    // must not be swallowed into the generic "Error fetching project graph" error path.
+    const project = await prisma.project.findFirst({
+        where: { id: projectId, userId },
+        select: { id: true }
+    });
+
+    if (!project) {
+        const error = new Error('Project not found or unauthorized');
+        error.statusCode = 404;
+        throw error;
+    }
+
     try {
         const nodes = await prisma.graphNode.findMany({
             where: { projectId }

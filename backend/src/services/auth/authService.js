@@ -4,6 +4,27 @@ import { signToken } from '../../config/jwt.js';
 import { createSession } from './sessionService.js';
 import { encryptData } from '../../utils/dataEncryption.js';
 
+/**
+ * The user fields that may leave the server.
+ *
+ * Every auth entry point used to return the raw Prisma `User` row, and the controllers put
+ * it straight into the response body — so `POST /auth/signup` and `POST /auth/login`
+ * answered with the account's bcrypt `password` hash on success. A hash is not a password,
+ * but it is the material an offline cracking attempt needs, it was handed to anyone who
+ * could log in (including to their own browser's devtools, extensions, and any XSS), and
+ * nothing in the client ever read it.
+ *
+ * This is a projection rather than a `delete user.password`: a field added to the model
+ * later is excluded by default instead of being published until someone remembers it.
+ */
+export const toPublicUser = (user) => user && ({
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    image: user.image,
+    createdAt: user.createdAt
+});
+
 export const registerUser = async (email, password, name, userAgent = null, ip = null) => {
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
@@ -22,7 +43,7 @@ export const registerUser = async (email, password, name, userAgent = null, ip =
     const { refreshToken, sessionId } = await createSession(user.id, userAgent, ip);
     const token = signToken({ userId: user.id, email: user.email, sessionId });
 
-    return { user, token, refreshToken, sessionId };
+    return { user: toPublicUser(user), token, refreshToken, sessionId };
 };
 
 export const loginUser = async (email, password, userAgent = null, ip = null) => {
@@ -39,11 +60,21 @@ export const loginUser = async (email, password, userAgent = null, ip = null) =>
     const { refreshToken, sessionId } = await createSession(user.id, userAgent, ip);
     const token = signToken({ userId: user.id, email: user.email, sessionId });
 
-    return { user, token, refreshToken, sessionId };
+    return { user: toPublicUser(user), token, refreshToken, sessionId };
 };
 
 export const handleGoogleAuth = async (googleUser, tokens, userAgent, ip) => {
-    const { email, name, picture, id } = googleUser;
+    const { email, name, picture, id, verified_email: verifiedEmail } = googleUser;
+
+    // An email address is the sole link between an OAuth identity and an existing account:
+    // the lookup below hands over whatever account already claims this address, including one
+    // created with an email and password. That is only sound if the provider has actually
+    // verified the address, so an unverified one is refused rather than trusted.
+    if (!email || verifiedEmail === false) {
+        const error = new Error('Your Google account has no verified email address. Verify it with Google, then sign in again.');
+        error.statusCode = 400;
+        throw error;
+    }
 
     // 1. Check if user exists by email
     let user = await prisma.user.findUnique({ where: { email } });
@@ -102,7 +133,7 @@ export const handleGoogleAuth = async (googleUser, tokens, userAgent, ip) => {
 
     const { refreshToken, sessionId } = await createSession(user.id, userAgent, ip);
     const token = signToken({ userId: user.id, email: user.email, sessionId });
-    return { user, token, refreshToken, sessionId };
+    return { user: toPublicUser(user), token, refreshToken, sessionId };
 };
 
 export const getUserById = async (userId) => {
@@ -168,5 +199,5 @@ export const handleGithubAuth = async (githubUser, tokens, userAgent, ip) => {
 
     const { refreshToken, sessionId } = await createSession(user.id, userAgent, ip);
     const token = signToken({ userId: user.id, email: user.email, sessionId });
-    return { user, token, refreshToken, sessionId };
+    return { user: toPublicUser(user), token, refreshToken, sessionId };
 };
