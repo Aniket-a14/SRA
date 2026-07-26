@@ -11,7 +11,7 @@ export const suggestReuse = async (req, res, next) => {
             throw error;
         }
 
-        const suggestions = await searchGoldStandardFragments(query, type);
+        const suggestions = await searchGoldStandardFragments(query, type, req.user.userId);
 
         return successResponse(res, {
             suggestions,

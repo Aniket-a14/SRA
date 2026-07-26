@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticate } from '../middleware/authMiddleware.js';
+import { authenticate, requireScope } from '../middleware/authMiddleware.js';
 import { createProject, getProjects, getProject, updateProject, deleteProject } from '../controllers/projectController.js';
 import { getFullProjectGraph } from '../services/knowledge/graphService.js';
 import { successResponse } from '../utils/response.js';
@@ -24,6 +24,6 @@ router.post('/', validate(projectCreateSchema), createProject);
 router.get('/', getProjects);
 router.get('/:id', getProject);
 router.put('/:id', validate(projectUpdateSchema), updateProject);
-router.delete('/:id', deleteProject);
+router.delete('/:id', requireScope('admin'), deleteProject);
 
 export default router;

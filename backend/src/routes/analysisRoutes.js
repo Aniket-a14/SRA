@@ -1,7 +1,7 @@
 import express from 'express';
 import { analyze, getHistory, getAnalysis, chat, chatStream, getChatHistory, updateAnalysis, checkJobStatus, getHistoryForRoot, performComparison, regenerate, finalizeAnalysis, validateAnalysis, expandFeature, repairDiagram, generateDFD, autoFixValidationIssue, deleteAnalysis, resumeAnalysis } from '../controllers/analysisController.js';
 import { streamAnalysisProgress } from '../controllers/streamController.js';
-import { authenticate } from '../middleware/authMiddleware.js';
+import { authenticate, requireScope } from '../middleware/authMiddleware.js';
 
 import { validate } from '../middleware/validationMiddleware.js';
 import {
@@ -33,7 +33,7 @@ router.get('/diff/:id1/:id2', validate(diffParamSchema), performComparison);
 router.get('/:id/stream', validate(idParamSchema), streamAnalysisProgress);
 router.get('/:id', validate(getAnalysisSchema), getAnalysis);
 router.put('/:id', validate(updateAnalysisSchema), updateAnalysis);
-router.delete('/:id', validate(deleteAnalysisSchema), deleteAnalysis);
+router.delete('/:id', requireScope('admin'), validate(deleteAnalysisSchema), deleteAnalysis);
 router.post('/:id/regenerate', validate(regenerateSchema), regenerate);
 router.post('/:id/resume', validate(idParamSchema), resumeAnalysis);
 router.post('/:id/validate', validate(idParamSchema), validateAnalysis);

@@ -2,8 +2,23 @@ import prisma from '../../config/prisma.js';
 import { embedText } from './embeddingService.js';
 import logger from '../../config/logger.js';
 
-export const findReuseCandidate = async (text) => {
+/**
+ * Look for an existing finalized analysis close enough to reuse, referenced or drawn on.
+ *
+ * Scoped to the caller. Unscoped, this compared the submitted text against every finalized
+ * analysis on the platform and returned the winning row's **id** plus a similarity score in
+ * the `POST /analyze` response — so submitting text told you whether any other customer had
+ * a near-identical specification, and handed you the identifier for it.
+ *
+ * @param {string} text
+ * @param {string} userId - required; a reuse candidate is only ever your own prior work
+ */
+export const findReuseCandidate = async (text, userId) => {
     let reuseMetadata = { found: false };
+
+    if (!userId) {
+        throw new Error('findReuseCandidate requires a userId — reuse candidates are scoped to the requesting user');
+    }
 
     try {
         if (process.env.MOCK_AI !== 'true') {
@@ -17,6 +32,7 @@ export const findReuseCandidate = async (text) => {
                     SELECT id, 1 - ("vectorSignature" <=> ${vectorString}::vector) as similarity
                     FROM "Analysis"
                     WHERE "isFinalized" = true
+                    AND "userId" = ${userId}
                     AND "vectorSignature" IS NOT NULL
                     ORDER BY "vectorSignature" <=> ${vectorString}::vector ASC
                     LIMIT 1;

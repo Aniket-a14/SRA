@@ -66,6 +66,15 @@ export const loginSchema = z.object({
     })
 });
 
+// POST /auth/me/restore — cancels a pending account deletion. Takes credentials rather than
+// a bearer token because requesting deletion revokes every session.
+export const restoreAccountSchema = z.object({
+    body: z.object({
+        email: z.string().email("Invalid email format"),
+        password: z.string().min(1, "Password is required")
+    })
+});
+
 export const projectCreateSchema = z.object({
     body: z.object({
         name: z.string().min(1, "Project name is required").max(100),

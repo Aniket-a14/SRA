@@ -1,21 +1,9 @@
 import type { NextConfig } from "next";
 import createMDX from "@next/mdx";
 
-const isProd = process.env.NODE_ENV === 'production';
-
-// 'unsafe-eval' is only needed by Next.js dev-mode Fast Refresh/eval source maps —
-// production builds don't require it. Same for the localhost connect-src allowance,
-// which exists purely so local dev can talk to a local backend.
-const scriptSrc = isProd
-  ? "script-src 'self' 'unsafe-inline' https://vercel.live https://*.vercel.live;"
-  : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://*.vercel.live;";
-
-const connectSrc = isProd
-  ? "connect-src 'self' https://generativelanguage.googleapis.com https://sra-backend-six.vercel.app;"
-  : "connect-src 'self' http://localhost:* https://generativelanguage.googleapis.com https://sra-backend-six.vercel.app;";
-
-const contentSecurityPolicy = `default-src 'self'; ${scriptSrc} frame-src 'self' https://vercel.live https://*.vercel.live; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; ${connectSrc} frame-ancestors 'none';`;
-
+// The Content-Security-Policy is NOT set here any more — it is built per request in
+// middleware.ts, because it carries a nonce and a nonce that is the same on every response
+// is not a nonce. Everything below is static and stays.
 const nextConfig: NextConfig = {
   output: 'standalone',
   async headers() {
@@ -23,10 +11,6 @@ const nextConfig: NextConfig = {
       {
         source: '/:path*',
         headers: [
-          {
-            key: 'Content-Security-Policy',
-            value: contentSecurityPolicy
-          },
           {
             key: 'X-DNS-Prefetch-Control',
             value: 'on'

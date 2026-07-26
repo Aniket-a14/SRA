@@ -31,6 +31,17 @@ const getLocationFromIp = async (ip) => {
  * @param {string} ipAddress - Client IP.
  * @returns {Promise<{refreshToken: string, sessionId: string}>}
  */
+/**
+ * Digest of a refresh token, as stored.
+ *
+ * The token is 40 bytes from a CSPRNG, so there is no low-entropy secret here for anyone to
+ * guess and a plain SHA-256 is the right tool — bcrypt/scrypt would buy nothing and cost a
+ * KDF on every refresh. What this defends is the database at rest: stored in clear text,
+ * `Session.token` made a dump a live session for every user in it, presentable as-is with
+ * no cracking step.
+ */
+export const hashRefreshToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
+
 export const createSession = async (userId, userAgent, ipAddress) => {
     // Generate random refresh token
     const refreshToken = crypto.randomBytes(40).toString('hex');
@@ -42,7 +53,9 @@ export const createSession = async (userId, userAgent, ipAddress) => {
     const session = await prisma.session.create({
         data: {
             userId,
-            token: refreshToken,
+            // Only the digest is persisted; the token itself is returned to the caller and
+            // otherwise exists nowhere on the server.
+            tokenHash: hashRefreshToken(refreshToken),
             userAgent,
             ipAddress,
             location,
@@ -59,14 +72,20 @@ export const createSession = async (userId, userAgent, ipAddress) => {
  * @returns {Promise<Object|null>}
  */
 export const validateSession = async (refreshToken) => {
+    if (!refreshToken) return null;
+
     const session = await prisma.session.findUnique({
-        where: { token: refreshToken },
+        where: { tokenHash: hashRefreshToken(refreshToken) },
         include: { user: true }
     });
 
     if (!session) return null;
     if (session.revoked) return null;
     if (new Date() > session.expiresAt) return null;
+    // A soft-deleted account is unusable from the moment erasure is requested, including
+    // via a refresh token issued before it — otherwise "delete my account" would leave a
+    // working credential in the browser for the length of the grace window.
+    if (session.user?.deletedAt) return null;
 
     return session;
 };
@@ -96,7 +115,7 @@ export const rotateSession = async (oldSession, newUserAgent, newIp) => {
     await prisma.session.update({
         where: { id: oldSession.id },
         data: {
-            token: newRefreshToken,
+            tokenHash: hashRefreshToken(newRefreshToken),
             expiresAt: newExpiresAt,
             lastUsedAt: new Date(),
             userAgent: newUserAgent || oldSession.userAgent, // Update UA if changed?

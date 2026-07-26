@@ -73,12 +73,23 @@ ${text}
     // Retrieve context from similar past projects to guide generation
     let ragContextString = "";
     try {
-      // Use text as query, and current projectId for graph context
-      const ragResults = await retrieveContext(text, projectId);
-      ragContextString = await formatRagContext(ragResults);
+      // Retrieval is scoped to the requesting user, so a caller that did not say who is
+      // asking gets no RAG rather than a search across everyone's chunks. Fail closed: the
+      // cost of skipping retrieval is a less informed draft, the cost of guessing is one
+      // customer's requirement text appearing in another's document.
+      //
+      // The pipeline proper (analysisService) retrieves explicitly and always has a userId;
+      // the callers that reach here without one — diagram repair, quality lint, feature
+      // expansion — are single-purpose calls that never wanted historical context anyway.
+      if (!settings.userId) {
+        logger.debug('[AI Service] No userId in settings — skipping RAG injection');
+      } else {
+        const ragResults = await retrieveContext(text, { userId: settings.userId, projectId });
+        ragContextString = await formatRagContext(ragResults);
 
-      if (ragContextString) {
-        logger.info(`[AI Service] Injected RAG Context (${ragResults.length} chunks) for project: ${projectName}`);
+        if (ragContextString) {
+          logger.info(`[AI Service] Injected RAG Context (${ragResults.length} chunks) for project: ${projectName}`);
+        }
       }
     } catch (ragError) {
       logger.warn({ msg: "[AI Service] RAG Injection warning", error: ragError.message });

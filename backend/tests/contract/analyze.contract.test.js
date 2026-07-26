@@ -29,9 +29,15 @@ jest.unstable_mockModule('../../src/config/prisma.js', () => ({
 // Mock Auth Middleware
 jest.unstable_mockModule('../../src/middleware/authMiddleware.js', () => ({
     authenticate: (req, res, next) => {
-        req.user = { userId: 'test-user-id', email: 'test@example.com' };
+        // Mirrors the real middleware: a session-authenticated user holds every scope, so
+        // requireScope is a pass-through for them. Stubbing scopes here rather than making
+        // requireScope a no-op keeps the route wiring under test.
+        req.user = { userId: 'test-user-id', email: 'test@example.com', scopes: ['read', 'write', 'admin'] };
         next();
     },
+    requireScope: (scope) => (req, res, next) => (
+        req.user?.scopes?.includes(scope) ? next() : res.status(403).json({ message: 'missing scope' })
+    ),
 }));
 
 // Mock Queue Service

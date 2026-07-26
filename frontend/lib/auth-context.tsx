@@ -15,11 +15,29 @@ interface AuthContextType {
     token: string | null
     login: (token: string, user: User) => void
     authenticateWithToken: (token: string) => Promise<void>
+    /**
+     * Exchange the httpOnly refresh cookie for a fresh access token.
+     * Resolves to the new token, or null if the session is genuinely over.
+     */
+    refreshAccessToken: () => Promise<string | null>
     logout: () => void
     isLoading: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+/**
+ * The single in-flight refresh, shared by every caller.
+ *
+ * Module scope rather than a ref, because the deduplication has to hold across every
+ * component that calls useAuthFetch, not per-hook-instance. A page typically fires several
+ * requests at once; with a 15-minute access token they expire together, so they all get a
+ * 401 within milliseconds of each other. Refreshing independently would be actively
+ * harmful, not merely wasteful: /auth/refresh *rotates* the token, so the first response
+ * invalidates the cookie the others are still using. One wins, the rest are told their
+ * session is invalid, and the user is signed out in the middle of working.
+ */
+let inFlightRefresh: Promise<string | null> | null = null
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [token, setToken] = useState<string | null>(null)
@@ -47,6 +65,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         router.push("/")
     }, [router])
 
+    const refreshAccessToken = React.useCallback(async (): Promise<string | null> => {
+        // Join the refresh already running rather than starting a competing one.
+        if (inFlightRefresh) return inFlightRefresh
+
+        inFlightRefresh = (async () => {
+            try {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/refresh`, {
+                    method: "POST",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                })
+
+                if (!res.ok) return null
+
+                const data = await res.json()
+                if (!data?.token) return null
+
+                localStorage.setItem("token", data.token)
+                setToken(data.token)
+                return data.token as string
+            } catch {
+                // Network failure is not proof the session ended — the caller surfaces the
+                // original error rather than signing the user out on a flaky connection.
+                return null
+            } finally {
+                inFlightRefresh = null
+            }
+        })()
+
+        return inFlightRefresh
+    }, [])
+
     const fetchUser = React.useCallback(async (authToken: string) => {
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/me`, {
@@ -59,21 +109,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setUser(userData)
                 localStorage.setItem("user", JSON.stringify(userData))
             } else if (res.status === 401) {
-                // Try refreshing — the refresh token lives in an httpOnly cookie sent
-                // automatically with credentials:"include", nothing to read from localStorage.
-                const refreshRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/refresh`, {
-                    method: "POST",
-                    credentials: "include",
-                    headers: { "Content-Type": "application/json" },
-                })
+                // Delegates to the shared refresh so this cannot race useAuthFetch's — the
+                // endpoint rotates the token, and two refreshes in flight means one of them
+                // presents a cookie the other just invalidated.
+                const newToken = await refreshAccessToken()
 
-                if (refreshRes.ok) {
-                    const data = await refreshRes.json()
-                    localStorage.setItem("token", data.token)
-                    setToken(data.token)
-                    // Retry fetching user with new token
+                if (newToken) {
                     const retryRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/me`, {
-                        headers: { Authorization: `Bearer ${data.token}` }
+                        headers: { Authorization: `Bearer ${newToken}` }
                     })
                     if (retryRes.ok) {
                         const retryUser = await retryRes.json()
@@ -91,7 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } finally {
             setIsLoading(false)
         }
-    }, [logout])
+    }, [logout, refreshAccessToken])
 
     useEffect(() => {
         if (token) {
@@ -141,9 +184,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         token,
         login,
         authenticateWithToken,
+        refreshAccessToken,
         logout,
         isLoading
-    }), [user, token, login, authenticateWithToken, logout, isLoading]);
+    }), [user, token, login, authenticateWithToken, refreshAccessToken, logout, isLoading]);
 
     return (
         <AuthContext.Provider value={value}>

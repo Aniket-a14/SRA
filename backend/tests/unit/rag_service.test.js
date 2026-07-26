@@ -49,7 +49,7 @@ describe('RAG Service retrieveContext', () => {
     it('falls back to the default limit when limit is non-numeric', async () => {
         mockQueryRaw.mockResolvedValue([]);
 
-        await retrieveContext('query', null, 'abc');
+        await retrieveContext('query', { userId: 'u1', limit: 'abc' });
 
         expect(mockQueryRaw).toHaveBeenCalledTimes(1);
         const queryArgs = mockQueryRaw.mock.calls[0];
@@ -59,12 +59,12 @@ describe('RAG Service retrieveContext', () => {
     it('floors positive decimals and clamps non-positive limits to 1', async () => {
         mockQueryRaw.mockResolvedValue([]);
 
-        await retrieveContext('query', null, 3.9);
+        await retrieveContext('query', { userId: 'u1', limit: 3.9 });
         let queryArgs = mockQueryRaw.mock.calls[0];
         expect(queryArgs[queryArgs.length - 1]).toBe(9); // safeLimit (3) * 3 over-fetch
 
         mockQueryRaw.mockClear();
-        await retrieveContext('query', null, -4);
+        await retrieveContext('query', { userId: 'u1', limit: -4 });
         queryArgs = mockQueryRaw.mock.calls[0];
         expect(queryArgs[queryArgs.length - 1]).toBe(3); // safeLimit (1) * 3 over-fetch
     });
@@ -76,7 +76,7 @@ describe('RAG Service retrieveContext', () => {
             { type: 'REQ', content: 'high', similarity: 0.3, qualityScore: 0.9, tags: [], source_title: 'B' }
         ]);
 
-        const result = await retrieveContext('query');
+        const result = await retrieveContext('query', { userId: 'u1' });
 
         expect(result).toEqual([
             expect.objectContaining({

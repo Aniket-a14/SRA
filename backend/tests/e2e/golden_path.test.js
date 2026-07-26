@@ -33,10 +33,12 @@ jest.unstable_mockModule('../../src/config/prisma.js', () => ({
 
 jest.unstable_mockModule('../../src/middleware/authMiddleware.js', () => ({
     authenticate: (req, res, next) => {
-        console.log("Mock Auth Middleware Hit");
-        req.user = { userId: 'e2e-user', email: 'e2e@test.com' };
+        req.user = { userId: 'e2e-user', email: 'e2e@test.com', scopes: ['read', 'write', 'admin'] };
         next();
     },
+    requireScope: (scope) => (req, res, next) => (
+        req.user?.scopes?.includes(scope) ? next() : res.status(403).json({ message: 'missing scope' })
+    ),
 }));
 
 jest.unstable_mockModule('../../src/services/knowledge/embeddingService.js', () => ({

@@ -40,18 +40,35 @@ model User {
   password  String?
   image     String?
   createdAt DateTime   @default(now())
+  // Erasure is a two-step: DELETE /auth/me stamps this and revokes every session
+  // immediately (the account is unusable from that moment), then the reconciliation sweep
+  // hard-deletes the row and everything cascading from it once the grace window passes.
+  // A single irreversible call would mean a stolen token could destroy an account outright.
+  deletedAt DateTime?
+  // Failed-password counter for the per-account lockout. Kept on the row rather than only
+  // in Redis because a lockout that evaporates when the cache restarts is not a lockout,
+  // and because credential stuffing spreads across IPs — the per-IP limiter cannot see it.
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
   accounts     Account[]
   analyses     Analysis[]
   apiKeys      ApiKey[]
   projects     Project[]
   sessions     Session[]
   providerKeys UserProviderKey[]
+  auditLogs    AuditLog[]
+
+  @@index([deletedAt])
 }
 
 model Session {
   id         String   @id @default(uuid())
   userId     String
-  token      String   @unique
+  // SHA-256 of the refresh token, never the token itself. Stored in clear text, a database
+  // dump was a live session for every user in it — no cracking required, just read and
+  // present. The token has 320 bits of entropy from a CSPRNG, so a plain digest is
+  // sufficient here; there is no low-entropy secret for an attacker to guess.
+  tokenHash  String   @unique
   userAgent  String?
   ipAddress  String?
   expiresAt  DateTime
@@ -62,6 +79,31 @@ model Session {
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+/// Queryable audit trail for sensitive operations.
+///
+/// These events were emitted to the log stream only. A log stream is evidence during an
+/// investigation; it is not a record you can query per-subject, which is what GDPR Art. 30
+/// and SOC 2 actually ask for — and what answering "what happened to this account?"
+/// requires. Retention is bounded (see reconciliationService) so the trail does not itself
+/// become an unbounded store of personal data.
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  action     String
+  resource   String?
+  resourceId String?
+  ipAddress  String?
+  userAgent  String?
+  status     String   @default("success")
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
 }
 
 model ChatMessage {
@@ -197,6 +239,11 @@ model ApiKey {
   userId    String
   name      String
   key       String    @unique
+  // What this key may do, enforced by requireScope() in authMiddleware. A key carried full
+  // account authority, so a CI token that only ever needs to run `sra check` could also
+  // delete every project. Existing keys are backfilled to ["read","write"] — the authority
+  // they already had minus destructive operations they were never knowingly granted.
+  scopes    String[]  @default(["read", "write"])
   lastUsed  DateTime  @default(now())
   createdAt DateTime  @default(now())
   expiresAt DateTime?

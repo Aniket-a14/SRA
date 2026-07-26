@@ -1,5 +1,6 @@
 import prisma from '../config/prisma.js';
 import logger from '../config/logger.js';
+import { purgeExpiredDeletions } from './auth/accountDeletionService.js';
 
 // BaseAgent's per-call timeout is 6 minutes, retried up to 3x with backoff, and a full
 // pipeline run chains several such calls (ProductOwner -> Architect -> sectional
@@ -43,11 +44,37 @@ export const pruneOrphanedDrafts = async () => {
     return count;
 };
 
+// How long audit records are kept. Long enough to investigate an incident nobody noticed
+// at the time, short enough that the trail does not itself become an unbounded store of
+// personal data — an audit log retained forever is its own GDPR problem, since it holds IP
+// addresses and user agents.
+export const AUDIT_LOG_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
+
+/** Drops audit records past the retention window. */
+export const pruneAuditLog = async () => {
+    const cutoff = new Date(Date.now() - AUDIT_LOG_RETENTION_MS);
+
+    const { count } = await prisma.auditLog.deleteMany({
+        where: { createdAt: { lt: cutoff } }
+    });
+
+    if (count > 0) {
+        logger.info({ msg: '[Reconciliation] Pruned expired audit records', count, cutoff });
+    }
+    return count;
+};
+
 export const runReconciliation = async () => {
+    // Sequential rather than parallel for the deletion purge: it runs multi-statement
+    // transactions across most tables in the schema, and racing it against the other sweeps
+    // buys nothing on a job that runs every 15 minutes.
     const [failedCount, prunedCount] = await Promise.all([
         reconcileStaleInProgress(),
         pruneOrphanedDrafts()
     ]);
 
-    return { failedCount, prunedCount };
+    const auditPruned = await pruneAuditLog();
+    const { due: deletionsDue, purged: accountsPurged } = await purgeExpiredDeletions();
+
+    return { failedCount, prunedCount, auditPruned, deletionsDue, accountsPurged };
 };

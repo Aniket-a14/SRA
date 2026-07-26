@@ -1,5 +1,6 @@
 import crypto from 'crypto';
-import { registerUser, loginUser, handleGoogleAuth, handleGithubAuth, getUserById } from '../services/auth/authService.js';
+import { registerUser, loginUser, handleGoogleAuth, handleGithubAuth, getUserById, verifyCredentialsForRestore } from '../services/auth/authService.js';
+import { requestAccountDeletion, cancelAccountDeletion } from '../services/auth/accountDeletionService.js';
 import { getGoogleAuthURL, getGoogleTokens, getGoogleUser } from '../config/googleOAuth.js';
 import { getGithubAuthURL, getGithubTokens, getGithubUser } from '../config/githubOAuth.js';
 import { validateSession, rotateSession, revokeSession, getUserSessions } from '../services/auth/sessionService.js';
@@ -230,6 +231,50 @@ export const exportMyData = async (req, res, next) => {
         res.setHeader('Content-Disposition', `attachment; filename="sra-export-${Date.now()}.json"`);
         res.setHeader('Cache-Control', 'no-store');
         res.status(200).send(JSON.stringify(data, null, 2));
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * DELETE /auth/me — request erasure of the caller's own account (GDPR Art. 17).
+ *
+ * Takes effect immediately (sessions revoked, account unusable); the data itself is purged
+ * after a grace window by the reconciliation sweep. Bearer-authenticated, so it is not
+ * reachable with the ambient refresh cookie.
+ */
+export const deleteMyAccount = async (req, res, next) => {
+    try {
+        const result = await requestAccountDeletion(req.user.userId);
+        clearRefreshCookie(res);
+        res.json({
+            message: `Account scheduled for deletion. You have ${result.graceDays} days to change your mind by signing in again and cancelling.`,
+            ...result
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * POST /auth/me/restore — cancel a pending deletion inside the grace window.
+ *
+ * Deliberately not bearer-authenticated: requesting deletion revokes every session, so the
+ * user has no access token to present. Cancelling therefore requires re-authenticating with
+ * a password, which is also the right bar for undoing a destructive request.
+ */
+export const restoreMyAccount = async (req, res, next) => {
+    try {
+        const { email, password } = req.body;
+        if (!email || !password) {
+            const error = new Error('Email and password are required');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const userId = await verifyCredentialsForRestore(email, password);
+        const result = await cancelAccountDeletion(userId);
+        res.json({ message: 'Account restored. You can sign in as usual.', ...result });
     } catch (error) {
         next(error);
     }

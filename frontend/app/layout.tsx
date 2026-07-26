@@ -1,4 +1,5 @@
 import React from "react"
+import { headers } from 'next/headers'
 import type { Metadata, Viewport } from 'next'
 import { Instrument_Sans, Instrument_Serif, JetBrains_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
@@ -40,11 +41,15 @@ export const metadata: Metadata = {
   // and served at /favicon.ico, so declaring it here would only duplicate the tag.
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  // Reading a per-request header is what opts the tree out of static rendering, which is
+  // the precondition for Next stamping the CSP nonce onto its inline scripts at all.
+  await headers()
+
   return (
     <html lang="en" className="scroll-smooth" suppressHydrationWarning>
       {/* suppressHydrationWarning: browser extensions (Grammarly, etc.) inject

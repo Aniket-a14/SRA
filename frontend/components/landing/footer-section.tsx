@@ -17,6 +17,10 @@ const footerLinks = {
     { name: "CLI", href: "/#developers" },
     { name: "Security", href: "/#security" },
   ],
+  Legal: [
+    { name: "Privacy", href: "/privacy" },
+    { name: "Terms", href: "/terms" },
+  ],
 };
 
 export function FooterSection() {

@@ -12,8 +12,33 @@ const SIMILARITY_THRESHOLD = 0.25;
 
 /**
  * Retrieves granular knowledge chunks based on semantic similarity and keywords.
+ *
+ * **Scoped to one user's own chunks.** This searched `KnowledgeChunk` across every account,
+ * returned `kc.content` — the requirement text itself — plus `source_title`, the other
+ * user's project name, and handed both to the Architect and Developer prompts. So a
+ * finalized analysis belonging to one customer could be reproduced, named, into a document
+ * generated for another. No attacker was required: it ran on every analysis, silently, as
+ * the intended behaviour of the feature.
+ *
+ * Reuse still spans a user's own projects, which is where its value actually was — the
+ * cross-account corpus was never curated, just everything anyone had finalized above a 0.70
+ * quality score.
+ *
+ * The options object is deliberate. The previous signature was positional
+ * (`queryText, projectId, limit`), and slotting a `userId` in among those would let a
+ * missed call site keep working while silently searching the wrong scope. A call site that
+ * still passes the old shape gets `undefined` here and throws.
+ *
+ * @param {string} queryText
+ * @param {{ userId: string, projectId?: string|null, limit?: number }} options
  */
-export const retrieveContext = async (queryText, projectId = null, limit = 5) => {
+export const retrieveContext = async (queryText, options = {}) => {
+    const { userId, projectId = null, limit = DEFAULT_RETRIEVAL_LIMIT } = options;
+
+    if (!userId) {
+        throw new Error('retrieveContext requires a userId — retrieval is scoped to the requesting user');
+    }
+
     try {
         if (process.env.MOCK_AI === 'true') {
             return [];
@@ -42,6 +67,7 @@ export const retrieveContext = async (queryText, projectId = null, limit = 5) =>
             JOIN "Analysis" a ON kc."sourceAnalysisId" = a.id
             LEFT JOIN "Project" p ON a."projectId" = p.id
             WHERE kc.embedding IS NOT NULL
+            AND a."userId" = ${userId}
             ORDER BY
                 CASE WHEN kc."qualityScore" >= 0.85 THEN 1 ELSE 0 END DESC,
                 kc.embedding <=> ${vectorStr}::vector ASC
@@ -148,19 +174,37 @@ export const formatRagContext = async (chunks) => {
  * Explicitly searches for high-quality requirement fragments for manual reuse.
  * Pillar 2 specialized search.
  */
-export const searchGoldStandardFragments = async (query, type = null) => {
+/**
+ * Backing search for `POST /reuse/suggest`.
+ *
+ * Also scoped to the caller. "Gold standard" named an intent that was never implemented:
+ * nothing curated this pool, so it was simply every finalized chunk from every account
+ * scoring 0.70 or better, and the endpoint returned `content` — the requirement text —
+ * verbatim to whoever asked.
+ *
+ * @param {string} query
+ * @param {string|null} type
+ * @param {string} userId - required; suggestions come from the caller's own library
+ */
+export const searchGoldStandardFragments = async (query, type = null, userId) => {
+    if (!userId) {
+        throw new Error('searchGoldStandardFragments requires a userId — suggestions are scoped to the requesting user');
+    }
+
     try {
         const embedding = await embedText(query);
         const vectorStr = `[${embedding.join(',')}]`;
 
         const matches = await prisma.$queryRaw`
             SELECT
-                id, type, content, tags, "qualityScore"
-            FROM "KnowledgeChunk"
-            WHERE embedding IS NOT NULL
-            ${type ? Prisma.sql`AND type = ${type}` : Prisma.sql``}
-            AND "qualityScore" >= 0.70
-            ORDER BY embedding <=> ${vectorStr}::vector ASC
+                kc.id, kc.type, kc.content, kc.tags, kc."qualityScore"
+            FROM "KnowledgeChunk" kc
+            JOIN "Analysis" a ON kc."sourceAnalysisId" = a.id
+            WHERE kc.embedding IS NOT NULL
+            AND a."userId" = ${userId}
+            ${type ? Prisma.sql`AND kc.type = ${type}` : Prisma.sql``}
+            AND kc."qualityScore" >= 0.70
+            ORDER BY kc.embedding <=> ${vectorStr}::vector ASC
             LIMIT 5;
         `;
 

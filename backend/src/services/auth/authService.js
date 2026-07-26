@@ -46,21 +46,118 @@ export const registerUser = async (email, password, name, userAgent = null, ip =
     return { user: toPublicUser(user), token, refreshToken, sessionId };
 };
 
+/**
+ * Per-account brute-force limits.
+ *
+ * Rate limiting was per-IP only, which does not see the attack it most needs to: credential
+ * stuffing against one known account, spread thin across many addresses. Ten attempts from
+ * a thousand IPs never troubled a per-IP bucket. The counter therefore lives on the User row
+ * — durable, and shared across every source address — rather than in Redis, where a cache
+ * restart would silently reset a lockout mid-attack.
+ *
+ * The threshold is high enough that a person mistyping a password does not trip it, and the
+ * cool-off is short enough to be an inconvenience rather than a denial of service, because
+ * anyone who knows an email address can deliberately lock it. That griefing risk is the
+ * accepted cost of the control; it is why this expires on its own rather than requiring
+ * support to unlock.
+ */
+export const LOCKOUT_THRESHOLD = 10;
+export const LOCKOUT_MINUTES = 15;
+
+const lockoutError = (until) => {
+    const error = new Error('Too many failed sign-in attempts for this account. Try again shortly.');
+    error.statusCode = 429;
+    error.retryAfter = Math.max(1, Math.ceil((until.getTime() - Date.now()) / 1000));
+    return error;
+};
+
+/** Record a failed attempt and lock the account once the threshold is reached. */
+const registerFailedLogin = async (user) => {
+    const attempts = user.failedLoginAttempts + 1;
+
+    if (attempts >= LOCKOUT_THRESHOLD) {
+        const lockedUntil = new Date(Date.now() + LOCKOUT_MINUTES * 60 * 1000);
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { failedLoginAttempts: 0, lockedUntil }
+        });
+        return lockedUntil;
+    }
+
+    await prisma.user.update({
+        where: { id: user.id },
+        data: { failedLoginAttempts: attempts }
+    });
+    return null;
+};
+
 export const loginUser = async (email, password, userAgent = null, ip = null) => {
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user || !user.password) {
         throw new Error('Invalid email or password');
     }
 
+    // Checked before the password comparison: while locked, an attempt must cost nothing and
+    // reveal nothing, not even through the timing of a bcrypt compare.
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+        throw lockoutError(user.lockedUntil);
+    }
+
+    if (user.deletedAt) {
+        const error = new Error('This account is scheduled for deletion. Restore it first if you did not mean to delete it.');
+        error.statusCode = 410;
+        throw error;
+    }
+
     const isMatch = await comparePassword(password, user.password);
     if (!isMatch) {
+        const lockedUntil = await registerFailedLogin(user);
+        if (lockedUntil) throw lockoutError(lockedUntil);
         throw new Error('Invalid email or password');
+    }
+
+    // A successful sign-in clears the record — someone who eventually remembers their own
+    // password should not be one typo away from a lockout for the rest of the day.
+    if (user.failedLoginAttempts > 0 || user.lockedUntil) {
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { failedLoginAttempts: 0, lockedUntil: null }
+        });
     }
 
     const { refreshToken, sessionId } = await createSession(user.id, userAgent, ip);
     const token = signToken({ userId: user.id, email: user.email, sessionId });
 
     return { user: toPublicUser(user), token, refreshToken, sessionId };
+};
+
+/**
+ * Verify a password for the sole purpose of cancelling a pending deletion.
+ *
+ * Requesting deletion revokes every session, so there is no token to authenticate the
+ * cancellation with — and re-entering the password is the right bar for undoing a
+ * destructive request anyway. Deliberately narrow: it issues no session and returns nothing
+ * but an id, so it cannot be repurposed as a second, lockout-free login path.
+ */
+export const verifyCredentialsForRestore = async (email, password) => {
+    const user = await prisma.user.findUnique({ where: { email } });
+    const invalid = () => {
+        const error = new Error('Invalid email or password');
+        error.statusCode = 401;
+        return error;
+    };
+
+    if (!user || !user.password) throw invalid();
+    if (user.lockedUntil && user.lockedUntil > new Date()) throw lockoutError(user.lockedUntil);
+
+    const isMatch = await comparePassword(password, user.password);
+    if (!isMatch) {
+        const lockedUntil = await registerFailedLogin(user);
+        if (lockedUntil) throw lockoutError(lockedUntil);
+        throw invalid();
+    }
+
+    return user.id;
 };
 
 export const handleGoogleAuth = async (googleUser, tokens, userAgent, ip) => {

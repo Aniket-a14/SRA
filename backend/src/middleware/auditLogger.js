@@ -1,4 +1,5 @@
 import logger from '../config/logger.js';
+import prisma from '../config/prisma.js';
 
 /**
  * Audit Logger Middleware
@@ -17,7 +18,9 @@ const SENSITIVE_OPERATIONS = [
     'LOGIN_FAILURE',
     'LOGOUT',
     'PASSWORD_CHANGE',
-    'EXPORT_DATA'
+    'EXPORT_DATA',
+    'RESTORE_ACCOUNT',
+    'SUSPICIOUS_ACTIVITY'
 ];
 
 /**
@@ -40,18 +43,37 @@ async function logAuditEvent(event) {
             changes: event.changes || null
         };
 
-        // Emitted through pino rather than console.log so audit records are structured JSON
-        // on one stream with everything else, carry the redaction rules, and are actually
-        // collectable by a log aggregator. console.log wrote `📋 AUDIT LOG: {...}` — a
-        // decorated prefix in front of a JSON blob, which no collector parses as a field.
+        // Two destinations, deliberately. The log stream is for alerting and for the case
+        // where the database is the thing that is broken; the table is the queryable,
+        // retention-bounded record that GDPR Art. 30 and SOC 2 actually ask for. Writing
+        // only to the stream — which is what this did — gives you evidence you can grep but
+        // cannot answer "what happened to this account?" from.
         //
         // `audit: true` is the marker to filter/alert on.
         logger.info({ audit: true, ...auditEntry }, `AUDIT ${auditEntry.action}`);
 
-        // NOTE: still not persisted. A log stream is evidence for an investigation, but it
-        // is not a queryable, retention-controlled audit trail, which is what SOC 2 / GDPR
-        // Art. 30 actually ask for. Adding an AuditLog model is a schema migration and is
-        // called out in the audit report rather than done silently here.
+        // Fire-and-forget: an audit write must never add latency to, or fail, the operation
+        // it describes. A failure here is logged loudly rather than swallowed, because an
+        // audit trail with silent gaps is worse than none — it looks complete.
+        //
+        // `userId: undefined` for an anonymous action; the column is nullable and the FK is
+        // ON DELETE SET NULL, so erasing an account detaches its history without destroying
+        // the record that something happened.
+        prisma.auditLog.create({
+            data: {
+                userId: event.userId || null,
+                action: auditEntry.action,
+                resource: auditEntry.resource,
+                resourceId: auditEntry.resourceId ? String(auditEntry.resourceId) : null,
+                ipAddress: auditEntry.ipAddress,
+                userAgent: auditEntry.userAgent,
+                status: auditEntry.status,
+                metadata: auditEntry.metadata
+            }
+        }).catch((error) => {
+            logger.error({ msg: 'Audit record could not be persisted', action: auditEntry.action, error: error.message });
+        });
+
         return auditEntry;
     } catch (error) {
         logger.error({ msg: 'Failed to log audit event', error: error.message });
@@ -136,6 +158,14 @@ function determineAction(req, res) {
         return res.statusCode === 200 ? 'LOGIN_SUCCESS' : 'LOGIN_FAILURE';
     }
     if (path.includes('/auth/logout')) return 'LOGOUT';
+
+    // Subject-rights operations. These are the events a data-protection enquiry actually
+    // asks about — "when did they ask, and did we do it?" — so they are recorded before
+    // any other /user matching, which would otherwise never see them: the routes are
+    // /auth/me, not /user.
+    if (path.includes('/auth/me/export')) return 'EXPORT_DATA';
+    if (path.includes('/auth/me/restore')) return 'RESTORE_ACCOUNT';
+    if (path.endsWith('/auth/me') && method === 'DELETE') return 'DELETE_USER';
 
     // User operations
     if (path.includes('/user')) {

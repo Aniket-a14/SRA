@@ -100,7 +100,7 @@ export const analyze = async (req, res, next) => {
         // LAYER 5: Reuse Strategy (Vector Search) — Non-blocking
         let reuseMetadata = { found: false };
         try {
-            reuseMetadata = await findReuseCandidate(sanitizedText);
+            reuseMetadata = await findReuseCandidate(sanitizedText, req.user.userId);
         } catch (reuseErr) {
             logger.warn({ msg: "[Reuse] Search failed (non-fatal), proceeding without reuse", error: reuseErr.message });
         }

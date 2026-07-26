@@ -1,5 +1,5 @@
 import { verifyToken } from '../config/jwt.js';
-import { verifyApiKey } from '../services/auth/apiKeyService.js';
+import { verifyApiKey, API_KEY_SCOPES } from '../services/auth/apiKeyService.js';
 import { isSessionActive } from '../services/auth/sessionService.js';
 
 export const authenticate = async (req, res, next) => {
@@ -15,9 +15,12 @@ export const authenticate = async (req, res, next) => {
     if (token.startsWith('sra_live_')) {
         // API Key Auth
         try {
-            const user = await verifyApiKey(token);
-            if (!user) throw new Error('Invalid API Key');
-            req.user = { userId: user.id, email: user.email }; // Minimal user context
+            const result = await verifyApiKey(token);
+            if (!result) throw new Error('Invalid API Key');
+            const { user, scopes } = result;
+            // `scopes` is what requireScope reads. A session-authenticated user is the
+            // account itself and holds every scope; a key holds only what it was granted.
+            req.user = { userId: user.id, email: user.email, scopes, authMethod: 'apiKey' };
             return next();
         } catch (e) {
             const error = new Error('Invalid or revoked API Key');
@@ -54,6 +57,32 @@ export const authenticate = async (req, res, next) => {
         return next(error);
     }
 
-    req.user = decoded; // { userId, email, sessionId }
+    // A live session implies a live, non-deleted account (requestAccountDeletion revokes
+    // every session, and validateSession refuses a soft-deleted user), so the account state
+    // does not need re-checking here.
+    req.user = { ...decoded, scopes: API_KEY_SCOPES, authMethod: 'session' };
     next();
+};
+
+/**
+ * Require a scope on the credential presented.
+ *
+ * Only meaningful for API keys: a session-authenticated user *is* the account and holds
+ * every scope, so this is a no-op for them by construction. What it stops is the CI token
+ * that only needs to read a spec being able to delete the project it came from.
+ *
+ * Applied per route rather than inferred from the HTTP verb, because the mapping is not
+ * reliable — `POST /analyze` is ordinary work, `POST /settings/provider-keys` hands over a
+ * credential.
+ */
+export const requireScope = (scope) => (req, res, next) => {
+    const held = req.user?.scopes || [];
+
+    if (held.includes(scope)) return next();
+
+    const error = new Error(
+        `This API key lacks the "${scope}" scope. Create a key with it in Settings, or use one that has it.`
+    );
+    error.statusCode = 403;
+    return next(error);
 };

@@ -29,7 +29,13 @@ jest.unstable_mockModule('../../src/config/prisma.js', () => ({ default: mockPri
 jest.unstable_mockModule('../../src/config/redis.js', () => ({ getRedisClient: () => null }));
 
 jest.unstable_mockModule('../../src/middleware/authMiddleware.js', () => ({
-    authenticate: (req, res, next) => { req.user = { userId: 'u1', email: 'u1@test.com' }; next(); },
+    authenticate: (req, res, next) => {
+        req.user = { userId: 'u1', email: 'u1@test.com', scopes: ['read', 'write', 'admin'] };
+        next();
+    },
+    requireScope: (scope) => (req, res, next) => (
+        req.user?.scopes?.includes(scope) ? next() : res.status(403).json({ message: 'missing scope' })
+    ),
 }));
 
 // Auth service — the login handler returns whatever loginUser produces, shaped by the controller.
@@ -40,6 +46,21 @@ jest.unstable_mockModule('../../src/services/auth/authService.js', () => ({
     handleGoogleAuth: jest.fn(),
     handleGithubAuth: jest.fn(),
     getUserById: jest.fn().mockResolvedValue({ id: 'u1', email: 'u1@test.com', name: 'U One' }),
+    // Used by POST /auth/me/restore. A module mock must declare every export the module
+    // under test imports, or the import itself throws before any assertion runs.
+    verifyCredentialsForRestore: jest.fn(),
+    toPublicUser: (user) => user,
+    LOCKOUT_THRESHOLD: 10,
+    LOCKOUT_MINUTES: 15,
+}));
+
+// Account erasure — DELETE /auth/me and POST /auth/me/restore.
+jest.unstable_mockModule('../../src/services/auth/accountDeletionService.js', () => ({
+    requestAccountDeletion: jest.fn().mockResolvedValue({ deletedAt: 'x', purgeAt: 'y', graceDays: 30 }),
+    cancelAccountDeletion: jest.fn().mockResolvedValue({ restored: true }),
+    hardDeleteUser: jest.fn(),
+    purgeExpiredDeletions: jest.fn().mockResolvedValue({ due: 0, purged: 0 }),
+    DELETION_GRACE_DAYS: 30,
 }));
 
 // Analysis service — GET /analyze delegates to getUserAnalyses.

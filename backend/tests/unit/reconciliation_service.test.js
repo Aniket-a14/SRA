@@ -2,28 +2,43 @@ import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 
 const mockUpdateMany = jest.fn();
 const mockDeleteMany = jest.fn();
+const mockAuditDeleteMany = jest.fn().mockResolvedValue({ count: 0 });
 
 jest.unstable_mockModule('../../src/config/prisma.js', () => ({
     default: {
         analysis: {
             updateMany: mockUpdateMany,
             deleteMany: mockDeleteMany
-        }
+        },
+        // The sweep also prunes expired audit records now.
+        auditLog: { deleteMany: mockAuditDeleteMany }
     }
+}));
+
+// Account purging is exercised in accountDeletionService's own tests; here it only needs to
+// contribute its counts to the combined summary.
+const mockPurgeExpiredDeletions = jest.fn().mockResolvedValue({ due: 0, purged: 0 });
+jest.unstable_mockModule('../../src/services/auth/accountDeletionService.js', () => ({
+    purgeExpiredDeletions: mockPurgeExpiredDeletions
 }));
 
 const {
     reconcileStaleInProgress,
     pruneOrphanedDrafts,
     runReconciliation,
+    pruneAuditLog,
     STALE_IN_PROGRESS_THRESHOLD_MS,
-    DRAFT_TTL_MS
+    DRAFT_TTL_MS,
+    AUDIT_LOG_RETENTION_MS
 } = await import('../../src/services/reconciliationService.js');
 
 describe('reconciliationService', () => {
     beforeEach(() => {
         mockUpdateMany.mockReset();
         mockDeleteMany.mockReset();
+        mockAuditDeleteMany.mockReset();
+        mockAuditDeleteMany.mockResolvedValue({ count: 0 });
+        mockPurgeExpiredDeletions.mockClear();
     });
 
     describe('reconcileStaleInProgress', () => {
@@ -71,7 +86,13 @@ describe('reconciliationService', () => {
 
             const summary = await runReconciliation();
 
-            expect(summary).toEqual({ failedCount: 1, prunedCount: 4 });
+            expect(summary).toEqual({
+                failedCount: 1,
+                prunedCount: 4,
+                auditPruned: 0,
+                deletionsDue: 0,
+                accountsPurged: 0
+            });
             expect(mockUpdateMany).toHaveBeenCalledTimes(1);
             expect(mockDeleteMany).toHaveBeenCalledTimes(1);
         });

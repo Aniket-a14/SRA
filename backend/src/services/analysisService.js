@@ -167,13 +167,13 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                 const featureRetrievalPromises = featureList.slice(0, 8).map(async (feature) => {
                     const query = feature.name || (typeof feature === 'string' ? feature : "");
                     if (!query) return [];
-                    return await retrieveContext(query, projectId, 2);
+                    return await retrieveContext(query, { userId, projectId, limit: 2 });
                 });
                 const featureResults = await Promise.all(featureRetrievalPromises);
                 allRecyclableChunks = featureResults.flat();
             } else {
                 // Fallback to general context
-                allRecyclableChunks = await retrieveContext(text.substring(0, 200), projectId, 5);
+                allRecyclableChunks = await retrieveContext(text.substring(0, 200), { userId, projectId, limit: 5 });
             }
 
             // De-duplicate by content hash or ID
@@ -204,7 +204,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                 .filter(q => q.length > 0)
                 .slice(0, 3);
 
-            const fetchPromises = qArr.map((q) => retrieveContext(q, projectId, 5));
+            const fetchPromises = qArr.map((q) => retrieveContext(q, { userId, projectId, limit: 5 }));
             const fetched = await Promise.all(fetchPromises);
 
             ragContexts = {
