@@ -102,9 +102,9 @@ export function HowItWorksSection() {
         </div>
 
         {/* Main content */}
-        <div className="grid lg:grid-cols-2 gap-16 lg:gap-24">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-24 min-w-0">
           {/* Steps */}
-          <div className="space-y-0">
+          <div className="space-y-0 min-w-0">
             {steps.map((step, index) => (
               <button
                 key={step.number}
@@ -114,9 +114,9 @@ export function HowItWorksSection() {
                   activeStep === index ? "opacity-100" : "opacity-40 hover:opacity-70"
                 }`}
               >
-                <div className="flex items-start gap-6">
-                  <span className="font-display text-3xl text-background/30">{step.number}</span>
-                  <div className="flex-1">
+                <div className="flex items-start gap-4 sm:gap-6 min-w-0">
+                  <span className="font-display text-3xl text-background/30 shrink-0">{step.number}</span>
+                  <div className="flex-1 min-w-0">
                     <h3 className="text-2xl lg:text-3xl font-display mb-3 group-hover:translate-x-2 transition-transform duration-300">
                       {step.title}
                     </h3>
@@ -142,27 +142,27 @@ export function HowItWorksSection() {
           </div>
 
           {/* Code display */}
-          <div className="lg:sticky lg:top-32 self-start">
-            <div className="border border-background/10 overflow-hidden">
+          <div className="lg:sticky lg:top-32 self-start min-w-0 w-full">
+            <div className="border border-background/10 overflow-hidden w-full">
               {/* Window header */}
-              <div className="px-6 py-4 border-b border-background/10 flex items-center justify-between">
-                <div className="flex gap-2">
+              <div className="px-4 sm:px-6 py-4 border-b border-background/10 flex items-center justify-between gap-4">
+                <div className="flex gap-2 shrink-0">
                   <div className="w-3 h-3 rounded-full bg-background/20" />
                   <div className="w-3 h-3 rounded-full bg-background/20" />
                   <div className="w-3 h-3 rounded-full bg-background/20" />
                 </div>
-                <span className="text-xs font-mono text-background/40">
+                <span className="text-xs font-mono text-background/40 truncate">
                   {activeStep === 0 ? "request.json" : activeStep === 1 ? "pipeline.log" : "terminal"}
                 </span>
               </div>
 
               {/* Code content */}
-              <div className="p-8 font-mono text-sm min-h-[280px]">
-                <pre className="text-background/70">
+              <div className="p-4 sm:p-6 lg:p-8 font-mono text-xs sm:text-sm min-h-[280px] overflow-x-auto">
+                <pre className="text-background/70 w-max min-w-full">
                   {steps[activeStep].code.split('\n').map((line, lineIndex) => (
                     <div
                       key={`${activeStep}-${lineIndex}`}
-                      className="leading-loose code-line-reveal"
+                      className="leading-loose code-line-reveal whitespace-pre"
                       style={{
                         animationDelay: `${lineIndex * 80}ms`,
                       }}
