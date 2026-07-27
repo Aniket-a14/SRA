@@ -59,7 +59,7 @@ describe("AuthProvider session survival", () => {
     })
 
     it("keeps the session when the network is down entirely", async () => {
-        const fetchMock = vi.fn((_url: string) => Promise.reject(new TypeError("Failed to fetch")))
+        const fetchMock = vi.fn((url: string) => Promise.reject(new TypeError(`Failed to fetch ${url}`)))
         vi.stubGlobal("fetch", fetchMock)
 
         renderAuth()

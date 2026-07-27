@@ -387,6 +387,8 @@ function AnalysisDetailContent() {
     if (isActuallyInProgress) {
         return (
             <AnalysisLoading
+                // Remount per analysis, so the "draft has started" latch belongs to this run only.
+                key={id}
                 liveMessage={liveProgress.event?.message}
                 liveText={liveProgress.text}
                 liveStage={liveProgress.event?.stage}

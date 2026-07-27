@@ -15,6 +15,7 @@ import { ReviewerAgent } from '../agents/ReviewerAgent.js';
 import { CriticAgent } from '../agents/CriticAgent.js';
 import { resolveProviderKey, asAiSettings } from './providers/providerKeyService.js';
 import { publishProgress } from './progressService.js';
+import { triggerReconcileInBackground } from './opportunisticReconcile.js';
 import { EvalService } from './knowledge/evalService.js';
 import { retrieveContext, formatRagContext } from './knowledge/ragService.js';
 import { createReviewSnapshot } from '../utils/promptCompaction.js';
@@ -646,6 +647,10 @@ export const createDraftAnalysis = async (userId, srsData, projectId, settings =
 };
 
 export const getUserAnalyses = async (userId) => {
+    // Detached, throttled cluster-wide, and ahead of the cache check — a cache hit is still a live
+    // user, and this is the one request every signed-in user makes.
+    triggerReconcileInBackground();
+
     // 0. Cache Check
     const redis = getRedisClient();
     const CACHE_KEY = `user:analyses:${userId}`;
