@@ -119,7 +119,8 @@ export function AppSidebar({ className, inSheet = false }: AppSidebarProps) {
             inSheet ? "h-full w-full border-r-0" : "h-screen fixed left-0 top-0 z-30",
             className
         )}>
-            <div className="px-4 py-4 border-b border-foreground/10">
+            {/* Room for the drawer's close button, which overlays this corner. */}
+            <div className={cn("px-4 py-4 border-b border-foreground/10", inSheet && "pr-14")}>
                 <Link href="/" className="flex items-center gap-2 mb-4">
                     <span className="text-xl font-display">SRA</span>
                     <span className="text-[10px] text-muted-foreground font-mono mt-1">MULTI-FORMAT</span>

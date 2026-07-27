@@ -22,6 +22,24 @@ if (!window.matchMedia) {
     })) as unknown as typeof window.matchMedia
 }
 
+// Nor a usable Storage. auth-context caches the access token and user here, so without it
+// every test touching authentication throws before it reaches the behaviour under test.
+if (typeof window.localStorage?.setItem !== "function") {
+    const createStorage = (): Storage => {
+        let entries: Record<string, string> = {}
+        return {
+            getItem: (key: string) => (key in entries ? entries[key] : null),
+            setItem: (key: string, value: string) => { entries[key] = String(value) },
+            removeItem: (key: string) => { delete entries[key] },
+            clear: () => { entries = {} },
+            key: (index: number) => Object.keys(entries)[index] ?? null,
+            get length() { return Object.keys(entries).length },
+        } as Storage
+    }
+    Object.defineProperty(window, "localStorage", { value: createStorage(), writable: true })
+    Object.defineProperty(window, "sessionStorage", { value: createStorage(), writable: true })
+}
+
 if (!window.ResizeObserver) {
     window.ResizeObserver = class {
         observe() {}

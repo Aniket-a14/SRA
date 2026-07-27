@@ -10,16 +10,23 @@ interface User {
     image?: string
 }
 
+/**
+ * Why this is not just `string | null`: a failed refresh has two causes that demand
+ * opposite responses. "expired" means the session is genuinely over and the user must sign
+ * in again; "network" means we learned nothing. Collapsing them is what made a single cold
+ * start or dropped request sign people out of a session with days left on it.
+ */
+export type RefreshResult =
+    | { token: string; reason?: never }
+    | { token: null; reason: "expired" | "network" }
+
 interface AuthContextType {
     user: User | null
     token: string | null
     login: (token: string, user: User) => void
     authenticateWithToken: (token: string) => Promise<void>
-    /**
-     * Exchange the httpOnly refresh cookie for a fresh access token.
-     * Resolves to the new token, or null if the session is genuinely over.
-     */
-    refreshAccessToken: () => Promise<string | null>
+    /** Exchange the httpOnly refresh cookie for a fresh access token. */
+    refreshAccessToken: () => Promise<RefreshResult>
     logout: () => void
     isLoading: boolean
 }
@@ -37,7 +44,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
  * invalidates the cookie the others are still using. One wins, the rest are told their
  * session is invalid, and the user is signed out in the middle of working.
  */
-let inFlightRefresh: Promise<string | null> | null = null
+let inFlightRefresh: Promise<RefreshResult> | null = null
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [token, setToken] = useState<string | null>(null)
@@ -65,7 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         router.push("/")
     }, [router])
 
-    const refreshAccessToken = React.useCallback(async (): Promise<string | null> => {
+    const refreshAccessToken = React.useCallback(async (): Promise<RefreshResult> => {
         // Join the refresh already running rather than starting a competing one.
         if (inFlightRefresh) return inFlightRefresh
 
@@ -77,18 +84,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     headers: { "Content-Type": "application/json" },
                 })
 
-                if (!res.ok) return null
+                // Only 401 is the server saying this session is over. A 5xx or a gateway
+                // timeout is the server saying nothing at all, and must not end a session.
+                if (!res.ok) return { token: null, reason: res.status === 401 ? "expired" : "network" }
 
                 const data = await res.json()
-                if (!data?.token) return null
+                if (!data?.token) return { token: null, reason: "expired" }
 
                 localStorage.setItem("token", data.token)
                 setToken(data.token)
-                return data.token as string
+                return { token: data.token as string }
             } catch {
-                // Network failure is not proof the session ended — the caller surfaces the
-                // original error rather than signing the user out on a flaky connection.
-                return null
+                return { token: null, reason: "network" }
             } finally {
                 inFlightRefresh = null
             }
@@ -97,6 +104,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return inFlightRefresh
     }, [])
 
+    /**
+     * Sign out ONLY when the server has actually said the session is over.
+     *
+     * This used to call logout() on any non-OK response and on any thrown fetch — and
+     * logout() posts to /auth/logout, which revokes the session server-side. So a cold
+     * start, a 502, or a dropped connection on page load did not merely fail to load the
+     * profile: it destroyed a refresh token with days of life left, and the user had to sign
+     * in again. Reopening the site after closing it is exactly when that request is most
+     * likely to hit a cold backend, which is why it looked like "closing the tab logs me out".
+     */
     const fetchUser = React.useCallback(async (authToken: string) => {
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/me`, {
@@ -104,33 +121,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     Authorization: `Bearer ${authToken}`
                 }
             })
+
             if (res.ok) {
                 const userData = await res.json()
                 setUser(userData)
                 localStorage.setItem("user", JSON.stringify(userData))
-            } else if (res.status === 401) {
+                return
+            }
+
+            if (res.status === 401) {
                 // Delegates to the shared refresh so this cannot race useAuthFetch's — the
                 // endpoint rotates the token, and two refreshes in flight means one of them
                 // presents a cookie the other just invalidated.
-                const newToken = await refreshAccessToken()
+                const refreshed = await refreshAccessToken()
 
-                if (newToken) {
+                if (refreshed.token) {
                     const retryRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/me`, {
-                        headers: { Authorization: `Bearer ${newToken}` }
+                        headers: { Authorization: `Bearer ${refreshed.token}` }
                     })
                     if (retryRes.ok) {
                         const retryUser = await retryRes.json()
                         setUser(retryUser)
+                        localStorage.setItem("user", JSON.stringify(retryUser))
                     }
                     return
                 }
-                logout()
-            } else {
-                logout()
+
+                // Refresh could not reach the server — keep the cached session and let the
+                // next request try again, rather than revoking a session that may be fine.
+                if (refreshed.reason === "expired") logout()
+                return
             }
+
+            // 5xx, 502 from a cold function, anything else: the server has not said the
+            // session is invalid, so it stays.
+            console.warn(`Could not load profile (HTTP ${res.status}) — keeping the session.`)
         } catch (error) {
-            console.error("Failed to fetch user", error)
-            logout()
+            console.warn("Could not reach the server to load the profile — keeping the session.", error)
         } finally {
             setIsLoading(false)
         }

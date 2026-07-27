@@ -132,6 +132,13 @@ export const addAnalysisJob = async (userId, text, projectId, settings, parentId
         }));
     });
 
+    // The dashboard list is cached for an hour and every other mutation drops that key —
+    // creation was the one that did not. A new analysis therefore did not appear in the
+    // sidebar or the analyses list at all until the cache aged out, which reads as the run
+    // having silently vanished, and as still being missing after closing and reopening the
+    // site. It has to happen here, before dispatch, so the row is visible while it runs.
+    await invalidateUserAnalysesCache(userId);
+
     const payload = {
         analysisId: newId, // Pass the ID we just created
         userId,
@@ -166,6 +173,7 @@ export const addAnalysisJob = async (userId, text, projectId, settings, parentId
                             }
                         }
                     });
+                    await invalidateUserAnalysesCache(userId);
                 } catch (updateErr) {
                     log.error({ msg: "MOCK_QSTASH: Failed to update analysis status to FAILED", error: updateErr.message });
                 }
@@ -204,6 +212,7 @@ export const addAnalysisJob = async (userId, text, projectId, settings, parentId
                 }
             }
         });
+        await invalidateUserAnalysesCache(userId);
         throw error;
     }
 };

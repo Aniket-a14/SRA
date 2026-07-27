@@ -92,14 +92,14 @@ export function useAuthFetch() {
         if (response.status !== 401) return response;
 
         const refreshed = await refreshAccessToken();
-        // No new token means the session is genuinely over (or the network is down).
-        // Hand back the original 401 and let the caller decide — auth-context signs the
-        // user out on its own /auth/me cycle rather than doing it from inside a data fetch.
-        if (!refreshed) return response;
+        // No new token means the session is genuinely over, or the network is down. Hand
+        // back the original 401 and let the caller decide — auth-context signs the user out
+        // on its own /auth/me cycle rather than doing it from inside a data fetch.
+        if (!refreshed.token) return response;
 
         // Retried exactly once. A second 401 after a successful refresh is not an expiry
         // problem, and looping on it would hammer the API.
-        return send(refreshed);
+        return send(refreshed.token);
     }, [token, refreshAccessToken]);
 
     return authFetch;
