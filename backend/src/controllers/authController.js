@@ -109,7 +109,12 @@ export const googleStart = (req, res) => {
 export const googleCallback = async (req, res, next) => {
     try {
         const { code, state } = req.query;
-        if (!code) throw new Error('Authorization code missing');
+        // A missing code is a malformed callback, not a server fault; bare it defaults to 500.
+        if (!code) {
+            const error = new Error('Authorization code missing');
+            error.statusCode = 400;
+            throw error;
+        }
 
         const expectedState = req.signedCookies?.[OAUTH_STATE_COOKIE];
         res.clearCookie(OAUTH_STATE_COOKIE, { path: '/' });
@@ -154,7 +159,12 @@ export const githubStart = (req, res) => {
 export const githubCallback = async (req, res, next) => {
     try {
         const { code, state } = req.query;
-        if (!code) throw new Error('Authorization code missing');
+        // A missing code is a malformed callback, not a server fault; bare it defaults to 500.
+        if (!code) {
+            const error = new Error('Authorization code missing');
+            error.statusCode = 400;
+            throw error;
+        }
 
         const expectedState = req.signedCookies?.[OAUTH_STATE_COOKIE];
         res.clearCookie(OAUTH_STATE_COOKIE, { path: '/' });

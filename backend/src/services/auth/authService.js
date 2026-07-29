@@ -25,10 +25,24 @@ export const toPublicUser = (user) => user && ({
     createdAt: user.createdAt
 });
 
+/**
+ * One builder, so the two rejection paths below cannot drift into telling an attacker which
+ * of the address and the password was wrong. A bare Error here carried no statusCode, and
+ * errorMiddleware defaults that to 500 — so a mistyped password was reported as the server
+ * failing, and logged at error level with a stack trace for what is an ordinary typo.
+ */
+const badCredentials = () => {
+    const error = new Error('Invalid email or password');
+    error.statusCode = 401;
+    return error;
+};
+
 export const registerUser = async (email, password, name, userAgent = null, ip = null) => {
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
-        throw new Error('User already exists');
+        const error = new Error('User already exists');
+        error.statusCode = 409;
+        throw error;
     }
 
     const hashedPassword = await hashPassword(password);
@@ -94,7 +108,7 @@ const registerFailedLogin = async (user) => {
 export const loginUser = async (email, password, userAgent = null, ip = null) => {
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user || !user.password) {
-        throw new Error('Invalid email or password');
+        throw badCredentials();
     }
 
     // Checked before the password comparison: while locked, an attempt must cost nothing and
@@ -113,7 +127,7 @@ export const loginUser = async (email, password, userAgent = null, ip = null) =>
     if (!isMatch) {
         const lockedUntil = await registerFailedLogin(user);
         if (lockedUntil) throw lockoutError(lockedUntil);
-        throw new Error('Invalid email or password');
+        throw badCredentials();
     }
 
     // A successful sign-in clears the record — someone who eventually remembers their own
