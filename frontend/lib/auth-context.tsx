@@ -89,10 +89,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [clearSession])
 
     const refreshAccessToken = React.useCallback(async (): Promise<RefreshResult> => {
-        // Join the refresh already running rather than starting a competing one.
-        if (inFlightRefresh) return inFlightRefresh
-
-        inFlightRefresh = (async () => {
+        // Join the refresh already running rather than starting a competing one. The joiner
+        // falls through to the same handling below, so whichever caller happens to arrive
+        // second still sees the expiry — returning the bare promise here meant a page whose
+        // first 401 lost the race stayed signed in, holding credentials the server had
+        // already rejected.
+        const shared = inFlightRefresh ?? (inFlightRefresh = (async () => {
             try {
                 const res = await fetch(authEndpoint("refresh"), {
                     method: "POST",
@@ -115,13 +117,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             } finally {
                 inFlightRefresh = null
             }
-        })()
+        })())
 
         // Signing out lives here, at the one place every caller funnels through, rather than
         // in each caller. It used to sit only in the /auth/me path, which runs on mount — so a
         // session that expired while the user was working produced 401s on every action and no
         // sign-out at all: navigable, but unable to open anything.
-        const result = await inFlightRefresh
+        const result = await shared
         if (result.reason === "expired") {
             // The stale credentials go either way — leaving them is what made the landing page
             // keep offering "Dashboard" for a session that no longer existed. Only the
@@ -129,7 +131,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (onAuthRoute()) {
                 clearSession()
             } else {
-                toast.error("Your session expired. Please sign in again.")
+                // Fixed id: several callers can await the same expiry, and the user should be
+                // told once, not once per in-flight request.
+                toast.error("Your session expired. Please sign in again.", { id: "session-expired" })
                 clearSession("/auth/login")
             }
         }

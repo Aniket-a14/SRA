@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### 🩹 Generation reliability
+- **Fixed** analyses that stopped part-way and never finished, leaving the workspace on a stage that never advanced. Everything after the Developer draft — diagram repair, the reflection passes, the final evaluation — ran with no yield point between them, so an invocation that checkpointed its draft just inside the time budget then spent ~2 more minutes unguarded and was killed by the platform at 300s, mid-audit. Production run 2026-07-29: draft checkpointed at 220s, killed at 300s during the second reflection pass. The tail is now checkpointed at every stage boundary, and the budget check reads *forward* (`assertBudgetFor`) — a stage starts only if it fits in the time left, rather than merely because the deadline has not yet passed.
+- **Fixed** re-buying work on resume: a continued run no longer repeats diagram repair or re-audits a reflection pass an earlier invocation already completed.
+- **Fixed** good documents being rejected by the quality gate. The gate compares the Critic's score against 85, but only Gemini is handed a response schema for that call — under BYOK, OpenAI, Claude and Grok answer from the prompt alone and may return `0.86` or `8.6`. Both lose to `>= 85`, so the draft was refined, re-audited, scored the same way and issued as a failure. Scores are now normalised onto 0-100 and the normalised value is what gets stored, so the badge and the gate agree. An ambiguous whole number is only rescaled when the six 6Cs sub-scores corroborate it — `10` is either a perfect 10/10 or a scathing 10/100, and guessing upward would ship a failing document as exceptional.
+- **Fixed** an unreadable audit counting as a failing one: `undefined >= 85` is false, so a truncated Critic response spent a refinement pass on feedback that did not exist. It now defers to the Reviewer.
+- **Fixed** the Reviewer's verdict being read too literally — "Approved" and "APPROVED_WITH_COMMENTS" are not `=== "APPROVED"`, and a signed-off draft was refined anyway.
+- **Raised** the Critic's output budget from `smallJson` to `mediumJson`. Production showed the audit running out of room mid-object, and the brace-balanced remains were then scored as if they were the model's verdict.
+
+### 🖥️ Workspace
+- **Fixed** the progress view going dead after the tab was backgrounded. The stream is a long-lived response and anything can end it — a backgrounded iOS tab, a sleeping laptop, the function's own time limit — but it was only ever re-opened when the analysis id, the token or the run's active state changed. Coming back to the tab showed a page frozen on the last stage it had heard about, often for a run that had already finished. It now reconnects when the stream drops, immediately on returning to the tab, and backs off while it stays unavailable.
+- **Fixed** the drafting panel filling with duplicated sentences and Mermaid syntax notes while the appendices generated. Diagram syntax explanations are no longer treated as prose, and a sentence restated within one section is shown once.
+- **Fixed** a retry late in a run erasing the whole visible draft. Text is now settled per section, so an abandoned attempt rewinds only the section in flight.
+- **Fixed** a session expiry going unnoticed when several requests hit it at once. The refresh is deduplicated, and a caller joining one already in flight returned before the sign-out ran — so whether the app noticed came down to which request lost the race.
+
 ## [4.2.0] - 2026-07-25
 
 ### ⌨️ CLI Overhaul & Bi-Directional Platform Sync

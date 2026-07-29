@@ -24,6 +24,23 @@ const DEFAULT_BUDGET_MS = 240000; // 240s of a 300s ceiling, leaving 60s of head
 export const STAGE_BUDGET_MS = Number(process.env.PIPELINE_STAGE_BUDGET_MS) || DEFAULT_BUDGET_MS;
 
 /**
+ * What the stage *about to start* typically costs, so the deadline can be checked against the
+ * work ahead rather than only the work behind.
+ *
+ * A plain "am I past the deadline?" check passes at 239s and then lets a 90-second reflection
+ * pass run into a 300s wall — which is exactly how a production run died mid-audit with its
+ * last checkpoint 80 seconds behind it. Measured from that run (2026-07-29, Gemini free tier):
+ * a reflection pass — Reviewer, then Critic, then a surgical refinement — took 46s and 69s;
+ * the final RAG evaluation and the persist transaction share the tail. Rounded up, because
+ * yielding a stage early costs one extra invocation and yielding late costs the whole run.
+ */
+export const STAGE_COST_MS = {
+    diagram_repair: 20000,
+    reflection_pass: 90000,
+    final_evaluation: 30000
+};
+
+/**
  * Signals that the invocation ran out of budget with work still to do. Not a failure: the
  * checkpoint is saved and the run continues in the next invocation, so the worker converts
  * this into a continuation rather than marking the analysis FAILED.
@@ -62,6 +79,18 @@ export function createStageBudget(budgetMs = STAGE_BUDGET_MS) {
          */
         assertBudget(stage) {
             if (exceeded()) throw new PipelinePausedError(stage);
+        },
+
+        /**
+         * Yield unless the next stage plausibly fits in what's left. Same safety rule as
+         * assertBudget — call it directly after a checkpoint write — but it looks forward:
+         * being 1s inside the deadline is not permission to start 90s of work.
+         *
+         * @param {string} stage - the stage just completed, for logs and telemetry
+         * @param {number} nextStageMs - expected cost of the stage about to start
+         */
+        assertBudgetFor(stage, nextStageMs) {
+            if (remainingMs() < nextStageMs) throw new PipelinePausedError(stage);
         }
     };
 }

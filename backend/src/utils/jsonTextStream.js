@@ -1,9 +1,17 @@
 // Pulls readable prose out of a JSON token stream — string values only, never keys or syntax.
 
-/** Keys whose values are machine data or diagram source, not something to read. */
+/**
+ * Keys whose values are machine data or diagram source, not something to read.
+ *
+ * `syntaxExplanation` is the one that shows: every diagram in the appendices carries one, it
+ * describes Mermaid grammar rather than the product, and the three of them are near-identical
+ * — so the drafting panel filled with the same paragraph about arrow notation three times
+ * while the actual appendix scrolled past. It is documentation of the format, not the spec.
+ */
 const DEFAULT_SKIP_KEYS = new Set([
     'id', 'type', 'code', 'priority', 'severity', 'category',
-    'status', 'version', 'date', 'author', 'appliesTo'
+    'status', 'version', 'date', 'author', 'appliesTo',
+    'syntaxExplanation', 'mermaidCode', 'syntax', 'diagram'
 ]);
 
 const ESCAPES = { n: '\n', t: ' ', r: '', b: '', f: '', '"': '"', '\\': '\\', '/': '/' };

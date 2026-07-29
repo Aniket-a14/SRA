@@ -2,6 +2,7 @@ import logger from '../../config/logger.js';
 import { getGenerationChunks } from '../../formats/index.js';
 import { normalizeFormatDoc } from '../../formats/normalize.js';
 import { createTokenBroadcaster } from './tokenStream.js';
+import { normalizeScore } from './reflectionStage.js';
 
 /**
  * Descriptor-driven generation for non-legacy formats (ISO 29148, Volere, Agile PRD).
@@ -88,7 +89,13 @@ export async function auditFormatDoc({ spec, poOutput, doc, agents, sleep, emitP
             criticAgent.auditSRS(poOutput, doc, spec).catch(() => null)
         ]);
         if (review) logger.info(`    [${spec.name}] Reviewer status: ${review.status}`);
-        if (audit) logger.info(`    [${spec.name}] Quality score: ${audit.overallScore}`);
+        // Same rescale as the IEEE loop. Nothing gates on the score here, but it is published
+        // as the document's quality benchmark, and "0.86" on that badge is simply wrong.
+        if (audit) {
+            const score = normalizeScore(audit.overallScore, audit.scores);
+            if (score !== null) audit.overallScore = score;
+            logger.info(`    [${spec.name}] Quality score: ${score ?? 'unavailable'}`);
+        }
         return audit;
     } catch (err) {
         logger.warn(`[Format Audit] Non-fatal audit failure for ${spec.name}: ${err.message}`);

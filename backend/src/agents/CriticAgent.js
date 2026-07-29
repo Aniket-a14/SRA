@@ -75,8 +75,11 @@ ${stringifyForPrompt(AuditSchema)}
 </output_format>
 `;
 
+        // mediumJson, not smallJson: a full audit is six scores, an IEEE compliance block, and
+        // prose for every critical issue and suggestion — production ran out of room mid-object
+        // and the recovered JSON was scored as if it were the model's verdict.
         const auditResult = await this.callLLM(prompt, TEMPERATURES.critic, true, AuditSchema, 3, 5000, {
-            maxOutputTokens: this.tokenLimits.smallJson
+            maxOutputTokens: this.tokenLimits.mediumJson
         });
         return auditResult;
     }

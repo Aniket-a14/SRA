@@ -15,6 +15,7 @@ import { ReviewerAgent } from '../agents/ReviewerAgent.js';
 import { CriticAgent } from '../agents/CriticAgent.js';
 import { resolveProviderKey, asAiSettings } from './providers/providerKeyService.js';
 import { publishProgress } from './progressService.js';
+import { STAGE_COST_MS } from './pipelineBudget.js';
 import { triggerReconcileInBackground } from './opportunisticReconcile.js';
 import { EvalService } from './knowledge/evalService.js';
 import { retrieveContext, formatRagContext } from './knowledge/ragService.js';
@@ -107,6 +108,21 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
     const checkpointAndYield = async (patch, stage) => {
         await saveCheckpoint(patch);
         if (budget && analysisId) budget.assertBudget(stage);
+    };
+
+    /**
+     * As checkpointAndYield, but yields when the *next* stage will not fit in the time left.
+     *
+     * The stages after the draft — diagram repair, the reflection passes, the final
+     * evaluation — used to run with no yield point between them at all. A checkpoint landing
+     * just inside the deadline was therefore followed by two minutes of unguarded work, and
+     * the invocation was killed mid-audit: the run stayed IN_PROGRESS with a stale checkpoint,
+     * the stream went silent, and the page sat on the last stage it had been told about until
+     * the reconciliation sweep eventually failed it. That is the dead state.
+     */
+    const checkpointAndYieldBefore = async (patch, stage, nextStageMs) => {
+        await saveCheckpoint(patch);
+        if (budget && analysisId) budget.assertBudgetFor(stage, nextStageMs);
     };
 
     try {
@@ -262,22 +278,45 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                 });
                 srsDraft = assembledDraft;
                 legacySections = { srsShell, allFeatures, srsRequirements, srsAppendices };
-                await checkpointAndYield({ srsDraft, legacySections }, 'developer_draft');
+                await checkpointAndYieldBefore({ srsDraft, legacySections }, 'developer_draft', STAGE_COST_MS.diagram_repair);
             } else {
                 logger.info("[Resume] Reusing checkpointed Developer draft (legacy)");
             }
 
             // Repair diagrams BEFORE auditing so a minor syntax slip doesn't tank the audit.
-            logger.info("--> Service: Pre-Audit Diagram Repair");
-            emitProgress('diagram_repair', 'Validating and auto-repairing diagrams...');
-            await validateAndAutoRepairDiagrams(srsDraft, { ...settings, ...asAiSettings(providerConfig) });
+            // Skipped on resume: repair rewrites the draft in place, and running it twice pays
+            // an AI call to fix diagrams that are already valid.
+            if (!checkpoint.diagramsRepaired) {
+                logger.info("--> Service: Pre-Audit Diagram Repair");
+                emitProgress('diagram_repair', 'Validating and auto-repairing diagrams...');
+                await validateAndAutoRepairDiagrams(srsDraft, { ...settings, ...asAiSettings(providerConfig) });
+                await checkpointAndYieldBefore(
+                    { srsDraft, diagramsRepaired: true }, 'diagram_repair', STAGE_COST_MS.reflection_pass
+                );
+            }
 
             // 4. Pillar 1: Reflection Loop (Max 2 refinement passes)
             const reflection = await runReflectionLoop({
                 text, poOutput, archOutput, projectName,
                 sections: { ...legacySections, srsDraft },
                 agents: { devAgent, qaAgent, criticAgent },
-                sleep, emitProgress, reflectionCooldownMs: REFLECTION_LOOP_COOLDOWN_MS
+                sleep, emitProgress, reflectionCooldownMs: REFLECTION_LOOP_COOLDOWN_MS,
+                // Each pass is a full Reviewer + Critic + surgical refinement — the most
+                // expensive thing left, and previously the only part of the run with no way
+                // to stop. Resuming re-enters the loop where it paused rather than re-auditing.
+                resumeFrom: checkpoint.reflection,
+                onPassComplete: (state) => {
+                    const patch = {
+                        srsDraft: state.srsDraft,
+                        legacySections: { ...legacySections, allFeatures: state.allFeatures },
+                        reflection: state
+                    };
+                    // The loop finishing is recorded but never yields on the cost of a pass
+                    // that will not run — the tail has its own check before the evaluation.
+                    return state.done
+                        ? saveCheckpoint(patch)
+                        : checkpointAndYieldBefore(patch, `reflection_pass_${state.loopCount}`, STAGE_COST_MS.reflection_pass);
+                }
             });
             srsDraft = reflection.srsDraft;
             loopCount = reflection.loopCount;
@@ -289,16 +328,21 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                     spec, text, poOutput, archOutput, devAgent,
                     projectName, promptVersion, ragContext, sleep, emitProgress, cooldownMs: AGENT_COOLDOWN_MS
                 });
-                await checkpointAndYield({ srsDraft }, 'format_draft');
+                await checkpointAndYieldBefore({ srsDraft }, 'format_draft', STAGE_COST_MS.diagram_repair);
             } else {
                 logger.info("[Resume] Reusing checkpointed Developer draft (format)");
             }
 
             if (spec.tier === 'detailed') {
-                logger.info("--> Service: Pre-Audit Diagram Repair (format)");
-                emitProgress('diagram_repair', 'Validating and auto-repairing diagrams...');
-                await validateAndAutoRepairDiagrams(srsDraft, { ...settings, ...asAiSettings(providerConfig) });
-                finalIndustryAudit = await auditFormatDoc({
+                if (!checkpoint.diagramsRepaired) {
+                    logger.info("--> Service: Pre-Audit Diagram Repair (format)");
+                    emitProgress('diagram_repair', 'Validating and auto-repairing diagrams...');
+                    await validateAndAutoRepairDiagrams(srsDraft, { ...settings, ...asAiSettings(providerConfig) });
+                    await checkpointAndYieldBefore(
+                        { srsDraft, diagramsRepaired: true }, 'diagram_repair', STAGE_COST_MS.reflection_pass
+                    );
+                }
+                finalIndustryAudit = checkpoint.auditDone || await auditFormatDoc({
                     spec, poOutput, doc: srsDraft,
                     agents: { qaAgent, criticAgent },
                     sleep, emitProgress, reflectionCooldownMs: REFLECTION_LOOP_COOLDOWN_MS
@@ -332,6 +376,11 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         // The evaluator only needs high-level signals (titles, feature names, scope summary)
         // to score faithfulness — not the full 40KB+ document.
         logger.info('--> Service: RAG Evaluation');
+        // Last yield of the run. The evaluation plus the persist transaction is the tail that
+        // has to complete inside one invocation, so it starts only if it fits.
+        await checkpointAndYieldBefore(
+            { srsDraft, auditDone: finalIndustryAudit }, 'audit_complete', STAGE_COST_MS.final_evaluation
+        );
         emitProgress('final_evaluation', 'Running final RAG faithfulness evaluation...');
         const contextString = typeof archOutput === 'string' ? archOutput : JSON.stringify(archOutput);
         const evalSnapshot = createReviewSnapshot(poOutput, finalSRS);

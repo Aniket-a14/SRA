@@ -12,8 +12,10 @@ export interface AnalysisProgressEvent {
     resultQuality?: string;
     /** A slice of readable prose from the drafting stream; carries no `message`. */
     token?: string;
-    /** The attempt that produced the text so far was abandoned and is being retried. */
+    /** The attempt that produced the *current section* was abandoned and is being retried. */
     tokenReset?: boolean;
+    /** The section just finished: what has been shown so far is settled and survives a reset. */
+    sectionBreak?: boolean;
 }
 
 export interface AnalysisProgress {
@@ -118,8 +120,15 @@ export function useAuthFetch() {
 export function useAnalysisProgress(id: string | null, active: boolean, onTerminal?: () => void): AnalysisProgress {
     const { token } = useAuth();
     const [progress, setProgress] = useState<AnalysisProgressEvent | null>(null);
-    const [text, setText] = useState("");
+    // Split so a retry can rewind the section being drafted without erasing the sections
+    // already finished — `tokenReset` used to clear everything on screen.
+    const [committed, setCommitted] = useState("");
+    const [live, setLive] = useState("");
     const onTerminalRef = useRef(onTerminal);
+    // Bumping this re-runs the effect below, which is how a dropped stream reconnects.
+    const [attempt, setAttempt] = useState(0);
+    const doneRef = useRef(false);
+    const failuresRef = useRef(0);
 
     useEffect(() => {
         onTerminalRef.current = onTerminal;
@@ -129,6 +138,25 @@ export function useAnalysisProgress(id: string | null, active: boolean, onTermin
         if (!id || !token || !active) return;
 
         const controller = new AbortController();
+        doneRef.current = false;
+        let reconnect: ReturnType<typeof setTimeout> | undefined;
+
+        /**
+         * The stream is a long-lived response, and anything may end it early: a backgrounded
+         * tab on iOS, a sleeping laptop, the serverless function hitting its own time limit
+         * mid-run. Ending it early used to be permanent — the effect only re-ran when the id,
+         * the token or `active` changed, none of which a dropped connection touches. So
+         * returning to the tab showed a page frozen on whichever stage it had last heard
+         * about, including for a run that had since finished.
+         */
+        const scheduleReconnect = () => {
+            if (doneRef.current || controller.signal.aborted) return;
+            // Backs off while the stream stays unavailable, so a backend that is refusing
+            // connections is retried patiently rather than once a second for the whole run.
+            const delay = Math.min(1500 * 2 ** failuresRef.current, 20000);
+            failuresRef.current += 1;
+            reconnect = setTimeout(() => setAttempt(n => n + 1), delay);
+        };
 
         (async () => {
             try {
@@ -136,33 +164,65 @@ export function useAnalysisProgress(id: string | null, active: boolean, onTermin
                     headers: { Authorization: `Bearer ${token}` },
                     signal: controller.signal
                 });
-                if (!res.ok) return;
+                // 401/403 is not something reconnecting fixes; anything else is worth retrying.
+                if (!res.ok) {
+                    if (res.status !== 401 && res.status !== 403) scheduleReconnect();
+                    return;
+                }
 
                 await readSSEStream(res, (data) => {
                     const parsed = data as AnalysisProgressEvent;
+                    failuresRef.current = 0; // the stream works; the next drop starts fresh
 
                     // Token frames carry no message and must not displace the stage label.
+                    if (parsed.sectionBreak) {
+                        setLive(current => {
+                            setCommitted(prev => prev + current);
+                            return "";
+                        });
+                        return;
+                    }
                     if (parsed.tokenReset) {
-                        setText("");
+                        setLive("");
                         return;
                     }
                     if (typeof parsed.token === "string") {
-                        setText(prev => prev + parsed.token);
+                        setLive(prev => prev + parsed.token);
                         return;
                     }
 
                     setProgress(parsed);
-                    if (parsed.terminal) onTerminalRef.current?.();
+                    if (parsed.terminal) {
+                        doneRef.current = true;
+                        onTerminalRef.current?.();
+                    }
                 }, controller.signal);
+
+                // Reached the end of the body without a terminal event: the run is still going
+                // and this connection simply ended. Pick it back up.
+                scheduleReconnect();
             } catch {
-                // Network error / aborted — the caller's own polling fallback covers this
+                // Network error — same treatment. An abort is filtered out by the guard above.
+                scheduleReconnect();
             }
         })();
 
         return () => {
             controller.abort();
+            if (reconnect) clearTimeout(reconnect);
         };
-    }, [id, token, active]);
+    }, [id, token, active, attempt]);
 
-    return { event: progress, text };
+    // Reconnect the moment the tab comes back rather than waiting out the backoff, which is
+    // the case the user actually sees: switch away mid-run, come back, expect live progress.
+    useEffect(() => {
+        if (!id || !active || typeof document === "undefined") return;
+        const onVisible = () => {
+            if (document.visibilityState === "visible" && !doneRef.current) setAttempt(n => n + 1);
+        };
+        document.addEventListener("visibilitychange", onVisible);
+        return () => document.removeEventListener("visibilitychange", onVisible);
+    }, [id, active]);
+
+    return { event: progress, text: committed + live };
 }

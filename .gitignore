@@ -70,3 +70,7 @@ terraform.rc
 terraform/terraform.tfstate.1769920708.backup
 .vercel
 .env*.local
+
+# Platform log exports. Carry request ids, user agents and access patterns for real sessions —
+# useful to read while debugging, never something to publish into the repository.
+sra-backend-log-export-*.csv

@@ -149,4 +149,44 @@ describe("AuthProvider session survival", () => {
         await waitFor(() => expect(localStorage.getItem("token")).toBeNull())
         expect(push).toHaveBeenCalledWith("/auth/login")
     })
+
+    it("signs out the caller that joined a refresh already in flight", async () => {
+        // A page fires several requests at once and they expire together, so the refresh is
+        // deduplicated. The joiner used to be handed the shared promise and returned straight
+        // away, skipping the sign-out entirely — so whether the app noticed its session had
+        // ended came down to which request happened to lose the race.
+        let releaseRefresh: (() => void) | undefined
+        const gate = new Promise<void>(resolve => { releaseRefresh = resolve })
+
+        const fetchMock = stubFetch({
+            "/auth/me": () => json(CACHED_USER),
+            "/auth/refresh": async () => {
+                await gate
+                return json({ message: "Invalid or Expired Refresh Token" }, 401)
+            }
+        })
+        vi.stubGlobal("fetch", fetchMock)
+
+        const held: { refresh: () => Promise<unknown> } = { refresh: async () => undefined }
+        function Grabber() {
+            const { refreshAccessToken } = useAuth()
+            useEffect(() => { held.refresh = refreshAccessToken }, [refreshAccessToken])
+            return null
+        }
+        render(<AuthProvider><Grabber /></AuthProvider>)
+
+        await waitFor(() => expect(localStorage.getItem("token")).toBe("stored-access-token"))
+
+        const first = held.refresh()
+        const joiner = held.refresh()
+        releaseRefresh?.()
+        const [, joined] = await Promise.all([first, joiner])
+
+        // The joiner sees the same verdict as the caller that started the request...
+        expect(joined).toMatchObject({ token: null, reason: "expired" })
+        // ...and one refresh was made, not two — a second would present a rotated-away cookie.
+        expect(fetchMock.mock.calls.filter(c => String(c[0]).includes("/auth/refresh"))).toHaveLength(1)
+        await waitFor(() => expect(localStorage.getItem("token")).toBeNull())
+        expect(push).toHaveBeenCalledWith("/auth/login")
+    })
 })
