@@ -47,6 +47,43 @@ export const normalizeScore = (raw, subScores = null) => {
     return score;
 };
 
+const FIXED_DIAGRAMS = ['flowchartDiagram', 'sequenceDiagram', 'entityRelationshipDiagram'];
+
+/**
+ * Merge a refined Appendices section over the draft without losing diagrams.
+ *
+ * A refinement is spread straight onto the draft, so whatever it omits disappears. That is
+ * acceptable for prose the model rewrote and unacceptable for the Mermaid models, which are
+ * the section's whole substance and the usual reason it was selected for refinement in the
+ * first place. A schema constrains the shape of an answer, not its completeness: nothing
+ * obliges the model to return all three fixed diagrams, and one that comes back empty ends up
+ * on a document that renders no diagrams at all.
+ *
+ * So a diagram is replaced only by a diagram that has code. Everything else carries over.
+ */
+export const mergeRefinedAppendices = (draft, refined) => {
+    const before = draft?.appendices?.analysisModels;
+    if (!before) return { ...draft, ...refined };
+
+    const after = refined?.appendices?.analysisModels ?? {};
+    const models = { ...before, ...after };
+
+    for (const key of FIXED_DIAGRAMS) {
+        if (!models[key]?.code?.trim() && before[key]?.code) models[key] = before[key];
+    }
+
+    // A list, not a key set — an absent or empty one is a loss rather than an edit.
+    if (!Array.isArray(after.additionalDiagrams) || after.additionalDiagrams.length === 0) {
+        if (Array.isArray(before.additionalDiagrams)) models.additionalDiagrams = before.additionalDiagrams;
+    }
+
+    return {
+        ...draft,
+        ...refined,
+        appendices: { ...draft.appendices, ...refined?.appendices, analysisModels: models }
+    };
+};
+
 /**
  * The Reviewer is asked for "APPROVED", and mostly says it. It also says "Approved",
  * "APPROVED_WITH_COMMENTS" and "PASS" — none of which an equality check on "APPROVED"
@@ -206,7 +243,8 @@ export async function runReflectionLoop({
         } else if (targetSectionName === "Requirements") {
             srsDraft = { ...srsDraft, ...refinedSection };
         } else if (targetSectionName === "Appendices") {
-            srsDraft = { ...srsDraft, ...refinedSection };
+            srsDraft = mergeRefinedAppendices(srsDraft, refinedSection);
+            srsAppendices = { appendices: srsDraft.appendices };
         }
 
         // The refinement is durable from here. Yielding at this boundary and nowhere else is

@@ -1,6 +1,6 @@
 import { BaseAgent } from './BaseAgent.js';
 import { constructMasterPrompt } from '../utils/prompts.js';
-import { SRSSchema, SRSShellSchema, SRSFeaturesSchema, SRSRequirementsSchema, SRSAppendicesSchema } from '../utils/aiSchemas.js';
+import { SRSShellSchema, SRSFeaturesSchema, SRSRequirementsSchema, SRSAppendicesSchema } from '../utils/aiSchemas.js';
 import { buildFormatSchema, buildFormatGuidelines } from '../formats/index.js';
 import { TEMPERATURES } from '../utils/llmGenerationConfig.js';
 import { stringifyForPrompt } from '../utils/promptCompaction.js';
@@ -370,11 +370,31 @@ Original Raw Description:
 ${rawInput}
 </input>
 `;
-    // We determine the schema to use based on the section name
-    let schemaToUse = SRSSchema; // fallback
-    if (targetSectionName === "Shell") schemaToUse = SRSShellSchema;
-    if (targetSectionName === "Features") schemaToUse = SRSFeaturesSchema;
-    if (targetSectionName === "Requirements") schemaToUse = SRSRequirementsSchema;
+    // The schema is what keeps a surgical refinement surgical: whatever comes back is spread
+    // straight over the draft, so a section refined under the whole-document schema returns a
+    // whole document — assembled from the one section the model was shown — and overwrites
+    // everything it did not rewrite.
+    //
+    // Appendices had no entry here and fell through to SRSSchema, which is exactly the case
+    // that fires most often: the reflection loop picks this section whenever feedback mentions
+    // a diagram, and the Critic's feedback usually does. The refinement dropped the Mermaid
+    // models it was invoked to repair, so a finished document had no diagrams at all. It went
+    // unnoticed while the run was being killed at the function time limit mid-loop, because
+    // the failsafe then persisted the pre-reflection draft, which still had them.
+    const REFINEMENT_SCHEMAS = {
+      Shell: SRSShellSchema,
+      Features: SRSFeaturesSchema,
+      Requirements: SRSRequirementsSchema,
+      Appendices: SRSAppendicesSchema
+    };
+
+    const schemaToUse = REFINEMENT_SCHEMAS[targetSectionName];
+    if (!schemaToUse) {
+      // Refusing beats falling back to SRSSchema. A section this method cannot constrain is a
+      // section it cannot safely merge, and skipping the refinement costs a quality pass —
+      // where guessing costs the document.
+      throw new Error(`refineSRS: no schema for section "${targetSectionName}"`);
+    }
 
     return this.callLLM(prompt, TEMPERATURES.developer, true, schemaToUse, 3, 5000, {
       maxOutputTokens: this.tokenLimits.srsRefinement
