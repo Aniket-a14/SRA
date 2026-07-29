@@ -183,7 +183,7 @@ describe('runReflectionLoop — pausing and resuming', () => {
 
         const result = await runReflectionLoop({
             ...baseArgs({ devAgent, qaAgent, criticAgent }),
-            resumeFrom: { loopCount: 1, srsDraft: { resumed: true }, allFeatures: [{ name: 'F1' }], done: false }
+            resumeFrom: { loopCount: 1, done: false }
         });
 
         expect(result.loopCount).toBe(2);
@@ -197,7 +197,7 @@ describe('runReflectionLoop — pausing and resuming', () => {
 
         const result = await runReflectionLoop({
             ...baseArgs({ devAgent, qaAgent, criticAgent }),
-            resumeFrom: { loopCount: 1, finalIndustryAudit: { overallScore: 91 }, srsDraft: { done: true }, done: true }
+            resumeFrom: { loopCount: 1, finalIndustryAudit: { overallScore: 91 }, done: true }
         });
 
         expect(result.finalIndustryAudit.overallScore).toBe(91);

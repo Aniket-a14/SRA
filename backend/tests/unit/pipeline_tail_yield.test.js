@@ -160,6 +160,24 @@ describe('performAnalysis — yielding in the tail', () => {
         expect(mockRepairDiagrams.mock.calls.length).toBe(repairsSoFar);
     });
 
+    it('stores the draft once per checkpoint, not once per place that reads it', async () => {
+        mockReflectionLoop.mockImplementationOnce(async ({ sections, onPassComplete }) => {
+            await onPassComplete({
+                loopCount: 1, finalIndustryAudit: { overallScore: 70 },
+                srsDraft: sections.srsDraft, allFeatures: sections.allFeatures, done: false
+            });
+            return { srsDraft: sections.srsDraft, loopCount: 1, finalIndustryAudit: { overallScore: 91 } };
+        });
+
+        await run(createStageBudget(240000));
+
+        // A generated SRS runs to tens of kilobytes; keeping a copy inside `reflection` as
+        // well would write it three times over on every pass.
+        expect(analysisRow.metadata.checkpoint.reflection).toEqual({
+            loopCount: 1, finalIndustryAudit: { overallScore: 70 }, done: false
+        });
+    });
+
     it('runs straight through when the budget is ample', async () => {
         await run(createStageBudget(240000));
 

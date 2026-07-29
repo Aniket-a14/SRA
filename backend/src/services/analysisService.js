@@ -305,17 +305,20 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                 // expensive thing left, and previously the only part of the run with no way
                 // to stop. Resuming re-enters the loop where it paused rather than re-auditing.
                 resumeFrom: checkpoint.reflection,
-                onPassComplete: (state) => {
+                onPassComplete: ({ srsDraft: passDraft, allFeatures, loopCount: passes, finalIndustryAudit: audit, done }) => {
+                    // The draft is written once, under the key the resume path already reads.
+                    // Storing it inside `reflection` as well would put a 40KB+ document in the
+                    // metadata bag three times over, on every pass.
                     const patch = {
-                        srsDraft: state.srsDraft,
-                        legacySections: { ...legacySections, allFeatures: state.allFeatures },
-                        reflection: state
+                        srsDraft: passDraft,
+                        legacySections: { ...legacySections, allFeatures },
+                        reflection: { loopCount: passes, finalIndustryAudit: audit, done }
                     };
                     // The loop finishing is recorded but never yields on the cost of a pass
                     // that will not run — the tail has its own check before the evaluation.
-                    return state.done
+                    return done
                         ? saveCheckpoint(patch)
-                        : checkpointAndYieldBefore(patch, `reflection_pass_${state.loopCount}`, STAGE_COST_MS.reflection_pass);
+                        : checkpointAndYieldBefore(patch, `reflection_pass_${passes}`, STAGE_COST_MS.reflection_pass);
                 }
             });
             srsDraft = reflection.srsDraft;

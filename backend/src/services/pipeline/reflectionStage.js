@@ -95,11 +95,11 @@ export async function runReflectionLoop({
 
     // A pass that already ran in an earlier invocation is not re-run: it costs three AI calls
     // and would score a draft this loop has already acted on.
+    // The draft itself arrives through `sections`, restored from the checkpoint by the
+    // caller — this carries only what the loop knows and the checkpoint does not.
     if (resumeFrom) {
         loopCount = resumeFrom.loopCount ?? 0;
         finalIndustryAudit = resumeFrom.finalIndustryAudit ?? null;
-        if (resumeFrom.allFeatures) allFeatures = resumeFrom.allFeatures;
-        if (resumeFrom.srsDraft) srsDraft = resumeFrom.srsDraft;
         if (resumeFrom.done) {
             logger.info("[Resume] Reflection loop already satisfied the quality bar — skipping");
             return { srsDraft, loopCount, finalIndustryAudit };
