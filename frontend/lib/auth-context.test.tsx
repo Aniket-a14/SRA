@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
+import { useEffect } from "react"
 import { render, screen, waitFor } from "@testing-library/react"
 import { AuthProvider, useAuth } from "./auth-context"
 
@@ -36,6 +37,9 @@ describe("AuthProvider session survival", () => {
         vi.clearAllMocks()
         localStorage.setItem("token", "stored-access-token")
         localStorage.setItem("user", JSON.stringify(CACHED_USER))
+        // jsdom starts at "/", which the provider treats as a public route and so does not
+        // redirect away from. These tests are about signed-in pages.
+        window.history.pushState({}, "", "/analysis/abc")
     })
 
     afterEach(() => {
@@ -103,16 +107,46 @@ describe("AuthProvider session survival", () => {
         // The one case that is genuine proof the session is over.
         const fetchMock = stubFetch({
             "/auth/me": () => json({}, 401),
-            "/auth/refresh": () => json({ message: "Invalid or Expired Refresh Token" }, 401),
-            "/auth/logout": () => json({ message: "Logged out" })
+            "/auth/refresh": () => json({ message: "Invalid or Expired Refresh Token" }, 401)
         })
         vi.stubGlobal("fetch", fetchMock)
 
         renderAuth()
 
-        await waitFor(() =>
-            expect(fetchMock.mock.calls.some(c => String(c[0]).includes("/auth/logout"))).toBe(true)
-        )
         await waitFor(() => expect(localStorage.getItem("token")).toBeNull())
+        expect(localStorage.getItem("user")).toBeNull()
+        // Somewhere the user can act. Leaving them in place is what produced a signed-in shell
+        // that could navigate but could not load anything behind it.
+        expect(push).toHaveBeenCalledWith("/auth/login")
+        // No /auth/logout round-trip: the server has already rejected the token and cleared
+        // the cookie, so asking it to revoke what it just refused achieves nothing.
+        expect(fetchMock.mock.calls.some(c => String(c[0]).includes("/auth/logout"))).toBe(false)
+    })
+
+    it("signs out on an expiry discovered mid-session, not only at mount", async () => {
+        // The dead state: the session ends while the user is working, every request 401s, and
+        // the sign-out lived only in the /auth/me path — which does not run again. The user
+        // could keep navigating a shell that could no longer open anything.
+        const fetchMock = stubFetch({
+            "/auth/me": () => json(CACHED_USER),
+            "/auth/refresh": () => json({ message: "Invalid or Expired Refresh Token" }, 401)
+        })
+        vi.stubGlobal("fetch", fetchMock)
+
+        const held: { refresh: () => Promise<unknown> } = { refresh: async () => undefined }
+        function Grabber() {
+            const { refreshAccessToken } = useAuth()
+            // In an effect, not during render — reassigning outer state while rendering is a
+            // side effect React is free to run more than once.
+            useEffect(() => { held.refresh = refreshAccessToken }, [refreshAccessToken])
+            return null
+        }
+        render(<AuthProvider><Grabber /></AuthProvider>)
+
+        await waitFor(() => expect(localStorage.getItem("token")).toBe("stored-access-token"))
+        await held.refresh()
+
+        await waitFor(() => expect(localStorage.getItem("token")).toBeNull())
+        expect(push).toHaveBeenCalledWith("/auth/login")
     })
 })

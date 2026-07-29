@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
+import { authEndpoint } from "@/lib/auth-endpoints"
 import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -27,7 +28,7 @@ function AuthCompleteContent() {
             return
         }
 
-        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/exchange`, {
+        fetch(authEndpoint("exchange"), {
             method: "POST",
             credentials: "include",
             headers: { "Content-Type": "application/json" },

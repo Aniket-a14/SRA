@@ -40,8 +40,12 @@ export function Navigation() {
           : "top-0 left-0 right-0"
       }`}
     >
+      {/* `relative z-50` is what keeps the close button reachable. The mobile menu below is a
+          sibling inside this same header with z-40; this bar was position:static, so its
+          z-index was auto and the positioned overlay painted straight over it — logo, toggle
+          and all. The menu's pt-28 always assumed this bar stayed on top of it. */}
       <nav
-        className={`mx-auto transition-all duration-500 ${
+        className={`relative z-50 mx-auto transition-all duration-500 ${
           isScrolled || isMobileMenuOpen
             ? "bg-background/80 backdrop-blur-xl border border-foreground/10 rounded-2xl shadow-lg max-w-[1200px]"
             : "bg-transparent max-w-[1400px]"

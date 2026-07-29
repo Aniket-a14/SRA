@@ -121,12 +121,15 @@ function AnalysisDetailContent() {
                     unlockAndNavigate(1);
                     return;
                 }
-                if (analysis.parentId) {
-                    toast.error("Analysis generation failed. Returning to draft.");
-                    router.push(`/analysis/${analysis.parentId}`);
-                    return;
-                }
-                const msg = (analysis.resultJson as unknown as Record<string, unknown>)?.error as string || "Analysis generation failed.";
+                // A generated run always has a parentId, so bouncing to the draft here meant the
+                // failure screen — and with it the only Resume control — was unreachable for
+                // every real failure. The user saw an empty brief form and started the whole
+                // pipeline again, discarding stages the checkpoint had already paid for.
+                // "Back to Draft" is a button on that screen; it does not need to be automatic.
+                const msg = analysis.metadata?.userFriendlyError
+                    || analysis.metadata?.failureReason
+                    || (analysis.resultJson as unknown as Record<string, unknown>)?.error as string
+                    || "Analysis generation failed.";
                 setError(msg);
                 setIsLoading(false);
                 return;
@@ -431,6 +434,11 @@ function AnalysisDetailContent() {
 
     if (error) {
         const parentDraftId = analysis?.parentId;
+        // Only offer resume when a checkpoint actually survived. A run that died before the
+        // first stage completed has nothing to pick up from, and offering it there would just
+        // replay the same failure while implying progress was saved.
+        const canResume = analysis?.metadata?.resumable === true;
+        const stoppedAt = analysis?.metadata?.failedStage;
 
         return (
             <div className="min-h-screen flex flex-col">
@@ -444,21 +452,31 @@ function AnalysisDetailContent() {
                             {error}
                         </p>
 
+                        {canResume && stoppedAt && (
+                            <p className="text-xs text-muted-foreground mb-5">
+                                Stopped after{" "}
+                                <span className="font-mono text-foreground">{stoppedAt.replace(/_/g, ' ')}</span>
+                                {" "}— everything up to that point is saved.
+                            </p>
+                        )}
+
                         <div className="flex flex-col gap-2">
                             {/* A run most often dies because the chosen model ran out of daily
                                 quota, so resuming on the same one would just hit the same wall.
                                 The checkpoint is provider-agnostic, so switching model here
                                 keeps the stages already paid for. */}
-                            <ResumeWithModel
-                                currentModel={(analysis?.metadata?.promptSettings as { modelName?: string } | undefined)?.modelName}
-                                isResuming={isResuming}
-                                onResume={handleResume}
-                            />
+                            {canResume && (
+                                <ResumeWithModel
+                                    currentModel={(analysis?.metadata?.promptSettings as { modelName?: string } | undefined)?.modelName}
+                                    isResuming={isResuming}
+                                    onResume={handleResume}
+                                />
+                            )}
                             {parentDraftId && (
                                 <Button
                                     onClick={() => router.push(`/analysis/${parentDraftId}`)}
-                                    variant="outline"
-                                    className="w-full rounded-full"
+                                    variant={canResume ? "outline" : "default"}
+                                    className={cn("w-full rounded-full", !canResume && "bg-foreground hover:bg-foreground/90 text-background")}
                                 >
                                     <ArrowLeft className="h-4 w-4 mr-2" /> Back to Draft
                                 </Button>

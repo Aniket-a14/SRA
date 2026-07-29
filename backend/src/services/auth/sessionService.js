@@ -74,10 +74,39 @@ export const createSession = async (userId, userAgent, ipAddress) => {
 export const validateSession = async (refreshToken) => {
     if (!refreshToken) return null;
 
-    const session = await prisma.session.findUnique({
-        where: { tokenHash: hashRefreshToken(refreshToken) },
+    const hash = hashRefreshToken(refreshToken);
+
+    let session = await prisma.session.findUnique({
+        where: { tokenHash: hash },
         include: { user: true }
     });
+
+    if (session) {
+        // Holding the current token proves the last rotation response arrived, which retires
+        // its predecessor for good and re-arms replay detection below.
+        if (!session.successorConfirmed) {
+            await prisma.session.update({
+                where: { id: session.id },
+                data: { successorConfirmed: true }
+            });
+        }
+    } else {
+        // The superseded token. Rotation used to make this fatal, but a rotation response the
+        // browser never received leaves it holding exactly this — a closed tab, a dropped
+        // mobile connection — and signing the user out for our lost packet is wrong. It stays
+        // valid until we have seen its replacement actually used.
+        session = await prisma.session.findUnique({
+            where: { prevTokenHash: hash },
+            include: { user: true }
+        });
+
+        if (session?.successorConfirmed) {
+            // The replacement is known to have arrived, so the browser is not the one
+            // presenting this. Someone copied it; end the session rather than serve both.
+            await prisma.session.update({ where: { id: session.id }, data: { revoked: true } });
+            return null;
+        }
+    }
 
     if (!session) return null;
     if (session.revoked) return null;
@@ -111,11 +140,20 @@ export const rotateSession = async (oldSession, newUserAgent, newIp) => {
         ? await getLocationFromIp(newIp)
         : oldSession.location;
 
+    // Which token stays valid alongside the new one. If the previous rotation was never
+    // confirmed as received, the browser is demonstrably still on `prevTokenHash` — replacing
+    // it with a token we have no evidence ever arrived would strand it one refresh later.
+    const prevTokenHash = oldSession.successorConfirmed
+        ? oldSession.tokenHash
+        : (oldSession.prevTokenHash ?? null);
+
     // Update the existing session ID with new token (Rotation)
     await prisma.session.update({
         where: { id: oldSession.id },
         data: {
             tokenHash: hashRefreshToken(newRefreshToken),
+            prevTokenHash,
+            successorConfirmed: false,
             expiresAt: newExpiresAt,
             lastUsedAt: new Date(),
             userAgent: newUserAgent || oldSession.userAgent, // Update UA if changed?

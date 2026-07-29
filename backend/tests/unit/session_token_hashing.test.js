@@ -113,6 +113,84 @@ describe('validateSession', () => {
     });
 });
 
+/**
+ * Rotation grace.
+ *
+ * Rotation retired the old token the instant the new one was written, so a rotation response
+ * the browser never received — a tab closed mid-request, a dropped mobile connection — left it
+ * holding a token the server had already invalidated. The next refresh then 401'd and signed
+ * the user out of a session with days left, which is what "the refresh token expires too soon"
+ * actually was. The superseded token stays valid until its replacement is seen in use.
+ */
+describe('validateSession — rotation grace', () => {
+    const live = (overrides = {}) => ({
+        id: 'sid',
+        userId: 'u1',
+        revoked: false,
+        expiresAt: new Date(Date.now() + 60_000),
+        user: { id: 'u1', deletedAt: null },
+        ...overrides
+    });
+
+    it('accepts the superseded token while the replacement is unconfirmed', async () => {
+        const { validateSession } = await import('../../src/services/auth/sessionService.js');
+        // Miss on tokenHash, hit on prevTokenHash.
+        mockSessionFindUnique
+            .mockResolvedValueOnce(null)
+            .mockResolvedValueOnce(live({ successorConfirmed: false }));
+
+        await expect(validateSession('stale-but-mine')).resolves.toMatchObject({ id: 'sid' });
+
+        expect(mockSessionFindUnique.mock.calls[1][0].where).toEqual({
+            prevTokenHash: sha256('stale-but-mine')
+        });
+    });
+
+    it('revokes the session when a superseded token appears after its replacement was used', async () => {
+        const { validateSession } = await import('../../src/services/auth/sessionService.js');
+        mockSessionFindUnique
+            .mockResolvedValueOnce(null)
+            .mockResolvedValueOnce(live({ successorConfirmed: true }));
+
+        // The browser has the newer token, so whoever presents this one copied it.
+        await expect(validateSession('replayed')).resolves.toBeNull();
+        expect(mockSessionUpdate).toHaveBeenCalledWith({
+            where: { id: 'sid' },
+            data: { revoked: true }
+        });
+    });
+
+    it('confirms the successor the first time the current token is presented', async () => {
+        const { validateSession } = await import('../../src/services/auth/sessionService.js');
+        mockSessionFindUnique.mockResolvedValue(live({ successorConfirmed: false }));
+
+        await validateSession('current');
+
+        expect(mockSessionUpdate).toHaveBeenCalledWith({
+            where: { id: 'sid' },
+            data: { successorConfirmed: true }
+        });
+    });
+
+    it('does not re-confirm on every refresh', async () => {
+        const { validateSession } = await import('../../src/services/auth/sessionService.js');
+        mockSessionFindUnique.mockResolvedValue(live({ successorConfirmed: true }));
+
+        await validateSession('current');
+
+        expect(mockSessionUpdate).not.toHaveBeenCalled();
+    });
+
+    it('never looks up prevTokenHash when the current token matches', async () => {
+        const { validateSession } = await import('../../src/services/auth/sessionService.js');
+        mockSessionFindUnique.mockResolvedValue(live({ successorConfirmed: true }));
+
+        await validateSession('current');
+
+        expect(mockSessionFindUnique).toHaveBeenCalledTimes(1);
+    });
+});
+
 describe('rotateSession', () => {
     it('writes the digest of the new token, keeping the session identity', async () => {
         const { rotateSession } = await import('../../src/services/auth/sessionService.js');
@@ -124,5 +202,29 @@ describe('rotateSession', () => {
         expect(call.where).toEqual({ id: 'sid' });
         expect(call.data.tokenHash).toBe(sha256(newToken));
         expect(call.data).not.toHaveProperty('token');
+    });
+
+    it('demotes the outgoing token to prevTokenHash and marks the new one unconfirmed', async () => {
+        const { rotateSession } = await import('../../src/services/auth/sessionService.js');
+        const oldSession = { id: 'sid', tokenHash: 'outgoing', successorConfirmed: true };
+
+        await rotateSession(oldSession, 'ua', '1.2.3.4');
+        const { data } = mockSessionUpdate.mock.calls[0][0];
+
+        expect(data.prevTokenHash).toBe('outgoing');
+        expect(data.successorConfirmed).toBe(false);
+    });
+
+    it('keeps the older token when the outgoing one was never confirmed received', async () => {
+        const { rotateSession } = await import('../../src/services/auth/sessionService.js');
+        // The browser is demonstrably still on `still-held` — it just presented it.
+        const oldSession = { id: 'sid', tokenHash: 'never-arrived', prevTokenHash: 'still-held', successorConfirmed: false };
+
+        await rotateSession(oldSession, 'ua', '1.2.3.4');
+        const { data } = mockSessionUpdate.mock.calls[0][0];
+
+        // Promoting `never-arrived` here would strand the browser one refresh later — the
+        // exact bug, just moved along by one hop.
+        expect(data.prevTokenHash).toBe('still-held');
     });
 });

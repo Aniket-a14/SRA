@@ -812,7 +812,10 @@ export const getAnalysisById = async (userId, analysisId) => {
         throw error;
     }
 
-    return analysis;
+    // The resume checkpoint holds a full draft SRS and has no client consumer — `resumable`
+    // and `failedStage` next to it are what the UI reads. Same strip as getUserAnalyses.
+    const { checkpoint: _omit, ...slimMeta } = analysis.metadata || {};
+    return { ...analysis, metadata: slimMeta };
 };
 
 // A finalized analysis has been shredded into KnowledgeChunk rows (see finalizeAnalysis

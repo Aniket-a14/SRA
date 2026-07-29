@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
+import { authEndpoint } from "@/lib/auth-endpoints"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -20,7 +21,7 @@ export default function LoginPage() {
         setIsLoading(true)
 
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login`, {
+            const res = await fetch(authEndpoint("login"), {
                 method: "POST",
                 credentials: "include",
                 headers: {

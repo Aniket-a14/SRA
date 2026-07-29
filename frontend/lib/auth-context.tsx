@@ -2,6 +2,13 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+import { authEndpoint } from "./auth-endpoints"
+
+/** Already somewhere the user can sign in — don't redirect or announce an expiry there. */
+const onAuthRoute = () =>
+    typeof window !== "undefined" &&
+    (window.location.pathname === "/" || window.location.pathname.startsWith("/auth"))
 
 interface User {
     id: string
@@ -53,11 +60,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const router = useRouter()
 
+    /**
+     * Drop every trace of the session on this device and send the user somewhere they can
+     * actually act. Separate from logout() because an *expired* session needs no round-trip:
+     * the server has already said the refresh token is dead and cleared the cookie itself.
+     */
+    const clearSession = React.useCallback((destination?: string) => {
+        localStorage.removeItem("token")
+        localStorage.removeItem("user")
+        setToken(null)
+        setUser(null)
+        if (destination) router.push(destination)
+    }, [router])
+
     const logout = React.useCallback(async () => {
         try {
             // Refresh token lives only in an httpOnly cookie, sent automatically —
             // no need to read/send it from localStorage.
-            await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/logout`, {
+            await fetch(authEndpoint("logout"), {
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },
@@ -65,12 +85,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (e) {
             console.error("Logout failed", e)
         }
-        localStorage.removeItem("token")
-        localStorage.removeItem("user")
-        setToken(null)
-        setUser(null)
-        router.push("/")
-    }, [router])
+        clearSession("/")
+    }, [clearSession])
 
     const refreshAccessToken = React.useCallback(async (): Promise<RefreshResult> => {
         // Join the refresh already running rather than starting a competing one.
@@ -78,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         inFlightRefresh = (async () => {
             try {
-                const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/refresh`, {
+                const res = await fetch(authEndpoint("refresh"), {
                     method: "POST",
                     credentials: "include",
                     headers: { "Content-Type": "application/json" },
@@ -101,8 +117,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
         })()
 
-        return inFlightRefresh
-    }, [])
+        // Signing out lives here, at the one place every caller funnels through, rather than
+        // in each caller. It used to sit only in the /auth/me path, which runs on mount — so a
+        // session that expired while the user was working produced 401s on every action and no
+        // sign-out at all: navigable, but unable to open anything.
+        const result = await inFlightRefresh
+        if (result.reason === "expired") {
+            // The stale credentials go either way — leaving them is what made the landing page
+            // keep offering "Dashboard" for a session that no longer existed. Only the
+            // interruption is conditional: somewhere already public needs no announcement.
+            if (onAuthRoute()) {
+                clearSession()
+            } else {
+                toast.error("Your session expired. Please sign in again.")
+                clearSession("/auth/login")
+            }
+        }
+        return result
+    }, [clearSession])
 
     /**
      * Sign out ONLY when the server has actually said the session is over.
@@ -147,9 +179,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     return
                 }
 
-                // Refresh could not reach the server — keep the cached session and let the
-                // next request try again, rather than revoking a session that may be fine.
-                if (refreshed.reason === "expired") logout()
+                // An expired session has already been cleared by refreshAccessToken. Anything
+                // else means the refresh could not reach the server — keep the cached session
+                // and let the next request try again, rather than revoking one that may be fine.
                 return
             }
 
@@ -161,7 +193,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } finally {
             setIsLoading(false)
         }
-    }, [logout, refreshAccessToken])
+    }, [refreshAccessToken])
 
     useEffect(() => {
         if (token) {

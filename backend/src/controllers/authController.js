@@ -283,7 +283,16 @@ export const restoreMyAccount = async (req, res, next) => {
 export const refreshToken = async (req, res, next) => {
     try {
         const refreshTokenValue = req.cookies?.[REFRESH_TOKEN_COOKIE] || req.body?.refreshToken;
-        if (!refreshTokenValue) throw new Error("Refresh Token Required");
+
+        // No cookie means the session is over as far as this browser is concerned, and that is
+        // a 401. Thrown bare it carried no statusCode, so the error handler defaulted it to 500
+        // — and the client reads 5xx as "the server said nothing", keeping a session it can no
+        // longer use. That mismatch is what left the app signed in but unable to load anything.
+        if (!refreshTokenValue) {
+            const error = new Error("No active session");
+            error.statusCode = 401;
+            throw error;
+        }
 
         const session = await validateSession(refreshTokenValue);
         if (!session) {

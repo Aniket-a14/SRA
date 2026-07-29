@@ -70,6 +70,13 @@ model Session {
   // present. The token has 320 bits of entropy from a CSPRNG, so a plain digest is
   // sufficient here; there is no low-entropy secret for an attacker to guess.
   tokenHash  String   @unique
+  // The token this one replaced, kept valid until the replacement is known to have arrived.
+  // Rotation used to invalidate the old token the instant the new one was written, so a
+  // rotation response lost in transit — a closed tab, a dropped mobile connection — left the
+  // browser holding a token the server had already retired, and the next refresh signed the
+  // user out of a session with days left. See validateSession.
+  prevTokenHash      String?  @unique
+  successorConfirmed Boolean  @default(true)
   userAgent  String?
   ipAddress  String?
   expiresAt  DateTime

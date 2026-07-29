@@ -192,6 +192,13 @@ export interface Analysis extends AnalysisResult {
         promptSettings?: Record<string, unknown> | null
         /** Implementation traceability written by `sra push`; see CliTraceabilityPanel. */
         cliTraceability?: CliTraceability
+        /** Written by the pipeline's failure path — a checkpoint survives, so resume can skip
+         *  the stages already paid for rather than starting the run over. */
+        resumable?: boolean
+        failedStage?: string
+        failureReason?: string
+        userFriendlyError?: string
+        isPartial?: boolean
     }
     reusedFrom?: string
     promptSettings?: Record<string, unknown> | null
