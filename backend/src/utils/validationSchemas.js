@@ -23,7 +23,34 @@ export const clientAiSettingsSchema = z.object({
     modelProvider: z.string().optional(),
     modelName: z.string().optional(),
     promptVersion: z.string().max(20).optional(),
-    format: z.enum(['ieee830', 'iso29148', 'volere', 'agile-prd']).optional()
+    format: z.enum(['ieee830', 'iso29148', 'volere', 'agile-prd']).optional(),
+    // Model fallback is opt-in and ordered. The backend only considers these exact
+    // provider/model pairs, so a quota failure never silently changes the user's provider,
+    // billing source, or quality/cost preference.
+    allowModelFallback: z.boolean().optional(),
+    fallbackModels: z.array(z.object({
+        modelProvider: z.enum([
+            'google', 'gemini', 'openai', 'claude', 'anthropic', 'grok', 'xai',
+            'GEMINI', 'OPENAI', 'CLAUDE', 'GROK'
+        ]),
+        modelName: z.string().min(1).max(200)
+    })).max(8).optional()
+}).superRefine((settings, ctx) => {
+    const hasFallbacks = Array.isArray(settings.fallbackModels) && settings.fallbackModels.length > 0;
+    if (hasFallbacks && settings.allowModelFallback !== true) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['allowModelFallback'],
+            message: 'Explicit permission is required before automatic model fallback can be used.'
+        });
+    }
+    if (settings.allowModelFallback === true && !hasFallbacks) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['fallbackModels'],
+            message: 'Choose at least one fallback model before enabling automatic fallback.'
+        });
+    }
 });
 
 export const analyzeSchema = z.object({

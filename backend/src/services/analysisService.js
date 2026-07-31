@@ -14,6 +14,7 @@ import { DeveloperAgent } from '../agents/DeveloperAgent.js';
 import { ReviewerAgent } from '../agents/ReviewerAgent.js';
 import { CriticAgent } from '../agents/CriticAgent.js';
 import { resolveProviderKey, asAiSettings } from './providers/providerKeyService.js';
+import { selectNextFallbackModel } from './providers/modelFallbackService.js';
 import { publishProgress } from './progressService.js';
 import { STAGE_COST_MS } from './pipelineBudget.js';
 import { triggerReconcileInBackground } from './opportunisticReconcile.js';
@@ -27,6 +28,24 @@ const CACHE_TTL = 3600; // 1 hour in seconds
 // arbitrary padding. See the sectional Developer generation and reflection loop below.
 const AGENT_COOLDOWN_MS = 3000; // between sectional Developer generation calls
 const REFLECTION_LOOP_COOLDOWN_MS = 5000; // before the heavier Reviewer/Critic reflection pass
+
+const summarizeGeneratedDiagrams = (draft) => {
+    const models = draft?.appendices?.analysisModels || {};
+    const fixed = ['flowchartDiagram', 'sequenceDiagram', 'entityRelationshipDiagram'];
+    const fixedPresent = fixed.filter((key) => {
+        const value = models[key];
+        return typeof value === 'string' ? value.trim().length > 0 : Boolean(value?.code?.trim());
+    });
+    const additional = Array.isArray(models.additionalDiagrams)
+        ? models.additionalDiagrams.filter((diagram) => typeof diagram?.code === 'string' && diagram.code.trim()).length
+        : 0;
+
+    return {
+        fixed: fixedPresent,
+        additional,
+        total: fixedPresent.length + additional
+    };
+};
 
 /** Invalidate the cached dashboard list so the UI reflects mutations immediately. */
 const invalidateUserAnalysesCache = async (userId) => {
@@ -434,10 +453,138 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
             ? "AI Rate Limit Exceeded. Please wait a few minutes and try again."
             : `Analysis Error: ${error.message}`;
 
+        // A daily/provider quota failure is recoverable when the user explicitly approved
+        // an ordered fallback chain. Reuse the durable checkpoint and hand the same analysis
+        // to the next approved BYOK model; do not turn a recoverable quota stop into a
+        // COMPLETED/PARTIAL row. The helper is deliberately inside the catch because only
+        // this path has the provider error that proves why a switch is needed.
+        if (analysisId && error?.quotaExhausted && settings?.allowModelFallback === true) {
+            let fallbackModel = null;
+            try {
+                fallbackModel = await selectNextFallbackModel(
+                    userId,
+                    settings,
+                    [
+                        ...(Array.isArray(persistedMeta.fallbackHistory) ? persistedMeta.fallbackHistory : []),
+                        {
+                            provider: providerConfig?.provider || settings.modelProvider,
+                            modelName: providerConfig?.modelName || settings.modelName
+                        }
+                    ]
+                );
+            } catch (fallbackLookupError) {
+                logger.warn({
+                    msg: '[Pipeline] Could not inspect approved model fallbacks',
+                    analysisId,
+                    error: fallbackLookupError.message
+                });
+            }
+
+            if (fallbackModel) {
+                const fromProvider = providerConfig?.provider || settings.modelProvider || 'unknown';
+                const fromModel = providerConfig?.modelName || settings.modelName || 'unknown';
+                const fallbackHistory = [
+                    ...(Array.isArray(persistedMeta.fallbackHistory) ? persistedMeta.fallbackHistory : []),
+                    {
+                        fromProvider,
+                        fromModel,
+                        toProvider: fallbackModel.provider,
+                        toModel: fallbackModel.modelName,
+                        reason: 'quota_exhausted',
+                        switchedAt: new Date().toISOString()
+                    }
+                ];
+                const fallbackSettings = {
+                    ...settings,
+                    modelProvider: fallbackModel.provider,
+                    modelName: fallbackModel.modelName
+                };
+
+                // Persist the new target before publishing. A QStash delivery can start
+                // immediately, so the worker must see the selected fallback in the row and
+                // in its payload even when it races the original invocation's return.
+                analysisMeta = {
+                    ...(analysisMeta || {}),
+                    promptSettings: fallbackSettings,
+                    fallbackHistory,
+                    lastQuotaFallback: fallbackHistory[fallbackHistory.length - 1]
+                };
+                try {
+                    await prisma.analysis.update({
+                        where: { id: analysisId },
+                        data: {
+                            status: 'IN_PROGRESS',
+                            title: `Switching to ${fallbackModel.modelName}…`,
+                            metadata: {
+                                ...persistedMeta,
+                                ...analysisMeta,
+                                promptSettings: fallbackSettings,
+                                fallbackHistory,
+                                checkpoint,
+                                resumable: true,
+                                isPartial: false
+                            }
+                        }
+                    });
+                    await invalidateUserAnalysesCache(userId);
+                    emitProgress(
+                        'model_fallback',
+                        `Quota exhausted for ${fromModel}. Continuing with ${fallbackModel.modelName}…`,
+                        {
+                            status: 'IN_PROGRESS',
+                            modelProvider: fallbackModel.provider,
+                            modelName: fallbackModel.modelName,
+                            fallback: true
+                        }
+                    );
+                    const { enqueueContinuation } = await import('./queueService.js');
+                    await enqueueContinuation({
+                        analysisId,
+                        userId,
+                        text,
+                        projectId,
+                        settings: fallbackSettings,
+                        parentId,
+                        rootId
+                    }, 'quota_fallback');
+                    logger.info({
+                        msg: '[Pipeline] Quota fallback continuation queued',
+                        analysisId,
+                        fromProvider,
+                        fromModel,
+                        toProvider: fallbackModel.provider,
+                        toModel: fallbackModel.modelName
+                    });
+                    return;
+                } catch (handoffError) {
+                    // Continue through the normal failure persistence below. The row must
+                    // not remain IN_PROGRESS when the handoff itself could not be queued.
+                    logger.error({
+                        msg: '[Pipeline] Failed to queue quota fallback continuation',
+                        analysisId,
+                        error: handoffError.message
+                    });
+                }
+            }
+        }
+
         // FAILSAFE: If we have an srsDraft (even if reflection failed),
         // we save it so the user doesn't lose the generation.
         if (analysisId && srsDraft) {
-            logger.info("[Analysis Service] Failsafe: Saving last-known draft despite error.");
+            const diagramSummary = summarizeGeneratedDiagrams(srsDraft);
+            const quotaFailure = error?.quotaExhausted || /quota|429|rate limit/i.test(error.message || '');
+            const fallbackChainExhausted = quotaFailure && settings?.allowModelFallback === true;
+            const userFriendlyError = fallbackChainExhausted
+                ? "Analysis finalized early because every approved fallback model was unavailable or out of quota. Add another approved model and resume."
+                : diagramSummary.fixed.length === 3
+                    ? quotaFailure
+                        ? "Analysis finalized early due to model quota. Diagrams were generated; the global audit was skipped."
+                        : "Analysis finalized early after an AI error. Diagrams were generated; the global audit was skipped."
+                    : "Analysis finalized early before the required diagram set was complete. Resume with a model that has available quota.";
+            logger.info({
+                msg: "[Analysis Service] Failsafe: Saving last-known draft despite error.",
+                diagramSummary
+            });
             const { checkpoint: _dropped, ...restMeta } = persistedMeta || {};
             await prisma.analysis.update({
                 where: { id: analysisId },
@@ -453,7 +600,8 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                         ...(analysisMeta || {}),
                         isPartial: true,
                         failureReason: error.message,
-                        userFriendlyError: "Analysis finalized early due to rate limits. Global audit was skipped."
+                        diagramSummary,
+                        userFriendlyError
                     }
                 }
             });

@@ -6,7 +6,8 @@ import { useAuth } from "@/lib/auth-context";
 import { fetchProjects, createProject } from "@/lib/projects-api";
 import { Project } from "@/types/project";
 import useSWR from "swr";
-import { fetcher, swrOptions } from "@/lib/swr-utils";
+import { createAuthFetcher, swrOptions } from "@/lib/swr-utils";
+import { useAuthFetch } from "@/lib/hooks";
 
 import Link from "next/link";
 import { toast } from "sonner";
@@ -43,6 +44,8 @@ function initials(name: string) {
 
 export default function ProjectsPage() {
     const { token, isLoading: isAuthLoading } = useAuth();
+    const authFetch = useAuthFetch();
+    const swrFetcher = useMemo(() => createAuthFetcher(authFetch), [authFetch]);
     const router = useRouter();
     const [projects, setProjects] = useState<Project[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -54,7 +57,7 @@ export default function ProjectsPage() {
         if (!token) return null;
         return [`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, token] as const;
     }, [token]);
-    const { data: recentData } = useSWR<AnalysisHistoryItem[]>(recentSwrKey, fetcher, swrOptions);
+    const { data: recentData } = useSWR<AnalysisHistoryItem[]>(recentSwrKey, swrFetcher, swrOptions);
     const recent = (Array.isArray(recentData) ? recentData : []).slice(0, 6);
 
     useEffect(() => {

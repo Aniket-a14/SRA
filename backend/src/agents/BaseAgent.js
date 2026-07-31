@@ -24,6 +24,26 @@ const MOCK_JSON_RESPONSE = {
         performance: ["Fast"],
         security: ["Secure"]
     },
+    appendices: {
+        analysisModels: {
+            flowchartDiagram: {
+                syntaxExplanation: "Mock workflow",
+                code: "flowchart TD\n  A[Start] --> B[Complete]",
+                caption: "Mock system workflow"
+            },
+            sequenceDiagram: {
+                syntaxExplanation: "Mock interaction",
+                code: "sequenceDiagram\n  User->>System: Request\n  System-->>User: Response",
+                caption: "Mock user interaction"
+            },
+            entityRelationshipDiagram: {
+                syntaxExplanation: "Mock data model",
+                code: "erDiagram\n  USER ||--o{ PROJECT : owns",
+                caption: "Mock data relationships"
+            }
+        },
+        tbdList: []
+    },
     // Reviewer / Critic specific fields
     score: 85,
     status: "APPROVED",
@@ -183,7 +203,11 @@ export class BaseAgent {
                 // A per-day cap reads as a rate limit but never clears inside one run, so
                 // retrying only spends the time budget the pipeline still needs. Fail now
                 // and let the caller surface something the user can act on.
-                if (isRateLimit && isExhaustedQuota(error)) {
+                // Provider SDKs do not agree on the HTTP status for exhausted credits: most
+                // use 429, while some billing/credit responses use 402 or 400. The quota
+                // classifier already distinguishes spent allowances from windowed limits,
+                // so do not require the adapter to label every provider's status as 429.
+                if (isExhaustedQuota(error)) {
                     logger.error({
                         msg: `[${this.name}] Daily quota exhausted — not retrying`,
                         provider: this.provider,

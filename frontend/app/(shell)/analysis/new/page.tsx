@@ -10,6 +10,7 @@ import { toast } from "sonner"
 import { Folder, Sparkles, SlidersHorizontal, Loader2, ArrowUp, KeyRound } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Slider } from "@/components/ui/slider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -44,6 +45,14 @@ interface ProviderKeyLite {
     provider: "GEMINI" | "OPENAI" | "CLAUDE" | "GROK"
     isActive: boolean
     availableModels?: { id: string; label: string }[] | null
+}
+
+function canonicalProvider(provider: string | undefined): string {
+    const value = (provider || "").toUpperCase()
+    if (value === "GOOGLE" || value === "GEMINI") return "GEMINI"
+    if (value === "ANTHROPIC") return "CLAUDE"
+    if (value === "XAI") return "GROK"
+    return value
 }
 
 const EXAMPLES = [
@@ -111,6 +120,32 @@ function NewAnalysisContent() {
     // Models the user can actually generate with — driven entirely by their own keys.
     const modelOptions = buildModelOptions(providerKeys)
     const hasNoKeys = keysLoaded && providerKeys.length === 0
+    const fallbackOptions = modelOptions.filter((model) => (
+        !(model.value === settings.modelName
+            && canonicalProvider(model.provider) === canonicalProvider(settings.modelProvider))
+    ))
+    const fallbackModels = settings.fallbackModels || []
+    const isFallbackSelected = (provider: string, modelName: string) => fallbackModels.some((model) => (
+        model.modelName === modelName && canonicalProvider(model.modelProvider) === canonicalProvider(provider)
+    ))
+    const toggleFallbackModel = (provider: string, modelName: string) => {
+        setSettings((prev) => {
+            const current = prev.fallbackModels || []
+            const exists = current.some((model) => (
+                model.modelName === modelName
+                && canonicalProvider(model.modelProvider) === canonicalProvider(provider)
+            ))
+            return {
+                ...prev,
+                fallbackModels: exists
+                    ? current.filter((model) => !(
+                        model.modelName === modelName
+                        && canonicalProvider(model.modelProvider) === canonicalProvider(provider)
+                    ))
+                    : [...current, { modelProvider: provider, modelName }],
+            }
+        })
+    }
 
     // Auto-grow the composer as the description grows, ChatGPT-style.
     useEffect(() => {
@@ -127,6 +162,10 @@ function NewAnalysisContent() {
         }
         if (hasNoKeys) {
             toast.error("Add your own API key in Settings before generating.")
+            return
+        }
+        if (settings.allowModelFallback === true && fallbackModels.length === 0) {
+            toast.error("Choose at least one approved fallback model, or turn automatic fallback off.")
             return
         }
         const desc = description.trim()
@@ -368,6 +407,74 @@ function NewAnalysisContent() {
                                             </p>
                                         </div>
 
+                                        <div className="space-y-2 rounded-lg border border-foreground/10 p-3">
+                                            <div className="flex items-start gap-2">
+                                                <Checkbox
+                                                    id="allow-model-fallback"
+                                                    checked={settings.allowModelFallback === true}
+                                                    disabled={fallbackOptions.length === 0}
+                                                    onCheckedChange={(checked) => setSettings(prev => ({
+                                                        ...prev,
+                                                        allowModelFallback: checked === true,
+                                                        fallbackModels: checked === true ? (prev.fallbackModels || []) : [],
+                                                    }))}
+                                                />
+                                                <div className="space-y-0.5">
+                                                    <Label htmlFor="allow-model-fallback" className="cursor-pointer text-xs">
+                                                        Allow automatic model fallback
+                                                    </Label>
+                                                    <p className="text-[11px] leading-relaxed text-muted-foreground">
+                                                        If this model runs out of quota, continue only with the models you approve below.
+                                                        This may use those stored provider keys and their billing plans.
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {settings.allowModelFallback === true && fallbackOptions.length > 0 && (
+                                                <div className="space-y-1.5 pl-6">
+                                                    <p className="text-[11px] font-medium text-muted-foreground">Fallback order</p>
+                                                    {fallbackOptions.map((model) => (
+                                                        <label
+                                                            key={`${model.provider}:${model.value}`}
+                                                            className={cn(
+                                                                "flex items-center gap-2 text-xs",
+                                                                quota[quotaKey(model.provider, model.value)]?.isExhausted
+                                                                    ? "cursor-not-allowed text-muted-foreground/50"
+                                                                    : "cursor-pointer"
+                                                            )}
+                                                        >
+                                                            <Checkbox
+                                                                checked={isFallbackSelected(model.provider, model.value)}
+                                                                disabled={quota[quotaKey(model.provider, model.value)]?.isExhausted}
+                                                                onCheckedChange={() => toggleFallbackModel(model.provider, model.value)}
+                                                            />
+                                                            <span>
+                                                                {isFallbackSelected(model.provider, model.value)
+                                                                    ? `${fallbackModels.findIndex((candidate) => (
+                                                                        candidate.modelName === model.value
+                                                                        && canonicalProvider(candidate.modelProvider) === canonicalProvider(model.provider)
+                                                                    )) + 1}. `
+                                                                    : ""}
+                                                                {model.label}{model.hint ? ` · ${model.hint}` : ""}
+                                                                {quota[quotaKey(model.provider, model.value)]?.isExhausted ? " · out of quota" : ""}
+                                                            </span>
+                                                        </label>
+                                                    ))}
+                                                    {fallbackModels.length === 0 && (
+                                                        <p className="text-[11px] text-amber-700">
+                                                            Choose at least one model before starting.
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {fallbackOptions.length === 0 && (
+                                                <p className="pl-6 text-[11px] text-muted-foreground">
+                                                    Add or verify another provider model in Settings to enable fallback.
+                                                </p>
+                                            )}
+                                        </div>
+
                                         <div className="space-y-1.5">
                                             <Label>Analyst persona</Label>
                                             <div className="grid gap-1">
@@ -429,7 +536,8 @@ function NewAnalysisContent() {
                             size="icon"
                             className="h-8 w-8 rounded-full bg-foreground hover:bg-foreground/90 text-background shrink-0 disabled:opacity-40"
                             onClick={handleAnalyze}
-                            disabled={isAnalyzing || !description.trim() || hasNoKeys}
+                            disabled={isAnalyzing || !description.trim() || hasNoKeys
+                                || (settings.allowModelFallback === true && fallbackModels.length === 0)}
                             aria-label="Start analysis"
                         >
                             {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}

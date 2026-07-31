@@ -20,6 +20,12 @@ const GEMINI_DAILY = /PerDay|per day|GenerateRequestsPerDayPerProject/i;
 // `insufficient_quota` rather than a windowed limit — also not worth retrying.
 const OPENAI_EXHAUSTED = /insufficient_quota|exceeded your current quota/i;
 
+// Anthropic and some OpenAI-compatible gateways use prose rather than a stable error code.
+// Keep this separate from ordinary 429 handling: a provider window such as per-minute or
+// per-second is retryable, while a spent credit/billing/monthly allowance is not.
+const GENERIC_EXHAUSTED = /quota\s+(?:has been\s+)?(?:exceeded|exhausted)|(?:out of|low|insufficient)\s+(?:credits|credit balance)|credit balance\s+(?:is\s+)?(?:too\s+)?(?:low|insufficient)|billing(?:\s+limit)?\s+(?:exceeded|reached)|spend\s+limit\s+(?:exceeded|reached)|payment required/i;
+const WINDOWED_LIMIT = /per[- ]?(?:minute|second|hour)|requests?\s+per\s+(?:minute|second|hour)|tokens?\s+per\s+(?:minute|second|hour)|rate limit/i;
+
 /**
  * @param {Error} error - the provider error, as thrown by an adapter
  * @returns {boolean} true when retrying cannot succeed within this run
@@ -38,7 +44,8 @@ export function isExhaustedQuota(error) {
 
     const haystack = `${structured} ${error.message || ''}`;
 
-    return GEMINI_DAILY.test(haystack) || OPENAI_EXHAUSTED.test(haystack);
+    if (GEMINI_DAILY.test(haystack) || OPENAI_EXHAUSTED.test(haystack)) return true;
+    return GENERIC_EXHAUSTED.test(haystack) && !WINDOWED_LIMIT.test(haystack);
 }
 
 /**

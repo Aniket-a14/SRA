@@ -17,7 +17,7 @@ import { jest, describe, it, expect } from '@jest/globals';
 
 const { runReflectionLoop, mergeRefinedAppendices } =
     await import('../../src/services/pipeline/reflectionStage.js');
-const { DeveloperAgent } = await import('../../src/agents/DeveloperAgent.js');
+const { DeveloperAgent, hasCompleteAppendices } = await import('../../src/agents/DeveloperAgent.js');
 const { SRSAppendicesSchema } = await import('../../src/utils/aiSchemas.js');
 
 const diagram = (code) => ({ syntaxExplanation: 'x', code, caption: 'A caption' });
@@ -55,6 +55,55 @@ describe('refineSRS — section schema', () => {
         // Falling back here is what produced a whole document from one section and spread it
         // over the draft. Skipping a quality pass is the cheaper failure.
         await expect(agent.refineSRS('input', {}, {}, {}, 'Glossary', [])).rejects.toThrow(/no schema/i);
+    });
+});
+
+describe('generateAppendices — diagram contract', () => {
+    const complete = () => ({
+        appendices: {
+            analysisModels: {
+                flowchartDiagram: diagram('flowchart TD\n A --> B'),
+                sequenceDiagram: diagram('sequenceDiagram\n A->>B: hi'),
+                entityRelationshipDiagram: diagram('erDiagram\n USER ||--o{ LEAVE : "files"')
+            },
+            tbdList: []
+        }
+    });
+
+    it('recognises only appendices with all required diagram code', () => {
+        expect(hasCompleteAppendices(complete())).toBe(true);
+        expect(hasCompleteAppendices({ appendices: { analysisModels: {} } })).toBe(false);
+    });
+
+    it('recovers once when a provider returns an appendix without diagrams', async () => {
+        const agent = new DeveloperAgent();
+        const callLLM = jest.spyOn(agent, 'callLLM')
+            .mockResolvedValueOnce({ appendices: { analysisModels: {}, tbdList: [] } })
+            .mockResolvedValueOnce(complete());
+
+        const result = await agent.generateAppendices('input', {}, {}, {}, {
+            appendicesSystemInstruction: 'system'
+        });
+
+        expect(callLLM).toHaveBeenCalledTimes(2);
+        expect(hasCompleteAppendices(result)).toBe(true);
+    });
+});
+
+describe('SRSAppendicesSchema — required diagram fields', () => {
+    it('requires the fixed diagram set and its code fields', () => {
+        const appendices = SRSAppendicesSchema.properties.appendices;
+        const models = appendices.properties.analysisModels;
+
+        expect(appendices.required).toEqual(expect.arrayContaining(['analysisModels', 'tbdList']));
+        expect(models.required).toEqual(expect.arrayContaining([
+            'flowchartDiagram',
+            'sequenceDiagram',
+            'entityRelationshipDiagram'
+        ]));
+        expect(models.properties.flowchartDiagram.required).toEqual(
+            expect.arrayContaining(['syntaxExplanation', 'code', 'caption'])
+        );
     });
 });
 

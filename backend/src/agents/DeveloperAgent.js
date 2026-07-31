@@ -1,4 +1,5 @@
 import { BaseAgent } from './BaseAgent.js';
+import logger from '../config/logger.js';
 import { constructMasterPrompt } from '../utils/prompts.js';
 import { SRSShellSchema, SRSFeaturesSchema, SRSRequirementsSchema, SRSAppendicesSchema } from '../utils/aiSchemas.js';
 import { buildFormatSchema, buildFormatGuidelines } from '../formats/index.js';
@@ -29,6 +30,20 @@ These rules govern ALL Mermaid diagram generation. Violations will produce inval
 10. Limit ERDs to top 10-12 core entities to prevent output truncation.
 </diagram_rules>
 `;
+
+const REQUIRED_APPENDIX_DIAGRAMS = [
+  'flowchartDiagram',
+  'sequenceDiagram',
+  'entityRelationshipDiagram'
+];
+
+export const hasCompleteAppendices = (candidate) => {
+  const models = candidate?.appendices?.analysisModels;
+  return Boolean(
+    models &&
+    REQUIRED_APPENDIX_DIAGRAMS.every((key) => typeof models[key]?.code === 'string' && models[key].code.trim())
+  );
+};
 
 export class DeveloperAgent extends BaseAgent {
   constructor(providerConfig = {}) {
@@ -225,6 +240,7 @@ Each diagram must include "syntaxExplanation", "code", and "caption".
 2. Each diagram must have a concise caption (4-6 words max).
 3. Output RAW Mermaid syntax only (no markdown code blocks).
 4. The TBD list must reference all "TBD" or "To Be Determined" items found in earlier sections.
+5. Return one JSON object in the exact schema above. The outer response is JSON; only each diagram's code field contains raw Mermaid syntax (without markdown fences).
 </constraints>
 
 ${MERMAID_RULES}
@@ -240,11 +256,33 @@ ${rawInput}
 </input>
 `;
 
-    return this.callLLM(prompt, TEMPERATURES.developer, true, SRSAppendicesSchema, 3, 5000, {
+    const call = (instruction) => this.callLLM(instruction, TEMPERATURES.developer, true, SRSAppendicesSchema, 3, 5000, {
       systemInstruction,
       maxOutputTokens: this.tokenLimits.srsAppendices,
       onStream: settings.onStream
     });
+
+    const firstAttempt = await call(prompt);
+    if (hasCompleteAppendices(firstAttempt)) return firstAttempt;
+
+    // Non-Gemini providers receive the schema as prompt guidance rather than a provider-level
+    // response constraint. Recover once from an incomplete object instead of silently persisting
+    // an appendix section that renders no diagrams.
+    logger.warn('[Lead Developer] Appendices response was missing one or more required diagrams; requesting a complete retry.');
+    const recovery = await call(`${prompt}
+
+<recovery>
+The previous response was incomplete. It did not contain non-empty code for all three required
+diagrams. Return a complete JSON object with appendices.analysisModels.flowchartDiagram,
+appendices.analysisModels.sequenceDiagram, and appendices.analysisModels.entityRelationshipDiagram.
+Each must contain non-empty syntaxExplanation, code, and caption fields. Do not omit any required
+field and do not return Mermaid outside the JSON object's code fields.
+</recovery>`);
+
+    if (!hasCompleteAppendices(recovery)) {
+      throw new Error('Appendices generation returned an incomplete required diagram set.');
+    }
+    return recovery;
   }
 
   async generateSRS(requirements, architecture, settings = {}) {

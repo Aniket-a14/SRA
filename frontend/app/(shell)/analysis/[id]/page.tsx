@@ -4,8 +4,8 @@ import { useEffect, useState, useCallback, useMemo } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import useSWR from "swr";
-import { fetcher, swrOptions } from "@/lib/swr-utils";
-import { useAnalysisProgress, useRevalidateOnRestore } from "@/lib/hooks";
+import { createAuthFetcher, swrOptions } from "@/lib/swr-utils";
+import { useAnalysisProgress, useAuthFetch, useRevalidateOnRestore } from "@/lib/hooks";
 
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Sparkles, Save, MessageSquare, FileText } from "lucide-react"
@@ -52,6 +52,8 @@ function AnalysisDetailContent() {
     const id = params?.id as string
     const router = useRouter()
     const { user, token, isLoading: authLoading } = useAuth()
+    const authFetch = useAuthFetch()
+    const swrFetcher = useMemo(() => createAuthFetcher(authFetch), [authFetch])
     const { unlockAndNavigate, unlockLayer, setLayer, setIsFinalized } = useLayer()
 
     const swrKey = useMemo(() => {
@@ -61,7 +63,7 @@ function AnalysisDetailContent() {
 
     const { data: analysis, error: swrError, mutate } = useSWR<Analysis>(
         swrKey,
-        fetcher,
+        swrFetcher,
         {
             ...swrOptions,
             refreshInterval: (latestData) => {

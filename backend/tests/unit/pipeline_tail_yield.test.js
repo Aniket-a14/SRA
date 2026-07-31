@@ -67,6 +67,21 @@ jest.unstable_mockModule('../../src/services/pipeline/reflectionStage.js', () =>
     isApprovedStatus: () => true
 }));
 
+const mockSelectNextFallbackModel = jest.fn();
+const mockEnqueueContinuation = jest.fn();
+jest.unstable_mockModule('../../src/services/providers/modelFallbackService.js', () => ({
+    selectNextFallbackModel: mockSelectNextFallbackModel
+}));
+jest.unstable_mockModule('../../src/services/queueService.js', () => ({
+    enqueueContinuation: mockEnqueueContinuation
+}));
+jest.unstable_mockModule('../../src/config/redis.js', () => ({
+    getRedisClient: jest.fn(() => null)
+}));
+jest.unstable_mockModule('../../src/services/progressService.js', () => ({
+    publishProgress: jest.fn().mockResolvedValue(undefined)
+}));
+
 jest.unstable_mockModule('../../src/services/knowledge/ragService.js', () => ({
     retrieveContext: jest.fn().mockResolvedValue([]),
     formatRagContext: jest.fn().mockResolvedValue('')
@@ -88,8 +103,8 @@ jest.unstable_mockModule('../../src/services/qualityService.js', () => ({
 const { performAnalysis } = await import('../../src/services/analysisService.js');
 const { createStageBudget, STAGE_COST_MS } = await import('../../src/services/pipelineBudget.js');
 
-const run = (budget) => performAnalysis(
-    'u1', 'build a leave tracker', 'p1', null, 'r1', {}, 'a1', { budget }
+const run = (budget, settings = {}) => performAnalysis(
+    'u1', 'build a leave tracker', 'p1', null, 'r1', settings, 'a1', { budget }
 );
 
 beforeEach(() => {
@@ -98,6 +113,9 @@ beforeEach(() => {
     mockGenerateSrsSections.mockClear();
     mockRepairDiagrams.mockClear();
     mockReflectionLoop.mockClear();
+    mockSelectNextFallbackModel.mockReset();
+    mockEnqueueContinuation.mockReset();
+    mockEnqueueContinuation.mockResolvedValue({ continued: true });
 });
 
 describe('performAnalysis — yielding in the tail', () => {
@@ -184,5 +202,44 @@ describe('performAnalysis — yielding in the tail', () => {
         expect(mockGenerateSrsSections).toHaveBeenCalledTimes(1);
         expect(mockRepairDiagrams).toHaveBeenCalledTimes(1);
         expect(mockReflectionLoop).toHaveBeenCalledTimes(1);
+    });
+
+    it('queues an approved model fallback instead of finalizing a quota failure as partial', async () => {
+        mockReflectionLoop.mockRejectedValueOnce(Object.assign(new Error('daily quota exhausted'), {
+            quotaExhausted: true
+        }));
+        mockSelectNextFallbackModel.mockResolvedValueOnce({
+            provider: 'OPENAI',
+            modelName: 'gpt-backup'
+        });
+
+        await run(createStageBudget(240000), {
+            modelProvider: 'GEMINI',
+            modelName: 'gemini-primary',
+            allowModelFallback: true,
+            fallbackModels: [{ modelProvider: 'OPENAI', modelName: 'gpt-backup' }]
+        });
+
+        expect(mockSelectNextFallbackModel).toHaveBeenCalledWith(
+            'u1',
+            expect.objectContaining({ allowModelFallback: true }),
+            [{ provider: 'GEMINI', modelName: 'gemini-primary' }]
+        );
+        expect(mockEnqueueContinuation).toHaveBeenCalledWith(
+            expect.objectContaining({
+                analysisId: 'a1',
+                settings: expect.objectContaining({
+                    modelProvider: 'OPENAI',
+                    modelName: 'gpt-backup'
+                })
+            }),
+            'quota_fallback'
+        );
+
+        const statuses = mockAnalysisUpdate.mock.calls
+            .map(([{ data }]) => data.status)
+            .filter(Boolean);
+        expect(statuses).toContain('IN_PROGRESS');
+        expect(statuses).not.toContain('COMPLETED');
     });
 });

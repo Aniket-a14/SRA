@@ -217,6 +217,11 @@ export interface StartAnalysisInput {
         modelProvider?: string;
         modelName?: string;
         format?: string;
+        allowModelFallback?: boolean;
+        fallbackModels?: Array<{
+            modelProvider: string;
+            modelName: string;
+        }>;
     }
     srsData?: {
         details?: {

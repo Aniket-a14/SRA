@@ -4,8 +4,8 @@ import { useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import useSWR from "swr";
-import { fetcher, swrOptions } from "@/lib/swr-utils";
-import { useRevalidateOnRestore } from "@/lib/hooks";
+import { createAuthFetcher, swrOptions } from "@/lib/swr-utils";
+import { useAuthFetch, useRevalidateOnRestore } from "@/lib/hooks";
 
 import { AnalysisHistory } from "@/components/analysis-history"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -22,6 +22,8 @@ type AnalysisHistoryItem = {
 export default function AnalysisPage() {
     const router = useRouter()
     const { user, token, isLoading: authLoading } = useAuth()
+    const authFetch = useAuthFetch()
+    const swrFetcher = useMemo(() => createAuthFetcher(authFetch), [authFetch])
 
     const swrKey = useMemo(() => {
         if (!token || authLoading) return null;
@@ -30,7 +32,7 @@ export default function AnalysisPage() {
 
     const { data: historyData, error, mutate } = useSWR<AnalysisHistoryItem[]>(
         swrKey,
-        fetcher,
+        swrFetcher,
         swrOptions
     );
 
