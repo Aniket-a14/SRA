@@ -37,6 +37,11 @@ describe('quotaErrors', () => {
             expect(isExhaustedQuota(err)).toBe(true);
         });
 
+        it('detects provider billing/credit exhaustion without treating a windowed 429 as daily quota', () => {
+            expect(isExhaustedQuota(new Error('Your credit balance is too low to continue'))).toBe(true);
+            expect(isExhaustedQuota(new Error('Quota exceeded: requests per minute limit reached'))).toBe(false);
+        });
+
         it('ignores unrelated errors and null', () => {
             expect(isExhaustedQuota(new Error('AI Request Timeout'))).toBe(false);
             expect(isExhaustedQuota(new Error('[500] Internal error'))).toBe(false);

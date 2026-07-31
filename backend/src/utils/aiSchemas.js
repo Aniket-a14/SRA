@@ -333,7 +333,8 @@ export const SRSAppendicesSchema = {
                                 syntaxExplanation: { type: SchemaType.STRING },
                                 code: { type: SchemaType.STRING },
                                 caption: { type: SchemaType.STRING }
-                            }
+                            },
+                            required: ["syntaxExplanation", "code", "caption"]
                         },
                         sequenceDiagram: {
                             type: SchemaType.OBJECT,
@@ -341,7 +342,8 @@ export const SRSAppendicesSchema = {
                                 syntaxExplanation: { type: SchemaType.STRING },
                                 code: { type: SchemaType.STRING },
                                 caption: { type: SchemaType.STRING }
-                            }
+                            },
+                            required: ["syntaxExplanation", "code", "caption"]
                         },
                         entityRelationshipDiagram: {
                             type: SchemaType.OBJECT,
@@ -349,7 +351,8 @@ export const SRSAppendicesSchema = {
                                 syntaxExplanation: { type: SchemaType.STRING },
                                 code: { type: SchemaType.STRING },
                                 caption: { type: SchemaType.STRING }
-                            }
+                            },
+                            required: ["syntaxExplanation", "code", "caption"]
                         },
                         additionalDiagrams: {
                             type: SchemaType.ARRAY,
@@ -366,10 +369,12 @@ export const SRSAppendicesSchema = {
                                 required: ["type", "title", "code"]
                             }
                         }
-                    }
+                    },
+                    required: ["flowchartDiagram", "sequenceDiagram", "entityRelationshipDiagram"]
                 },
                 tbdList: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }
-            }
+            },
+            required: ["analysisModels", "tbdList"]
         }
     },
     required: ["appendices"]

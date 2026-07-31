@@ -54,6 +54,16 @@ describe('clientAiSettingsSchema', () => {
         expect(() => parse({ depth: 99 })).toThrow();
         expect(() => parse({ format: 'not-a-format' })).toThrow();
     });
+
+    it('requires explicit permission when fallback models are supplied', () => {
+        const fallbackModels = [{ modelProvider: 'OPENAI', modelName: 'gpt-backup' }];
+        expect(() => parse({ fallbackModels })).toThrow(/permission/i);
+        expect(parse({ allowModelFallback: true, fallbackModels })).toEqual({
+            allowModelFallback: true,
+            fallbackModels
+        });
+        expect(() => parse({ allowModelFallback: true })).toThrow(/fallback model/i);
+    });
 });
 
 describe('every route that accepts AI settings strips injection vectors', () => {

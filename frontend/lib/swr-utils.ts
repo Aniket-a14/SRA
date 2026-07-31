@@ -1,34 +1,29 @@
 import { toast } from "sonner";
 
-export const fetcher = async ([url, token]: [string, string | null]) => {
-    const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'Pragma': 'no-cache',
-        'Cache-Control': 'no-cache',
+/**
+ * Build an SWR fetcher from the shared authenticated request function.
+ *
+ * The old SWR fetcher duplicated bearer-header setup with a raw fetch. That meant an SWR
+ * revalidation could see an expired access token, return 401, and stop there even though the
+ * auth context had a valid refresh cookie. `useAuthFetch` owns the refresh/replay contract, so
+ * SWR must use it too.
+ */
+export const createAuthFetcher = (authFetch: (url: string, options?: RequestInit) => Promise<Response>) =>
+    async ([url]: readonly [string, string | null]) => {
+        const res = await authFetch(url);
+        if (!res.ok) {
+            const errorData = await res.json().catch(() => ({}));
+            const error = new Error(errorData.message || 'An error occurred while fetching data.');
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (error as any).status = res.status;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (error as any).info = errorData;
+            throw error;
+        }
+
+        const json = await res.json();
+        return json.data || json;
     };
-
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const res = await fetch(url, {
-        headers,
-        credentials: 'include'
-    });
-
-    if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        const error = new Error(errorData.message || 'An error occurred while fetching data.');
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (error as any).status = res.status;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (error as any).info = errorData;
-        throw error;
-    }
-
-    const json = await res.json();
-    return json.data || json;
-};
 
 export const swrOptions = {
     // Analyses run in the background and change while nobody is looking at them, so a

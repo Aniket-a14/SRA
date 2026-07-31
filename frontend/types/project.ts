@@ -7,6 +7,11 @@ export interface PromptSettings {
     modelProvider?: 'google' | 'openai' | 'claude' | 'grok';
     modelName?: string;
     format?: string;
+    allowModelFallback?: boolean;
+    fallbackModels?: Array<{
+        modelProvider: string;
+        modelName: string;
+    }>;
 }
 
 export interface Project {

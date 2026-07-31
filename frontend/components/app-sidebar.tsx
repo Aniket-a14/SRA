@@ -30,7 +30,8 @@ import { useLayer } from "@/lib/layer-context"
 import { useRouter, useParams } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import useSWR from "swr"
-import { fetcher, swrOptions } from "@/lib/swr-utils"
+import { createAuthFetcher, swrOptions } from "@/lib/swr-utils"
+import { useAuthFetch } from "@/lib/hooks"
 import { useCompletionNotifications } from "@/lib/use-completion-notifications"
 import { useMemo } from "react"
 
@@ -77,6 +78,8 @@ export function AppSidebar({ className, inSheet = false }: AppSidebarProps) {
     const router = useRouter()
     const params = useParams()
     const { token, user, logout } = useAuth()
+    const authFetch = useAuthFetch()
+    const swrFetcher = useMemo(() => createAuthFetcher(authFetch), [authFetch])
 
     const analysisId = params?.id as string | undefined
 
@@ -87,7 +90,7 @@ export function AppSidebar({ className, inSheet = false }: AppSidebarProps) {
         return [`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, token] as const
     }, [token])
 
-    const { data: historyData } = useSWR<AnalysisHistoryItem[]>(swrKey, fetcher, {
+    const { data: historyData } = useSWR<AnalysisHistoryItem[]>(swrKey, swrFetcher, {
         ...swrOptions,
         refreshInterval: 30000,
     })
@@ -106,7 +109,7 @@ export function AppSidebar({ className, inSheet = false }: AppSidebarProps) {
         if (!token) return null
         return [`${process.env.NEXT_PUBLIC_BACKEND_URL}/projects`, token] as const
     }, [token])
-    const { data: projectsData } = useSWR<ProjectSummary[]>(projectsSwrKey, fetcher, swrOptions)
+    const { data: projectsData } = useSWR<ProjectSummary[]>(projectsSwrKey, swrFetcher, swrOptions)
     const projects = Array.isArray(projectsData) ? projectsData : []
 
     const handleLogout = () => {
