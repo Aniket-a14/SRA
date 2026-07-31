@@ -269,6 +269,7 @@ ${rawInput}
     // response constraint. Recover once from an incomplete object instead of silently persisting
     // an appendix section that renders no diagrams.
     logger.warn('[Lead Developer] Appendices response was missing one or more required diagrams; requesting a complete retry.');
+    settings.onStream?.({ type: 'reset' });
     const recovery = await call(`${prompt}
 
 <recovery>

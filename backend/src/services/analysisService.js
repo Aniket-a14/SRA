@@ -458,8 +458,10 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         // to the next approved BYOK model; do not turn a recoverable quota stop into a
         // COMPLETED/PARTIAL row. The helper is deliberately inside the catch because only
         // this path has the provider error that proves why a switch is needed.
+        let fallbackChainExhausted = false;
         if (analysisId && error?.quotaExhausted && settings?.allowModelFallback === true) {
             let fallbackModel = null;
+            let fallbackSelectionCompleted = false;
             try {
                 fallbackModel = await selectNextFallbackModel(
                     userId,
@@ -472,6 +474,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                         }
                     ]
                 );
+                fallbackSelectionCompleted = true;
             } catch (fallbackLookupError) {
                 logger.warn({
                     msg: '[Pipeline] Could not inspect approved model fallbacks',
@@ -479,6 +482,11 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                     error: fallbackLookupError.message
                 });
             }
+
+            // Only report chain exhaustion when the fallback list was actually inspected.
+            // A lookup failure or a later queue handoff failure is not evidence that the
+            // approved chain has been exhausted.
+            fallbackChainExhausted = fallbackSelectionCompleted && !fallbackModel;
 
             if (fallbackModel) {
                 const fromProvider = providerConfig?.provider || settings.modelProvider || 'unknown';
@@ -503,7 +511,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                 // Persist the new target before publishing. A QStash delivery can start
                 // immediately, so the worker must see the selected fallback in the row and
                 // in its payload even when it races the original invocation's return.
-                analysisMeta = {
+                const fallbackMeta = {
                     ...(analysisMeta || {}),
                     promptSettings: fallbackSettings,
                     fallbackHistory,
@@ -517,7 +525,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                             title: `Switching to ${fallbackModel.modelName}…`,
                             metadata: {
                                 ...persistedMeta,
-                                ...analysisMeta,
+                                ...fallbackMeta,
                                 promptSettings: fallbackSettings,
                                 fallbackHistory,
                                 checkpoint,
@@ -555,6 +563,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                         toProvider: fallbackModel.provider,
                         toModel: fallbackModel.modelName
                     });
+                    analysisMeta = fallbackMeta;
                     return;
                 } catch (handoffError) {
                     // Continue through the normal failure persistence below. The row must
@@ -573,7 +582,6 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         if (analysisId && srsDraft) {
             const diagramSummary = summarizeGeneratedDiagrams(srsDraft);
             const quotaFailure = error?.quotaExhausted || /quota|429|rate limit/i.test(error.message || '');
-            const fallbackChainExhausted = quotaFailure && settings?.allowModelFallback === true;
             const userFriendlyError = fallbackChainExhausted
                 ? "Analysis finalized early because every approved fallback model was unavailable or out of quota. Add another approved model and resume."
                 : diagramSummary.fixed.length === 3
@@ -586,18 +594,22 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                 diagramSummary
             });
             const { checkpoint: _dropped, ...restMeta } = persistedMeta || {};
+            const resumable = fallbackChainExhausted && Object.keys(checkpoint).length > 0;
             await prisma.analysis.update({
                 where: { id: analysisId },
                 data: {
-                    status: 'COMPLETED', // Mark as completed so user can see the draft
+                    status: fallbackChainExhausted ? 'FAILED' : 'COMPLETED',
                     resultQuality: 'PARTIAL',
                     resultJson: srsDraft,
-                    // A usable draft exists — give the row a real title so it stops reading
-                    // "Analysis in Progress" in the list, and drop the now-moot checkpoint.
-                    title: srsDraft.projectTitle || 'Partial Analysis',
+                    // An exhausted fallback chain remains resumable so the user can add a
+                    // model and continue from the saved draft instead of losing the checkpoint.
+                    title: fallbackChainExhausted
+                        ? 'Analysis paused — model quota'
+                        : srsDraft.projectTitle || 'Partial Analysis',
                     metadata: {
                         ...restMeta,
                         ...(analysisMeta || {}),
+                        ...(resumable ? { checkpoint, resumable: true } : {}),
                         isPartial: true,
                         failureReason: error.message,
                         diagramSummary,
@@ -606,7 +618,18 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                 }
             });
             await invalidateUserAnalysesCache(userId);
-            emitProgress('completed', 'Analysis finalized early (partial result — audit skipped).', { terminal: true, status: 'COMPLETED', resultQuality: 'PARTIAL' });
+            emitProgress(
+                fallbackChainExhausted ? 'failed' : 'completed',
+                fallbackChainExhausted
+                    ? 'Analysis paused after the approved fallback models were exhausted. Add another model and resume.'
+                    : 'Analysis finalized early (partial result — audit skipped).',
+                {
+                    terminal: true,
+                    status: fallbackChainExhausted ? 'FAILED' : 'COMPLETED',
+                    resultQuality: 'PARTIAL',
+                    resumable
+                }
+            );
             return; // Exit early as we've handled the record
         }
 

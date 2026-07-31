@@ -242,4 +242,47 @@ describe('performAnalysis — yielding in the tail', () => {
         expect(statuses).toContain('IN_PROGRESS');
         expect(statuses).not.toContain('COMPLETED');
     });
+
+    it('does not leave the analysis IN_PROGRESS when the fallback handoff cannot be queued', async () => {
+        mockReflectionLoop.mockRejectedValueOnce(Object.assign(new Error('daily quota exhausted'), {
+            quotaExhausted: true
+        }));
+        mockSelectNextFallbackModel.mockResolvedValueOnce({
+            provider: 'OPENAI',
+            modelName: 'gpt-backup'
+        });
+        mockEnqueueContinuation.mockRejectedValueOnce(new Error('QStash unavailable'));
+
+        await run(createStageBudget(240000), {
+            modelProvider: 'GEMINI',
+            modelName: 'gemini-primary',
+            allowModelFallback: true,
+            fallbackModels: [{ modelProvider: 'OPENAI', modelName: 'gpt-backup' }]
+        });
+
+        const lastCall = mockAnalysisUpdate.mock.calls.at(-1)[0];
+        expect(lastCall.data.status).not.toBe('IN_PROGRESS');
+        expect(lastCall.data.metadata.promptSettings?.modelName).not.toBe('gpt-backup');
+    });
+
+    it('keeps an exhausted fallback chain resumable with its checkpoint', async () => {
+        mockReflectionLoop.mockRejectedValueOnce(Object.assign(new Error('daily quota exhausted'), {
+            quotaExhausted: true
+        }));
+        mockSelectNextFallbackModel.mockResolvedValueOnce(null);
+
+        await run(createStageBudget(240000), {
+            modelProvider: 'GEMINI',
+            modelName: 'gemini-primary',
+            allowModelFallback: true,
+            fallbackModels: [{ modelProvider: 'OPENAI', modelName: 'gpt-backup' }]
+        });
+
+        const lastCall = mockAnalysisUpdate.mock.calls.at(-1)[0];
+        expect(lastCall.data.status).toBe('FAILED');
+        expect(lastCall.data.resultQuality).toBe('PARTIAL');
+        expect(lastCall.data.metadata.resumable).toBe(true);
+        expect(lastCall.data.metadata.checkpoint.srsDraft).toBeDefined();
+        expect(lastCall.data.metadata.userFriendlyError).toMatch(/add another approved model and resume/i);
+    });
 });

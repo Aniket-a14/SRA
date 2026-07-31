@@ -1,6 +1,7 @@
 import { normalizeProvider } from './index.js';
 import { listProviderKeys, resolveProviderKey } from './providerKeyService.js';
 import { isModelExhausted } from './modelQuotaService.js';
+import logger from '../../config/logger.js';
 
 const PROVIDER_VALUES = new Set(['GEMINI', 'OPENAI', 'CLAUDE', 'GROK']);
 
@@ -86,9 +87,16 @@ export const selectNextFallbackModel = async (userId, settings = {}, attempted =
                 inputTokenLimit: resolved.inputTokenLimit,
                 outputTokenLimit: resolved.outputTokenLimit
             };
-        } catch {
+        } catch (error) {
             // The key may have been removed or deactivated while the run was in flight.
             // Continue through the user's ordered list rather than switching implicitly.
+            logger.warn({
+                msg: '[Model fallback] Could not resolve approved provider key',
+                userId,
+                provider: candidate.provider,
+                modelName: candidate.modelName,
+                error: error instanceof Error ? error.message : String(error)
+            });
         }
     }
 

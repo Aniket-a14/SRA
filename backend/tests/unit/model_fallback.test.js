@@ -89,6 +89,38 @@ describe('selectNextFallbackModel', () => {
         }, [{ provider: 'OPENAI', modelName: 'gpt-backup' }])).resolves.toBeNull();
     });
 
+    it('skips a fallback backed only by an inactive provider key', async () => {
+        mockListProviderKeys.mockResolvedValueOnce([
+            { provider: 'OPENAI', isActive: false, availableModels: [{ id: 'gpt-backup' }] }
+        ]);
+
+        await expect(selectNextFallbackModel('u1', {
+            modelProvider: 'GEMINI',
+            modelName: 'gemini-primary',
+            allowModelFallback: true,
+            fallbackModels: [{ modelProvider: 'OPENAI', modelName: 'gpt-backup' }]
+        })).resolves.toBeNull();
+        expect(mockResolveProviderKey).not.toHaveBeenCalled();
+    });
+
+    it('continues to the next approved model when key resolution fails', async () => {
+        mockResolveProviderKey.mockRejectedValueOnce(new Error('key removed'));
+
+        await expect(selectNextFallbackModel('u1', {
+            modelProvider: 'GEMINI',
+            modelName: 'gemini-primary',
+            allowModelFallback: true,
+            fallbackModels: [
+                { modelProvider: 'GEMINI', modelName: 'gemini-backup' },
+                { modelProvider: 'OPENAI', modelName: 'gpt-backup' }
+            ]
+        })).resolves.toMatchObject({
+            provider: 'OPENAI',
+            modelName: 'gpt-backup'
+        });
+        expect(mockResolveProviderKey).toHaveBeenCalledTimes(2);
+    });
+
     it('does not revisit a model recorded as a prior fallback destination', async () => {
         await expect(selectNextFallbackModel('u1', {
             modelProvider: 'GEMINI',

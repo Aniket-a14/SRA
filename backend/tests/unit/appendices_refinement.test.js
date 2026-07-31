@@ -88,6 +88,28 @@ describe('generateAppendices — diagram contract', () => {
         expect(callLLM).toHaveBeenCalledTimes(2);
         expect(hasCompleteAppendices(result)).toBe(true);
     });
+
+    it('resets the active stream before retrying an incomplete appendix', async () => {
+        const agent = new DeveloperAgent();
+        const events = [];
+        const callLLM = jest.spyOn(agent, 'callLLM')
+            .mockImplementationOnce(async (...args) => {
+                args[6]?.onStream?.({ type: 'delta', text: '{"appendices":' });
+                return { appendices: { analysisModels: {}, tbdList: [] } };
+            })
+            .mockImplementationOnce(async (...args) => {
+                args[6]?.onStream?.({ type: 'delta', text: '{"appendices":"complete"}' });
+                return complete();
+            });
+
+        await agent.generateAppendices('input', {}, {}, {}, {
+            appendicesSystemInstruction: 'system',
+            onStream: (event) => events.push(event)
+        });
+
+        expect(callLLM).toHaveBeenCalledTimes(2);
+        expect(events.map((event) => event.type)).toEqual(['delta', 'reset', 'delta']);
+    });
 });
 
 describe('SRSAppendicesSchema — required diagram fields', () => {
@@ -101,9 +123,11 @@ describe('SRSAppendicesSchema — required diagram fields', () => {
             'sequenceDiagram',
             'entityRelationshipDiagram'
         ]));
-        expect(models.properties.flowchartDiagram.required).toEqual(
-            expect.arrayContaining(['syntaxExplanation', 'code', 'caption'])
-        );
+        for (const diagramKey of ['flowchartDiagram', 'sequenceDiagram', 'entityRelationshipDiagram']) {
+            expect(models.properties[diagramKey].required).toEqual(
+                expect.arrayContaining(['syntaxExplanation', 'code', 'caption'])
+            );
+        }
     });
 });
 

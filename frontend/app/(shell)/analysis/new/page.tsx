@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useEffect, useRef, useState } from "react"
+import { Suspense, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
@@ -118,16 +118,26 @@ function NewAnalysisContent() {
     }, [token])
 
     // Models the user can actually generate with — driven entirely by their own keys.
-    const modelOptions = buildModelOptions(providerKeys)
+    const modelOptions = useMemo(() => buildModelOptions(providerKeys), [providerKeys])
     const hasNoKeys = keysLoaded && providerKeys.length === 0
-    const fallbackOptions = modelOptions.filter((model) => (
+    const fallbackOptions = useMemo(() => modelOptions.filter((model) => (
         !(model.value === settings.modelName
             && canonicalProvider(model.provider) === canonicalProvider(settings.modelProvider))
-    ))
-    const fallbackModels = settings.fallbackModels || []
-    const isFallbackSelected = (provider: string, modelName: string) => fallbackModels.some((model) => (
+    )), [modelOptions, settings.modelName, settings.modelProvider])
+    const availableFallbackOptions = useMemo(() => fallbackOptions.filter((model) => (
+        !quota[quotaKey(model.provider, model.value)]?.isExhausted
+    )), [fallbackOptions, quota])
+    const fallbackModels = useMemo(() => settings.fallbackModels || [], [settings.fallbackModels])
+    const eligibleFallbackModels = useMemo(() => fallbackModels.filter((model) => (
+        availableFallbackOptions.some((option) => (
+            option.value === model.modelName
+            && canonicalProvider(option.provider) === canonicalProvider(model.modelProvider)
+        ))
+    )), [availableFallbackOptions, fallbackModels])
+    const isFallbackSelected = (provider: string, modelName: string) => eligibleFallbackModels.some((model) => (
         model.modelName === modelName && canonicalProvider(model.modelProvider) === canonicalProvider(provider)
     ))
+
     const toggleFallbackModel = (provider: string, modelName: string) => {
         setSettings((prev) => {
             const current = prev.fallbackModels || []
@@ -164,7 +174,7 @@ function NewAnalysisContent() {
             toast.error("Add your own API key in Settings before generating.")
             return
         }
-        if (settings.allowModelFallback === true && fallbackModels.length === 0) {
+        if (settings.allowModelFallback === true && eligibleFallbackModels.length === 0) {
             toast.error("Choose at least one approved fallback model, or turn automatic fallback off.")
             return
         }
@@ -204,7 +214,13 @@ function NewAnalysisContent() {
                         },
                     },
                     projectId: projectId || undefined,
-                    settings,
+                    settings: {
+                        ...settings,
+                        // Project settings can contain a fallback that was later made primary,
+                        // removed from a provider key, or exhausted. Submit only choices that
+                        // are still visible and usable in this run.
+                        fallbackModels: eligibleFallbackModels,
+                    },
                     draft: true,
                 }),
             })
@@ -412,7 +428,7 @@ function NewAnalysisContent() {
                                                 <Checkbox
                                                     id="allow-model-fallback"
                                                     checked={settings.allowModelFallback === true}
-                                                    disabled={fallbackOptions.length === 0}
+                                                    disabled={availableFallbackOptions.length === 0}
                                                     onCheckedChange={(checked) => setSettings(prev => ({
                                                         ...prev,
                                                         allowModelFallback: checked === true,
@@ -436,6 +452,7 @@ function NewAnalysisContent() {
                                                     {fallbackOptions.map((model) => (
                                                         <label
                                                             key={`${model.provider}:${model.value}`}
+                                                            htmlFor={`fallback-${model.provider}-${model.value}`}
                                                             className={cn(
                                                                 "flex items-center gap-2 text-xs",
                                                                 quota[quotaKey(model.provider, model.value)]?.isExhausted
@@ -444,13 +461,14 @@ function NewAnalysisContent() {
                                                             )}
                                                         >
                                                             <Checkbox
+                                                                id={`fallback-${model.provider}-${model.value}`}
                                                                 checked={isFallbackSelected(model.provider, model.value)}
                                                                 disabled={quota[quotaKey(model.provider, model.value)]?.isExhausted}
                                                                 onCheckedChange={() => toggleFallbackModel(model.provider, model.value)}
                                                             />
                                                             <span>
                                                                 {isFallbackSelected(model.provider, model.value)
-                                                                    ? `${fallbackModels.findIndex((candidate) => (
+                                                                    ? `${eligibleFallbackModels.findIndex((candidate) => (
                                                                         candidate.modelName === model.value
                                                                         && canonicalProvider(candidate.modelProvider) === canonicalProvider(model.provider)
                                                                     )) + 1}. `
@@ -460,7 +478,7 @@ function NewAnalysisContent() {
                                                             </span>
                                                         </label>
                                                     ))}
-                                                    {fallbackModels.length === 0 && (
+                                                    {eligibleFallbackModels.length === 0 && (
                                                         <p className="text-[11px] text-amber-700">
                                                             Choose at least one model before starting.
                                                         </p>
@@ -537,7 +555,7 @@ function NewAnalysisContent() {
                             className="h-8 w-8 rounded-full bg-foreground hover:bg-foreground/90 text-background shrink-0 disabled:opacity-40"
                             onClick={handleAnalyze}
                             disabled={isAnalyzing || !description.trim() || hasNoKeys
-                                || (settings.allowModelFallback === true && fallbackModels.length === 0)}
+                                || (settings.allowModelFallback === true && eligibleFallbackModels.length === 0)}
                             aria-label="Start analysis"
                         >
                             {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
