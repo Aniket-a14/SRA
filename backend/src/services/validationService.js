@@ -208,7 +208,7 @@ export async function validateRequirements(srsData, providerConfig) {
       if (severity !== 'critical' && severity !== 'warning') severity = 'info';
 
       const issueContent = `${issue.section_id || 'general'}-${issue.title || 'issue'}-${(issue.description || '').slice(0, 50)}`;
-      const deterministicId = `val-${crypto.createHash('md5').update(issueContent).digest('hex').slice(0, 12)}`;
+      const deterministicId = `val-${crypto.createHash('sha256').update(issueContent).digest('hex').slice(0, 12)}`;
 
       return {
         ...issue,

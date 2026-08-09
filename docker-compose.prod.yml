@@ -1,0 +1,15 @@
+## Production override — layer on top of the base compose file:
+##   docker compose -f docker-compose.yml -f docker-compose.prod.yml up
+##
+## The base file defaults to NODE_ENV=development because its nginx has no TLS and the
+## frontend points at plain http://localhost:8080 — production mode's CSP forbids
+## localhost and forces upgrade-insecure-requests, which breaks that setup. Use this
+## override only once TLS and a real backend URL are in place in front of this stack.
+services:
+  backend:
+    environment:
+      - NODE_ENV=production
+
+  frontend:
+    environment:
+      - NODE_ENV=production

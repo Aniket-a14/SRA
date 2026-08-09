@@ -1,5 +1,5 @@
 # Base Stage
-FROM node:20-alpine AS base
+FROM node:20.20.2-alpine AS base
 RUN apk add --no-cache openssl
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
@@ -28,7 +28,7 @@ COPY . .
 RUN pnpm --filter backend run prisma:generate
 
 # Stage 3: Runner
-FROM node:20-alpine AS runner
+FROM node:20.20.2-alpine AS runner
 RUN apk add --no-cache openssl
 WORKDIR /app
 

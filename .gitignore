@@ -30,6 +30,11 @@ coverage/
 # Backups
 /backups
 
+# CLI docker-compose mount point — scoped so the CLI container never sees the repo root
+# (backend/.env, frontend/.env, terraform/) instead of only the project it's scanning.
+/workspace/*
+!/workspace/.gitkeep
+
 # Personal Developer Notes
 /COMMANDS/
 .env.*.local

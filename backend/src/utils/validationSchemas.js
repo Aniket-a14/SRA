@@ -81,7 +81,7 @@ export const analyzeSchema = z.object({
 export const signupSchema = z.object({
     body: z.object({
         email: z.string().email("Invalid email format"),
-        password: z.string().min(6, "Password must be at least 6 characters"),
+        password: z.string().min(8, "Password must be at least 8 characters"),
         name: z.string().min(2, "Name must be at least 2 characters").optional()
     })
 });
@@ -255,6 +255,17 @@ export const generateDFDSchema = z.object({
 // arbitrary structure into a paid generation call. `settings` goes through the same shared
 // schema as every other AI route so `systemPrompt`/`apiKey` are stripped here too — this
 // route reads `srsData?.settings` directly and would otherwise be the one way around it.
+//
+// The body itself stays a passthrough: it is a whole SRS document, and `validateRequirements`
+// stringifies it wholesale into the LLM prompt regardless of shape — enumerating every field
+// would mean a schema per drafting standard (IEEE 830, ISO 29148, Volere, Agile PRD each have
+// materially different conventions per srs_drafting_standard.js), which this route has no
+// format context to pick between. What `.passthrough()` at the root must not do is wave
+// through the top-level shape unconstrained — a `superRefine` bounds both field count and
+// total serialized size, so an oversized or deeply-padded object still gets rejected before
+// it reaches the LLM call.
+const MAX_TOP_LEVEL_KEYS = 100;
+const MAX_BODY_BYTES = 200_000;
 export const validateRequirementsSchema = z.object({
     body: z.object({
         settings: clientAiSettingsSchema.optional(),
@@ -262,7 +273,20 @@ export const validateRequirementsSchema = z.object({
             projectName: z.object({ content: z.string().max(500).optional() }).passthrough().optional(),
             fullDescription: z.object({ content: z.string().max(50000).optional() }).passthrough().optional()
         }).passthrough().optional()
-    }).passthrough()
+    }).passthrough().superRefine((body, ctx) => {
+        if (Object.keys(body).length > MAX_TOP_LEVEL_KEYS) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: `Request body has too many top-level fields (max ${MAX_TOP_LEVEL_KEYS})`
+            });
+        }
+        if (JSON.stringify(body).length > MAX_BODY_BYTES) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: `Request body is too large (max ${MAX_BODY_BYTES} bytes)`
+            });
+        }
+    })
 });
 
 // POST /reuse/suggest embeds `query` and runs a vector search. Unbounded, it was an

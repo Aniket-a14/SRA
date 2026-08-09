@@ -466,11 +466,13 @@ export const chatStream = async (req, res, next) => {
 export const getChatHistory = async (req, res, next) => {
     try {
         const { id } = req.params;
-        // Verify ownership
-        const analysis = await prisma.analysis.findUnique({ where: { id } });
-        if (!analysis || analysis.userId !== req.user.userId) {
-            const error = new Error('Unauthorized access to this analysis');
-            error.statusCode = 403;
+        // Ownership is part of the lookup itself, not a check afterward — an unscoped
+        // findUnique plus a manual comparison lets a caller distinguish "not mine" from
+        // "doesn't exist" by timing/error shape, which is an IDOR by another name.
+        const analysis = await prisma.analysis.findFirst({ where: { id, userId: req.user.userId } });
+        if (!analysis) {
+            const error = new Error('Analysis not found');
+            error.statusCode = 404;
             throw error;
         }
 
@@ -620,7 +622,7 @@ export const finalizeAnalysis = async (req, res, next) => {
         const heuristicSignature = {
             domainTag: analysis.resultJson?.introduction?.scope?.slice(0, 50) || "General",
             featuresTag: analysis.resultJson?.systemFeatures?.map(f => f.name.slice(0, 30)) || [],
-            textHash: crypto.createHash('md5').update(analysis.inputText.trim()).digest('hex')
+            textHash: crypto.createHash('sha256').update(analysis.inputText.trim()).digest('hex')
         };
 
         const updatedMetadata = {
@@ -658,7 +660,7 @@ export const finalizeAnalysis = async (req, res, next) => {
                     id: crypto.randomUUID(),
                     type: 'FEATURE',
                     content: feature,
-                    hash: crypto.createHash('md5').update(contentStr).digest('hex'),
+                    hash: crypto.createHash('sha256').update(contentStr).digest('hex'),
                     tags: [feature.name, ...(feature.functionalRequirements?.map(f => f.slice(0, 20)) || [])],
                     sourceAnalysisId: id,
                     embedding: featureEmbeddings[idx],
@@ -684,7 +686,7 @@ export const finalizeAnalysis = async (req, res, next) => {
                         id: crypto.randomUUID(),
                         type: `NFR_${category.toUpperCase()}`,
                         content: reqs,
-                        hash: crypto.createHash('md5').update(contentStr).digest('hex'),
+                        hash: crypto.createHash('sha256').update(contentStr).digest('hex'),
                         tags: [category],
                         sourceAnalysisId: id,
                         embedding: embedding,
