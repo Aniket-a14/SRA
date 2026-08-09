@@ -44,6 +44,16 @@ export const addAnalysisJob = async (userId, text, projectId, settings, parentId
     // 0. IDEMPOTENCY CHECK
     // Prevent duplicate submissions while an identical job is PENDING
     // Use a hash of the input text for efficient comparison
+    //
+    // Bumped from MD5 to SHA-256 for the same content-addressable-ID reason as the other
+    // hash sites in this codebase — not because MD5 was crackable here, but to stop
+    // normalizing weak cryptography as the default. This one is the exception that reads
+    // its own stored value back (`equals: inputHash` below) rather than writing a fresh
+    // label: a PENDING row created before this change carries an MD5 digest, so a resubmit
+    // of the same text during the deploy window won't match and gets queued as a second
+    // job. Bounded and self-healing — the stale PENDING row completes or expires and the
+    // mismatch stops mattering — so no dual-read migration for what is, at worst, one
+    // duplicate queued analysis per in-flight submission across a single deploy.
     const inputHash = crypto.createHash('sha256').update(text).digest('hex');
     const existingJob = await prisma.analysis.findFirst({
         where: {

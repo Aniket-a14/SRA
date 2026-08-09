@@ -7,8 +7,13 @@ const PII_PATTERNS = {
     EMAIL: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
     PHONE: /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g,
     CREDIT_CARD: /\b(?:\d[ -]*?){13,16}\b/g,
-    // Octet-range-validated so version strings like 2.0.0.1 aren't mistaken for addresses.
-    IPV4: /\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b/g,
+    // Octet-range validation alone cannot distinguish an address from a version string —
+    // 2.0.0.1 is a syntactically valid IPv4 address, so a dotted-quad with every octet in
+    // range matches either way. A negative lookbehind for the version-ish words that
+    // typically precede one narrows the false-positive case the issue was actually about
+    // (semver-shaped identifiers in requirements text) without claiming to solve the
+    // genuinely ambiguous remainder.
+    IPV4: /\b(?<!\bv|version[ ]|ver[ .]|release[ ]|build[ ])(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b/gi,
     // Add more patterns as needed (e.g., SSN, Aadhaar, etc.)
 };
 
@@ -31,18 +36,21 @@ export const sanitizePII = (text) => {
 };
 
 const MAX_SANITIZE_DEPTH = 20;
+const DEPTH_LIMIT_MARKER = '[REDACTED_MAX_DEPTH_EXCEEDED]';
 
 /**
- * Recursively sanitizes objects containing text.
+ * Recursively sanitizes objects (and top-level strings) containing text.
  *
  * Depth-limited: an unbounded recursive walk over attacker-controlled JSON (thousands of
  * nested brackets) exhausts the call stack and crashes the process. Past the limit, the
- * subtree is returned as-is rather than sanitized — a request this deeply nested is not
- * legitimate input, and refusing to descend further beats a hard crash.
+ * subtree is replaced with a marker rather than descended into — returning it as-is would
+ * let PII placed at exactly that depth reach the LLM call unredacted, which defeats the
+ * sanitizer for the one input shape it exists to stop.
  */
 export const sanitizeObject = (obj, currentDepth = 0) => {
+    if (typeof obj === 'string') return sanitizePII(obj);
     if (!obj || typeof obj !== 'object') return obj;
-    if (currentDepth >= MAX_SANITIZE_DEPTH) return obj;
+    if (currentDepth >= MAX_SANITIZE_DEPTH) return DEPTH_LIMIT_MARKER;
 
     if (Array.isArray(obj)) {
         return obj.map(item => sanitizeObject(item, currentDepth + 1));
