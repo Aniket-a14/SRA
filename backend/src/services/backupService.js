@@ -5,6 +5,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import crypto from 'crypto';
 import os from 'os';
+import logger from '../config/logger.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -21,6 +22,11 @@ class BackupService {
         this.encryptionKey = process.env.BACKUP_ENCRYPTION_KEY;
         this.retentionDays = parseInt(process.env.BACKUP_RETENTION_DAYS || '30');
         this.salt = process.env.BACKUP_ENCRYPTION_SALT; // Used for key derivation
+
+        // scryptSync throws on an undefined salt — better to fail at startup than mid-backup.
+        if (this.encryptionKey && !this.salt) {
+            throw new Error('BACKUP_ENCRYPTION_SALT is required when BACKUP_ENCRYPTION_KEY is set');
+        }
     }
 
     /**
@@ -84,7 +90,7 @@ class BackupService {
             const { stdout } = await execFileAsync('psql', [connectionString, '-tAc', 'show server_version']);
             serverMajor = parseInt(stdout.trim().match(/(\d+)/)?.[1], 10);
         } catch {
-            console.warn('⚠️  Could not read the server version; proceeding without a compatibility check.');
+            logger.warn('Could not read the server version; proceeding without a compatibility check.');
             return;
         }
 
@@ -109,7 +115,7 @@ class BackupService {
             await fs.mkdir(this.backupDir, { recursive: true });
 
             // Create database dump (Windows-compatible approach)
-            console.log(`Creating backup: ${backupFileName}`);
+            logger.info({ backupFileName }, 'Creating backup');
 
             const connectionStrings = this.resolveDumpTargets();
 
@@ -196,9 +202,7 @@ class BackupService {
                 encrypted: !!this.encryptionKey
             });
 
-            console.log(`✅ Backup created successfully: ${finalPath}`);
-            console.log(`   Size: ${(stats.size / 1024 / 1024).toFixed(2)} MB`);
-            console.log(`   Checksum: ${checksum}`);
+            logger.info({ finalPath, sizeMB: (stats.size / 1024 / 1024).toFixed(2), checksum }, 'Backup created successfully');
 
             return {
                 success: true,
@@ -207,7 +211,7 @@ class BackupService {
                 checksum
             };
         } catch (error) {
-            console.error('❌ Backup creation failed:', error);
+            logger.error({ err: error }, 'Backup creation failed');
             throw error;
         }
     }
@@ -321,15 +325,15 @@ class BackupService {
 
                 if (age > retentionMs) {
                     await fs.unlink(filePath);
-                    console.log(`🗑️  Deleted old backup: ${file}`);
+                    logger.info({ file }, 'Deleted old backup');
                     deletedCount++;
                 }
             }
 
-            console.log(`✅ Cleanup complete. Deleted ${deletedCount} old backup(s)`);
+            logger.info({ deletedCount }, 'Cleanup complete');
             return { deletedCount };
         } catch (error) {
-            console.error('❌ Cleanup failed:', error);
+            logger.error({ err: error }, 'Cleanup failed');
             throw error;
         }
     }
@@ -353,7 +357,7 @@ class BackupService {
             }
 
             // Restore database (Windows-compatible)
-            console.log(`🔄 Restoring backup: ${backupFileName}`);
+            logger.info({ backupFileName }, 'Restoring backup');
             const connectionStrings = [...new Set([process.env.DIRECT_URL, process.env.DATABASE_URL].filter(Boolean))];
             if (connectionStrings.length === 0) {
                 throw new Error('Neither DIRECT_URL nor DATABASE_URL is configured');
@@ -410,10 +414,10 @@ class BackupService {
                 await fs.unlink(restorePath);
             }
 
-            console.log(`✅ Backup restored successfully`);
+            logger.info('Backup restored successfully');
             return { success: true };
         } catch (error) {
-            console.error('❌ Restore failed:', error);
+            logger.error({ err: error }, 'Restore failed');
             throw error;
         }
     }
@@ -442,7 +446,7 @@ class BackupService {
 
             return backups.sort((a, b) => b.created - a.created);
         } catch (error) {
-            console.error('❌ Failed to list backups:', error);
+            logger.error({ err: error }, 'Failed to list backups');
             throw error;
         }
     }

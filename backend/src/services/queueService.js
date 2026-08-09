@@ -44,7 +44,7 @@ export const addAnalysisJob = async (userId, text, projectId, settings, parentId
     // 0. IDEMPOTENCY CHECK
     // Prevent duplicate submissions while an identical job is PENDING
     // Use a hash of the input text for efficient comparison
-    const inputHash = crypto.createHash('md5').update(text).digest('hex');
+    const inputHash = crypto.createHash('sha256').update(text).digest('hex');
     const existingJob = await prisma.analysis.findFirst({
         where: {
             userId: userId,
