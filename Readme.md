@@ -1,4 +1,4 @@
-# SRA (Smart Requirements Analyzer)
+# SRA (System Requirements Analyzer)
 
 [![Backend CI](https://github.com/Aniket-a14/SRA/actions/workflows/backend.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/backend.yml)
 [![Frontend CI](https://github.com/Aniket-a14/SRA/actions/workflows/frontend.yml/badge.svg)](https://github.com/Aniket-a14/SRA/actions/workflows/frontend.yml)
