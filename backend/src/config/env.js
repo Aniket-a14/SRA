@@ -36,7 +36,7 @@ const envSchema = z.object({
     GEMINI_API_KEY: z.string().min(1, 'GEMINI_API_KEY is required (embeddings)'),
 
     // Auth / crypto — all master secrets that MUST be present and non-trivial
-    JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters (256 bits) for HS256 signing'),
+    JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters for HS256 signing'),
     COOKIE_SECRET: z.string().min(16, 'COOKIE_SECRET must be at least 16 characters'),
     ENCRYPTION_KEY: z.string().min(16, 'ENCRYPTION_KEY must be at least 16 characters (master secret for BYOK provider-key encryption)'),
     ENCRYPTION_SALT: z.string().min(1, 'ENCRYPTION_SALT is required'),
