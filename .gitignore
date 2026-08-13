@@ -72,6 +72,7 @@ override.tf.json
 .terraformrc
 terraform.rc
 *.tfplan
+tfplan
 terraform/terraform.tfstate.1769920708.backup
 .vercel
 .env*.local
