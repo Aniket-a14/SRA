@@ -6,11 +6,13 @@ on:
     paths:
       - "backend/**"
       - "bruno/**"
+      - ".github/workflows/api-collection.yml"
   pull_request:
     branches: [ "main" ]
     paths:
       - "backend/**"
       - "bruno/**"
+      - ".github/workflows/api-collection.yml"
 
 jobs:
   bruno-run:
