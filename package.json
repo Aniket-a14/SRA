@@ -44,7 +44,11 @@
             "@babel/core": "^7.29.6",
             "@blocknote/core>uuid": "^11.1.1",
             "deepmerge-ts": "^8.0.1",
-            "mermaid": "^11.17.0"
+            "mermaid": "^11.17.0",
+            "js-yaml@3": "^3.15.1",
+            "brace-expansion@1": "^1.1.18",
+            "brace-expansion@2": "^2.1.4",
+            "brace-expansion@5": "^5.0.9"
         }
     },
     "author": "SRA Team",
