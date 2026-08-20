@@ -41,6 +41,14 @@ export async function mockAuth(page: Page) {
 /** Project/analysis/settings endpoints call NEXT_PUBLIC_BACKEND_URL directly (cross-origin in dev). */
 export async function mockProjectsList(page: Page, projects: unknown[] = []) {
     await page.route("**/projects", (route) => {
+        // "**/projects" also matches this app's own /projects page navigation (the
+        // post-login redirect target), not just the backend's list-projects call — CI runs
+        // with NEXT_PUBLIC_BACKEND_URL same-origin (see playwright.config.ts), so the two are
+        // indistinguishable by URL alone. Only intercept the API fetch; let the document
+        // request through to Next's own router.
+        if (route.request().resourceType() === "document") {
+            return route.fallback()
+        }
         if (route.request().method() === "GET") {
             return route.fulfill(json({ success: true, data: projects }))
         }
