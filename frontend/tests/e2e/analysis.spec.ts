@@ -75,10 +75,18 @@ test.describe("starting an analysis", () => {
         })
 
         await page.goto("/analysis/new")
+        // This composer is one of the heavier client components in the app (sliders,
+        // popovers, a model picker) — clicking before it finishes hydrating is a real click
+        // on a real, visible button that silently does nothing, since no React handler is
+        // attached yet. Waiting for the network to go idle gives every code-split chunk a
+        // chance to load and hydrate before any interaction.
+        await page.waitForLoadState("networkidle")
         await page
             .getByPlaceholder("Describe what the system should do…")
             .fill("Users need to reset their password via an emailed link that expires after 30 minutes.")
-        await page.getByRole("button", { name: "Start analysis" }).click()
+        const startButton = page.getByRole("button", { name: "Start analysis" })
+        await expect(startButton).toBeEnabled()
+        await startButton.click()
 
         await expect(page).toHaveURL(new RegExp(`/analysis/${analysisId}$`))
     })
