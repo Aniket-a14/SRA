@@ -25,6 +25,16 @@ export async function resolveProviderKey(userId, provider, requestedModelName = 
     });
 
     if (record && record.isActive) {
+        // GEMINI is the one provider the platform runs itself (embeddings, utility calls),
+        // so it alone has a server-side default. OpenAI/Claude/Grok are BYOK-only — there is
+        // no platform model choice to fall back to, so a request that omits modelName for
+        // one of them is rejected here with a client-fixable message, rather than reaching
+        // DEFAULT_MODELS and surfacing as an opaque config error deeper in the call stack.
+        if (!requestedModelName && normalized !== 'GEMINI') {
+            const error = new Error(`No model selected for ${normalized}. SRA is BYOK for ${normalized} — choose a model in Settings before generating.`);
+            error.statusCode = 400;
+            throw error;
+        }
         const modelName = requestedModelName || DEFAULT_MODELS[normalized];
 
         // The token ceilings were captured per model during discovery against this key.

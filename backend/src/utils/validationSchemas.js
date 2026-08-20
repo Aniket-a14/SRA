@@ -16,6 +16,22 @@ import { listAllSectionIds } from '../formats/index.js';
  * and the CLI already send; `promptVersion` is the documented pin for reproducing an older
  * prompt revision.
  */
+// SRA is BYOK: the platform only carries its own model default for GEMINI (it runs Gemini
+// itself for embeddings/utility work). OpenAI/Claude/Grok have no platform key and no
+// platform default (see getDefaultModel in config/models.js), so a request naming one of
+// them without a modelName would otherwise reach the provider adapter and throw there —
+// this rejects it earlier, at the boundary, with a message that says what to fix.
+const NON_GEMINI_PROVIDERS = new Set(['openai', 'claude', 'anthropic', 'grok', 'xai', 'OPENAI', 'CLAUDE', 'GROK']);
+const requireModelNameForByokProvider = (settings, ctx) => {
+    if (settings.modelProvider && NON_GEMINI_PROVIDERS.has(settings.modelProvider) && !settings.modelName) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['modelName'],
+            message: `modelName is required when modelProvider is "${settings.modelProvider}" — SRA is BYOK for every provider except Gemini's platform-run embedding/utility calls.`
+        });
+    }
+};
+
 export const clientAiSettingsSchema = z.object({
     profile: z.string().optional(),
     depth: z.number().int().min(1).max(5).optional(),
@@ -51,6 +67,7 @@ export const clientAiSettingsSchema = z.object({
             message: 'Choose at least one fallback model before enabling automatic fallback.'
         });
     }
+    requireModelNameForByokProvider(settings, ctx);
 });
 
 export const analyzeSchema = z.object({
@@ -139,7 +156,7 @@ export const resumeAnalysisSchema = z.object({
         modelProvider: z.enum(['google', 'gemini', 'openai', 'claude', 'anthropic', 'grok', 'xai',
                                'GEMINI', 'OPENAI', 'CLAUDE', 'GROK']).optional(),
         modelName: z.string().min(1).max(200).optional()
-    }).optional()
+    }).superRefine(requireModelNameForByokProvider).optional()
 });
 
 export const getAnalysisSchema = z.object({
