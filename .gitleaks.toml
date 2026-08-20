@@ -1,0 +1,18 @@
+title = "SRA gitleaks config"
+
+[extend]
+useDefault = true
+
+# .github/workflows/api-collection.yml deliberately hardcodes JWT_SECRET/ENCRYPTION_KEY as
+# fixed, non-secret stub values for the bruno-run CI job: that job runs with MOCK_AI=true and
+# MOCK_QSTASH=true, so nothing behind these values is real — they exist only to satisfy
+# env.js's zod schema (minimum-length checks), not to authenticate against anything. gitleaks'
+# default generic-api-key rule flags them on entropy alone with no way to tell that apart from
+# a real secret, so they're allowlisted by their exact, publicly-known value rather than by
+# commit fingerprint (which would break every time this file is touched again).
+[allowlist]
+description = "Known non-secret CI stub values"
+regexes = [
+  '''ci-bruno-jwt-secret-at-least-32-characters-long''',
+  '''ci-bruno-encryption-key-16char''',
+]
