@@ -36,7 +36,11 @@ test.describe("projects", () => {
         await page.getByPlaceholder("Name your project…").fill("New E2E Project")
         await page.getByRole("button", { name: "Create" }).click()
 
-        await expect(page.getByText("New E2E Project")).toBeVisible()
+        // The shell layout's sidebar also lists projects by name (as a plain button, not a
+        // heading) — getByText would match both it and the card below, so scope to the card's
+        // heading specifically.
+        const card = page.getByRole("heading", { name: "New E2E Project" })
+        await expect(card).toBeVisible()
 
         // Mock the detail page this card links to before following it.
         await page.route(`**/projects/${created.id}`, (route) => {
@@ -50,7 +54,7 @@ test.describe("projects", () => {
             return route.fallback()
         })
 
-        await page.getByText("New E2E Project").click()
+        await card.click()
         await expect(page).toHaveURL(new RegExp(`/projects/${created.id}$`))
     })
 
@@ -62,6 +66,7 @@ test.describe("projects", () => {
 
         await signIn(page)
 
-        await expect(page.getByText("Already There")).toBeVisible()
+        // Same sidebar-vs-card ambiguity as above — the sidebar shows this project too.
+        await expect(page.getByRole("heading", { name: "Already There" })).toBeVisible()
     })
 })
