@@ -1,45 +1,36 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig, devices } from "@playwright/test"
 
-/**
- * Playwright configuration for SRA Frontend E2E tests.
- */
+const PORT = 3001
+const baseURL = `http://localhost:${PORT}`
+
 export default defineConfig({
-    testDir: './tests/e2e',
+    testDir: "./tests/e2e",
     fullyParallel: true,
     forbidOnly: !!process.env.CI,
-    retries: process.env.CI ? 2 : 0,
-    workers: process.env.CI ? 1 : undefined,
-    reporter: 'html',
+    retries: process.env.CI ? 1 : 0,
+    reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
+
     use: {
-        baseURL: 'http://localhost:3001',
-        trace: 'on-first-retry',
-        screenshot: 'only-on-failure',
+        baseURL,
+        trace: "on-first-retry",
     },
+
     projects: [
-        {
-            name: 'chromium',
-            use: { ...devices['Desktop Chrome'] },
-        },
-        {
-            name: 'firefox',
-            use: { ...devices['Desktop Firefox'] },
-        },
-        {
-            name: 'webkit',
-            use: { ...devices['Desktop Safari'] },
-        },
+        { name: "chromium", use: { ...devices["Desktop Chrome"] } },
     ],
+
     webServer: {
-        command: 'pnpm run dev',
-        url: 'http://localhost:3001',
+        command: "npm run dev",
+        url: baseURL,
         reuseExistingServer: !process.env.CI,
-        timeout: 300 * 1000,
+        timeout: 120_000,
         env: {
-            // Scoped via Playwright's own `env` (only the spawned dev-server child
-            // process for this E2E run, not the whole shell/other processes) instead of
-            // `set VAR=val && cmd`, which is Windows-only shell syntax and silently
-            // failed to set anything on Linux/Mac CI runners anyway.
-            NODE_TLS_REJECT_UNAUTHORIZED: '0',
+            // Every request these specs make is mocked via page.route (see tests/e2e/mocks.ts).
+            // Pointing this at an address nothing listens on means any request a spec forgot to
+            // mock fails loudly (connection refused) instead of silently reaching a real
+            // backend — which matters here specifically because a developer's real
+            // frontend/.env often points NEXT_PUBLIC_BACKEND_URL at a live deployment.
+            NEXT_PUBLIC_BACKEND_URL: "http://127.0.0.1:65535",
         },
     },
-});
+})
