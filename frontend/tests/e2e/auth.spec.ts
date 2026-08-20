@@ -33,7 +33,9 @@ test.describe("authentication", () => {
             route.fulfill({
                 status: 401,
                 contentType: "application/json",
-                body: JSON.stringify({ message: "Invalid email or password" }),
+                // The login page's catch reads `data.error`, not `data.message` — unlike
+                // every other auth endpoint mocked in this suite.
+                body: JSON.stringify({ error: "Invalid email or password" }),
             })
         )
 
