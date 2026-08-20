@@ -16,6 +16,22 @@ import { listAllSectionIds } from '../formats/index.js';
  * and the CLI already send; `promptVersion` is the documented pin for reproducing an older
  * prompt revision.
  */
+// SRA is BYOK: the platform only carries its own model default for GEMINI (it runs Gemini
+// itself for embeddings/utility work). OpenAI/Claude/Grok have no platform key and no
+// platform default (see getDefaultModel in config/models.js), so a request naming one of
+// them without a modelName would otherwise reach the provider adapter and throw there —
+// this rejects it earlier, at the boundary, with a message that says what to fix.
+const NON_GEMINI_PROVIDERS = new Set(['openai', 'claude', 'anthropic', 'grok', 'xai', 'OPENAI', 'CLAUDE', 'GROK']);
+const requireModelNameForByokProvider = (settings, ctx) => {
+    if (settings.modelProvider && NON_GEMINI_PROVIDERS.has(settings.modelProvider) && !settings.modelName) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['modelName'],
+            message: `modelName is required when modelProvider is "${settings.modelProvider}" — SRA is BYOK for every provider except Gemini's platform-run embedding/utility calls.`
+        });
+    }
+};
+
 export const clientAiSettingsSchema = z.object({
     profile: z.string().optional(),
     depth: z.number().int().min(1).max(5).optional(),
@@ -51,6 +67,7 @@ export const clientAiSettingsSchema = z.object({
             message: 'Choose at least one fallback model before enabling automatic fallback.'
         });
     }
+    requireModelNameForByokProvider(settings, ctx);
 });
 
 export const analyzeSchema = z.object({
@@ -81,7 +98,7 @@ export const analyzeSchema = z.object({
 export const signupSchema = z.object({
     body: z.object({
         email: z.string().email("Invalid email format"),
-        password: z.string().min(6, "Password must be at least 6 characters"),
+        password: z.string().min(8, "Password must be at least 8 characters"),
         name: z.string().min(2, "Name must be at least 2 characters").optional()
     })
 });
@@ -139,7 +156,7 @@ export const resumeAnalysisSchema = z.object({
         modelProvider: z.enum(['google', 'gemini', 'openai', 'claude', 'anthropic', 'grok', 'xai',
                                'GEMINI', 'OPENAI', 'CLAUDE', 'GROK']).optional(),
         modelName: z.string().min(1).max(200).optional()
-    }).optional()
+    }).superRefine(requireModelNameForByokProvider).optional()
 });
 
 export const getAnalysisSchema = z.object({
@@ -255,6 +272,17 @@ export const generateDFDSchema = z.object({
 // arbitrary structure into a paid generation call. `settings` goes through the same shared
 // schema as every other AI route so `systemPrompt`/`apiKey` are stripped here too — this
 // route reads `srsData?.settings` directly and would otherwise be the one way around it.
+//
+// The body itself stays a passthrough: it is a whole SRS document, and `validateRequirements`
+// stringifies it wholesale into the LLM prompt regardless of shape — enumerating every field
+// would mean a schema per drafting standard (IEEE 830, ISO 29148, Volere, Agile PRD each have
+// materially different conventions per srs_drafting_standard.js), which this route has no
+// format context to pick between. What `.passthrough()` at the root must not do is wave
+// through the top-level shape unconstrained — a `superRefine` bounds both field count and
+// total serialized size, so an oversized or deeply-padded object still gets rejected before
+// it reaches the LLM call.
+const MAX_TOP_LEVEL_KEYS = 100;
+const MAX_BODY_BYTES = 200_000;
 export const validateRequirementsSchema = z.object({
     body: z.object({
         settings: clientAiSettingsSchema.optional(),
@@ -262,7 +290,20 @@ export const validateRequirementsSchema = z.object({
             projectName: z.object({ content: z.string().max(500).optional() }).passthrough().optional(),
             fullDescription: z.object({ content: z.string().max(50000).optional() }).passthrough().optional()
         }).passthrough().optional()
-    }).passthrough()
+    }).passthrough().superRefine((body, ctx) => {
+        if (Object.keys(body).length > MAX_TOP_LEVEL_KEYS) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: `Request body has too many top-level fields (max ${MAX_TOP_LEVEL_KEYS})`
+            });
+        }
+        if (JSON.stringify(body).length > MAX_BODY_BYTES) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: `Request body is too large (max ${MAX_BODY_BYTES} bytes)`
+            });
+        }
+    })
 });
 
 // POST /reuse/suggest embeds `query` and runs a vector search. Unbounded, it was an

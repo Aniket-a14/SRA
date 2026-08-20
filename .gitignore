@@ -30,6 +30,11 @@ coverage/
 # Backups
 /backups
 
+# CLI docker-compose mount point — scoped so the CLI container never sees the repo root
+# (backend/.env, frontend/.env, terraform/) instead of only the project it's scanning.
+/workspace/*
+!/workspace/.gitkeep
+
 # Personal Developer Notes
 /COMMANDS/
 .env.*.local
@@ -67,6 +72,7 @@ override.tf.json
 .terraformrc
 terraform.rc
 *.tfplan
+tfplan
 terraform/terraform.tfstate.1769920708.backup
 .vercel
 .env*.local

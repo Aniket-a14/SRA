@@ -101,10 +101,25 @@ describe('providerKeyService', () => {
                 isActive: true
             });
 
-            const result = await resolveProviderKey('user-1', 'claude');
+            // CLAUDE is BYOK-only — a model must be named, there is no platform default.
+            const result = await resolveProviderKey('user-1', 'claude', 'test-claude-model');
 
             expect(result.provider).toBe('CLAUDE');
             expect(result.apiKey).toBe('sk-ant-real-key');
+            expect(result.modelName).toBe('test-claude-model');
+        });
+
+        it('refuses a BYOK-only provider with an active key but no requested model, instead of falling back to a platform default', async () => {
+            mockFindUnique.mockResolvedValue({
+                userId: 'user-1',
+                provider: 'OPENAI',
+                encryptedKey: 'ENC(sk-real-key)',
+                isActive: true
+            });
+
+            const error = await resolveProviderKey('user-1', 'openai').catch(e => e);
+            expect(error.statusCode).toBe(400);
+            expect(error.message).toMatch(/No model selected for OPENAI/);
         });
 
         it('ignores a deactivated key and falls through to the no-key error for non-Gemini providers', async () => {

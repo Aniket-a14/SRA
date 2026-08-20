@@ -18,3 +18,5 @@ dist/
 .stryker-tmp/
 reports/
 stryker.log
+.vercel
+.env*

@@ -21,7 +21,12 @@ services:
     # ports:
     #   - "3000:3000" # Commented out to force traffic through Nginx (Load Balancer)
     environment:
-      - NODE_ENV=development
+      # This compose file is a local/self-hosted profile: nginx here has no TLS, and the
+      # frontend below points at it over plain http://localhost:8080. Production mode's CSP
+      # forbids localhost and forces upgrade-insecure-requests, which breaks exactly that
+      # setup — so the default here is development, with production available for anyone
+      # who has actually put TLS in front of this stack.
+      - NODE_ENV=${NODE_ENV:-development}
       - AI_NAME=SRA
     deploy:
       replicas: 2 # Simulate Load Balancing with 2 instances
@@ -48,7 +53,7 @@ services:
     ports:
       - "3001:3001"
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=${NODE_ENV:-development}
       # Update to point to Nginx Load Balancer!
       - NEXT_PUBLIC_BACKEND_URL=http://localhost:8080
     deploy:
@@ -73,7 +78,10 @@ services:
       dockerfile: cli/Dockerfile
     container_name: sra-cli
     volumes:
-      - .:/app/workspace # Mount the root to allow CLI to scan the whole project
+      # Scoped to a dedicated subdirectory rather than the repo root: the root also holds
+      # backend/.env, frontend/.env and terraform/ secrets the CLI container has no reason
+      # to see. Point this at whichever project the CLI should scan.
+      - ./workspace:/app/workspace
     environment:
       - SRA_API_KEY=${SRA_API_KEY}
     profiles: [ "tools" ] # Prevent it from starting by default during up

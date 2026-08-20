@@ -29,21 +29,27 @@ describe('model configuration', () => {
         }
     });
 
-    it('reads each provider default from its own environment variable', () => {
+    it('reads the GEMINI default from its own environment variable', () => {
         process.env.GEMINI_MODEL_NAME = 'env-gemini';
+        expect(getDefaultModel('GEMINI')).toBe('env-gemini');
+    });
+
+    it('fails with an actionable message naming the missing GEMINI variable', () => {
+        expect(() => getDefaultModel('GEMINI')).toThrow(/GEMINI_MODEL_NAME is not set/);
+        expect(() => getEmbeddingModel()).toThrow(/GEMINI_EMBEDDING_MODEL is not set/);
+    });
+
+    it('never reads a server default for BYOK-only providers, even if the env var is set', () => {
+        // SRA is BYOK for OpenAI/Claude/Grok: the platform never picks a model on a user's
+        // behalf for these, so getDefaultModel must refuse rather than fall back to env —
+        // setting the var (e.g. leftover from an old deployment) must not resurrect a default.
         process.env.OPENAI_MODEL_NAME = 'env-openai';
         process.env.CLAUDE_MODEL_NAME = 'env-claude';
         process.env.GROK_MODEL_NAME = 'env-grok';
 
-        expect(getDefaultModel('GEMINI')).toBe('env-gemini');
-        expect(getDefaultModel('OPENAI')).toBe('env-openai');
-        expect(getDefaultModel('CLAUDE')).toBe('env-claude');
-        expect(getDefaultModel('GROK')).toBe('env-grok');
-    });
-
-    it('fails with an actionable message naming the missing variable', () => {
-        expect(() => getDefaultModel('OPENAI')).toThrow(/OPENAI_MODEL_NAME is not set/);
-        expect(() => getEmbeddingModel()).toThrow(/GEMINI_EMBEDDING_MODEL is not set/);
+        expect(() => getDefaultModel('OPENAI')).toThrow(/OPENAI has no server-side default model/);
+        expect(() => getDefaultModel('CLAUDE')).toThrow(/CLAUDE has no server-side default model/);
+        expect(() => getDefaultModel('GROK')).toThrow(/GROK has no server-side default model/);
     });
 
     it('treats a blank variable as unset rather than sending an empty model id', () => {

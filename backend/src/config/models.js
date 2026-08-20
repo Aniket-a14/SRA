@@ -11,14 +11,6 @@
  * exact variable to set.
  */
 
-/** Generation model per provider. Keys match the Prisma `AiProvider` enum. */
-const GENERATION_MODEL_ENV = Object.freeze({
-    GEMINI: 'GEMINI_MODEL_NAME',
-    OPENAI: 'OPENAI_MODEL_NAME',
-    CLAUDE: 'CLAUDE_MODEL_NAME',
-    GROK: 'GROK_MODEL_NAME'
-});
-
 /**
  * Read a model id from the environment, or fail with a message that says exactly what to set.
  * @param {string} varName
@@ -36,13 +28,23 @@ const requireModelEnv = (varName, purpose) => {
 };
 
 /**
- * Default generation model for a provider.
+ * Default generation model for a provider. SRA is BYOK: the platform never picks a model on
+ * a user's behalf, so only GEMINI has a server-side default here, and only because the
+ * platform runs its own Gemini calls (embeddings, utility work) with its own key. OpenAI,
+ * Claude and Grok have no platform key and no platform default — a request against one of
+ * them must always name its model, or it is rejected before it ever reaches this function
+ * (see `clientAiSettingsSchema` in `utils/validationSchemas.js`). Reaching this function for
+ * a non-Gemini provider means that guard was bypassed, so it fails loud rather than guessing.
  * @param {'GEMINI'|'OPENAI'|'CLAUDE'|'GROK'} provider
  */
 export const getDefaultModel = (provider) => {
-    const varName = GENERATION_MODEL_ENV[provider];
-    if (!varName) throw new Error(`[models] Unknown provider "${provider}" — expected one of ${Object.keys(GENERATION_MODEL_ENV).join(', ')}`);
-    return requireModelEnv(varName, `${provider} generation`);
+    if (provider !== 'GEMINI') {
+        throw new Error(
+            `[models] ${provider} has no server-side default model — SRA is BYOK for ${provider}. ` +
+            `The caller must supply modelName from the user's own settings.`
+        );
+    }
+    return requireModelEnv('GEMINI_MODEL_NAME', 'GEMINI generation');
 };
 
 /**
