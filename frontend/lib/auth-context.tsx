@@ -66,7 +66,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
      * the server has already said the refresh token is dead and cleared the cookie itself.
      */
     const clearSession = React.useCallback((destination?: string) => {
-        localStorage.removeItem("token")
         localStorage.removeItem("user")
         setToken(null)
         setUser(null)
@@ -88,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         clearSession("/")
     }, [clearSession])
 
-    const refreshAccessToken = React.useCallback(async (): Promise<RefreshResult> => {
+    const refreshAccessToken = React.useCallback(async (opts?: { silent?: boolean }): Promise<RefreshResult> => {
         // Join the refresh already running rather than starting a competing one. The joiner
         // falls through to the same handling below, so whichever caller happens to arrive
         // second still sees the expiry — returning the bare promise here meant a page whose
@@ -109,7 +108,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const data = await res.json()
                 if (!data?.token) return { token: null, reason: "expired" }
 
-                localStorage.setItem("token", data.token)
                 setToken(data.token)
                 return { token: data.token as string }
             } catch {
@@ -125,10 +123,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // sign-out at all: navigable, but unable to open anything.
         const result = await shared
         if (result.reason === "expired") {
-            // The stale credentials go either way — leaving them is what made the landing page
-            // keep offering "Dashboard" for a session that no longer existed. Only the
-            // interruption is conditional: somewhere already public needs no announcement.
-            if (onAuthRoute()) {
+            // `silent` is the mount-time exchange of the refresh cookie for an access token: a
+            // visitor who was never signed in has no cookie either, and gets the same "expired"
+            // verdict as someone whose session just ended — they must not see a sign-in toast
+            // for a session they never had. Same for anywhere already public.
+            if (opts?.silent || onAuthRoute()) {
                 clearSession()
             } else {
                 // Fixed id: several callers can await the same expiry, and the user should be
@@ -206,29 +205,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [fetchUser, token])
 
+    const restoreCachedUser = React.useCallback(() => {
+        const storedUser = localStorage.getItem("user")
+        if (storedUser) {
+            try {
+                setUser(JSON.parse(storedUser))
+            } catch (e) {
+                console.error("Failed to parse cached user", e)
+            }
+        }
+    }, [])
+
+    const bootstrapSession = React.useCallback(async () => {
+        // Regain the session by exchanging the httpOnly refresh cookie for a fresh access
+        // token, same mechanism as a mid-session refresh but silent.
+        const result = await refreshAccessToken({ silent: true })
+        if (!result.token) setIsLoading(false)
+    }, [refreshAccessToken])
+
     useEffect(() => {
-        Promise.resolve().then(() => {
-            const storedToken = localStorage.getItem("token")
-            const storedUser = localStorage.getItem("user")
-
-            if (storedUser) {
-                try {
-                    setUser(JSON.parse(storedUser))
-                } catch (e) {
-                    console.error("Failed to parse cached user", e)
-                }
-            }
-
-            if (storedToken) {
-                setToken(storedToken)
-            } else {
-                setIsLoading(false)
-            }
-        })
+        // The access token is never persisted — only the (non-sensitive) profile is, so a
+        // returning visitor sees their name immediately instead of a loading flash.
+        // Both calls are named functions, not inline setState, and deferred to the next tick
+        // to avoid "setState synchronously in effect" — same pattern as the effect above.
+        Promise.resolve().then(restoreCachedUser)
+        Promise.resolve().then(bootstrapSession)
+        // Mount-only by design: bootstrapSession is not a stable reference (it closes over
+        // the router transitively), and re-running this on every render would re-issue the
+        // refresh-cookie exchange each time.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     const login = React.useCallback((newToken: string, newUser: User) => {
-        localStorage.setItem("token", newToken)
         localStorage.setItem("user", JSON.stringify(newUser))
         setToken(newToken)
         setUser(newUser)
@@ -236,7 +244,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [router])
 
     const authenticateWithToken = React.useCallback(async (newToken: string) => {
-        localStorage.setItem("token", newToken)
         setToken(newToken)
         await fetchUser(newToken)
         router.push("/projects")

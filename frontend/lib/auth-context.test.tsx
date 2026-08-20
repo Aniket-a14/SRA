@@ -35,7 +35,8 @@ const renderAuth = () => render(<AuthProvider><Consumer /></AuthProvider>)
 describe("AuthProvider session survival", () => {
     beforeEach(() => {
         vi.clearAllMocks()
-        localStorage.setItem("token", "stored-access-token")
+        // The access token is never persisted; only the (non-sensitive) cached profile is.
+        // Session restore on mount goes through /auth/refresh exchanging the httpOnly cookie.
         localStorage.setItem("user", JSON.stringify(CACHED_USER))
         // jsdom starts at "/", which the provider treats as a public route and so does not
         // redirect away from. These tests are about signed-in pages.
@@ -51,7 +52,10 @@ describe("AuthProvider session survival", () => {
         // The reported bug: reopening the site hits a cold function, /auth/me 502s, and the
         // app used to call logout() — which revokes the refresh token server-side. A session
         // with days left was destroyed by one slow start.
-        const fetchMock = stubFetch({ "/auth/me": () => json({ message: "Bad Gateway" }, 502) })
+        const fetchMock = stubFetch({
+            "/auth/refresh": () => json({ token: "fresh-access-token" }),
+            "/auth/me": () => json({ message: "Bad Gateway" }, 502)
+        })
         vi.stubGlobal("fetch", fetchMock)
 
         renderAuth()
@@ -59,7 +63,7 @@ describe("AuthProvider session survival", () => {
         await waitFor(() => expect(screen.getByTestId("loading").textContent).toBe("false"))
         expect(fetchMock.mock.calls.some(c => String(c[0]).includes("/auth/logout"))).toBe(false)
         expect(screen.getByTestId("user").textContent).toBe(CACHED_USER.email)
-        expect(localStorage.getItem("token")).toBe("stored-access-token")
+        expect(screen.getByTestId("token").textContent).toBe("fresh-access-token")
     })
 
     it("keeps the session when the network is down entirely", async () => {
@@ -70,13 +74,14 @@ describe("AuthProvider session survival", () => {
 
         await waitFor(() => expect(screen.getByTestId("loading").textContent).toBe("false"))
         expect(fetchMock.mock.calls.some(c => String(c[0]).includes("/auth/logout"))).toBe(false)
-        expect(localStorage.getItem("token")).toBe("stored-access-token")
+        // Nothing proved the session invalid — the cached profile stays, even with no fresh token yet.
+        expect(screen.getByTestId("user").textContent).toBe(CACHED_USER.email)
+        expect(push).not.toHaveBeenCalledWith("/auth/login")
     })
 
-    it("keeps the session when the token expired but refresh could not be reached", async () => {
-        // 401 then an unreachable refresh proves nothing about the refresh token's validity.
+    it("keeps the session when the refresh endpoint could not be reached", async () => {
+        // An unreachable refresh proves nothing about the refresh token's validity.
         const fetchMock = stubFetch({
-            "/auth/me": () => json({ message: "Unauthorized" }, 401),
             "/auth/refresh": () => json({ message: "Service Unavailable" }, 503)
         })
         vi.stubGlobal("fetch", fetchMock)
@@ -85,35 +90,68 @@ describe("AuthProvider session survival", () => {
 
         await waitFor(() => expect(screen.getByTestId("loading").textContent).toBe("false"))
         expect(fetchMock.mock.calls.some(c => String(c[0]).includes("/auth/logout"))).toBe(false)
-        expect(localStorage.getItem("token")).toBe("stored-access-token")
+        expect(screen.getByTestId("user").textContent).toBe(CACHED_USER.email)
+        expect(push).not.toHaveBeenCalledWith("/auth/login")
     })
 
-    it("recovers silently when refresh succeeds", async () => {
-        let meCalls = 0
+    it("recovers silently on mount by exchanging the refresh cookie", async () => {
         const fetchMock = stubFetch({
-            "/auth/me": () => (++meCalls === 1 ? json({}, 401) : json(CACHED_USER)),
-            "/auth/refresh": () => json({ token: "fresh-access-token" })
+            "/auth/refresh": () => json({ token: "fresh-access-token" }),
+            "/auth/me": () => json(CACHED_USER)
         })
         vi.stubGlobal("fetch", fetchMock)
 
         renderAuth()
 
-        await waitFor(() => expect(localStorage.getItem("token")).toBe("fresh-access-token"))
+        await waitFor(() => expect(screen.getByTestId("token").textContent).toBe("fresh-access-token"))
         expect(screen.getByTestId("user").textContent).toBe(CACHED_USER.email)
         expect(fetchMock.mock.calls.some(c => String(c[0]).includes("/auth/logout"))).toBe(false)
+        // No toast/redirect for a legitimate silent recovery.
+        expect(push).not.toHaveBeenCalledWith("/auth/login")
     })
 
-    it("does sign out when the server says the refresh token itself is rejected", async () => {
-        // The one case that is genuine proof the session is over.
+    it("clears the session silently when the mount-time refresh is rejected (no toast, no redirect)", async () => {
+        // A first-time or already-logged-out visitor has no valid refresh cookie either, and
+        // gets the same verdict — neither should see a "session expired" toast.
         const fetchMock = stubFetch({
-            "/auth/me": () => json({}, 401),
-            "/auth/refresh": () => json({ message: "Invalid or Expired Refresh Token" }, 401)
+            "/auth/refresh": () => json({ message: "No refresh token" }, 401)
         })
         vi.stubGlobal("fetch", fetchMock)
 
         renderAuth()
 
-        await waitFor(() => expect(localStorage.getItem("token")).toBeNull())
+        await waitFor(() => expect(screen.getByTestId("loading").textContent).toBe("false"))
+        expect(screen.getByTestId("token").textContent).toBe("none")
+        expect(localStorage.getItem("user")).toBeNull()
+        // Silent: no redirect, no toast-triggering round trip beyond the refresh attempt itself.
+        expect(push).not.toHaveBeenCalledWith("/auth/login")
+    })
+
+    it("signs out when the server says the refresh token itself is rejected mid-session", async () => {
+        // The one case that is genuine proof the session is over.
+        const fetchMock = stubFetch({
+            "/auth/refresh": () => json({ token: "fresh-access-token" }),
+            "/auth/me": () => json(CACHED_USER)
+        })
+        vi.stubGlobal("fetch", fetchMock)
+
+        const held: { refresh: () => Promise<unknown> } = { refresh: async () => undefined }
+        function Grabber() {
+            const { refreshAccessToken } = useAuth()
+            useEffect(() => { held.refresh = refreshAccessToken }, [refreshAccessToken])
+            return null
+        }
+        render(<AuthProvider><Consumer /><Grabber /></AuthProvider>)
+
+        await waitFor(() => expect(screen.getByTestId("token").textContent).toBe("fresh-access-token"))
+
+        fetchMock.mockImplementation((url: string) => {
+            if (String(url).includes("/auth/refresh")) return Promise.resolve(json({ message: "Invalid or Expired Refresh Token" }, 401))
+            throw new Error(`unstubbed fetch: ${url}`)
+        })
+        await held.refresh()
+
+        await waitFor(() => expect(screen.getByTestId("token").textContent).toBe("none"))
         expect(localStorage.getItem("user")).toBeNull()
         // Somewhere the user can act. Leaving them in place is what produced a signed-in shell
         // that could navigate but could not load anything behind it.
@@ -128,25 +166,28 @@ describe("AuthProvider session survival", () => {
         // the sign-out lived only in the /auth/me path — which does not run again. The user
         // could keep navigating a shell that could no longer open anything.
         const fetchMock = stubFetch({
-            "/auth/me": () => json(CACHED_USER),
-            "/auth/refresh": () => json({ message: "Invalid or Expired Refresh Token" }, 401)
+            "/auth/refresh": () => json({ token: "fresh-access-token" }),
+            "/auth/me": () => json(CACHED_USER)
         })
         vi.stubGlobal("fetch", fetchMock)
 
         const held: { refresh: () => Promise<unknown> } = { refresh: async () => undefined }
         function Grabber() {
             const { refreshAccessToken } = useAuth()
-            // In an effect, not during render — reassigning outer state while rendering is a
-            // side effect React is free to run more than once.
             useEffect(() => { held.refresh = refreshAccessToken }, [refreshAccessToken])
             return null
         }
-        render(<AuthProvider><Grabber /></AuthProvider>)
+        render(<AuthProvider><Consumer /><Grabber /></AuthProvider>)
 
-        await waitFor(() => expect(localStorage.getItem("token")).toBe("stored-access-token"))
+        await waitFor(() => expect(screen.getByTestId("token").textContent).toBe("fresh-access-token"))
+
+        fetchMock.mockImplementation((url: string) => {
+            if (String(url).includes("/auth/refresh")) return Promise.resolve(json({ message: "Invalid or Expired Refresh Token" }, 401))
+            throw new Error(`unstubbed fetch: ${url}`)
+        })
         await held.refresh()
 
-        await waitFor(() => expect(localStorage.getItem("token")).toBeNull())
+        await waitFor(() => expect(screen.getByTestId("token").textContent).toBe("none"))
         expect(push).toHaveBeenCalledWith("/auth/login")
     })
 
@@ -155,15 +196,9 @@ describe("AuthProvider session survival", () => {
         // deduplicated. The joiner used to be handed the shared promise and returned straight
         // away, skipping the sign-out entirely — so whether the app noticed its session had
         // ended came down to which request happened to lose the race.
-        let releaseRefresh: (() => void) | undefined
-        const gate = new Promise<void>(resolve => { releaseRefresh = resolve })
-
         const fetchMock = stubFetch({
-            "/auth/me": () => json(CACHED_USER),
-            "/auth/refresh": async () => {
-                await gate
-                return json({ message: "Invalid or Expired Refresh Token" }, 401)
-            }
+            "/auth/refresh": () => json({ token: "fresh-access-token" }),
+            "/auth/me": () => json(CACHED_USER)
         })
         vi.stubGlobal("fetch", fetchMock)
 
@@ -173,9 +208,22 @@ describe("AuthProvider session survival", () => {
             useEffect(() => { held.refresh = refreshAccessToken }, [refreshAccessToken])
             return null
         }
-        render(<AuthProvider><Grabber /></AuthProvider>)
+        render(<AuthProvider><Consumer /><Grabber /></AuthProvider>)
 
-        await waitFor(() => expect(localStorage.getItem("token")).toBe("stored-access-token"))
+        await waitFor(() => expect(screen.getByTestId("token").textContent).toBe("fresh-access-token"))
+        // Mount already made its own (successful) refresh call — count only what the
+        // concurrent pair below triggers.
+        const refreshCallsBeforePair = fetchMock.mock.calls.filter(c => String(c[0]).includes("/auth/refresh")).length
+
+        let releaseRefresh: (() => void) | undefined
+        const gate = new Promise<void>(resolve => { releaseRefresh = resolve })
+        fetchMock.mockImplementation(async (url: string) => {
+            if (String(url).includes("/auth/refresh")) {
+                await gate
+                return json({ message: "Invalid or Expired Refresh Token" }, 401)
+            }
+            throw new Error(`unstubbed fetch: ${url}`)
+        })
 
         const first = held.refresh()
         const joiner = held.refresh()
@@ -185,8 +233,9 @@ describe("AuthProvider session survival", () => {
         // The joiner sees the same verdict as the caller that started the request...
         expect(joined).toMatchObject({ token: null, reason: "expired" })
         // ...and one refresh was made, not two — a second would present a rotated-away cookie.
-        expect(fetchMock.mock.calls.filter(c => String(c[0]).includes("/auth/refresh"))).toHaveLength(1)
-        await waitFor(() => expect(localStorage.getItem("token")).toBeNull())
+        const refreshCallsAfterPair = fetchMock.mock.calls.filter(c => String(c[0]).includes("/auth/refresh")).length
+        expect(refreshCallsAfterPair - refreshCallsBeforePair).toBe(1)
+        await waitFor(() => expect(screen.getByTestId("token").textContent).toBe("none"))
         expect(push).toHaveBeenCalledWith("/auth/login")
     })
 })
