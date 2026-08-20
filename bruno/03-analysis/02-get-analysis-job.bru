@@ -1,0 +1,29 @@
+meta {
+  name: Get Analysis Job Status
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/analyze/job/{{analysisJobId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{accessToken}}
+}
+
+docs {
+  With MOCK_QSTASH=true the worker runs in-process, so by the time this request fires the
+  job has almost always already finished — this checks the status contract, not a specific
+  status value, since a slow CI runner could still catch it mid-flight.
+}
+
+tests {
+  test("reports a status scoped to the caller (never 'unknown' for a job they just created)", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.data.status).to.not.equal("unknown");
+    expect(["DRAFT", "PENDING", "IN_PROGRESS", "COMPLETED", "FAILED"]).to.include(res.body.data.status);
+  });
+}

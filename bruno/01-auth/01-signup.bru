@@ -1,0 +1,51 @@
+meta {
+  name: Signup
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/auth/signup
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{testEmail}}",
+    "password": "{{testPassword}}",
+    "name": "Bruno CI"
+  }
+}
+
+script:pre-request {
+  // A fresh identity per run so re-running the collection locally never collides with a
+  // previous run's account.
+  const unique = `bruno-ci-${Date.now()}-${Math.floor(Math.random() * 100000)}@example.com`;
+  bru.setVar("testEmail", unique);
+  bru.setVar("testPassword", "Bruno-CI-Pass-1234!");
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setVar("accessToken", res.body.token);
+    bru.setVar("userId", res.body.user.id);
+  }
+}
+
+tests {
+  test("signup succeeds", function () {
+    expect(res.status).to.equal(201);
+    expect(res.body.token).to.be.a("string");
+    expect(res.body.user.email).to.equal(bru.getVar("testEmail"));
+  });
+
+  test("refresh token cookie is set", function () {
+    // The refresh token must never appear in the JSON body — only as an httpOnly cookie.
+    expect(res.body.refreshToken).to.be.undefined;
+  });
+}

@@ -185,6 +185,7 @@ SRA leverages professional GitHub Actions for continuous quality assurance and o
 - **Automated Docker Builds**: Multi-stage Docker builds triggered on every push to `main`, publishing optimized images to GHCR.
 - **Bundle Size Monitoring**: Tracks and reports JavaScript bundle size changes for the Next.js frontend, preventing performance regressions.
 - **Linting & Formatting**: Enforces consistent code style and catches potential errors early in the development cycle.
+- **API Contract Testing**: A version-controlled [Bruno](https://www.usebruno.com/) collection (`bruno/`) exercises the auth/project/analysis/settings routes against a real running backend on every PR, catching route-level regressions the Jest suite's mocked tests can't.
 
 ### 🩺 Health & Security Monitoring
 - **Scheduled Health Checks**: Hourly automated uptime verification of the entire SRA pipeline.

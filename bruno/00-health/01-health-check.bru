@@ -1,0 +1,19 @@
+meta {
+  name: Health Check
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/health
+  body: none
+  auth: none
+}
+
+tests {
+  test("reports operational status", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.data.status).to.equal("UP");
+    expect(res.body.data.services.database).to.equal("UP");
+  });
+}

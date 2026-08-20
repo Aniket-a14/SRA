@@ -1,0 +1,44 @@
+meta {
+  name: Create Analysis
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/analyze
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{accessToken}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "text": "Users need to be able to reset their password by requesting a reset link sent to their registered email address. The link must expire after 30 minutes.",
+    "projectId": "{{projectId}}"
+  }
+}
+
+docs {
+  POST /analyze always enqueues and returns 202 immediately — the actual multi-agent
+  pipeline (ProductOwner → RAG → Architect → Developer → reflection/review) runs
+  asynchronously (in-process here, since the server runs with MOCK_QSTASH=true). This
+  request checks the enqueue contract; 02-get-analysis-job polls the result.
+}
+
+script:post-response {
+  if (res.status === 202) {
+    bru.setVar("analysisJobId", res.body.data.id);
+  }
+}
+
+tests {
+  test("queues the analysis and returns a job id", function () {
+    expect(res.status).to.equal(202);
+    expect(res.body.data.id).to.be.a("string");
+    expect(res.body.data.status).to.equal("queued");
+  });
+}

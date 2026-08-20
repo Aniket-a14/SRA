@@ -1,0 +1,29 @@
+meta {
+  name: Get Current User
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/auth/me
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{accessToken}}
+}
+
+tests {
+  test("returns the caller's own profile, scoped to their token", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.email).to.equal(bru.getVar("testEmail"));
+  });
+
+  test("never leaks fields outside the toPublicUser whitelist", function () {
+    // Regression guard for tenant-isolation rule: toPublicUser is a whitelist, so nothing
+    // resembling a credential should ever come back on this endpoint.
+    expect(res.body.password).to.be.undefined;
+    expect(res.body.passwordHash).to.be.undefined;
+  });
+}
