@@ -24,6 +24,19 @@ async function signIn(page: Page) {
     await expect(page).toHaveURL(/\/projects$/)
 }
 
+/** Reaches the analysis composer via the in-app button, not `page.goto`.
+ *
+ *  The access token lives only in memory (see auth-context.tsx) — a real page.goto is a hard
+ *  navigation that reloads the whole app from zero, and the fresh load's silent
+ *  refresh-via-cookie has no real cookie to redeem in this mocked test, so it silently wipes
+ *  the token before the composer ever gets a chance to submit. Clicking through, like an
+ *  actual user, keeps the same in-memory session across the client-side route change.
+ */
+async function goToNewAnalysis(page: Page) {
+    await page.getByRole("button", { name: "New analysis" }).first().click()
+    await expect(page).toHaveURL(/\/analysis\/new$/)
+}
+
 test.describe("starting an analysis", () => {
     test("submits a brief and lands on the draft review screen", async ({ page }) => {
         await mockAuth(page)
@@ -74,13 +87,7 @@ test.describe("starting an analysis", () => {
             return route.fallback()
         })
 
-        await page.goto("/analysis/new")
-        // This composer is one of the heavier client components in the app (sliders,
-        // popovers, a model picker) — clicking before it finishes hydrating is a real click
-        // on a real, visible button that silently does nothing, since no React handler is
-        // attached yet. Waiting for the network to go idle gives every code-split chunk a
-        // chance to load and hydrate before any interaction.
-        await page.waitForLoadState("networkidle")
+        await goToNewAnalysis(page)
         await page
             .getByPlaceholder("Describe what the system should do…")
             .fill("Users need to reset their password via an emailed link that expires after 30 minutes.")
