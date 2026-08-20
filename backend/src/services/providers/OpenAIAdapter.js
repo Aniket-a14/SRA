@@ -3,7 +3,7 @@ import { getDefaultModel } from '../../config/models.js';
 import { assertNotTruncated } from '../../utils/truncationError.js';
 import { parseRateLimitHeaders } from '../../utils/rateLimitHeaders.js';
 
-/** Resolved from OPENAI_MODEL_NAME at call time — no model id is hardcoded here. */
+/** No platform default — OpenAI is BYOK-only, so `modelName` must always come from the caller. */
 const DEFAULT_MODEL = () => getDefaultModel('OPENAI');
 
 export class OpenAIAdapter {
