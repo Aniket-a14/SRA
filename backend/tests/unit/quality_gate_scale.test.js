@@ -72,6 +72,7 @@ const baseArgs = (agents) => ({
     poOutput: { features: [] },
     archOutput: { tier: '3' },
     projectName: 'Proj',
+    userId: 'test-user',
     sections: {
         srsShell: { introduction: { purpose: 'p' } },
         allFeatures: [{ name: 'F1' }],

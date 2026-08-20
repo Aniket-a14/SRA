@@ -18,6 +18,7 @@ const makeArgs = (agents) => ({
     poOutput: { features: [] },
     archOutput: { tier: '3' },
     projectName: 'Proj',
+    userId: 'test-user',
     sections: baseSections(),
     agents,
     sleep: noopSleep,

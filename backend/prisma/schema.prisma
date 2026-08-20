@@ -50,14 +50,15 @@ model User {
   // and because credential stuffing spreads across IPs — the per-IP limiter cannot see it.
   failedLoginAttempts Int       @default(0)
   lockedUntil         DateTime?
-  accounts     Account[]
-  analyses     Analysis[]
-  apiKeys      ApiKey[]
-  projects     Project[]
-  sessions     Session[]
-  providerKeys UserProviderKey[]
-  auditLogs    AuditLog[]
-  modelQuotas  ModelQuotaState[]
+  accounts             Account[]
+  analyses             Analysis[]
+  apiKeys              ApiKey[]
+  projects             Project[]
+  sessions             Session[]
+  providerKeys         UserProviderKey[]
+  auditLogs            AuditLog[]
+  modelQuotas          ModelQuotaState[]
+  semanticCacheEntries SemanticPipelineCache[]
 
   @@index([deletedAt])
 }
@@ -342,4 +343,33 @@ model ModelQuotaState {
 
   @@unique([userId, provider, modelName])
   @@index([userId])
+}
+
+/// Caches the reflection loop's surgical section refinements (DeveloperAgent.refineSRS)
+/// across analyses. A regeneration whose target section and feedback are near-duplicates of
+/// an earlier one reuses that output instead of paying for another LLM call.
+model SemanticPipelineCache {
+  id     String @id @default(uuid())
+  userId String
+
+  /// One of DeveloperAgent's REFINEMENT_SCHEMAS keys ("Shell" | "Features" | "Requirements" |
+  /// "Appendices"), kept as a plain string rather than a duplicated enum — that map is the
+  /// single source of truth for which sections are refinable.
+  sectionName String
+
+  /// Embeds the exact inputs the refinement was about to send (section content + feedback).
+  /// Two entries match only if both agree, which is what makes replaying the cached output
+  /// safe rather than merely plausible.
+  embedding Unsupported("vector")?
+
+  /// refineSRS's return value, replayed verbatim on a hit.
+  output Json
+
+  hitCount  Int      @default(0)
+  createdAt DateTime @default(now())
+  lastHitAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, sectionName])
 }
