@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { useEffect } from "react"
-import { render, screen, waitFor } from "@testing-library/react"
+import { render, screen, waitFor, act } from "@testing-library/react"
 import { AuthProvider, useAuth } from "./auth-context"
 
 const push = vi.fn()
@@ -237,5 +237,47 @@ describe("AuthProvider session survival", () => {
         expect(refreshCallsAfterPair - refreshCallsBeforePair).toBe(1)
         await waitFor(() => expect(screen.getByTestId("token").textContent).toBe("none"))
         expect(push).toHaveBeenCalledWith("/auth/login")
+    })
+
+    it("does not let a delayed mount-time refresh rejection clear a session established by a later login", async () => {
+        // The race this guards: bootstrapSession's silent refresh is still in flight (e.g. a
+        // slow cold start) when the user submits login on /auth/login before it resolves. A
+        // stale "expired" verdict landing after login must not clear a session it started
+        // before and knows nothing about.
+        window.history.pushState({}, "", "/auth/login")
+        localStorage.clear()
+
+        let releaseRefresh: (() => void) | undefined
+        const gate = new Promise<void>(resolve => { releaseRefresh = resolve })
+        const fetchMock = vi.fn((url: string) => {
+            if (String(url).includes("/auth/refresh")) return gate.then(() => json({ message: "No refresh token" }, 401))
+            if (String(url).includes("/auth/me")) return Promise.resolve(json(CACHED_USER))
+            throw new Error(`unstubbed fetch: ${url}`)
+        })
+        vi.stubGlobal("fetch", fetchMock)
+
+        const held: { login: (token: string, user: typeof CACHED_USER) => void } = { login: () => undefined }
+        function Grabber() {
+            const { login } = useAuth()
+            useEffect(() => { held.login = login }, [login])
+            return null
+        }
+        render(<AuthProvider><Consumer /><Grabber /></AuthProvider>)
+
+        // Wait for the mount-time refresh to actually be in flight before logging in.
+        await waitFor(() => expect(fetchMock.mock.calls.some(c => String(c[0]).includes("/auth/refresh"))).toBe(true))
+
+        act(() => { held.login("logged-in-token", CACHED_USER) })
+        expect(screen.getByTestId("token").textContent).toBe("logged-in-token")
+
+        // Now let the stale, gated refresh resolve its rejection and try to act on it.
+        releaseRefresh?.()
+        await waitFor(() => expect(fetchMock.mock.calls.some(c => String(c[0]).includes("/auth/me"))).toBe(true))
+        // Give the settled refresh's own handling a turn to run, if it were going to.
+        await new Promise(resolve => setTimeout(resolve, 10))
+
+        expect(screen.getByTestId("token").textContent).toBe("logged-in-token")
+        expect(screen.getByTestId("user").textContent).toBe(CACHED_USER.email)
+        expect(push).not.toHaveBeenCalledWith("/auth/login")
     })
 })

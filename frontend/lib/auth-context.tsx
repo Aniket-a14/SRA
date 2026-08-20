@@ -61,11 +61,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const router = useRouter()
 
     /**
+     * Bumped on every login/authenticateWithToken/clearSession, so the mount-time silent
+     * refresh can tell whether it's still resolving for the session it started for. Without
+     * this, a slow /auth/refresh that started before login can resolve "expired" after login
+     * succeeds and wipe the fresh session it knows nothing about.
+     */
+    const sessionGenRef = React.useRef(0)
+
+    /**
      * Drop every trace of the session on this device and send the user somewhere they can
      * actually act. Separate from logout() because an *expired* session needs no round-trip:
      * the server has already said the refresh token is dead and cleared the cookie itself.
      */
     const clearSession = React.useCallback((destination?: string) => {
+        sessionGenRef.current += 1
         localStorage.removeItem("user")
         setToken(null)
         setUser(null)
@@ -87,7 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         clearSession("/")
     }, [clearSession])
 
-    const refreshAccessToken = React.useCallback(async (opts?: { silent?: boolean }): Promise<RefreshResult> => {
+    const refreshAccessToken = React.useCallback(async (opts?: { silent?: boolean; startGen?: number }): Promise<RefreshResult> => {
         // Join the refresh already running rather than starting a competing one. The joiner
         // falls through to the same handling below, so whichever caller happens to arrive
         // second still sees the expiry — returning the bare promise here meant a page whose
@@ -127,7 +136,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // visitor who was never signed in has no cookie either, and gets the same "expired"
             // verdict as someone whose session just ended — they must not see a sign-in toast
             // for a session they never had. Same for anywhere already public.
-            if (opts?.silent || onAuthRoute()) {
+            if (opts?.silent) {
+                // A login (or another clearSession) that happened after this refresh started
+                // owns the session now — this "expired" verdict is stale and about a session
+                // that's already gone, not the one currently signed in. Clearing here would
+                // sign out someone who logged in while the mount-time refresh was still
+                // in flight.
+                if (opts.startGen === sessionGenRef.current) {
+                    clearSession()
+                }
+            } else if (onAuthRoute()) {
                 clearSession()
             } else {
                 // Fixed id: several callers can await the same expiry, and the user should be
@@ -206,6 +224,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [fetchUser, token])
 
     const restoreCachedUser = React.useCallback(() => {
+        // Pre-refresh-cookie builds kept the access token in localStorage too. Purge any
+        // leftover from before this device upgraded — otherwise it sits there, readable by
+        // any injected script, for the rest of its JWT lifetime even though nothing writes
+        // to this key anymore.
+        localStorage.removeItem("token")
         const storedUser = localStorage.getItem("user")
         if (storedUser) {
             try {
@@ -218,8 +241,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const bootstrapSession = React.useCallback(async () => {
         // Regain the session by exchanging the httpOnly refresh cookie for a fresh access
-        // token, same mechanism as a mid-session refresh but silent.
-        const result = await refreshAccessToken({ silent: true })
+        // token, same mechanism as a mid-session refresh but silent. Captures the generation
+        // before the request goes out so a login that lands before this resolves isn't
+        // clobbered by a stale "expired" verdict — see the startGen check in refreshAccessToken.
+        const startGen = sessionGenRef.current
+        const result = await refreshAccessToken({ silent: true, startGen })
         if (!result.token) setIsLoading(false)
     }, [refreshAccessToken])
 
@@ -237,6 +263,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [])
 
     const login = React.useCallback((newToken: string, newUser: User) => {
+        sessionGenRef.current += 1
         localStorage.setItem("user", JSON.stringify(newUser))
         setToken(newToken)
         setUser(newUser)
@@ -244,6 +271,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [router])
 
     const authenticateWithToken = React.useCallback(async (newToken: string) => {
+        sessionGenRef.current += 1
         setToken(newToken)
         await fetchUser(newToken)
         router.push("/projects")
