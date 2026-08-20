@@ -48,15 +48,33 @@ export const hasCompleteAppendices = (candidate) => {
 export class DeveloperAgent extends BaseAgent {
   constructor(providerConfig = {}) {
     super("Lead Developer", providerConfig);
+    // Per-run cache: the sectional methods below all resolve the same (profile, projectName,
+    // version) system instruction, and each miss pays a real I/O cost inside
+    // constructMasterPrompt. A DeveloperAgent instance lives for exactly one analysis run (see
+    // analysisService.performAnalysis), so caching on the instance cannot leak across users or
+    // requests — and it means every sectional call can go through getSystemInstruction (the
+    // one sanitization choke point) instead of accepting a precomputed override, which is what
+    // let a caller bypass sanitizePromptSettings entirely.
+    this._systemInstructionCache = new Map();
   }
 
   async getSystemInstruction(settings = {}, overrides = {}) {
     const { projectName = "Project", version = "latest" } = settings;
-    return constructMasterPrompt(null, {
-      profile: overrides.profile || "default",
+    const profile = overrides.profile || "default";
+    const noSchema = !!overrides.noSchema;
+    const cacheKey = JSON.stringify({ projectName, version, profile, noSchema });
+
+    if (this._systemInstructionCache.has(cacheKey)) {
+      return this._systemInstructionCache.get(cacheKey);
+    }
+
+    const instruction = await constructMasterPrompt(null, {
+      profile,
       projectName,
-      ...(overrides.noSchema && { noSchema: true })
+      ...(noSchema && { noSchema: true })
     }, version);
+    this._systemInstructionCache.set(cacheKey, instruction);
+    return instruction;
   }
 
   /**
@@ -65,7 +83,7 @@ export class DeveloperAgent extends BaseAgent {
    */
   async generateShell(rawInput, requirements, architecture, settings = {}) {
     const { projectName = "Project", version = "latest", ragContext = "" } = settings;
-    const systemInstruction = settings.systemInstruction || await this.getSystemInstruction({ projectName, version });
+    const systemInstruction = await this.getSystemInstruction({ projectName, version });
 
     const prompt = `
 <role>
@@ -112,7 +130,7 @@ ${rawInput}
    */
   async generateFeatures(rawInput, section1, requirements, architecture, featuresChunk, settings = {}) {
     const { projectName = "Project", version = "latest", ragContext = "" } = settings;
-    const systemInstruction = settings.systemInstruction || await this.getSystemInstruction({ projectName, version });
+    const systemInstruction = await this.getSystemInstruction({ projectName, version });
 
     const prompt = `
 <role>
@@ -163,7 +181,7 @@ ${rawInput}
    */
   async generateRequirements(rawInput, sections1And2, requirements, architecture, settings = {}) {
     const { projectName = "Project", version = "latest", ragContext = "" } = settings;
-    const systemInstruction = settings.systemInstruction || await this.getSystemInstruction({ projectName, version });
+    const systemInstruction = await this.getSystemInstruction({ projectName, version });
 
     const prompt = `
 <role>
@@ -216,7 +234,7 @@ ${rawInput}
   async generateAppendices(rawInput, previousSections, poOutput, architecture, settings = {}) {
     const { projectName = "Project", version = "latest" } = settings;
 
-    const systemInstruction = settings.appendicesSystemInstruction || await this.getSystemInstruction(
+    const systemInstruction = await this.getSystemInstruction(
       { projectName, version },
       { profile: "developer", noSchema: true }
     );

@@ -30,9 +30,14 @@ export async function generateSrsSections({
     text, poOutput, archOutput, featureList, devAgent,
     projectName, promptVersion, ragContext, sleep, emitProgress, cooldownMs
 }) {
-    // Resolve both system instructions in parallel — each triggers an async
-    // getDiagramAuthorityPrompt() I/O call; running concurrently saves ~1 round-trip.
-    const [developerSystemInstruction, appendicesSystemInstruction] = await Promise.all([
+    // Warms devAgent's per-run system-instruction cache for both variants before the
+    // sequential sectional calls below — each miss triggers an async getDiagramAuthorityPrompt()
+    // I/O call, so resolving both concurrently here saves ~1 round-trip versus letting the
+    // first shell call and the first appendices call each pay for their own miss in series.
+    // The sectional methods always re-derive their own instruction via getSystemInstruction
+    // (a cache hit after this) rather than accepting one as a settings override — that override
+    // was a way to bypass constructMasterPrompt's sanitizePromptSettings choke point.
+    await Promise.all([
         devAgent.getSystemInstruction({ projectName, version: promptVersion }),
         devAgent.getSystemInstruction(
             { projectName, version: promptVersion },
@@ -45,8 +50,6 @@ export async function generateSrsSections({
         projectName,
         version: promptVersion,
         ragContext,
-        systemInstruction: developerSystemInstruction,
-        appendicesSystemInstruction,
         onStream: tokens.onStream
     };
 
