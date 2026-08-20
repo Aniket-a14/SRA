@@ -1,0 +1,28 @@
+meta {
+  name: Verify Logged Out
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/auth/refresh
+  body: none
+  auth: none
+}
+
+headers {
+  Origin: {{frontendOrigin}}
+}
+
+docs {
+  Logout returning 200 only proves the endpoint ran, not that the session is actually gone —
+  a handler that no-ops when there's no session to revoke would pass that check too. This
+  replays the same refresh cookie against /auth/refresh right after logout and expects it to
+  be rejected, which is the only thing that actually proves the session was invalidated.
+}
+
+tests {
+  test("the refresh cookie no longer works after logout", function () {
+    expect(res.status).to.equal(401);
+  });
+}

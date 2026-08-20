@@ -1,0 +1,29 @@
+meta {
+  name: List Provider Keys
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/settings/provider-keys
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{accessToken}}
+}
+
+tests {
+  test("lists the caller's own BYOK provider keys, masked", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.data).to.be.an("array");
+  });
+
+  test("never returns a raw key", function () {
+    for (const key of res.body.data) {
+      expect(key.encryptedKey).to.be.undefined;
+      expect(key.apiKey).to.be.undefined;
+    }
+  });
+}

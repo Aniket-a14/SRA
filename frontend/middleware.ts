@@ -6,8 +6,9 @@ import { NextRequest, NextResponse } from "next/server";
  * The policy previously carried `script-src 'unsafe-inline'`, which is the one directive
  * that makes the rest of a CSP largely decorative: with it, an injected `<script>` executes
  * like any other, so the policy stops being a defence against XSS and becomes a list of
- * hosts. That mattered here more than usual, because the access token lives in localStorage
- * and is readable by any script that runs.
+ * hosts. That mattered here more than usual, because the access token lives in page memory
+ * and is readable by any script that runs — an injected script doesn't need to touch storage
+ * to steal it.
  *
  * A nonce cannot be a static header — it must differ per response, or it is just a password
  * an attacker can read off the page — so the policy moves out of next.config.ts and is built

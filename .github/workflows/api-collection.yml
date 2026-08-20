@@ -1,0 +1,118 @@
+name: API Collection
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "backend/**"
+      - "bruno/**"
+      - ".github/workflows/api-collection.yml"
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - "backend/**"
+      - "bruno/**"
+      - ".github/workflows/api-collection.yml"
+
+jobs:
+  bruno-run:
+    runs-on: ubuntu-latest
+
+    # pgvector, not plain postgres — schema.prisma's datasource declares the `vector`
+    # extension, and an early migration (20251223111121_add_pgvector) creates it; plain
+    # postgres has no such extension to create, so `prisma migrate deploy` would fail.
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sra_bruno_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sra_bruno_ci
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/sra_bruno_ci
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 9
+
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Get pnpm store directory
+      id: pnpm-cache
+      shell: bash
+      run: |
+        echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+    - uses: actions/cache@v4
+      name: Setup pnpm cache
+      with:
+        path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-pnpm-store-
+
+    - name: Install dependencies
+      run: pnpm install
+
+    - name: Apply migrations
+      run: pnpm --filter backend exec prisma migrate deploy
+
+    - name: Start backend
+      # MOCK_AI/MOCK_QSTASH mean this run makes no real Gemini call and no real Upstash
+      # publish — GEMINI_API_KEY/QSTASH_TOKEN below only need to satisfy env.js's zod schema,
+      # not authenticate against anything real. REDIS_URL is intentionally unset: the backend
+      # falls back to in-memory rate limiting, so this run never touches a shared Redis.
+      run: nohup node src/server.js > /tmp/backend.log 2>&1 &
+      working-directory: ./backend
+      env:
+        NODE_ENV: development
+        MOCK_AI: 'true'
+        MOCK_QSTASH: 'true'
+        PORT: '3000'
+        JWT_SECRET: ci-bruno-jwt-secret-at-least-32-characters-long
+        COOKIE_SECRET: ci-bruno-cookie-secret
+        ENCRYPTION_KEY: ci-bruno-encryption-key-16char
+        ENCRYPTION_SALT: ci-bruno-encryption-salt
+        BACKUP_ENCRYPTION_SALT: ci-bruno-backup-salt
+        GEMINI_API_KEY: mock-not-used
+        QSTASH_TOKEN: mock-not-used
+        FRONTEND_URL: http://localhost:3001
+        BACKEND_URL: http://localhost:3000
+        ALLOWED_ORIGINS: http://localhost:3001
+
+    - name: Wait for backend to become healthy
+      run: |
+        for i in $(seq 1 30); do
+          if curl -sf http://localhost:3000/api/health > /dev/null; then
+            echo "Backend is up"
+            exit 0
+          fi
+          sleep 1
+        done
+        echo "Backend did not become healthy in time"
+        cat /tmp/backend.log || true
+        exit 1
+
+    - name: Run Bruno API collection
+      # bru's CLI only runs from inside a collection directory (the one holding bruno.json).
+      run: npx --yes @usebruno/cli run . -r --env dev
+      working-directory: ./bruno
+
+    - name: Show backend log on failure
+      if: failure()
+      run: cat /tmp/backend.log || true

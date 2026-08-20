@@ -1,0 +1,21 @@
+meta {
+  name: Delete Project
+  type: http
+  seq: 1
+}
+
+delete {
+  url: {{baseUrl}}/projects/{{projectId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{accessToken}}
+}
+
+tests {
+  test("removes the project this run created", function () {
+    expect(res.status).to.equal(200);
+  });
+}

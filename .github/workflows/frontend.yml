@@ -88,3 +88,57 @@ jobs:
     - name: Run Build
       run: pnpm --filter frontend run build
       working-directory: ./frontend
+
+  e2e:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 9
+
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Get pnpm store directory
+      id: pnpm-cache
+      shell: bash
+      run: |
+        echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+    - uses: actions/cache@v4
+      name: Setup pnpm cache
+      with:
+        path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-pnpm-store-
+
+    - name: Install dependencies
+      run: pnpm install
+
+    - name: Install Playwright's Chromium
+      run: npx playwright install --with-deps chromium
+      working-directory: ./frontend
+
+    - name: Run Playwright E2E suite
+      # playwright.config.ts's webServer starts `npm run dev` itself with
+      # NEXT_PUBLIC_BACKEND_URL pointed at an address nothing listens on — every request the
+      # specs make is mocked at the browser network layer (see tests/e2e/mocks.ts), so this
+      # needs no backend, database, or real provider keys.
+      run: pnpm --filter frontend run test:e2e
+      env:
+        CI: 'true'
+
+    - name: Upload Playwright report
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: playwright-report
+        path: frontend/playwright-report
+        retention-days: 14

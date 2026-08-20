@@ -1,0 +1,34 @@
+meta {
+  name: Refresh Access Token
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/auth/refresh
+  body: none
+  auth: none
+}
+
+headers {
+  Origin: {{frontendOrigin}}
+}
+
+docs {
+  /auth/refresh is CSRF-guarded (requireTrustedOrigin): it authenticates with the ambient
+  refresh cookie, so it only proceeds past the guard for callers presenting an allowlisted
+  Origin, same as a real browser would.
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setVar("accessToken", res.body.token);
+  }
+}
+
+tests {
+  test("exchanges the httpOnly refresh cookie for a new access token", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.token).to.be.a("string");
+  });
+}

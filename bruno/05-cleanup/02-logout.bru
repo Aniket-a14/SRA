@@ -1,0 +1,25 @@
+meta {
+  name: Logout
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/auth/logout
+  body: none
+  auth: none
+}
+
+headers {
+  Origin: {{frontendOrigin}}
+}
+
+docs {
+  Same CSRF guard as /auth/refresh — see that request's docs.
+}
+
+tests {
+  test("revokes the session", function () {
+    expect(res.status).to.equal(200);
+  });
+}

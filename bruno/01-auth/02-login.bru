@@ -1,0 +1,36 @@
+meta {
+  name: Login
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{testEmail}}",
+    "password": "{{testPassword}}"
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setVar("accessToken", res.body.token);
+  }
+}
+
+tests {
+  test("login succeeds with the account just created", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.token).to.be.a("string");
+    expect(res.body.user.email).to.equal(bru.getVar("testEmail"));
+  });
+}
