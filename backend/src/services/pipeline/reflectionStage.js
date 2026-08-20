@@ -1,4 +1,5 @@
 import logger from '../../config/logger.js';
+import { lookupRefinement, storeRefinement } from '../knowledge/semanticPipelineCache.js';
 
 export const MAX_LOOPS = 2;
 export const QUALITY_THRESHOLD = 85;
@@ -116,11 +117,12 @@ export const isApprovedStatus = (status) => {
  * @param {(ms:number)=>Promise<void>} p.sleep - provider-aware cooldown
  * @param {(stage:string,msg:string,extra?:object)=>void} p.emitProgress
  * @param {number}   p.reflectionCooldownMs
+ * @param {string}   p.userId          - scopes the semantic refinement cache to this user
  * @returns {Promise<{ srsDraft: object, loopCount: number, finalIndustryAudit: object|null }>}
  */
 export async function runReflectionLoop({
     text, poOutput, archOutput, projectName,
-    sections, agents, sleep, emitProgress, reflectionCooldownMs,
+    sections, agents, sleep, emitProgress, reflectionCooldownMs, userId,
     resumeFrom = null, onPassComplete = null
 }) {
     let { srsShell, allFeatures, srsRequirements, srsAppendices, srsDraft } = sections;
@@ -223,8 +225,13 @@ export async function runReflectionLoop({
             targetDraft = { systemFeatures: allFeatures };
         }
 
-        // SURGICAL REFINEMENT: Developer only touches what's broken
-        const refinedSection = await devAgent.refineSRS(
+        // SURGICAL REFINEMENT: Developer only touches what's broken. Checked against the
+        // semantic cache first — a near-duplicate (section, draft, feedback) triple has
+        // already paid for this exact refinement once.
+        const cached = await lookupRefinement({
+            userId, sectionName: targetSectionName, targetDraft, feedback: reflectionFeedback
+        });
+        const refinedSection = cached ?? await devAgent.refineSRS(
             text,
             poOutput,
             archOutput,
@@ -233,6 +240,12 @@ export async function runReflectionLoop({
             reflectionFeedback,
             { projectName }
         );
+        if (!cached) {
+            await storeRefinement({
+                userId, sectionName: targetSectionName, targetDraft,
+                feedback: reflectionFeedback, output: refinedSection
+            });
+        }
 
         // Re-stitch based on which section was refined
         if (targetSectionName === "Shell") {

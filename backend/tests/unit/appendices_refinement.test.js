@@ -199,7 +199,7 @@ describe('runReflectionLoop — refining the Appendices', () => {
 
         const draft = draftWithDiagrams();
         const result = await runReflectionLoop({
-            text: 'input', poOutput: { features: [] }, archOutput: {}, projectName: 'P',
+            text: 'input', poOutput: { features: [] }, archOutput: {}, projectName: 'P', userId: 'test-user',
             sections: {
                 srsShell: { introduction: draft.introduction },
                 allFeatures: draft.systemFeatures,

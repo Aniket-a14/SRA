@@ -316,7 +316,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
 
             // 4. Pillar 1: Reflection Loop (Max 2 refinement passes)
             const reflection = await runReflectionLoop({
-                text, poOutput, archOutput, projectName,
+                text, poOutput, archOutput, projectName, userId,
                 sections: { ...legacySections, srsDraft },
                 agents: { devAgent, qaAgent, criticAgent },
                 sleep, emitProgress, reflectionCooldownMs: REFLECTION_LOOP_COOLDOWN_MS,
