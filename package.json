@@ -24,27 +24,6 @@
         "@prisma/adapter-pg": "7.9.0",
         "@prisma/client-runtime-utils": "7.9.0"
     },
-    "_comment_overrides": "Transitive security patches. Each entry exists because a dependency we do not control pins a vulnerable version; direct dependencies are bumped in their own workspace package.json instead. Keep these pinned within the installed major — an override that crosses a major boundary broke minimatch@3 here once, because brace-expansion@5 has a different API than the v1 it expected.",
-    "pnpm": {
-        "overrides": {
-            "hono": "^4.12.25",
-            "fast-uri": "^3.1.5",
-            "nanoid": "^3.3.17",
-            "sharp": "^0.35.0",
-            "form-data": "^4.0.6",
-            "lodash": "^4.17.21",
-            "postcss": "^8.5.18",
-            "dompurify": "^3.4.12",
-            "qs": "^6.15.2",
-            "body-parser": "^2.3.0",
-            "ip-address": "^10.1.1",
-            "valibot": "^1.4.2",
-            "find-my-way": "^9.7.0",
-            "pdf-parse>pdfjs-dist": "^6.2.108",
-            "@babel/core": "^7.29.6",
-            "@blocknote/core>uuid": "^11.1.1"
-        }
-    },
     "author": "SRA Team",
     "license": "ISC",
     "dependencies": {
