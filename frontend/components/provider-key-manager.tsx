@@ -7,9 +7,21 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Sparkles, Trash2, Plus, CheckCircle2, Loader2, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 import type { DiscoveredModel } from "@/lib/models"
+import { extractErrorMessage } from "@/lib/api-response"
 
 export type AiProvider = "GEMINI" | "OPENAI" | "CLAUDE" | "GROK"
 
@@ -102,7 +114,7 @@ export function ProviderKeyManager() {
                 toast.success(`Key verified — ${models.length} model${models.length === 1 ? "" : "s"} available`)
             } else {
                 setVerifiedModels(null)
-                toast.error(json.message || json.error || "Key verification failed")
+                toast.error(extractErrorMessage(json, "Key verification failed"))
             }
         } catch {
             toast.error("Could not reach the verification service")
@@ -132,7 +144,7 @@ export function ProviderKeyManager() {
                     : `${PROVIDER_LABELS[provider]} key saved`)
                 closeDialog()
             } else {
-                toast.error(json.message || json.error || "Failed to save key")
+                toast.error(extractErrorMessage(json, "Failed to save key"))
             }
         } catch {
             toast.error("Error saving provider key")
@@ -158,7 +170,7 @@ export function ProviderKeyManager() {
                 const count = updated.availableModels?.length || 0
                 toast.success(`${PROVIDER_LABELS[p]}: ${count} model${count === 1 ? "" : "s"} available`)
             } else {
-                toast.error(json.message || json.error || "Could not refresh models")
+                toast.error(extractErrorMessage(json, "Could not refresh models"))
             }
         } catch {
             toast.error("Error refreshing models")
@@ -315,15 +327,30 @@ export function ProviderKeyManager() {
                                     : <RefreshCw className="h-4 w-4 mr-2" />}
                                 Refresh models
                             </Button>
-                            <Button
-                                variant="destructive"
-                                size="sm"
-                                className="flex-1 sm:flex-none rounded-full"
-                                onClick={() => removeKey(key.provider)}
-                            >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Remove
-                            </Button>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        className="flex-1 sm:flex-none rounded-full"
+                                    >
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        Remove
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Remove {PROVIDER_LABELS[key.provider]} key?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            This removes the stored key immediately. Any analysis configured to use {PROVIDER_LABELS[key.provider]} will need a different provider before it can generate again.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => removeKey(key.provider)} className="bg-destructive hover:bg-destructive/90">Remove</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
                         </div>
                     </div>
                 ))}

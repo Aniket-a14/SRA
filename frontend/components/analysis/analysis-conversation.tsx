@@ -10,6 +10,7 @@ import { cn, cleanInputText } from "@/lib/utils"
 import { toast } from "sonner"
 import { readSSEStream } from "@/lib/sse"
 import { MarkdownDisplay } from "@/components/markdown-display"
+import { getFormatSpec, resolveFormatId } from "@/lib/formats"
 import type { Analysis } from "@/types/analysis"
 
 interface ChatStreamEvent {
@@ -224,7 +225,7 @@ export function AnalysisConversation({ analysis, analysisId, onAnalysisUpdate, h
                     <Bubble role="assistant">
                         <div className="space-y-3">
                             <p>
-                                I&apos;ve drafted your IEEE-830 SRS
+                                I&apos;ve drafted your {getFormatSpec(resolveFormatId(analysis)).name} specification
                                 {analysis.metadata?.optimized ? " using recycled requirements from your knowledge base" : ""}.
                             </p>
                             <button
@@ -234,7 +235,7 @@ export function AnalysisConversation({ analysis, analysisId, onAnalysisUpdate, h
                             >
                                 <span className="font-display text-2xl text-foreground/25 leading-none group-hover:text-foreground/50 transition-colors">01</span>
                                 <div className="min-w-0 flex-1">
-                                    <p className="font-display text-lg truncate leading-tight">{analysis.projectTitle || analysis.title || "SRS Document"}</p>
+                                    <p className="font-display text-lg truncate leading-tight">{analysis.projectTitle || analysis.title || "Specification"}</p>
                                     <p className="text-[11px] text-muted-foreground font-mono uppercase tracking-wider mt-0.5">
                                         {sectionCount} feature{sectionCount === 1 ? "" : "s"} · v{analysis.version} · open document
                                     </p>

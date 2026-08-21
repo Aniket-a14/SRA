@@ -2,8 +2,19 @@
 import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Laptop, Smartphone, Globe, Clock, ShieldAlert } from "lucide-react"
-import { formatDistanceToNow } from "date-fns"
+import { formatRelative } from "@/lib/format-date"
 import { toast } from "sonner"
 import { UAParser } from "ua-parser-js"
 
@@ -129,7 +140,7 @@ export function SecuritySettings() {
                                     {session.isCurrent ? (
                                         <span className="text-green-600 font-medium">Active now</span>
                                     ) : (
-                                        <span>Last active {formatDistanceToNow(new Date(session.lastUsedAt))} ago</span>
+                                        <span>Last active {formatRelative(session.lastUsedAt)}</span>
                                     )}
                                 </div>
                                 <div className="text-xs text-muted-foreground truncate max-w-[200px] sm:max-w-[300px]">
@@ -137,14 +148,31 @@ export function SecuritySettings() {
                                 </div>
                             </div>
                         </div>
-                        <Button
-                            variant="destructive"
-                            size="sm"
-                            className="w-full sm:w-auto rounded-full"
-                            onClick={() => revokeSession(session.id)}
-                        >
-                            Revoke
-                        </Button>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    className="w-full sm:w-auto rounded-full"
+                                >
+                                    Revoke
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Revoke this session?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        {session.isCurrent
+                                            ? "This is your current session — revoking it will sign you out immediately."
+                                            : "That device will be signed out immediately and will need to log in again."}
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => revokeSession(session.id)} className="bg-destructive hover:bg-destructive/90">Revoke</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                     </div>
                 ))}
             </div>

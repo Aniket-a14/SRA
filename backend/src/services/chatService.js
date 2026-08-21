@@ -14,7 +14,11 @@ import logger from '../config/logger.js';
 async function resolveChatProvider(userId, currentAnalysis) {
     if (process.env.MOCK_AI === 'true') return {};
     const settings = currentAnalysis?.metadata?.promptSettings || {};
-    return resolveProviderKey(userId, settings.modelProvider, settings.modelName);
+    const resolved = await resolveProviderKey(userId, settings.modelProvider, settings.modelName);
+    // userId/allowModelFallback/fallbackModels were previously dropped here, which silently
+    // broke quota attribution (recordUsage/recordExhausted no-op on a falsy userId) and made
+    // fallback impossible for chat calls (selectNextFallbackModel requires userId).
+    return { ...resolved, userId, allowModelFallback: settings.allowModelFallback === true, fallbackModels: settings.fallbackModels };
 }
 
 // Same heuristic-keyword-branching philosophy already used in analysisService.js's

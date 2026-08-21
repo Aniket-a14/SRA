@@ -6,8 +6,19 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Key, Trash2, Copy, Check, Plus, AlertCircle } from "lucide-react"
-import { formatDistanceToNow } from "date-fns"
+import { formatRelative } from "@/lib/format-date"
 import { toast } from "sonner"
 
 interface ApiKey {
@@ -199,23 +210,38 @@ export function ApiKeyManager() {
                                 {key.name}
                             </div>
                             <div className="text-xs text-muted-foreground flex items-center gap-4">
-                                <span>Created {formatDistanceToNow(new Date(key.createdAt))} ago</span>
+                                <span>Created {formatRelative(key.createdAt)}</span>
                                 <span>•</span>
-                                <span>Last used {formatDistanceToNow(new Date(key.lastUsed))} ago</span>
+                                <span>Last used {formatRelative(key.lastUsed)}</span>
                             </div>
                             <div className="text-xs font-mono text-muted-foreground">
                                 sra_live_...{key.id.slice(0, 4)}
                             </div>
                         </div>
-                        <Button
-                            variant="destructive"
-                            size="sm"
-                            className="w-full sm:w-auto rounded-full"
-                            onClick={() => revokeKey(key.id)}
-                        >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Revoke
-                        </Button>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    className="w-full sm:w-auto rounded-full"
+                                >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Revoke
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Revoke &quot;{key.name}&quot;?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This takes effect immediately. Any script or CLI session using this key will stop working, and this cannot be undone.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => revokeKey(key.id)} className="bg-destructive hover:bg-destructive/90">Revoke</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                     </div>
                 ))}
             </div>

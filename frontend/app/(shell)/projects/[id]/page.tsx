@@ -8,9 +8,10 @@ import { cleanInputText } from "@/lib/utils";
 
 import Link from "next/link";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { formatAbsolute } from "@/lib/format-date";
 import { ArrowLeft, Edit2, Trash2, FileText, Calendar, Plus } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,8 +45,8 @@ export default function ProjectDetailPage() {
                 setProject(data);
                 setEditName(data.name);
                 setEditDesc(data.description || "");
-            } catch {
-                toast.error("Failed to load project");
+            } catch (e) {
+                toast.error(e instanceof Error ? e.message : "Failed to load project");
                 router.push("/projects");
             } finally {
                 setIsLoading(false);
@@ -67,8 +68,8 @@ export default function ProjectDetailPage() {
             setProject(updated);
             setIsEditing(false);
             toast.success("Project updated");
-        } catch {
-            toast.error("Failed to update project");
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Failed to update project");
         }
     };
 
@@ -77,8 +78,8 @@ export default function ProjectDetailPage() {
             await deleteProject(token!, project!.id);
             toast.success("Project deleted");
             router.push("/projects");
-        } catch {
-            toast.error("Failed to delete project");
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Failed to delete project");
         }
     };
 
@@ -141,7 +142,7 @@ export default function ProjectDetailPage() {
                         <p className="text-muted-foreground">{project?.description}</p>
                         <div className="flex gap-4 mt-4 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1 font-mono text-xs">
-                                <Calendar size={13} /> Created {format(new Date(project!.createdAt), 'PPP')}
+                                <Calendar size={13} /> Created {formatAbsolute(project!.createdAt)}
                             </span>
                         </div>
                     </div>
@@ -200,14 +201,19 @@ export default function ProjectDetailPage() {
                                         {cleanInputText(analysis.inputText || "")}
                                     </p>
                                     <div className="flex justify-between mt-2 text-xs text-muted-foreground font-mono">
-                                        <span>{format(new Date(analysis.createdAt), 'MMM d, h:mm a')}</span>
+                                        <span>{formatAbsolute(analysis.createdAt)}</span>
                                     </div>
                                 </div>
                             </Link>
                         ))}
                     </div>
                 ) : (
-                    <p className="text-muted-foreground italic text-sm">No analyses in this project yet.</p>
+                    <EmptyState
+                        icon={FileText}
+                        heading="No analyses yet"
+                        description="Start a new analysis to turn this project's requirements into a spec."
+                        cta={{ label: "New analysis", onClick: () => router.push(`/analysis/new?projectId=${project?.id}`) }}
+                    />
                 )}
             </div>
         </div>

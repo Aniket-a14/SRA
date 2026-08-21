@@ -34,6 +34,7 @@ type DFDNodeType = Node<DFDNodeData>;
 
 // -----------------------------------------------------------------------------
 import { motion } from 'framer-motion';
+import { DIAGRAM_EDGE_THEME } from '@/lib/diagram-theme';
 
 // ... (keep nodeTypes as is)
 
@@ -188,13 +189,13 @@ const DiagramCanvas = ({ title, data, isExport = false }: DiagramCanvasProps) =>
             animated: true,
             markerEnd: {
                 type: MarkerType.ArrowClosed,
-                color: '#334155',
+                color: DIAGRAM_EDGE_THEME.arrowColor,
                 width: 20,
                 height: 20
             },
-            style: { stroke: '#64748b', strokeWidth: 2.5 },
-            labelStyle: { fill: '#0f172a', fontWeight: 800, fontSize: 10 },
-            labelBgStyle: { fill: '#f8fafc', fillOpacity: 0.9, rx: 4 }
+            style: { stroke: DIAGRAM_EDGE_THEME.edgeStroke, strokeWidth: 2.5 },
+            labelStyle: { fill: DIAGRAM_EDGE_THEME.labelText, fontWeight: 800, fontSize: 10 },
+            labelBgStyle: { fill: DIAGRAM_EDGE_THEME.labelBackground, fillOpacity: 0.9, rx: 4 }
         }));
 
         setNodes(initialNodes);
@@ -212,7 +213,7 @@ const DiagramCanvas = ({ title, data, isExport = false }: DiagramCanvasProps) =>
 
         try {
             const dataUrl = await toPng(containerRef.current, {
-                backgroundColor: '#ffffff',
+                backgroundColor: DIAGRAM_EDGE_THEME.canvasExportBackground,
                 quality: 1,
                 pixelRatio: 2, // Retína quality
             });
@@ -267,7 +268,7 @@ const DiagramCanvas = ({ title, data, isExport = false }: DiagramCanvasProps) =>
                     maxZoom={2}
                     nodesConnectable={false}
                 >
-                    <Background color="#aaa" gap={16} />
+                    <Background color={DIAGRAM_EDGE_THEME.gridDot} gap={16} />
                     {!isExport && <Controls />}
                 </ReactFlow>
             </div>

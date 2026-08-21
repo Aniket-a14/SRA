@@ -4,9 +4,10 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, ArrowRight, FileText } from "lucide-react"
-import { formatDistanceToNow } from "date-fns"
+import { formatRelative } from "@/lib/format-date"
 import { cleanInputText } from "@/lib/utils"
 import { toast } from "sonner"
+import { EmptyState } from "@/components/ui/empty-state"
 
 interface AnalysisHistoryItem {
     id: string
@@ -28,10 +29,10 @@ function StatusPill({ status, resultQuality }: { status?: string; resultQuality?
         return <Badge className="h-6 px-2 text-xs shrink-0 border-transparent bg-destructive/10 text-destructive">Failed · resume</Badge>
     }
     if (s === "PENDING" || s === "IN_PROGRESS" || s === "QUEUED") {
-        return <Badge className="h-6 px-2 text-xs shrink-0 border-transparent bg-amber-500/10 text-amber-600 dark:text-amber-400">In progress</Badge>
+        return <Badge className="h-6 px-2 text-xs shrink-0 border-transparent bg-amber-500/10 text-amber-600">In progress</Badge>
     }
     if ((resultQuality || "").toUpperCase() === "PARTIAL") {
-        return <Badge className="h-6 px-2 text-xs shrink-0 border-transparent bg-amber-500/10 text-amber-600 dark:text-amber-400">Partial</Badge>
+        return <Badge className="h-6 px-2 text-xs shrink-0 border-transparent bg-amber-500/10 text-amber-600">Partial</Badge>
     }
     return null
 }
@@ -45,15 +46,11 @@ export function AnalysisHistory({ items }: AnalysisHistoryProps) {
 
     if (items.length === 0) {
         return (
-            <div className="text-center py-12">
-                <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-muted mb-4">
-                    <FileText className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-medium">No analyses yet</h3>
-                <p className="text-muted-foreground mt-2 max-w-sm mx-auto">
-                    Start by entering your project requirements in the analyzer on the home page.
-                </p>
-            </div>
+            <EmptyState
+                icon={FileText}
+                heading="No analyses yet"
+                description="Start by entering your project requirements in the analyzer on the home page."
+            />
         )
     }
 
@@ -84,14 +81,14 @@ export function AnalysisHistory({ items }: AnalysisHistoryProps) {
                                         v{item.version || 1}
                                     </Badge>
                                     <CardTitle className="text-base font-semibold group-hover:text-primary transition-colors line-clamp-1">
-                                        {item.title || "Requirements Analysis"}
+                                        {item.title || "Analysis"}
                                     </CardTitle>
                                     <StatusPill status={item.status} resultQuality={item.resultQuality} />
                                 </div>
                             </div>
                             <div className="flex items-center gap-2 text-sm text-muted-foreground shrink-0">
                                 <Calendar className="h-3.5 w-3.5" />
-                                <span className="hidden xs:inline">{formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}</span>
+                                <span className="hidden xs:inline">{formatRelative(item.createdAt)}</span>
                             </div>
                         </CardHeader>
 
@@ -101,7 +98,7 @@ export function AnalysisHistory({ items }: AnalysisHistoryProps) {
                             </p>
 
                             <div className="flex items-center gap-1 text-xs text-primary font-medium mt-3 opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0">
-                                {(item.status || "").toUpperCase() === "FAILED" ? "Resume analysis" : "View Details"} <ArrowRight className="h-3 w-3" />
+                                {(item.status || "").toUpperCase() === "FAILED" ? "Resume analysis" : "View details"} <ArrowRight className="h-3 w-3" />
                             </div>
                         </CardContent>
                     </Card>

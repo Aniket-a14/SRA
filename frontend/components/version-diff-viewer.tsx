@@ -104,13 +104,13 @@ function DiffSection({ title, badge, children }: { title: string, badge?: string
 function DiffText({ oldText, newText }: { oldText: string, newText: string }) {
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-4 rounded-xl border bg-red-50/30 dark:bg-red-950/10 border-red-200/50 dark:border-red-900/30">
+            <div className="p-4 rounded-xl border bg-red-50/30 border-red-200/50">
                 <div className="text-[10px] uppercase font-bold text-red-600 mb-2 flex items-center gap-2">
                     <div className="h-1.5 w-1.5 rounded-full bg-red-600" /> Previous
                 </div>
                 <div className="text-sm whitespace-pre-wrap break-words leading-relaxed opacity-70 italic">{oldText}</div>
             </div>
-            <div className="p-4 rounded-xl border bg-green-50/30 dark:bg-green-950/10 border-green-200/50 dark:border-green-900/30 shadow-sm">
+            <div className="p-4 rounded-xl border bg-green-50/30 border-green-200/50 shadow-sm">
                 <div className="text-[10px] uppercase font-bold text-green-600 mb-2 flex items-center gap-2">
                     <div className="h-1.5 w-1.5 rounded-full bg-green-600 animate-pulse" /> Updated
                 </div>

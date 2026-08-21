@@ -11,7 +11,7 @@ import { useAuthFetch } from "@/lib/hooks";
 
 import Link from "next/link";
 import { toast } from "sonner";
-import { formatDistanceToNow } from "date-fns";
+import { formatRelative } from "@/lib/format-date";
 import { Plus, Folder, MessageSquare, Search, Clock, ArrowUpRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,8 +67,8 @@ export default function ProjectsPage() {
             try {
                 const data = await fetchProjects(token!);
                 setProjects(data);
-            } catch {
-                toast.error("Failed to load projects");
+            } catch (e) {
+                toast.error(e instanceof Error ? e.message : "Failed to load projects");
             } finally {
                 Promise.resolve().then(() => setIsLoading(false));
             }
@@ -90,8 +90,8 @@ export default function ProjectsPage() {
             setNewProjectName("");
             setIsCreating(false);
             toast.success("Project created");
-        } catch {
-            toast.error("Failed to create project");
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to create project");
         }
     };
 
@@ -111,7 +111,7 @@ export default function ProjectsPage() {
                     <div>
                         <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Projects</h1>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            Workspaces for the systems you&apos;re specifying.
+                            Projects for the systems you&apos;re specifying.
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -182,7 +182,7 @@ export default function ProjectsPage() {
                                         {item.title || item.inputPreview || "Untitled analysis"}
                                     </p>
                                     <p className="mt-1.5 text-xs text-muted-foreground">
-                                        {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
+                                        {formatRelative(item.createdAt)}
                                     </p>
                                 </Link>
                             ))}
@@ -250,7 +250,7 @@ export default function ProjectsPage() {
                                             {project.description || "No description yet."}
                                         </p>
                                         <div className="mt-5 flex items-center justify-between border-t border-border/70 pt-3 text-xs text-muted-foreground">
-                                            <span>Updated {formatDistanceToNow(new Date(project.updatedAt), { addSuffix: true })}</span>
+                                            <span>Updated {formatRelative(project.updatedAt)}</span>
                                             <ArrowUpRight className="h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100" />
                                         </div>
                                     </div>

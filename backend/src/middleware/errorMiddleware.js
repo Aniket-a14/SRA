@@ -1,10 +1,15 @@
 import { ErrorCodes } from '../utils/errorCodes.js';
+import { sanitizeError } from '../utils/errorSanitizer.js';
 import logger from '../config/logger.js';
 
 export const errorHandler = (err, req, res, next) => {
-    const statusCode = err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-    const errorCode = err.code || (statusCode === 429 ? ErrorCodes.RATE_LIMIT_EXCEEDED : ErrorCodes.INTERNAL_ERROR);
+    // sanitizeError trusts any message already attached to a statusCode < 500 (our own
+    // deliberately-thrown, client-actionable errors) and only rewrites raw/5xx/unclassified
+    // provider text — so this is safe to apply to every error that reaches this handler.
+    const sanitized = sanitizeError(err);
+    const statusCode = err.statusCode || sanitized.statusCode || 500;
+    const message = sanitized.message;
+    const errorCode = err.code || sanitized.code || ErrorCodes.INTERNAL_ERROR;
 
     // Structured logging via pino (was console.error, which bypassed the logger and its
     // redaction/formatting). 5xx are logged at error level with the stack; expected 4xx
