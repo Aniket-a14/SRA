@@ -214,7 +214,7 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
                                                     </Button>
                                                 )}
                                             </div>
-                                            <div className="h-full border rounded-md overflow-hidden bg-white/50 dark:bg-black/20 p-4 relative flex-1 flex flex-col">
+                                            <div className="h-full border rounded-md overflow-hidden bg-white/50 p-4 relative flex-1 flex flex-col">
                                                 <div className="flex-1 overflow-auto flex items-center justify-center p-4 min-h-0">
                                                     <MermaidRenderer
                                                         chart={code}
@@ -226,7 +226,7 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
 
                                                 {/* Explicit Error Display */}
                                                 {lastError && (
-                                                    <div className="mt-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900 rounded text-xs text-red-600 dark:text-red-400 font-mono overflow-auto max-h-[100px] flex gap-2">
+                                                    <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded text-xs text-red-600 font-mono overflow-auto max-h-[100px] flex gap-2">
                                                         <AlertTriangle className="h-4 w-4 shrink-0" />
                                                         <div className="flex-1">
                                                             <p className="font-bold mb-1">Syntax Error:</p>

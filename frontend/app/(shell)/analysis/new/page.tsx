@@ -20,6 +20,7 @@ import { listFormatSpecs } from "@/lib/formats"
 import { runValidation } from "@/lib/analysis-api"
 import { requestNotificationPermission } from "@/lib/notifications"
 import { useModelQuota, describeQuota, quotaKey } from "@/lib/model-quota"
+import { extractErrorMessage } from "@/lib/api-response"
 
 // No model id is hardcoded here — the picker fills modelName in from the models the
 // user's own provider keys expose (see buildModelOptions + NEXT_PUBLIC_GEMINI_MODELS).
@@ -227,7 +228,7 @@ function NewAnalysisContent() {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}))
-                throw new Error(errorData.message || errorData.error || "Failed to initialize analysis.")
+                throw new Error(extractErrorMessage(errorData, "Failed to initialize analysis."))
             }
 
             const json = await response.json()
@@ -566,7 +567,7 @@ function NewAnalysisContent() {
                 {hasNoKeys && (
                     <Link
                         href="/settings"
-                        className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 px-3 py-2.5 text-xs text-amber-700 dark:text-amber-400 hover:bg-amber-500/10 transition-colors"
+                        className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 px-3 py-2.5 text-xs text-amber-700 hover:bg-amber-500/10 transition-colors"
                     >
                         <KeyRound className="h-3.5 w-3.5 shrink-0" />
                         You need your own API key to generate. Add a Gemini, OpenAI, Claude, or Grok key in Settings.

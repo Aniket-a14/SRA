@@ -4,11 +4,14 @@ import { useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import useSWR from "swr";
+import { toast } from "sonner"
+import { AlertTriangle } from "lucide-react"
 import { createAuthFetcher, swrOptions } from "@/lib/swr-utils";
 import { useAuthFetch, useRevalidateOnRestore } from "@/lib/hooks";
 
 import { AnalysisHistory } from "@/components/analysis-history"
 import { Skeleton } from "@/components/ui/skeleton"
+import { EmptyState } from "@/components/ui/empty-state"
 
 type AnalysisHistoryItem = {
     id: string
@@ -49,6 +52,10 @@ export default function AnalysisPage() {
         }
     }, [user, token, authLoading, router])
 
+    useEffect(() => {
+        if (error) toast.error("Couldn't load your analyses. Please try again.");
+    }, [error]);
+
     if (authLoading || isLoading) {
         return (
             <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-10 py-8 sm:py-12">
@@ -81,7 +88,17 @@ export default function AnalysisPage() {
                 </p>
             </div>
 
-            <AnalysisHistory items={history} />
+            {error ? (
+                <EmptyState
+                    variant="error"
+                    icon={AlertTriangle}
+                    heading="Couldn't load your analyses"
+                    description="Something went wrong while fetching your analysis history."
+                    cta={{ label: "Retry", onClick: () => mutate() }}
+                />
+            ) : (
+                <AnalysisHistory items={history} />
+            )}
         </div>
     )
 }

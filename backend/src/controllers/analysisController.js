@@ -16,6 +16,8 @@ import { successResponse } from '../utils/response.js';
 import logger from '../config/logger.js';
 import { createNextVersion } from '../services/versioning.js';
 import { resolveProviderForUser, asAiSettings } from '../services/providers/providerKeyService.js';
+import { sanitizeError } from '../utils/errorSanitizer.js';
+import { ErrorCodes } from '../utils/errorCodes.js';
 
 export const analyze = async (req, res, next) => {
     try {
@@ -456,8 +458,12 @@ export const chatStream = async (req, res, next) => {
         });
         send({ type: 'done', newAnalysisId: result.newAnalysisId });
     } catch (error) {
-        logger.error({ msg: '[chatStream] Failed', error: error.message });
-        send({ type: 'error', message: error.message });
+        // Raw provider error text isn't logged here — some SDKs echo a masked-but-present
+        // key fragment into their error message on an auth failure, and pino's redaction
+        // only scrubs known field paths, not substrings inside free text (see logger.js).
+        const sanitized = sanitizeError(error);
+        logger.error({ msg: '[chatStream] Failed', code: sanitized.code, statusCode: sanitized.statusCode });
+        send({ type: 'error', message: sanitized.message });
     } finally {
         if (!aborted) res.end();
     }
@@ -781,23 +787,18 @@ export const validateAnalysis = async (req, res, next) => {
                 await resolveProviderForUser(req.user.userId, analysis.metadata?.promptSettings)
             );
         } catch (validationErr) {
-            logger.error({ msg: "AI Validation Failed", error: validationErr.message });
-            let friendlyMessage = validationErr.message;
-            let friendlyTitle = 'AI Validation Service Unavailable';
-
-            if (validationErr.message.includes('503') || validationErr.message.toLowerCase().includes('service unavailable') || validationErr.message.toLowerCase().includes('overloaded')) {
-                friendlyTitle = 'AI Service Busy';
-                friendlyMessage = 'The AI is currently processing many requests. Please wait a moment and try again.';
-            } else if (validationErr.message.includes('429') || validationErr.message.includes('Quota exceeded') || validationErr.message.toLowerCase().includes('quota')) {
-                friendlyTitle = 'AI Quota Exceeded';
-                friendlyMessage = 'The AI service is currently rate-limited. Please retry in 30-60 seconds.';
-            }
+            // Raw provider error text isn't logged — see the note in chatStream's catch.
+            const sanitized = sanitizeError(validationErr, { providerHint: analysis.metadata?.promptSettings?.modelProvider });
+            logger.error({ msg: "AI Validation Failed", code: sanitized.code, statusCode: sanitized.statusCode });
+            const friendlyTitle = sanitized.code === ErrorCodes.SERVICE_UNAVAILABLE ? 'AI Service Busy'
+                : sanitized.code === ErrorCodes.RATE_LIMIT_EXCEEDED || sanitized.code === ErrorCodes.AI_QUOTA_EXCEEDED ? 'AI Quota Exceeded'
+                    : 'AI Validation Service Unavailable';
 
             validationResult = {
                 validation_status: 'SERVICE_ERROR',
                 service_error: {
                     title: friendlyTitle,
-                    message: friendlyMessage
+                    message: sanitized.message
                 },
                 issues: [],
                 clarification_questions: []
@@ -881,13 +882,10 @@ export const repairDiagram = async (req, res, next) => {
         );
         return successResponse(res, { code: repairedCode });
     } catch (error) {
-        if (error.message.includes("429") || error.status === 429) {
-            return res.status(503).json({
-                success: false,
-                error: "AI Service is currently busy (Rate Limit). Please try again in a few moments."
-            });
-        }
-        next(error);
+        // Raw provider error text isn't logged — see the note in chatStream's catch.
+        const sanitized = sanitizeError(error, { providerHint: req.body?.settings?.modelProvider });
+        logger.error({ msg: '[repairDiagram] Failed', code: sanitized.code, statusCode: sanitized.statusCode });
+        return res.status(sanitized.statusCode).json({ success: false, error: sanitized.message });
     }
 };
 

@@ -25,6 +25,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useAuthFetch } from "@/lib/hooks"
 import { toast } from "sonner"
+import { DIAGRAM_EDGE_THEME } from "@/lib/diagram-theme"
 
 // --- Custom Nodes ---
 
@@ -174,9 +175,9 @@ const KnowledgeGraphCanvas = ({ projectId }: { projectId: string }) => {
                 target: e.targetId,
                 label: e.relation,
                 type: "smoothstep",
-                markerEnd: { type: MarkerType.ArrowClosed, color: "#64748b" },
-                style: { stroke: "#cbd5e1", strokeWidth: 1.5 },
-                labelStyle: { fontSize: 9, fill: "#64748b", fontWeight: 600 },
+                markerEnd: { type: MarkerType.ArrowClosed, color: DIAGRAM_EDGE_THEME.edgeStroke },
+                style: { stroke: DIAGRAM_EDGE_THEME.edgeStrokeLight, strokeWidth: 1.5 },
+                labelStyle: { fontSize: 9, fill: DIAGRAM_EDGE_THEME.edgeStroke, fontWeight: 600 },
                 animated: true,
             }))
 
@@ -218,7 +219,7 @@ const KnowledgeGraphCanvas = ({ projectId }: { projectId: string }) => {
                 fitView
                 nodesConnectable={false}
             >
-                <Background color="#cbd5e1" gap={20} />
+                <Background color={DIAGRAM_EDGE_THEME.gridDot} gap={20} />
                 <Controls />
                 <Panel position="top-right" className="bg-white/90 p-2 rounded-lg border shadow-sm flex gap-2">
                     <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => fetchGraph()}>

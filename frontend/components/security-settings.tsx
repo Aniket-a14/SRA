@@ -1,9 +1,21 @@
 "use client"
 import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "@/lib/auth-context"
+import { useAuthFetch } from "@/lib/hooks"
 import { Button } from "@/components/ui/button"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Laptop, Smartphone, Globe, Clock, ShieldAlert } from "lucide-react"
-import { formatDistanceToNow } from "date-fns"
+import { formatRelative } from "@/lib/format-date"
 import { toast } from "sonner"
 import { UAParser } from "ua-parser-js"
 
@@ -19,15 +31,14 @@ interface Session {
 }
 
 export function SecuritySettings() {
-    const { token } = useAuth()
+    const { token, logout } = useAuth()
+    const authFetch = useAuthFetch()
     const [sessions, setSessions] = useState<Session[]>([])
     const [isLoading, setIsLoading] = useState(true)
 
     const fetchSessions = useCallback(async () => {
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/sessions`, {
-                headers: { Authorization: `Bearer ${token}` }
-            })
+            const res = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/sessions`)
             if (res.ok) {
                 const data = await res.json()
                 setSessions(data)
@@ -37,7 +48,7 @@ export function SecuritySettings() {
         } finally {
             setIsLoading(false)
         }
-    }, [token])
+    }, [authFetch])
 
     useEffect(() => {
         let isMounted = true;
@@ -49,14 +60,21 @@ export function SecuritySettings() {
         return () => { isMounted = false; };
     }, [token, fetchSessions])
 
-    const revokeSession = async (sessionId: string) => {
+    const revokeSession = async (sessionId: string, isCurrent?: boolean) => {
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/sessions/${sessionId}`, {
-                method: "DELETE",
-                headers: { Authorization: `Bearer ${token}` }
+            const res = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/sessions/${sessionId}`, {
+                method: "DELETE"
             })
             if (res.ok) {
                 toast.success("Session revoked")
+                // Revoking the session you're on right now leaves the client holding a
+                // token the server no longer honors — clear local auth state and sign
+                // out instead of just dropping it from the list, matching what the
+                // confirm dialog told the user would happen.
+                if (isCurrent) {
+                    await logout()
+                    return
+                }
                 setSessions(prev => prev.filter(s => s.id !== sessionId))
             } else {
                 toast.error("Failed to revoke session")
@@ -129,7 +147,7 @@ export function SecuritySettings() {
                                     {session.isCurrent ? (
                                         <span className="text-green-600 font-medium">Active now</span>
                                     ) : (
-                                        <span>Last active {formatDistanceToNow(new Date(session.lastUsedAt))} ago</span>
+                                        <span>Last active {formatRelative(session.lastUsedAt)}</span>
                                     )}
                                 </div>
                                 <div className="text-xs text-muted-foreground truncate max-w-[200px] sm:max-w-[300px]">
@@ -137,14 +155,31 @@ export function SecuritySettings() {
                                 </div>
                             </div>
                         </div>
-                        <Button
-                            variant="destructive"
-                            size="sm"
-                            className="w-full sm:w-auto rounded-full"
-                            onClick={() => revokeSession(session.id)}
-                        >
-                            Revoke
-                        </Button>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    className="w-full sm:w-auto rounded-full"
+                                >
+                                    Revoke
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Revoke this session?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        {session.isCurrent
+                                            ? "This is your current session — revoking it will sign you out immediately."
+                                            : "That device will be signed out immediately and will need to log in again."}
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => revokeSession(session.id, session.isCurrent)} className="bg-destructive hover:bg-destructive/90">Revoke</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                     </div>
                 ))}
             </div>

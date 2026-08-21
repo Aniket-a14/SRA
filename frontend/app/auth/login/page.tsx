@@ -63,7 +63,7 @@ export default function LoginPage() {
             <div className="relative z-10 w-full max-w-md">
                 <Link href="/" className="flex items-center justify-center gap-2 mb-10">
                     <span className="text-2xl font-display">SRA</span>
-                    <span className="text-xs text-muted-foreground font-mono mt-1">IEEE-830</span>
+                    <span className="text-xs text-muted-foreground font-mono mt-1">MULTI-FORMAT</span>
                 </Link>
 
                 <div className="border border-foreground/10 p-8 lg:p-10">

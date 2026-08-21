@@ -33,6 +33,7 @@ beforeEach(() => {
     mockResolveProviderKey.mockImplementation(async (_userId, provider, modelName) => ({
         provider,
         modelName,
+        apiKey: `decrypted-key-${provider}`,
         inputTokenLimit: 1000,
         outputTokenLimit: 500
     }));
@@ -67,9 +68,22 @@ describe('selectNextFallbackModel', () => {
         await expect(selectNextFallbackModel('u1', settings, [])).resolves.toEqual({
             provider: 'GEMINI',
             modelName: 'gemini-backup',
+            apiKey: 'decrypted-key-GEMINI',
             inputTokenLimit: 1000,
             outputTokenLimit: 500
         });
+    });
+
+    it('includes the decrypted apiKey so BaseAgent can use the fallback without a second lookup', async () => {
+        // Regression guard: the return object previously omitted apiKey even though
+        // resolveProviderKey's result carries it, which left a caller with no usable key
+        // for the fallback provider.
+        await expect(selectNextFallbackModel('u1', {
+            modelProvider: 'GEMINI',
+            modelName: 'gemini-primary',
+            allowModelFallback: true,
+            fallbackModels: [{ modelProvider: 'OPENAI', modelName: 'gpt-backup' }]
+        })).resolves.toHaveProperty('apiKey', 'decrypted-key-OPENAI');
     });
 
     it('skips exhausted, unavailable, and already attempted models', async () => {

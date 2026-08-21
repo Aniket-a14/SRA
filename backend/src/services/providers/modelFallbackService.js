@@ -84,6 +84,7 @@ export const selectNextFallbackModel = async (userId, settings = {}, attempted =
             return {
                 provider: resolved.provider,
                 modelName: resolved.modelName,
+                apiKey: resolved.apiKey,
                 inputTokenLimit: resolved.inputTokenLimit,
                 outputTokenLimit: resolved.outputTokenLimit
             };

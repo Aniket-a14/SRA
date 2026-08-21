@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { formatAbsolute } from "@/lib/format-date"
 
 /** One requirement group as `sra push` recorded it. */
 export interface CliTraceabilityGroup {
@@ -81,7 +82,7 @@ export function CliTraceabilityPanel({ traceability }: { traceability?: CliTrace
                 <CardDescription className="text-[10px]">
                     Reported by the SRA CLI
                     {traceability?.cliVersion ? ` v${traceability.cliVersion}` : ""}
-                    {traceability?.updatedAt ? ` · ${new Date(traceability.updatedAt).toLocaleString()}` : ""}
+                    {traceability?.updatedAt ? ` · ${formatAbsolute(traceability.updatedAt)}` : ""}
                     {" · links point at files in the developer's working tree, not a proof of correctness"}
                 </CardDescription>
             </CardHeader>

@@ -59,7 +59,7 @@ interface ProjectSummary {
 const layers = [
     { id: 1, label: "Structured Input", icon: FileText },
     { id: 2, label: "Validation Gate", icon: ShieldCheck },
-    { id: 3, label: "Final Analysis", icon: Bot },
+    { id: 3, label: "Drafting", icon: Bot },
     { id: 4, label: "Refinement", icon: Sparkles },
     { id: 5, label: "Knowledge Base", icon: Database },
 ] as const

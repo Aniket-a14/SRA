@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { format } from "date-fns"
+import { formatAbsolute } from "@/lib/format-date"
 import { useAuth } from "@/lib/auth-context"
 import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -161,7 +161,7 @@ export function VersionTimeline({ rootId, currentId, className, hideHeader = fal
                                     )}
 
                                     <span className="text-[10px] text-muted-foreground mt-1">
-                                        {format(new Date(version.createdAt), "MMM d, h:mm a")}
+                                        {formatAbsolute(version.createdAt)}
                                     </span>
 
                                     <div className="flex gap-2 mt-2">

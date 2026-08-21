@@ -22,6 +22,7 @@ import { EvalService } from './knowledge/evalService.js';
 import { retrieveContext, formatRagContext } from './knowledge/ragService.js';
 import { createReviewSnapshot } from '../utils/promptCompaction.js';
 import { createCooldown } from '../utils/throttle.js';
+import { sanitizeError } from '../utils/errorSanitizer.js';
 const CACHE_TTL = 3600; // 1 hour in seconds
 
 // Gemini free-tier rate limits (requests/minute) are the reason for these — not
@@ -155,7 +156,11 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         // userId rides along so every agent call can be attributed to the key it spends —
         // quota is tracked per user per model, which is what lets the picker say *which*
         // model is out and lets a failed run be resumed on a different one.
-        providerConfig = { provider, apiKey, modelName, inputTokenLimit, outputTokenLimit, userId };
+        providerConfig = {
+            provider, apiKey, modelName, inputTokenLimit, outputTokenLimit, userId,
+            allowModelFallback: settings?.allowModelFallback === true,
+            fallbackModels: settings?.fallbackModels
+        };
 
         // Provider-aware cooldown: the sleeps below exist only to respect Gemini free-tier
         // RPM limits. On a paid BYOK provider (or paid Gemini tier) they'd be dead latency,
@@ -449,9 +454,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
 
         logger.error({ msg: "AI Analysis execution failed", error: error.message, stack: error.stack });
 
-        const failureReason = error.message.includes("429") || error.message.includes("Quota exceeded")
-            ? "AI Rate Limit Exceeded. Please wait a few minutes and try again."
-            : `Analysis Error: ${error.message}`;
+        const failureReason = sanitizeError(error, { providerHint: providerConfig?.provider }).message;
 
         // A daily/provider quota failure is recoverable when the user explicitly approved
         // an ordered fallback chain. Reuse the durable checkpoint and hand the same analysis
@@ -611,7 +614,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                         ...(analysisMeta || {}),
                         ...(resumable ? { checkpoint, resumable: true } : {}),
                         isPartial: true,
-                        failureReason: error.message,
+                        failureReason,
                         diagramSummary,
                         userFriendlyError
                     }
@@ -651,7 +654,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
                         checkpoint, // keep the latest checkpoint for resume
                         resumable,
                         failedStage: Object.keys(checkpoint).slice(-1)[0] || 'product_owner',
-                        failureReason: error.message,
+                        failureReason,
                         userFriendlyError: failureReason
                     }
                 }

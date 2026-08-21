@@ -70,7 +70,7 @@ export function DocumentCanvas({
             <div className="border-b border-foreground/10 px-4 py-3 flex items-center justify-between gap-3 shrink-0">
                 <div className="min-w-0 flex items-center gap-2">
                     <span className="font-display text-lg truncate">
-                        {analysis.projectTitle || analysis.title || "SRS Document"}
+                        {analysis.projectTitle || analysis.title || "Specification"}
                     </span>
                     <span className="shrink-0 px-2 py-0.5 border border-foreground/10 text-xs font-mono">
                         v{analysis.version}

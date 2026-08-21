@@ -356,7 +356,7 @@ function AnalysisDetailContent() {
 
         } catch (e) {
             console.error("Failed to proceed to analysis", e);
-            toast.error("Failed to proceed to analysis");
+            toast.error(e instanceof Error ? e.message : "Failed to proceed to analysis");
             setIsProceeding(false);
         }
     }
@@ -514,8 +514,8 @@ function AnalysisDetailContent() {
             <div className="min-h-screen flex flex-col bg-background">
                 <div className="border-b border-foreground/10 px-6 py-4 flex items-center justify-between sticky top-0 bg-background z-20">
                     <div className="flex items-center gap-4 min-w-0">
-                        <Button variant="ghost" size="icon" onClick={() => router.push('/analysis')} aria-label="Back to analyses">
-                            <ArrowLeft className="h-4 w-4" />
+                        <Button variant="ghost" size="sm" className="shrink-0 gap-1.5" onClick={() => router.push('/analysis')}>
+                            <ArrowLeft className="h-4 w-4" /> Back
                         </Button>
                         <h1 className="text-xl font-display truncate">
                             {draftData?.details?.projectName?.content || analysis?.title?.replace(" (Draft)", "") || "New Analysis"}
@@ -546,7 +546,7 @@ function AnalysisDetailContent() {
     }
 
     if (isTerminal && analysis) {
-        const projectLabel = draftData?.details?.projectName?.content || analysis.projectTitle || analysis.title || "Analysis Result"
+        const projectLabel = draftData?.details?.projectName?.content || analysis.projectTitle || analysis.title || "Analysis"
         return (
             <div className="h-screen flex flex-col bg-background">
                 {/* One surface at a time, each full-width: the conversation (refinement)
@@ -554,8 +554,8 @@ function AnalysisDetailContent() {
                     side-by-side split. */}
                 <div className="border-b border-foreground/10 px-4 py-2.5 flex items-center justify-between gap-4 shrink-0">
                     <div className="flex items-center gap-2 min-w-0">
-                        <Button variant="ghost" size="icon" onClick={() => router.push('/analysis')} aria-label="Back to analyses">
-                            <ArrowLeft className="h-4 w-4" />
+                        <Button variant="ghost" size="sm" className="shrink-0 gap-1.5" onClick={() => router.push('/analysis')}>
+                            <ArrowLeft className="h-4 w-4" /> Back
                         </Button>
                         <h1 className="text-sm font-medium truncate">{projectLabel}</h1>
                     </div>
@@ -625,7 +625,9 @@ function AnalysisDetailContent() {
         <div className="min-h-screen flex flex-col bg-background">
             <div className="border-b border-foreground/10 px-6 py-4 flex items-center justify-between sticky top-0 bg-background z-20">
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => router.push('/analysis')}><ArrowLeft className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => router.push('/analysis')}>
+                        <ArrowLeft className="h-4 w-4" /> Back
+                    </Button>
                     <div>
                         <h1 className="text-xl font-display">{analysis?.title?.replace(" (Draft)", "") || "New Analysis"}</h1>
                     </div>

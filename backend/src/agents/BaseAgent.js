@@ -5,6 +5,7 @@ import { parseQuotaFailure, isPerDayQuota } from '../utils/rateLimitHeaders.js';
 import { recordUsage, recordExhausted } from '../services/providers/modelQuotaService.js';
 import { resolveOutputTokenLimits, clampOutputTokens } from '../utils/llmGenerationConfig.js';
 import { getAdapter, DEFAULT_MODELS, normalizeProvider } from '../services/providers/index.js';
+import { selectNextFallbackModel } from '../services/providers/modelFallbackService.js';
 
 // One MOCK_AI answer, defined once so the streamed replay and the returned object cannot drift.
 const MOCK_JSON_RESPONSE = {
@@ -73,7 +74,7 @@ export class BaseAgent {
      */
     constructor(name, providerConfig = {}) {
         this.name = name;
-        const { provider, modelName, apiKey, inputTokenLimit, outputTokenLimit, userId } = providerConfig;
+        const { provider, modelName, apiKey, inputTokenLimit, outputTokenLimit, userId, allowModelFallback, fallbackModels } = providerConfig;
         // Whose key is being spent. Quota is tracked per user per model, so a run that
         // cannot say who it is for is simply not counted rather than counted against someone.
         this.userId = userId || null;
@@ -85,6 +86,11 @@ export class BaseAgent {
         this.inputTokenLimit = inputTokenLimit;
         this.outputTokenLimit = outputTokenLimit;
         this.tokenLimits = resolveOutputTokenLimits(outputTokenLimit);
+        // User-approved ordered fallback chain (see callLLM) — a call that keeps failing
+        // against this provider switches to the next approved one instead of exhausting
+        // its retry budget against a provider that predictably won't recover in time.
+        this.allowModelFallback = allowModelFallback === true;
+        this.fallbackModels = fallbackModels;
         this._adapter = null; // lazily constructed — see getAdapter() below, so a missing
         // non-Gemini key only throws when a real (non-mocked) LLM call is actually made
     }
@@ -142,11 +148,15 @@ export class BaseAgent {
             new Promise((_, reject) => setTimeout(() => reject(new Error("AI Request Timeout")), ms))
         ]);
 
-        const adapter = this.getAdapter();
+        // Seeded with the starting provider/model so a fallback never re-offers the one
+        // that just failed — refetched fresh each loop iteration below, since a fallback
+        // mid-call swaps this.provider/this.modelName/this._apiKey in place.
+        const attempted = [{ provider: this.provider, modelName: this.modelName }];
 
         while (true) {
             // Set when the timeout wins the race below, so an abandoned stream stops consuming.
             let streamAbandoned = false;
+            const adapter = this.getAdapter();
 
             try {
                 const request = {
@@ -198,7 +208,7 @@ export class BaseAgent {
             } catch (error) {
                 streamAbandoned = true;
                 const isTimeout = error.message === "AI Request Timeout";
-                const { isRateLimit, isServerError } = isTimeout ? {} : adapter.classifyError(error);
+                const { isRateLimit, isServerError, isAuthError } = isTimeout ? {} : adapter.classifyError(error);
 
                 // A per-day cap reads as a rate limit but never clears inside one run, so
                 // retrying only spends the time budget the pipeline still needs. Fail now
@@ -226,13 +236,16 @@ export class BaseAgent {
                     throw buildExhaustedQuotaError(error, this.modelName);
                 }
 
-                if ((isRateLimit || isServerError || isTimeout) && attempt < retries) {
+                // Windowed rate limits and timeouts back off against the same provider
+                // first — a per-minute window clears in seconds, and a slow call may
+                // already be mid-generation, so switching provider mid-flight buys nothing.
+                if ((isRateLimit || isTimeout) && attempt < retries) {
                     const jitter = delay * 0.2 * (Math.random() * 2 - 1);
                     const finalDelay = Math.max(1000, delay + jitter);
 
                     logger.warn({
                         msg: `[${this.name}] LLM Retry`,
-                        reason: isTimeout ? 'Timeout' : (isRateLimit ? 'Rate Limit' : 'Server Error'),
+                        reason: isTimeout ? 'Timeout' : 'Rate Limit',
                         provider: this.provider,
                         attempt: attempt + 1,
                         retries,
@@ -245,14 +258,75 @@ export class BaseAgent {
                     await new Promise(resolve => setTimeout(resolve, finalDelay));
                     delay *= 2;
                     attempt++;
-                } else {
-                    const isFetchFailed = error.message?.includes("fetch failed");
-                    logger.error({ msg: `[${this.name}] LLM Call Failed`, provider: this.provider, error: error.message });
-                    if (isFetchFailed) {
-                        logger.fatal(`[${this.name}] FATAL: Unable to reach ${this.provider} servers. Check network/proxy.`);
-                    }
-                    throw new Error(`${this.name} failed to generate content: ${error.message}`);
+                    continue;
                 }
+
+                // Overload/5xx, an auth error, or a rate limit whose same-provider retry
+                // budget is spent: prefer the user's next approved model over hammering
+                // (or, for auth, uselessly repeating a call against) the same provider —
+                // an overloaded provider is unlikely to recover in the next few seconds,
+                // and a rejected key never will.
+                if ((isServerError || isAuthError || isRateLimit) && this.allowModelFallback) {
+                    const candidate = await selectNextFallbackModel(
+                        this.userId,
+                        { allowModelFallback: true, fallbackModels: this.fallbackModels, modelProvider: this.provider, modelName: this.modelName },
+                        attempted
+                    ).catch((lookupErr) => {
+                        logger.warn({ msg: `[${this.name}] Fallback lookup failed`, error: lookupErr.message });
+                        return null;
+                    });
+
+                    if (candidate) {
+                        logger.warn({
+                            msg: `[${this.name}] Falling back to next approved provider`,
+                            from: `${this.provider}:${this.modelName}`,
+                            to: `${candidate.provider}:${candidate.modelName}`,
+                            reason: isServerError ? 'server_error' : isAuthError ? 'auth_error' : 'rate_limit'
+                        });
+                        attempted.push({ provider: candidate.provider, modelName: candidate.modelName });
+                        this.provider = candidate.provider;
+                        this.modelName = candidate.modelName;
+                        this._apiKey = candidate.apiKey;
+                        this.inputTokenLimit = candidate.inputTokenLimit;
+                        this.outputTokenLimit = candidate.outputTokenLimit;
+                        this.tokenLimits = resolveOutputTokenLimits(candidate.outputTokenLimit);
+                        this._adapter = null; // rebuilt by getAdapter() at the top of the next iteration
+                        options.onStream?.({ type: 'reset' });
+                        attempt = 0;
+                        delay = initialDelay;
+                        continue;
+                    }
+                }
+
+                // Last resort for a server error when no fallback is configured/available —
+                // preserves today's same-provider retry behavior for single-key users.
+                if (isServerError && attempt < retries) {
+                    const jitter = delay * 0.2 * (Math.random() * 2 - 1);
+                    const finalDelay = Math.max(1000, delay + jitter);
+
+                    logger.warn({
+                        msg: `[${this.name}] LLM Retry`,
+                        reason: 'Server Error',
+                        provider: this.provider,
+                        attempt: attempt + 1,
+                        retries,
+                        nextRetryIn: Math.round(finalDelay)
+                    });
+
+                    options.onStream?.({ type: 'reset' });
+
+                    await new Promise(resolve => setTimeout(resolve, finalDelay));
+                    delay *= 2;
+                    attempt++;
+                    continue;
+                }
+
+                const isFetchFailed = error.message?.includes("fetch failed");
+                logger.error({ msg: `[${this.name}] LLM Call Failed`, provider: this.provider, error: error.message });
+                if (isFetchFailed) {
+                    logger.fatal(`[${this.name}] FATAL: Unable to reach ${this.provider} servers. Check network/proxy.`);
+                }
+                throw new Error(`${this.name} failed to generate content: ${error.message}`);
             }
         }
     }
