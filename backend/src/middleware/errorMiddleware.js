@@ -9,7 +9,11 @@ export const errorHandler = (err, req, res, next) => {
     const sanitized = sanitizeError(err);
     const statusCode = err.statusCode || sanitized.statusCode || 500;
     const message = sanitized.message;
-    const errorCode = err.code || sanitized.code || ErrorCodes.INTERNAL_ERROR;
+    // sanitized.code already preserves err.code for our own deliberately-thrown errors
+    // (statusCode < 500) — using err.code here too would let an arbitrary third-party
+    // error code (e.g. a raw Prisma or provider SDK code) leak past the canonical
+    // ErrorCodes contract the frontend pattern-matches on.
+    const errorCode = sanitized.code || ErrorCodes.INTERNAL_ERROR;
 
     // Structured logging via pino (was console.error, which bypassed the logger and its
     // redaction/formatting). 5xx are logged at error level with the stack; expected 4xx

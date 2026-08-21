@@ -1,6 +1,7 @@
 "use client"
 import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "@/lib/auth-context"
+import { useAuthFetch } from "@/lib/hooks"
 import { Button } from "@/components/ui/button"
 import {
     AlertDialog,
@@ -30,15 +31,14 @@ interface Session {
 }
 
 export function SecuritySettings() {
-    const { token } = useAuth()
+    const { token, logout } = useAuth()
+    const authFetch = useAuthFetch()
     const [sessions, setSessions] = useState<Session[]>([])
     const [isLoading, setIsLoading] = useState(true)
 
     const fetchSessions = useCallback(async () => {
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/sessions`, {
-                headers: { Authorization: `Bearer ${token}` }
-            })
+            const res = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/sessions`)
             if (res.ok) {
                 const data = await res.json()
                 setSessions(data)
@@ -48,7 +48,7 @@ export function SecuritySettings() {
         } finally {
             setIsLoading(false)
         }
-    }, [token])
+    }, [authFetch])
 
     useEffect(() => {
         let isMounted = true;
@@ -60,14 +60,21 @@ export function SecuritySettings() {
         return () => { isMounted = false; };
     }, [token, fetchSessions])
 
-    const revokeSession = async (sessionId: string) => {
+    const revokeSession = async (sessionId: string, isCurrent?: boolean) => {
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/sessions/${sessionId}`, {
-                method: "DELETE",
-                headers: { Authorization: `Bearer ${token}` }
+            const res = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/sessions/${sessionId}`, {
+                method: "DELETE"
             })
             if (res.ok) {
                 toast.success("Session revoked")
+                // Revoking the session you're on right now leaves the client holding a
+                // token the server no longer honors — clear local auth state and sign
+                // out instead of just dropping it from the list, matching what the
+                // confirm dialog told the user would happen.
+                if (isCurrent) {
+                    await logout()
+                    return
+                }
                 setSessions(prev => prev.filter(s => s.id !== sessionId))
             } else {
                 toast.error("Failed to revoke session")
@@ -169,7 +176,7 @@ export function SecuritySettings() {
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => revokeSession(session.id)} className="bg-destructive hover:bg-destructive/90">Revoke</AlertDialogAction>
+                                    <AlertDialogAction onClick={() => revokeSession(session.id, session.isCurrent)} className="bg-destructive hover:bg-destructive/90">Revoke</AlertDialogAction>
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                         </AlertDialog>

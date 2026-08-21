@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "@/lib/auth-context"
+import { useAuthFetch } from "@/lib/hooks"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -31,6 +32,7 @@ interface ApiKey {
 
 export function ApiKeyManager() {
     const { token } = useAuth()
+    const authFetch = useAuthFetch()
     const [keys, setKeys] = useState<ApiKey[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -40,9 +42,7 @@ export function ApiKeyManager() {
 
     const fetchKeys = useCallback(async () => {
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/keys`, {
-                headers: { Authorization: `Bearer ${token}` }
-            })
+            const res = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/keys`)
             if (res.ok) {
                 const data = await res.json()
                 setKeys(data)
@@ -53,7 +53,7 @@ export function ApiKeyManager() {
         } finally {
             setIsLoading(false)
         }
-    }, [token])
+    }, [authFetch])
 
     useEffect(() => {
         if (token) {
@@ -65,12 +65,8 @@ export function ApiKeyManager() {
         if (!newKeyName.trim()) return
 
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/keys`, {
+            const res = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/keys`, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
-                },
                 body: JSON.stringify({ name: newKeyName })
             })
 
@@ -90,9 +86,8 @@ export function ApiKeyManager() {
 
     const revokeKey = async (id: string) => {
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/keys/${id}`, {
-                method: "DELETE",
-                headers: { Authorization: `Bearer ${token}` }
+            const res = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/keys/${id}`, {
+                method: "DELETE"
             })
 
             if (res.ok) {

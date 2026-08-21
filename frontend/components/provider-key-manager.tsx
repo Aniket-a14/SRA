@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "@/lib/auth-context"
+import { useAuthFetch } from "@/lib/hooks"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -47,6 +48,7 @@ const ALL_PROVIDERS: AiProvider[] = ["GEMINI", "OPENAI", "CLAUDE", "GROK"]
 
 export function ProviderKeyManager() {
     const { token } = useAuth()
+    const authFetch = useAuthFetch()
     const [keys, setKeys] = useState<ProviderKey[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [isAddOpen, setIsAddOpen] = useState(false)
@@ -60,9 +62,7 @@ export function ProviderKeyManager() {
 
     const fetchKeys = useCallback(async () => {
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/settings/provider-keys`, {
-                headers: { Authorization: `Bearer ${token}` }
-            })
+            const res = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/settings/provider-keys`)
             if (res.ok) {
                 const json = await res.json()
                 setKeys(json.data || json)
@@ -73,7 +73,7 @@ export function ProviderKeyManager() {
         } finally {
             setIsLoading(false)
         }
-    }, [token])
+    }, [authFetch])
 
     useEffect(() => {
         if (token) {
@@ -102,9 +102,8 @@ export function ProviderKeyManager() {
         setIsVerifying(true)
         setVerifiedModels(null)
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/settings/provider-keys/verify`, {
+            const res = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/settings/provider-keys/verify`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ provider, apiKey: apiKey.trim() })
             })
             const json = await res.json()
@@ -127,12 +126,8 @@ export function ProviderKeyManager() {
         if (!apiKey.trim()) return
         setIsSaving(true)
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/settings/provider-keys`, {
+            const res = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/settings/provider-keys`, {
                 method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
-                },
                 body: JSON.stringify({ provider, apiKey: apiKey.trim(), label: label.trim() || undefined })
             })
             const json = await res.json()
@@ -159,9 +154,8 @@ export function ProviderKeyManager() {
     const refreshModels = async (p: AiProvider) => {
         setRefreshing(p)
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/settings/provider-keys/${p}/refresh`, {
-                method: "POST",
-                headers: { Authorization: `Bearer ${token}` }
+            const res = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/settings/provider-keys/${p}/refresh`, {
+                method: "POST"
             })
             const json = await res.json()
             if (res.ok) {
@@ -181,15 +175,15 @@ export function ProviderKeyManager() {
 
     const removeKey = async (p: AiProvider) => {
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/settings/provider-keys/${p}`, {
-                method: "DELETE",
-                headers: { Authorization: `Bearer ${token}` }
+            const res = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/settings/provider-keys/${p}`, {
+                method: "DELETE"
             })
             if (res.ok) {
                 setKeys(prev => prev.filter(k => k.provider !== p))
                 toast.success(`${PROVIDER_LABELS[p]} key removed`)
             } else {
-                toast.error("Failed to remove key")
+                const json = await res.json().catch(() => ({}))
+                toast.error(extractErrorMessage(json, "Failed to remove key"))
             }
         } catch {
             toast.error("Error removing provider key")

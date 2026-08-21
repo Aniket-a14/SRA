@@ -458,8 +458,12 @@ export const chatStream = async (req, res, next) => {
         });
         send({ type: 'done', newAnalysisId: result.newAnalysisId });
     } catch (error) {
-        logger.error({ msg: '[chatStream] Failed', error: error.message, stack: error.stack });
-        send({ type: 'error', message: sanitizeError(error).message });
+        // Raw provider error text isn't logged here — some SDKs echo a masked-but-present
+        // key fragment into their error message on an auth failure, and pino's redaction
+        // only scrubs known field paths, not substrings inside free text (see logger.js).
+        const sanitized = sanitizeError(error);
+        logger.error({ msg: '[chatStream] Failed', code: sanitized.code, statusCode: sanitized.statusCode });
+        send({ type: 'error', message: sanitized.message });
     } finally {
         if (!aborted) res.end();
     }
@@ -783,8 +787,9 @@ export const validateAnalysis = async (req, res, next) => {
                 await resolveProviderForUser(req.user.userId, analysis.metadata?.promptSettings)
             );
         } catch (validationErr) {
-            logger.error({ msg: "AI Validation Failed", error: validationErr.message, stack: validationErr.stack });
+            // Raw provider error text isn't logged — see the note in chatStream's catch.
             const sanitized = sanitizeError(validationErr, { providerHint: analysis.metadata?.promptSettings?.modelProvider });
+            logger.error({ msg: "AI Validation Failed", code: sanitized.code, statusCode: sanitized.statusCode });
             const friendlyTitle = sanitized.code === ErrorCodes.SERVICE_UNAVAILABLE ? 'AI Service Busy'
                 : sanitized.code === ErrorCodes.RATE_LIMIT_EXCEEDED || sanitized.code === ErrorCodes.AI_QUOTA_EXCEEDED ? 'AI Quota Exceeded'
                     : 'AI Validation Service Unavailable';
@@ -877,8 +882,9 @@ export const repairDiagram = async (req, res, next) => {
         );
         return successResponse(res, { code: repairedCode });
     } catch (error) {
-        logger.error({ msg: '[repairDiagram] Failed', error: error.message, stack: error.stack });
+        // Raw provider error text isn't logged — see the note in chatStream's catch.
         const sanitized = sanitizeError(error, { providerHint: req.body?.settings?.modelProvider });
+        logger.error({ msg: '[repairDiagram] Failed', code: sanitized.code, statusCode: sanitized.statusCode });
         return res.status(sanitized.statusCode).json({ success: false, error: sanitized.message });
     }
 };
