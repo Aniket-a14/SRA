@@ -19,6 +19,10 @@
 [![Frontend Deploy](https://img.shields.io/badge/Frontend-Live-brightgreen?logo=vercel)](https://sra-xi.vercel.app/)
 [![Socket Badge](https://badge.socket.dev/npm/package/@sra-srs/sra-cli/4.2.0)](https://badge.socket.dev/npm/package/@sra-srs/sra-cli/4.2.0)
 
+<p align="center">
+  <img src="assets/sra.png" alt="SRA Platform Dashboard" width="100%" />
+</p>
+
 **SRA** is an enterprise-grade, AI-orchestrated ecosystem designed to formalize the software requirements engineering lifecycle. By combining Large Language Model (LLM) reasoning with rigorous architectural standards, SRA transforms fragmented project visions into high-fidelity, production-ready technical specifications — in IEEE 830-1998, ISO/IEC/IEEE 29148:2018, Volere or Agile PRD form — and traces them back to the code that implements them.
 
 ---
