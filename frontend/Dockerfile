@@ -2,7 +2,7 @@
 FROM node:20.20.2-alpine AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN npm install -g pnpm
+RUN npm install -g pnpm@9
 WORKDIR /app
 
 # Stage 1: Dependencies
