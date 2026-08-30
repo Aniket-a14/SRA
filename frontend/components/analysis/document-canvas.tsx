@@ -375,7 +375,6 @@ export function DocumentCanvas({
 
             {/* Contextual Next Actions & Continuation Bar */}
             <NextActionsPanel
-                analysis={analysis}
                 onOpenDfdDialog={() => setIsDfdOpen(true)}
                 onOpenCliTraceability={() => {
                     const el = document.getElementById("cli-traceability-section")
