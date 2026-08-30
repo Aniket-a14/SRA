@@ -25,7 +25,7 @@ describe("Multi-Standard Specification Exporters", () => {
         vi.spyOn(document, "createElement").mockImplementation((tagName: string) => {
             const el = originalCreateElement(tagName)
             if (tagName === "form") {
-                el.submit = formSubmitSpy
+                (el as HTMLFormElement).submit = formSubmitSpy
             }
             return el
         })
