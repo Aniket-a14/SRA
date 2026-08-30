@@ -606,6 +606,7 @@ function AnalysisDetailContent() {
                             isFinalizing={isFinalizing}
                             onFinalize={handleFinalize}
                             onImproveClick={() => setIsImproveDialogOpen(true)}
+                            onOpenChat={() => setView('chat')}
                             className="h-full"
                         />
                     )}

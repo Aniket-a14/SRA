@@ -22,6 +22,7 @@ import workerRoutes from './routes/workerRoutes.js';
 import reuseRoutes from './routes/reuseRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
 import formatRoutes from './routes/formatRoutes.js';
+import searchRoutes from './routes/searchRoutes.js';
 // Note: the former unauthenticated `/internal/analyze` HTTP route was removed — it had no
 // caller and exposed an expensive AI endpoint anonymously. `analyzeText` remains an
 // in-process service function (used by validation/quality/refine services + controllers).
@@ -129,6 +130,7 @@ app.use(['/worker', '/api/worker'], workerRoutes);
 app.use(['/reuse', '/api/reuse'], reuseRoutes);
 app.use(['/settings', '/api/settings'], settingsRoutes);
 app.use(['/formats', '/api/formats'], formatRoutes);
+app.use(['/search', '/api/search'], searchRoutes);
 
 
 // Error Handler

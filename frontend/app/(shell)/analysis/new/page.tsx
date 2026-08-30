@@ -73,10 +73,31 @@ function NewAnalysisContent() {
     const searchParams = useSearchParams()
     const { token, user } = useAuth()
     const projectId = searchParams.get("projectId")
+    const initialTemplate = searchParams.get("template")
+    const initialTitle = searchParams.get("title")
+    const initialDesc = searchParams.get("desc")
+    const initialFormat = searchParams.get("format")
 
-    const [projectName, setProjectName] = useState("")
-    const [description, setDescription] = useState("")
-    const [settings, setSettings] = useState<PromptSettings>(DEFAULT_SETTINGS)
+    const [projectName, setProjectName] = useState(() => {
+        if (initialTitle) return initialTitle
+        if (initialTemplate === "ecommerce") return "E-Commerce Microservices Engine"
+        if (initialTemplate === "telehealth") return "HIPAA Telehealth Consultations"
+        if (initialTemplate === "fintech") return "FinTech Real-Time Ledger & Payments"
+        if (initialTemplate === "ai_agent") return "Autonomous AI Agent Platform"
+        return ""
+    })
+    const [description, setDescription] = useState(() => {
+        if (initialDesc) return initialDesc
+        if (initialTemplate === "ecommerce") return "A high-throughput distributed e-commerce architecture with inventory reservation, payment orchestration, and PCI-DSS compliance."
+        if (initialTemplate === "telehealth") return "Doctor-patient video platform with end-to-end encrypted consultations, EHR integration, and medical record audit logging."
+        if (initialTemplate === "fintech") return "Multi-currency ledger system with automated reconciliation, fraud detection risk engine, and idempotency guarantees."
+        if (initialTemplate === "ai_agent") return "Multi-agent task orchestration system with tool execution sandboxes, server-authoritative persistence, and token budget governance."
+        return ""
+    })
+    const [settings, setSettings] = useState<PromptSettings>(() => ({
+        ...DEFAULT_SETTINGS,
+        format: initialFormat || DEFAULT_SETTINGS.format
+    }))
     const [providerKeys, setProviderKeys] = useState<ProviderKeyLite[]>([])
     const [keysLoaded, setKeysLoaded] = useState(false)
     const [contextProjectName, setContextProjectName] = useState<string>("")

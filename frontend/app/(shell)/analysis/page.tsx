@@ -12,6 +12,7 @@ import { useAuthFetch, useRevalidateOnRestore } from "@/lib/hooks";
 import { AnalysisHistory } from "@/components/analysis-history"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/empty-state"
+import { ContinueWorkingCard } from "@/components/continue-working-card"
 
 type AnalysisHistoryItem = {
     id: string
@@ -108,7 +109,10 @@ export default function AnalysisPage() {
                     cta={{ label: "Retry", onClick: () => mutate() }}
                 />
             ) : (
-                <AnalysisHistory items={history} />
+                <>
+                    <ContinueWorkingCard analyses={history} />
+                    <AnalysisHistory items={history} />
+                </>
             )}
         </div>
     )

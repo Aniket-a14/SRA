@@ -899,6 +899,7 @@ export const getUserAnalyses = async (userId) => {
                 "resultQuality",
                 "rootId",
                 "parentId",
+                "projectId",
                 metadata
             FROM "Analysis"
             WHERE "userId" = ${userId}

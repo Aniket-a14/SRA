@@ -9,6 +9,7 @@
 
 import { compareReleases, type Release } from "@/lib/changelog"
 
+import v422, { meta as m422 } from "./2026-08-30-v4.2.2.mdx"
 import v421, { meta as m421 } from "./2026-08-30-v4.2.1.mdx"
 import v420, { meta as m420 } from "./2026-07-25-v4.2.0.mdx"
 import v410, { meta as m410 } from "./2026-07-23-v4.1.0.mdx"
@@ -27,6 +28,7 @@ import v200, { meta as m200 } from "./2026-01-28-v2.0.0.mdx"
 import v100, { meta as m100 } from "./2026-01-15-v1.0.0.mdx"
 
 const registry: Release[] = [
+    { ...m422, Content: v422 },
     { ...m421, Content: v421 },
     { ...m420, Content: v420 },
     { ...m410, Content: v410 },

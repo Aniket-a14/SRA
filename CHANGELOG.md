@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.2.2] - 2026-08-30
+
+### AI Workspace UX & Productivity Architecture
+- **Added** **Global Multi-Entity Search & ⌘K Command Palette** (`command-palette.tsx` and `/api/search` backend API) enabling debounced full-text search across specifications, projects, and vector knowledge chunks with strict user tenant boundaries.
+- **Added** **Global Activity Center Drawer** (`activity-center.tsx`) for tracking asynchronous background multi-agent runs, viewing live 5-layer progress, inspecting failure diagnostics, and 1-click resuming from stage checkpoints.
+- **Added** **Welcome Back Session Catch-Up** (`welcome-back-dialog.tsx`) to notify users of specifications completed or interrupted while away from the active tab.
+- **Added** **Contextual Next Actions Panel** (`next-actions-panel.tsx`) offering direct 1-click DOCX export, interactive DFD generation, CLI code traceability navigation, and knowledge base finalization.
+- **Added** **Task & Execution Inspector** (`task-inspector-dialog.tsx`) detailing provider/model provenance, 5-layer pipeline execution milestones, and 6Cs rubric quality score breakdowns.
+- **Added** **Notification Center** (`notification-center.tsx`) header popover with unread run badges and local read tracking.
+- **Added** **Smart Empty States & Starter Templates** with interactive pre-populated templates for E-Commerce Microservices, HIPAA Telehealth, FinTech Ledger, and Autonomous AI Agent systems.
+- **Added** **Priority Continue Working Hub** (`continue-working-card.tsx`) for immediate continuation of in-progress or interrupted work.
+
 ## [4.2.1] - 2026-08-30
 
 ### Publication-Grade Multi-Standard Exporters

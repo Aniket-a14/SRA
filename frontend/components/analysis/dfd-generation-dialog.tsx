@@ -19,11 +19,24 @@ interface DFDGenerationDialogProps {
     projectName: string
     description: string
     srsContent?: string
+    open?: boolean
+    onOpenChange?: (open: boolean) => void
+    trigger?: React.ReactNode
 }
 
-export function DFDGenerationDialog({ projectName, description, srsContent }: DFDGenerationDialogProps) {
+export function DFDGenerationDialog({
+    projectName,
+    description,
+    srsContent,
+    open: controlledOpen,
+    onOpenChange: setControlledOpen,
+    trigger,
+}: DFDGenerationDialogProps) {
     const { token } = useAuth()
-    const [isOpen, setIsOpen] = useState(false)
+    const [internalOpen, setInternalOpen] = useState(false)
+    const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen
+    const setIsOpen = setControlledOpen || setInternalOpen
+
     const [isLoading, setIsLoading] = useState(false)
     const [data, setData] = useState<DFDInput | null>(null)
 
@@ -49,12 +62,16 @@ export function DFDGenerationDialog({ projectName, description, srsContent }: DF
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2">
-                    <Network className="h-4 w-4" />
-                    Generate DFD (React Flow)
-                </Button>
-            </DialogTrigger>
+            {trigger !== null && (
+                <DialogTrigger asChild>
+                    {trigger || (
+                        <Button variant="outline" className="gap-2">
+                            <Network className="h-4 w-4" />
+                            Generate DFD (React Flow)
+                        </Button>
+                    )}
+                </DialogTrigger>
+            )}
             <DialogContent className="max-w-[90vw] h-[90vh] flex flex-col">
                 <DialogHeader>
                     <DialogTitle>Data Flow Diagram (Level 0 & 1)</DialogTitle>
