@@ -70,9 +70,9 @@ export function ActivityCenter({ open, onOpenChange }: ActivityCenterProps) {
     const swrFetcher = React.useMemo(() => createAuthFetcher(authFetch), [authFetch])
 
     const swrKey = React.useMemo(() => {
-        if (!token) return null
+        if (!token || !open) return null
         return [`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, token] as const
-    }, [token])
+    }, [token, open])
 
     const { data: historyData, mutate, isValidating } = useSWR<ActivityTaskItem[]>(
         swrKey,

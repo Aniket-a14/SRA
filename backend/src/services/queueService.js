@@ -396,7 +396,7 @@ const invalidateUserAnalysesCache = async (userId) => {
     try {
         const { getRedisClient } = await import('../config/redis.js');
         const redis = getRedisClient();
-        if (redis) await redis.del(`user:analyses:${userId}`);
+        if (redis) await redis.del(`user:analyses:v2:${userId}`);
     } catch { /* cache invalidation is best-effort */ }
 };
 

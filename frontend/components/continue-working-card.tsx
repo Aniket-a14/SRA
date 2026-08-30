@@ -20,6 +20,7 @@ interface AnalysisItem {
     status?: string
     version?: number
     resultQuality?: string
+    resumable?: boolean
     failureReason?: string
 }
 
@@ -53,6 +54,7 @@ export function ContinueWorkingCard({
     const status = (primaryActionItem.status || "").toUpperCase()
     const isRunning = status === "PENDING" || status === "IN_PROGRESS" || status === "QUEUED"
     const isFailed = status === "FAILED"
+    const isResumable = isFailed && Boolean(primaryActionItem.resumable)
 
     return (
         <Card className="mb-6 border-foreground/10 bg-card shadow-xs">
@@ -101,7 +103,7 @@ export function ContinueWorkingCard({
                                 )}
                                 {isFailed && (
                                     <Badge className="text-[10px] h-4 px-1.5 bg-destructive/10 text-destructive border-transparent font-mono">
-                                        Interrupted · Resumable
+                                        {isResumable ? "Interrupted · Resumable" : "Failed"}
                                     </Badge>
                                 )}
                             </div>
@@ -117,7 +119,7 @@ export function ContinueWorkingCard({
                             className="h-8 text-xs gap-1.5 rounded-full border-foreground/20"
                             onClick={() => router.push(`/analysis/${primaryActionItem.id}`)}
                         >
-                            {isFailed ? "Resume Run" : isRunning ? "Track Progress" : "Open Document"}
+                            {isResumable ? "Resume Run" : isFailed ? "View Details" : isRunning ? "Track Progress" : "Open Document"}
                             <ArrowRight className="h-3.5 w-3.5" />
                         </Button>
                     </div>

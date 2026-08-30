@@ -15,14 +15,24 @@ import { generateDFD } from "@/lib/analysis-api"
 import { useAuth } from "@/lib/auth-context"
 import DFDViewer, { DFDInput } from "@/components/DFDViewer"
 
-interface DFDGenerationDialogProps {
+interface BaseDFDGenerationDialogProps {
     projectName: string
     description: string
     srsContent?: string
-    open?: boolean
-    onOpenChange?: (open: boolean) => void
-    trigger?: React.ReactNode
+    trigger?: React.ReactElement | null
 }
+
+interface ControlledDFDGenerationDialogProps extends BaseDFDGenerationDialogProps {
+    open: boolean
+    onOpenChange: (open: boolean) => void
+}
+
+interface UncontrolledDFDGenerationDialogProps extends BaseDFDGenerationDialogProps {
+    open?: never
+    onOpenChange?: never
+}
+
+export type DFDGenerationDialogProps = ControlledDFDGenerationDialogProps | UncontrolledDFDGenerationDialogProps
 
 export function DFDGenerationDialog({
     projectName,
@@ -34,8 +44,15 @@ export function DFDGenerationDialog({
 }: DFDGenerationDialogProps) {
     const { token } = useAuth()
     const [internalOpen, setInternalOpen] = useState(false)
-    const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen
-    const setIsOpen = setControlledOpen || setInternalOpen
+    const isControlled = controlledOpen !== undefined
+    const isOpen = isControlled ? controlledOpen : internalOpen
+    const setIsOpen = (nextOpen: boolean) => {
+        if (setControlledOpen) {
+            setControlledOpen(nextOpen)
+        } else {
+            setInternalOpen(nextOpen)
+        }
+    }
 
     const [isLoading, setIsLoading] = useState(false)
     const [data, setData] = useState<DFDInput | null>(null)

@@ -109,10 +109,16 @@ function NewAnalysisContent() {
         if (projectId && token) {
             fetchProject(token, projectId).then(p => {
                 setContextProjectName(p.name)
-                if (p.settings) setSettings(p.settings)
+                if (p.settings) {
+                    setSettings(prev => ({
+                        ...prev,
+                        ...p.settings,
+                        ...(initialFormat ? { format: initialFormat } : {})
+                    }))
+                }
             }).catch(() => setContextProjectName("Unknown project"))
         }
-    }, [projectId, token])
+    }, [projectId, token, initialFormat])
 
     useEffect(() => {
         if (!token) return

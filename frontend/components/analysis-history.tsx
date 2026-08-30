@@ -36,10 +36,14 @@ interface AnalysisHistoryItem {
 }
 
 /** Small status pill for a run's lifecycle state */
-function StatusPill({ status, resultQuality }: { status?: string; resultQuality?: string }) {
+function StatusPill({ status, resultQuality, resumable }: { status?: string; resultQuality?: string; resumable?: boolean }) {
     const s = (status || "").toUpperCase()
     if (s === "FAILED") {
-        return <Badge className="h-6 px-2 text-xs shrink-0 border-transparent bg-destructive/10 text-destructive">Failed · resume</Badge>
+        return (
+            <Badge className="h-6 px-2 text-xs shrink-0 border-transparent bg-destructive/10 text-destructive">
+                {resumable ? "Failed · resume" : "Failed"}
+            </Badge>
+        )
     }
     if (s === "PENDING" || s === "IN_PROGRESS" || s === "QUEUED") {
         return (
@@ -228,7 +232,7 @@ export function AnalysisHistory({ items }: AnalysisHistoryProps) {
                                             <CardTitle className="text-base font-semibold group-hover:text-primary transition-colors line-clamp-1">
                                                 {item.title || "Analysis"}
                                             </CardTitle>
-                                            <StatusPill status={item.status} resultQuality={item.resultQuality} />
+                                            <StatusPill status={item.status} resultQuality={item.resultQuality} resumable={item.resumable} />
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2 text-sm text-muted-foreground shrink-0">
