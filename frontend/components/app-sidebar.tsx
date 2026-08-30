@@ -139,7 +139,7 @@ export function AppSidebar({
             className
         )}>
             {/* Room for the drawer's close button, which overlays this corner. */}
-            <div className={cn("px-4 py-4 border-b border-foreground/10", inSheet && "pr-14")}>
+            <div className={cn("px-4 py-4 border-b border-foreground/10 shrink-0", inSheet && "pr-14")}>
                 <Link href="/" className="flex items-center gap-2 mb-4">
                     <span className="text-xl font-display">SRA</span>
                     <span className="text-[10px] text-muted-foreground font-mono mt-1">MULTI-FORMAT</span>
@@ -185,7 +185,7 @@ export function AppSidebar({
                 </div>
             </div>
 
-            <ScrollArea className="flex-1">
+            <ScrollArea className="flex-1 min-h-0">
                 {/* Pipeline progress — only inside an in-flight analysis */}
                 {analysisId && (
                     <div className="px-4 py-4 border-b border-foreground/10">
@@ -303,7 +303,7 @@ export function AppSidebar({
             </ScrollArea>
 
             {/* User menu */}
-            <div className="border-t border-foreground/10 p-3">
+            <div className="border-t border-foreground/10 p-3 shrink-0">
                 {user && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>

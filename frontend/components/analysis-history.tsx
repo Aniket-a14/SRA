@@ -204,7 +204,7 @@ export function AnalysisHistory({ items }: AnalysisHistoryProps) {
                     No analyses match the selected filter.
                 </div>
             ) : (
-                <div className="relative border-l-2 border-muted ml-3 md:ml-6 space-y-8 pl-6 md:pl-10 py-4">
+                <div className="relative border-l-2 border-muted ml-4 sm:ml-6 space-y-6 pl-6 sm:pl-8 py-2">
                     {filteredItems.map((item, idx) => (
                         <div
                             key={item.id || idx}
@@ -218,7 +218,7 @@ export function AnalysisHistory({ items }: AnalysisHistoryProps) {
                             }}
                         >
                             {/* Timeline Dot */}
-                            <span className="absolute -left-[31px] md:-left-[47px] top-5 h-4 w-4 rounded-full border-2 border-primary bg-background group-hover:bg-primary transition-colors duration-300" />
+                            <span className="absolute -left-[33px] sm:-left-[41px] top-5 h-4 w-4 rounded-full border-2 border-primary bg-background group-hover:bg-primary transition-colors duration-300" />
 
                             <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-border/50 bg-card/50 hover:bg-card hover:border-primary/20">
                                 <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />

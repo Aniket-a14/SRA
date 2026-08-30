@@ -511,13 +511,13 @@ function AnalysisDetailContent() {
         const hasValidated = !!validationResult && !serviceError;
 
         return (
-            <div className="min-h-screen flex flex-col bg-background">
-                <div className="border-b border-foreground/10 px-6 py-4 flex items-center justify-between sticky top-0 bg-background z-20">
-                    <div className="flex items-center gap-4 min-w-0">
+            <div className="flex-1 flex flex-col min-h-0 bg-background">
+                <div className="border-b border-foreground/10 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between bg-background shrink-0">
+                    <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                         <Button variant="ghost" size="sm" className="shrink-0 gap-1.5" onClick={() => router.push('/analysis')}>
                             <ArrowLeft className="h-4 w-4" /> Back
                         </Button>
-                        <h1 className="text-xl font-display truncate">
+                        <h1 className="text-lg sm:text-xl font-display truncate">
                             {draftData?.details?.projectName?.content || analysis?.title?.replace(" (Draft)", "") || "New Analysis"}
                         </h1>
                     </div>
@@ -548,11 +548,11 @@ function AnalysisDetailContent() {
     if (isTerminal && analysis) {
         const projectLabel = draftData?.details?.projectName?.content || analysis.projectTitle || analysis.title || "Analysis"
         return (
-            <div className="h-screen flex flex-col bg-background">
+            <div className="h-[calc(100vh-3.5rem)] md:h-[calc(100vh-3rem)] flex flex-col bg-background">
                 {/* One surface at a time, each full-width: the conversation (refinement)
                     and the document (the SRS) are separate views rather than a cramped
                     side-by-side split. */}
-                <div className="border-b border-foreground/10 px-4 py-2.5 flex items-center justify-between gap-4 shrink-0">
+                <div className="border-b border-foreground/10 px-4 py-2.5 flex items-center justify-between gap-4 shrink-0 bg-background">
                     <div className="flex items-center gap-2 min-w-0">
                         <Button variant="ghost" size="sm" className="shrink-0 gap-1.5" onClick={() => router.push('/analysis')}>
                             <ArrowLeft className="h-4 w-4" /> Back
@@ -623,8 +623,8 @@ function AnalysisDetailContent() {
     }
 
     return (
-        <div className="min-h-screen flex flex-col bg-background">
-            <div className="border-b border-foreground/10 px-6 py-4 flex items-center justify-between sticky top-0 bg-background z-20">
+        <div className="flex-1 flex flex-col min-h-0 bg-background">
+            <div className="border-b border-foreground/10 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between bg-background shrink-0">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => router.push('/analysis')}>
                         <ArrowLeft className="h-4 w-4" /> Back

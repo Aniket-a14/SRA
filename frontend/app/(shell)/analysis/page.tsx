@@ -75,7 +75,7 @@ export default function AnalysisPage() {
                     <Skeleton className="h-9 w-56" />
                     <Skeleton className="h-4 w-72" />
                 </div>
-                <div className="relative border-l-2 border-muted ml-3 md:ml-6 space-y-6 pl-6 md:pl-10 py-4">
+                <div className="relative border-l-2 border-muted ml-4 sm:ml-6 space-y-6 pl-6 sm:pl-8 py-2">
                     {Array.from({ length: 4 }).map((_, i) => (
                         <div key={i} className="rounded-xl border border-border/50 bg-card/40 p-5 space-y-3">
                             <div className="flex items-center gap-2">

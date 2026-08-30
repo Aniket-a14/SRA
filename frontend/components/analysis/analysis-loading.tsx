@@ -42,7 +42,7 @@ export function AnalysisLoading({ liveMessage, liveText, liveStage }: { liveMess
     const status = liveMessage || "Waiting for the first stage to report…"
 
     return (
-        <div className="flex h-[calc(100vh-64px)] w-full flex-col items-center bg-background">
+        <div className="flex flex-1 min-h-0 h-[calc(100vh-3.5rem)] md:h-[calc(100vh-3rem)] w-full flex-col items-center bg-background">
             <header className="w-full max-w-2xl shrink-0 px-6 pt-8 pb-2 sm:pt-10">
                 <div className="flex items-baseline justify-between gap-4">
                     <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">

@@ -168,7 +168,7 @@ export function ActivityCenter({ open, onOpenChange }: ActivityCenterProps) {
                     </div>
 
                     {/* Task List Content */}
-                    <ScrollArea className="flex-1 px-6 py-4">
+                    <ScrollArea className="flex-1 min-h-0 px-6 py-4">
                         {activeTab === "all" && (
                             <TaskList
                                 tasks={tasks}

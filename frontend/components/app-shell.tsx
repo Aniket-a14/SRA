@@ -122,7 +122,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     </div>
                 </header>
 
-                <main className="md:pl-64 flex-1">
+                <main className="md:pl-64 flex-1 flex flex-col min-h-0">
                     {children}
                 </main>
             </div>
