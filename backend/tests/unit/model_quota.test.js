@@ -101,8 +101,8 @@ describe('recordExhausted', () => {
         });
 
         const { create } = mockPrisma.modelQuotaState.upsert.mock.calls[0][0];
-        // Far beyond the 54s the provider suggested for its per-minute bucket.
-        expect(create.resetsAt.getTime() - Date.now()).toBeGreaterThan(60 * 60 * 1000);
+        // Matches the next Pacific midnight calculation
+        expect(Math.abs(create.resetsAt.getTime() - nextPacificMidnight().getTime())).toBeLessThan(5000);
         expect(create.requestLimit).toBe(20);
         expect(create.requestsRemaining).toBe(0);
     });
