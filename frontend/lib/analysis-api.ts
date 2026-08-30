@@ -89,9 +89,11 @@ export async function finalizeAnalysis(id: string, token: string) {
 export async function resumeAnalysis(
     id: string,
     token: string,
-    model?: { modelProvider?: string; modelName?: string }
+    model?: { modelProvider?: string; modelName?: string },
+    authFetch?: (url: string, init?: RequestInit) => Promise<Response>
 ) {
-    const res = await fetch(`${BACKEND_URL}/analyze/${id}/resume`, {
+    const fetcher = authFetch || fetch;
+    const res = await fetcher(`${BACKEND_URL}/analyze/${id}/resume`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

@@ -3,6 +3,7 @@
 import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
+import { useAuthFetch } from "@/lib/hooks"
 import {
     CommandDialog,
     CommandEmpty,
@@ -100,23 +101,22 @@ export function CommandPalette({
         return () => document.removeEventListener("keydown", down)
     }, [open, setOpen])
 
-    // Debounced search fetch
+    const authFetch = useAuthFetch()
+
+    // Debounced search fetch with request cancellation and stale response prevention
     React.useEffect(() => {
         const trimmed = query.trim()
         if (!trimmed || !token) {
             return
         }
 
+        const controller = new AbortController()
         const timer = setTimeout(async () => {
             setIsSearching(true)
             try {
-                const res = await fetch(
+                const res = await authFetch(
                     `${process.env.NEXT_PUBLIC_BACKEND_URL}/search?q=${encodeURIComponent(trimmed)}`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`
-                        }
-                    }
+                    { signal: controller.signal }
                 )
                 if (res.ok) {
                     const json = await res.json()
@@ -125,15 +125,30 @@ export function CommandPalette({
                         setSearchResults(data.results)
                     }
                 }
-            } catch (err) {
-                console.error("Failed to execute global search", err)
+            } catch (err: unknown) {
+                if ((err as Error)?.name !== "AbortError") {
+                    console.error("Failed to execute global search", err)
+                }
             } finally {
-                setIsSearching(false)
+                if (!controller.signal.aborted) {
+                    setIsSearching(false)
+                }
             }
         }, 200)
 
-        return () => clearTimeout(timer)
-    }, [query, token])
+        return () => {
+            clearTimeout(timer)
+            controller.abort()
+        }
+    }, [query, token, authFetch])
+
+    // Immediately clear results when query becomes empty without triggering cascading renders
+    const effectiveResults = React.useMemo(() => {
+        if (!query.trim()) {
+            return { analyses: [], projects: [], knowledgeChunks: [] }
+        }
+        return searchResults
+    }, [query, searchResults])
 
     const handleSelect = (callback: () => void) => {
         setOpen(false)
@@ -158,9 +173,9 @@ export function CommandPalette({
                 </CommandEmpty>
 
                 {/* Live Search Results */}
-                {searchResults.analyses.length > 0 && (
+                {effectiveResults.analyses.length > 0 && (
                     <CommandGroup heading="Specifications & Analyses">
-                        {searchResults.analyses.map((analysis) => (
+                        {effectiveResults.analyses.map((analysis) => (
                             <CommandItem
                                 key={`analysis-${analysis.id}`}
                                 value={`analysis-${analysis.id}-${analysis.title}-${analysis.snippet}`}
@@ -192,9 +207,9 @@ export function CommandPalette({
                     </CommandGroup>
                 )}
 
-                {searchResults.projects.length > 0 && (
+                {effectiveResults.projects.length > 0 && (
                     <CommandGroup heading="Projects">
-                        {searchResults.projects.map((project) => (
+                        {effectiveResults.projects.map((project) => (
                             <CommandItem
                                 key={`project-${project.id}`}
                                 value={`project-${project.id}-${project.name}`}
@@ -220,9 +235,9 @@ export function CommandPalette({
                     </CommandGroup>
                 )}
 
-                {searchResults.knowledgeChunks.length > 0 && (
+                {effectiveResults.knowledgeChunks.length > 0 && (
                     <CommandGroup heading="Knowledge Fragments">
-                        {searchResults.knowledgeChunks.map((chunk) => (
+                        {effectiveResults.knowledgeChunks.map((chunk) => (
                             <CommandItem
                                 key={`chunk-${chunk.id}`}
                                 value={`chunk-${chunk.id}-${chunk.type}-${chunk.tags.join(" ")}`}
@@ -250,7 +265,7 @@ export function CommandPalette({
                     </CommandGroup>
                 )}
 
-                {(searchResults.analyses.length > 0 || searchResults.projects.length > 0) && (
+                {(effectiveResults.analyses.length > 0 || effectiveResults.projects.length > 0) && (
                     <CommandSeparator />
                 )}
 

@@ -238,7 +238,7 @@ export function ActivityCenter({ open, onOpenChange }: ActivityCenterProps) {
                                     try {
                                         if (!token) return
                                         toast.loading("Resuming analysis...", { id: "resume-task" })
-                                        await resumeAnalysis(resumeTargetId, token, model)
+                                        await resumeAnalysis(resumeTargetId, token, model, authFetch)
                                         toast.success("Analysis resumed successfully!", { id: "resume-task" })
                                         setResumeTargetId(null)
                                         mutate()

@@ -32,6 +32,39 @@ interface AnalysisItem {
     failureReason?: string
 }
 
+const READ_IDS_KEY = "sra_read_notification_ids"
+const notificationListeners = new Set<() => void>()
+
+function getReadIdsSnapshot(): string {
+    if (typeof window === "undefined") return "[]"
+    try {
+        return localStorage.getItem(READ_IDS_KEY) || "[]"
+    } catch {
+        return "[]"
+    }
+}
+
+function subscribeReadIds(callback: () => void) {
+    notificationListeners.add(callback)
+    const onStorage = (e: StorageEvent) => {
+        if (e.key === READ_IDS_KEY) callback()
+    }
+    window.addEventListener("storage", onStorage)
+    return () => {
+        notificationListeners.delete(callback)
+        window.removeEventListener("storage", onStorage)
+    }
+}
+
+function saveReadIdsToStorage(newSet: Set<string>) {
+    try {
+        localStorage.setItem(READ_IDS_KEY, JSON.stringify(Array.from(newSet)))
+    } catch {
+        // ignore
+    }
+    notificationListeners.forEach((cb) => cb())
+}
+
 export function NotificationCenter() {
     const router = useRouter()
     const { token } = useAuth()
@@ -54,28 +87,15 @@ export function NotificationCenter() {
 
     const analyses = React.useMemo(() => (Array.isArray(historyData) ? historyData : []), [historyData])
 
-    // Read IDs stored in localStorage safely via lazy initializer
-    const [readIds, setReadIds] = React.useState<Set<string>>(() => {
-        if (typeof window === "undefined") return new Set()
+    // Shared external store to keep multiple mounted NotificationCenter instances in sync
+    const rawReadIds = React.useSyncExternalStore(subscribeReadIds, getReadIdsSnapshot, () => "[]")
+    const readIds = React.useMemo(() => {
         try {
-            const stored = localStorage.getItem("sra_read_notification_ids")
-            if (stored) {
-                return new Set(JSON.parse(stored))
-            }
+            return new Set<string>(JSON.parse(rawReadIds))
         } catch {
-            // ignore
+            return new Set<string>()
         }
-        return new Set()
-    })
-
-    const saveReadIds = (newSet: Set<string>) => {
-        setReadIds(newSet)
-        try {
-            localStorage.setItem("sra_read_notification_ids", JSON.stringify(Array.from(newSet)))
-        } catch {
-            // ignore
-        }
-    }
+    }, [rawReadIds])
 
     const notifications = React.useMemo(() => {
         return analyses
@@ -93,13 +113,13 @@ export function NotificationCenter() {
     const markAsRead = (id: string) => {
         const next = new Set(readIds)
         next.add(id)
-        saveReadIds(next)
+        saveReadIdsToStorage(next)
     }
 
     const markAllAsRead = () => {
         const next = new Set(readIds)
         notifications.forEach(n => next.add(n.id))
-        saveReadIds(next)
+        saveReadIdsToStorage(next)
     }
 
     return (
