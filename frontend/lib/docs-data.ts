@@ -72,7 +72,7 @@ graph LR
                         content: `SRA is built upon four non-negotiable architectural invariants:
 
 1. **Immutability & Recursive Version Trees**: Every modification or chat refinement branches a new analysis node (\`rootId\` and \`parentId\`). Prior versions are preserved forever for regulatory auditability.
-2. **Deterministic Quality Gates**: No specification is marked complete without undergoing a reflection loop scoring Clarity, Completeness, Conciseness, Consistency, Correctness, and Context (6Cs score $\ge 85$).
+2. **Deterministic Quality Gates**: No specification is marked complete without undergoing a reflection loop scoring Clarity, Completeness, Conciseness, Consistency, Correctness, and Context (6Cs score ≥ 85/100).
 3. **Multi-Tenant Scoping**: All database reads, RAG context queries, and session management are isolated strictly by \`userId\` at the query layer.
 4. **Resilient Serverless Checkpointing**: Asynchronous jobs execute through Upstash QStash with self-checkpointing budgets (\`pipelineBudget.js\`), preventing serverless timeout drops.`
                     }
@@ -88,7 +88,7 @@ graph LR
                         id: "web-quickstart",
                         title: "Option A: Web Workspace Quickstart",
                         content: `1. **Sign In**: Navigate to \`/auth/login\` and authenticate via Google OAuth or Email.
-2. **Add Provider Key**: Go to **Settings $\\rightarrow$ AI Provider Keys** and enter your Google Gemini, OpenAI, Claude, or Grok API key.
+2. **Add Provider Key**: Go to **Settings → AI Provider Keys** and enter your Google Gemini, OpenAI, Claude, or Grok API key.
 3. **Create Analysis**: Click **New Analysis** (\`⌘N\`), enter your project title (e.g., *"Healthcare Patient Intake Portal"*), and paste your unstructured business requirements or user stories.
 4. **Select Standard**: Choose your target specification standard (IEEE 830-1998, ISO 29148, Volere, or Agile PRD).
 5. **Monitor Live Stream**: Watch the multi-agent system process through Intake Mapping, Architecture Synthesis, and the 6Cs Quality Audit in real time.
@@ -570,9 +570,8 @@ SRA enforces defense-in-depth across all system layers:
                         id: "gdpr-compliance",
                         title: "GDPR Article 17 (Right to be Forgotten) Purge Engine",
                         content: `SRA implements transactional, cascading account deletion:
-- When a user requests account erasure (\`DELETE /api/auth/me\`), sessions are revoked immediately.
 - \`accountDeletionService.hardDeleteUser\` cascades across foreign keys in a single database transaction:
-  $$\\text{KnowledgeChunks} \\rightarrow \\text{Analyses} \\rightarrow \\text{Projects} \\rightarrow \\text{User}$$
+  \`KnowledgeChunks\` → \`Analyses\` → \`Projects\` → \`User\`
 - Vector embeddings and graph entities are wiped completely, fulfilling GDPR Article 17 and CCPA requirements.`
                     }
                 ]

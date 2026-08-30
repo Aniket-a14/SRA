@@ -266,31 +266,7 @@ export default function DocsOverviewPage() {
                             </nav>
                         </div>
 
-                        {/* Metadata Box */}
-                        <div className="p-3 border border-foreground/10 bg-muted/5 space-y-2.5">
-                            <div className="flex items-center justify-between border-b border-foreground/10 pb-2">
-                                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                                    Portal Index
-                                </span>
-                                <span className="text-[10px] font-mono text-primary font-semibold">
-                                    v4.2.2
-                                </span>
-                            </div>
-                            <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-muted-foreground">
-                                <div>
-                                    <span className="text-[9px] block text-muted-foreground/60 uppercase">Pillars</span>
-                                    <span className="text-foreground font-semibold">8 Modules</span>
-                                </div>
-                                <div>
-                                    <span className="text-[9px] block text-muted-foreground/60 uppercase">Standards</span>
-                                    <span className="text-foreground font-semibold">4 Formats</span>
-                                </div>
-                            </div>
-                            <div className="pt-1 border-t border-foreground/5 flex items-center gap-1.5 text-[10px] text-emerald-600 font-mono">
-                                <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
-                                <span>Zero-Trust BYOK Ready</span>
-                            </div>
-                        </div>
+
 
                         {/* Quick Actions */}
                         <div className="space-y-1.5 pt-2 border-t border-foreground/10">

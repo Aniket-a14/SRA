@@ -1,28 +1,35 @@
 "use client"
 
-
 import { useEffect, useRef, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 
 interface Diagram {
-    code: string;
-    caption?: string;
+    code: string
+    caption?: string
 }
 
-interface MermaidRendererProps {
+export interface MermaidRendererProps {
     chart: string | Diagram
-    title: string
+    title?: string
     className?: string
     onError?: (error: string) => void
     isExport?: boolean
+    variant?: "card" | "inline" | "fluid"
 }
 
 interface MermaidInstance {
     render: (id: string, text: string) => Promise<{ svg: string }>
 }
 
-export function MermaidRenderer({ chart, title, className, onError, isExport = false }: MermaidRendererProps) {
+export function MermaidRenderer({
+    chart,
+    title,
+    className,
+    onError,
+    isExport = false,
+    variant = "fluid"
+}: MermaidRendererProps) {
     const ref = useRef<HTMLDivElement>(null)
     const [mermaidInstance, setMermaidInstance] = useState<MermaidInstance | null>(null)
     const [hasError, setHasError] = useState(false)
@@ -31,10 +38,10 @@ export function MermaidRenderer({ chart, title, className, onError, isExport = f
         import("mermaid").then((m) => {
             m.default.initialize({
                 startOnLoad: false,
-                theme: isExport ? 'neutral' : 'default', // Neutral is reliable grayscale/B&W
+                theme: isExport ? 'neutral' : 'default',
                 themeVariables: isExport ? {
                     fontFamily: 'arial, sans-serif',
-                    fontSize: '16px', // Force larger font
+                    fontSize: '16px',
                     nodeBorder: '#000000',
                     mainBkg: '#ffffff',
                     textColor: '#000000',
@@ -42,7 +49,7 @@ export function MermaidRenderer({ chart, title, className, onError, isExport = f
                 } : undefined,
                 securityLevel: 'strict',
                 fontFamily: 'arial, sans-serif',
-                flowchart: { useMaxWidth: !isExport, htmlLabels: true }
+                flowchart: { useMaxWidth: true, htmlLabels: true }
             })
             setMermaidInstance(m.default)
         })
@@ -52,7 +59,7 @@ export function MermaidRenderer({ chart, title, className, onError, isExport = f
         if (!chart || !mermaidInstance) return
 
         // Extract code string
-        const code = typeof chart === 'string' ? chart : (chart?.code || "");
+        const code = typeof chart === 'string' ? chart : (chart?.code || "")
 
         // Clean the string
         const formatted = code
@@ -67,15 +74,14 @@ export function MermaidRenderer({ chart, title, className, onError, isExport = f
                 if (ref.current) ref.current.innerHTML = ""
 
                 const id = "diagram-" + Math.random().toString(36).substring(7)
-                // Auto-Fix: Retry logic for common LLM sequence diagram errors
                 try {
                     const { svg } = await mermaidInstance.render(id, formatted)
                     renderSvg(svg)
                 } catch (renderError) {
                     const errString = String(renderError)
                     if (errString.includes("Trying to inactivate an inactive participant")) {
-                        console.warn("Mermaid Error Detected: Inactive Participant. Applying auto-fix (removing deactivations).")
-                        const fixedCode = formatted.replace(/^\s*deactivate\s+.*$/gim, "%% Fixed: deactivated removed");
+                        console.warn("Mermaid Error Detected: Inactive Participant. Applying auto-fix.")
+                        const fixedCode = formatted.replace(/^\s*deactivate\s+.*$/gim, "%% Fixed: deactivated removed")
                         const { svg } = await mermaidInstance.render(id, fixedCode)
                         renderSvg(svg)
                     } else {
@@ -86,15 +92,13 @@ export function MermaidRenderer({ chart, title, className, onError, isExport = f
                 function renderSvg(svg: string) {
                     if (ref.current) {
                         ref.current.innerHTML = svg
-                        // Force SVG to be 100% width/height if export
-                        if (isExport) {
-                            const svgEl = ref.current.querySelector('svg');
-                            if (svgEl) {
-                                svgEl.removeAttribute('height'); // Allow scaling
-                                svgEl.removeAttribute('width');
-                                svgEl.style.width = '100%';
-                                svgEl.style.height = 'auto';
-                            }
+                        const svgEl = ref.current.querySelector('svg')
+                        if (svgEl) {
+                            svgEl.removeAttribute('height')
+                            svgEl.style.maxWidth = '100%'
+                            svgEl.style.height = 'auto'
+                            svgEl.style.display = 'block'
+                            svgEl.style.margin = '0 auto'
                         }
                     }
                 }
@@ -109,43 +113,49 @@ export function MermaidRenderer({ chart, title, className, onError, isExport = f
         renderDiagram()
     }, [chart, mermaidInstance, title, isExport, onError])
 
-    // EXPORT MODE: Render clean, auto-sized div without Card/Scrollbars
-    if (isExport) {
+    // EXPORT OR INLINE / FLUID MODE: Render tightly auto-sized diagram taking exact space needed
+    if (isExport || variant === "inline" || variant === "fluid") {
         return (
-            <div className={cn("w-full bg-white flex flex-col items-center", className)}>
+            <div className={cn("w-full flex flex-col items-center justify-center overflow-x-auto", className)}>
                 <div
                     ref={ref}
+                    role="img"
+                    aria-label={title ? `Diagram: ${title}` : "Diagram"}
                     className={cn(
-                        "w-full flex justify-center", // Removed p-4 to minimize padding
-                        (hasError || !chart) ? "opacity-0" : "opacity-100"
+                        "w-full flex justify-center items-center py-2",
+                        (hasError || !chart) ? "opacity-0 pointer-events-none" : "opacity-100"
                     )}
                 />
-                {hasError && <p className="text-red-500 text-sm">Render Error</p>}
+                {hasError && <p className="text-red-500 text-xs py-2">Unable to render diagram.</p>}
             </div>
         )
     }
 
-    // NORMAL MODE: Interactive Card
+    // CARD MODE: Interactive Bordered Container
     return (
         <Card className={cn(
-            "h-[500px] w-full bg-card border-border transition-all duration-300 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 group flex flex-col relative",
+            "w-full bg-card border border-foreground/10 group flex flex-col relative",
             className
         )}>
-            <CardHeader className="pb-2">
-                <CardTitle className="text-base">{title}</CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1 overflow-auto min-h-0 p-0 relative">
+            {title && (
+                <CardHeader className="pb-2 px-4 pt-3 border-b border-foreground/5">
+                    <CardTitle className="text-xs font-mono uppercase tracking-wider text-muted-foreground font-medium">
+                        {title}
+                    </CardTitle>
+                </CardHeader>
+            )}
+            <CardContent className="overflow-x-auto p-4 relative flex items-center justify-center min-h-[100px]">
                 {hasError || !chart ? (
-                    <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm bg-card/50 z-10 p-4 text-center">
+                    <div className="text-muted-foreground text-xs p-4 text-center">
                         {hasError ? "Unable to render diagram. Please check syntax." : "No diagram available"}
                     </div>
                 ) : null}
                 <div
                     ref={ref}
                     role="img"
-                    aria-label={`Diagram: ${title}`}
+                    aria-label={title ? `Diagram: ${title}` : "Diagram"}
                     className={cn(
-                        "flex justify-center w-full min-w-max p-4",
+                        "flex justify-center items-center w-full",
                         (hasError || !chart) ? "opacity-0 pointer-events-none" : "opacity-100"
                     )}
                 />

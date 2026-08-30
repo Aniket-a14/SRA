@@ -6,13 +6,11 @@ import {
     ListFilter,
     Check,
     ArrowUp,
-    ShieldCheck,
     Share2
 } from "lucide-react"
 import { DocCategory } from "@/lib/docs-data"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
-import { Badge } from "@/components/ui/badge"
 
 interface DocsRightSidebarProps {
     category?: DocCategory
@@ -107,7 +105,7 @@ export function DocsRightSidebar({ category, className }: DocsRightSidebarProps)
     return (
         <aside className={cn("flex flex-col h-full border-l border-foreground/10 bg-background/50 p-5 space-y-6 text-xs select-none", className)}>
             {/* Reading Progress Indicator */}
-            <div className="space-y-1.5 border-b border-foreground/10 pb-4">
+            <div className="space-y-1.5 border-b border-foreground/10 pb-4 shrink-0">
                 <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
                     <span>Reading Progress</span>
                     <span className="font-semibold text-foreground">{scrollProgress}%</span>
@@ -121,14 +119,14 @@ export function DocsRightSidebar({ category, className }: DocsRightSidebarProps)
             </div>
 
             {/* Document Structure (Scrollspy TOC) */}
-            <div className="space-y-3 flex-1 overflow-y-auto pr-1">
+            <div className="space-y-3 flex-1 overflow-y-auto pr-1 min-h-0">
                 <div className="flex items-center justify-between">
                     <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground/70 font-semibold flex items-center gap-1.5">
                         <ListFilter className="h-3.5 w-3.5 text-primary" />
-                        Page Structure
+                        On this page
                     </p>
                     <span className="text-[10px] font-mono text-muted-foreground/50">
-                        {tocItems.length} nodes
+                        {tocItems.length} topics
                     </span>
                 </div>
 
@@ -157,38 +155,8 @@ export function DocsRightSidebar({ category, className }: DocsRightSidebarProps)
                 </nav>
             </div>
 
-            {/* Document Metadata Inspector Card */}
-            <div className="p-3 border border-foreground/10 bg-muted/5 space-y-2.5">
-                <div className="flex items-center justify-between border-b border-foreground/10 pb-2">
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                        Pillar Specification
-                    </span>
-                    {category.badge && (
-                        <Badge variant="outline" className="text-[9px] font-mono py-0 px-1 uppercase">
-                            {category.badge}
-                        </Badge>
-                    )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-muted-foreground">
-                    <div>
-                        <span className="text-[9px] block text-muted-foreground/60 uppercase">Sections</span>
-                        <span className="text-foreground font-semibold">{category.sections.length} Chapters</span>
-                    </div>
-                    <div>
-                        <span className="text-[9px] block text-muted-foreground/60 uppercase">Revision</span>
-                        <span className="text-foreground font-semibold">v4.2.2</span>
-                    </div>
-                </div>
-
-                <div className="pt-1 border-t border-foreground/5 flex items-center gap-1.5 text-[10px] text-emerald-600 font-mono">
-                    <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
-                    <span>6Cs Quality Audited</span>
-                </div>
-            </div>
-
             {/* Quick Actions */}
-            <div className="space-y-1.5 pt-2 border-t border-foreground/10">
+            <div className="space-y-1.5 pt-3 border-t border-foreground/10 shrink-0">
                 <Button
                     variant="outline"
                     size="sm"
@@ -203,7 +171,7 @@ export function DocsRightSidebar({ category, className }: DocsRightSidebarProps)
                     ) : (
                         <>
                             <Share2 className="h-3 w-3" />
-                            <span>Share Document Link</span>
+                            <span>Share Section Link</span>
                         </>
                     )}
                 </Button>
