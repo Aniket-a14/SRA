@@ -552,12 +552,22 @@ function AnalysisDetailContent() {
                 {/* One surface at a time, each full-width: the conversation (refinement)
                     and the document (the SRS) are separate views rather than a cramped
                     side-by-side split. */}
-                <div className="border-b border-foreground/10 px-4 py-2.5 flex items-center justify-between gap-4 shrink-0 bg-background">
-                    <div className="flex items-center gap-2 min-w-0">
-                        <Button variant="ghost" size="sm" className="shrink-0 gap-1.5" onClick={() => router.push('/analysis')}>
+                <div className="border-b border-foreground/10 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4 shrink-0 bg-background">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                        <Button variant="ghost" size="sm" className="shrink-0 gap-1.5 px-2 text-xs" onClick={() => router.push('/analysis')}>
                             <ArrowLeft className="h-4 w-4" /> Back
                         </Button>
-                        <h1 className="text-sm font-medium truncate">{projectLabel}</h1>
+                        <div className="h-4 w-px bg-foreground/10 shrink-0 hidden xs:block" />
+                        <h1 className="text-sm font-semibold truncate">{projectLabel}</h1>
+                        <span className="shrink-0 px-2 py-0.5 border border-foreground/10 text-xs font-mono rounded">
+                            v{analysis.version}
+                        </span>
+                        {analysis.metadata?.optimized && (
+                            <span className="hidden md:inline-flex shrink-0 px-2 py-0.5 bg-green-500/10 text-green-600 text-xs rounded-full border border-green-200 items-center gap-1">
+                                <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                                KB Optimized
+                            </span>
+                        )}
                     </div>
 
                     <div className="flex items-center gap-1 rounded-full border border-foreground/10 p-0.5 shrink-0">

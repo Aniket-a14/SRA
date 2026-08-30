@@ -205,24 +205,23 @@ export function NotificationCenter() {
                                             )}
                                         </div>
 
-                                        <div className="flex-1 min-w-0 pr-1">
-                                            <div className="flex items-center justify-between gap-1">
-                                                <p className="text-xs font-medium truncate text-foreground">
-                                                    {item.title || "Requirements Specification"}
-                                                </p>
-                                                <span className="text-[10px] text-muted-foreground shrink-0 font-mono">
-                                                    {formatRelative(item.createdAt)}
-                                                </span>
-                                            </div>
+                                        <div className="flex-1 min-w-0 pr-2">
+                                            <p className="text-xs font-medium truncate text-foreground">
+                                                {item.title || "Requirements Specification"}
+                                            </p>
                                             <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5 font-sans break-words">
                                                 {isFailed
-                                                    ? item.failureReason || "Analysis interrupted. Click to resume."
+                                                    ? (item.failureReason ? item.failureReason.replace(/^Analysis Error:\s*/i, "").replace(/\[GoogleGenerativeAI Error\]:\s*/i, "") : "Analysis interrupted. Click to resume.")
                                                     : "Analysis generated and ready for review."}
                                             </p>
+                                            <div className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground font-mono">
+                                                <Clock className="h-3 w-3" />
+                                                <span>{formatRelative(item.createdAt)}</span>
+                                            </div>
                                         </div>
 
                                         {isUnread && (
-                                            <span className="h-1.5 w-1.5 rounded-full bg-foreground shrink-0 self-center" />
+                                            <span className="h-2 w-2 rounded-full bg-primary shrink-0 self-center" />
                                         )}
                                     </button>
                                 )

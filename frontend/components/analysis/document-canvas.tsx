@@ -74,7 +74,6 @@ export function DocumentCanvas({
     isFinalizing,
     onFinalize,
     onImproveClick,
-    onOpenChat,
     className,
 }: DocumentCanvasProps) {
     const [isInspectorOpen, setIsInspectorOpen] = React.useState(false)
@@ -84,20 +83,11 @@ export function DocumentCanvas({
         <div className={cn("flex flex-col h-full bg-background", className)}>
             {/* Toolbar — every action here operates on the document itself, so it lives
                 with the document rather than in the outer page chrome. */}
-            <div className="border-b border-foreground/10 px-4 py-3 flex items-center justify-between gap-3 shrink-0">
+            <div className="border-b border-foreground/10 px-4 sm:px-6 py-2 flex items-center justify-between gap-3 shrink-0 bg-muted/5">
                 <div className="min-w-0 flex items-center gap-2">
-                    <span className="font-display text-lg truncate">
-                        {analysis.projectTitle || analysis.title || "Specification"}
+                    <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+                        Document Controls
                     </span>
-                    <span className="shrink-0 px-2 py-0.5 border border-foreground/10 text-xs font-mono">
-                        v{analysis.version}
-                    </span>
-                    {analysis.metadata?.optimized && (
-                        <span className="hidden sm:inline-flex shrink-0 px-2 py-0.5 bg-green-500/10 text-green-600 text-xs rounded-full border border-green-200 items-center gap-1">
-                            <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-                            KB Optimized
-                        </span>
-                    )}
                 </div>
 
                 <div className="flex items-center gap-1 shrink-0">
@@ -386,14 +376,11 @@ export function DocumentCanvas({
             {/* Contextual Next Actions & Continuation Bar */}
             <NextActionsPanel
                 analysis={analysis}
-                onOpenChat={() => onOpenChat && onOpenChat()}
                 onOpenDfdDialog={() => setIsDfdOpen(true)}
                 onOpenCliTraceability={() => {
                     const el = document.getElementById("cli-traceability-section")
                     if (el) el.scrollIntoView({ behavior: "smooth" })
                 }}
-                onFinalize={onFinalize}
-                isFinalizing={isFinalizing}
             />
 
             <div className="flex-1 overflow-y-auto">

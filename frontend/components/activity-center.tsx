@@ -118,7 +118,7 @@ export function ActivityCenter({ open, onOpenChange }: ActivityCenterProps) {
         <>
             <Sheet open={open} onOpenChange={onOpenChange}>
                 <SheetContent className="w-full sm:max-w-lg p-0 flex flex-col h-full">
-                    <SheetHeader className="px-6 py-4 border-b border-foreground/10 shrink-0">
+                    <SheetHeader className="px-6 py-4 border-b border-foreground/10 shrink-0 pr-14">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <div className="p-2 rounded-lg bg-foreground/5 text-foreground">
@@ -353,8 +353,11 @@ function TaskCard({
 
             {/* If failed, show failure reason */}
             {isFailed && task.failureReason && (
-                <div className="rounded bg-destructive/5 border border-destructive/10 p-2 text-xs text-destructive/90">
-                    <p className="line-clamp-2">{task.failureReason}</p>
+                <div className="rounded bg-destructive/5 border border-destructive/10 p-2.5 text-xs text-destructive/90 space-y-1">
+                    <p className="font-medium text-[11px] uppercase tracking-wider text-destructive">Failure Details</p>
+                    <p className="line-clamp-2 break-words">
+                        {task.failureReason.replace(/^Analysis Error:\s*/i, "").replace(/\[GoogleGenerativeAI Error\]:\s*/i, "")}
+                    </p>
                 </div>
             )}
 
