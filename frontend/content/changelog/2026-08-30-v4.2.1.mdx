@@ -11,7 +11,7 @@ Release 4.2.1 transforms SRA into a publication-grade requirements platform. Spe
 
 Alongside export enhancements, this release completes an exhaustive monorepo audit and resolves 22 structural, security, performance, and accessibility findings across the stack.
 
-## 📄 Academic & Enterprise LaTeX & 1-Click Overleaf
+## Academic & Enterprise LaTeX & 1-Click Overleaf
 
 Engineering and academic teams often require formal, typeset documentation for contract bids, compliance filings, and research publications.
 
@@ -21,19 +21,19 @@ SRA now generates complete, standalone LaTeX projects (`.tex`) tailored to all s
 - **Requirement Cards**: Clean, color-coded callout boxes for functional and non-functional specifications.
 - **Overleaf Integration**: Click **"Open in Overleaf"** to instantly launch a compiled, editable project on Overleaf via the official Snip API with zero local LaTeX installation.
 
-## 📑 Executive Print-to-PDF & Modern Typst Engine
+## Executive Print-to-PDF & Modern Typst Engine
 
 - **Executive Print-to-PDF**: A dedicated `<PrintCoverPage />` component and `@media print` styling rules eliminate web chrome, enforce page breaks between major chapters, and produce clean vector PDFs directly from the browser.
 - **Typst Specifications (`.typ`)**: Full support for Typst, the high-speed Rust-based markup and typesetting system.
 - **Multi-Asset ZIP Bundles**: One-click download packaging `.docx`, `.tex`, `.typ`, `.md`, `.json`, and vector diagrams (`.svg`, `.png`, `.mmd`).
 
-## 🔄 Format-Agnostic Generation & Diff Viewer
+## Format-Agnostic Generation & Diff Viewer
 
 The entire generation pipeline is now dynamic across all 4 standards:
 - **Surgical Refinement**: Prompts dynamically adapt to the active standard's section schema.
 - **Deep Version Diff Viewer**: Compare any two versions across custom keys, user stories, stakeholder tables, and requirement shells with fine-grained additions, deletions, and updates.
 
-## 🛡️ Monorepo Audit & 22-Finding System Hardening
+## Monorepo Audit & 22-Finding System Hardening
 
 - **AI Streaming Aborts**: User cancellations and tab closures now propagate an `AbortSignal` directly to LLM provider streams (Gemini, Claude, OpenAI, Grok), stopping token consumption immediately.
 - **Static Page Prerendering**: Removed root layout header dependencies, restoring static generation for landing, marketing, and legal routes.

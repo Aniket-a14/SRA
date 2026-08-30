@@ -4,24 +4,24 @@ All notable changes to this project will be documented in this file.
 
 ## [4.2.1] - 2026-08-30
 
-### 📄 Publication-Grade Multi-Standard Exporters
+### Publication-Grade Multi-Standard Exporters
 - **Added** academic and enterprise **LaTeX (`.tex`)** export engine with `tcolorbox` requirement cards, `booktabs` tables, `fancyhdr` headers/footers, and clean preamble supporting IEEE 830, ISO 29148, Volere, and Agile PRD formats.
 - **Added** **1-click Open in Overleaf** integration via the official Overleaf Snip API.
 - **Added** executive **Print-to-PDF** engine with formal print cover sheets, dynamic metadata, and `@media print` vector stylesheets.
 - **Added** **Typst (`.typ`)** document generator for high-performance Rust-based typesetting.
 - **Added** comprehensive **Multi-Asset ZIP Bundle** packaging Word (`.docx`), LaTeX (`.tex`), Typst (`.typ`), Markdown (`.md`), JSON, and vector diagrams (`.svg`, `.png`, `.mmd`).
 
-### 🔄 Format-Agnostic Generation & Diff Engine
+### Format-Agnostic Generation & Diff Engine
 - **Refactored** surgical refinement prompts (`surgicalRefineService.js`) and reviewer checklists to be 100% format-agnostic across all 4 supported standards.
 - **Upgraded** version comparison (`diffService.js` and `version-diff-viewer.tsx`) to deeply compare and visualize any requirement section schema.
 
-### 🛡️ System Audit Remediation & Hardening (22 Findings)
+### System Audit Remediation & Hardening (22 Findings)
 - **Security**: Enforced production Redis TLS verification, added empty auth header crash guards, and consolidated IDOR checks into scoped `findFirst` Prisma queries.
 - **Cost & Streaming**: Propagated client disconnect `AbortSignal` down to underlying LLM provider streams, eliminating token leaks on tab closures.
 - **Performance**: Restored Next.js 16 static prerendering on marketing and legal pages by eliminating root layout header dependencies, and dynamically loaded below-the-fold landing page components.
 - **CLI & Git Hooks**: Enforced `|| exit 1` in pre-commit hooks, added 1000-iteration ReDoS safety bounds in regex scanner loops, made local spec writebacks atomic, and dropped container privileges to non-root `cliuser`.
 
-### 🩹 Generation reliability
+### Generation reliability
 - **Fixed** finished documents containing no diagrams at all. The reflection loop selects the Appendices section whenever feedback mentions a diagram, a flowchart or an ERD — which the Critic's feedback usually does, and it is the first branch tested — but `refineSRS` mapped a response schema for Shell, Features and Requirements and had no entry for Appendices. That refinement fell through to the *whole-document* schema, so the model was shown one section, asked for an entire SRS, and the result was spread over the draft, dropping the Mermaid models the refinement existed to repair. The section now has its own schema, an unmappable section is refused rather than guessed at, and the merge keeps any diagram a refinement did not return. Long-standing, but invisible until runs stopped being killed mid-loop: the failsafe used to persist the pre-reflection draft, which still had them.
 - **Fixed** analyses that stopped part-way and never finished, leaving the workspace on a stage that never advanced. Everything after the Developer draft — diagram repair, the reflection passes, the final evaluation — ran with no yield point between them, so an invocation that checkpointed its draft just inside the time budget then spent ~2 more minutes unguarded and was killed by the platform at 300s, mid-audit. Production run 2026-07-29: draft checkpointed at 220s, killed at 300s during the second reflection pass. The tail is now checkpointed at every stage boundary, and the budget check reads *forward* (`assertBudgetFor`) — a stage starts only if it fits in the time left, rather than merely because the deadline has not yet passed.
 - **Fixed** re-buying work on resume: a continued run no longer repeats diagram repair or re-audits a reflection pass an earlier invocation already completed.
@@ -30,7 +30,7 @@ All notable changes to this project will be documented in this file.
 - **Fixed** the Reviewer's verdict being read too literally — "Approved" and "APPROVED_WITH_COMMENTS" are not `=== "APPROVED"`, and a signed-off draft was refined anyway.
 - **Raised** the Critic's output budget from `smallJson` to `mediumJson`. Production showed the audit running out of room mid-object, and the brace-balanced remains were then scored as if they were the model's verdict.
 
-### 🖥️ Workspace
+### Workspace
 - **Fixed** the progress view going dead after the tab was backgrounded. The stream is a long-lived response and anything can end it — a backgrounded iOS tab, a sleeping laptop, the function's own time limit — but it was only ever re-opened when the analysis id, the token or the run's active state changed. Coming back to the tab showed a page frozen on the last stage it had heard about, often for a run that had already finished. It now reconnects when the stream drops, immediately on returning to the tab, and backs off while it stays unavailable.
 - **Fixed** the drafting panel filling with duplicated sentences and Mermaid syntax notes while the appendices generated. Diagram syntax explanations are no longer treated as prose, and a sentence restated within one section is shown once.
 - **Fixed** a retry late in a run erasing the whole visible draft. Text is now settled per section, so an abandoned attempt rewinds only the section in flight.
