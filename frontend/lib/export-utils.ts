@@ -317,15 +317,32 @@ export const downloadBundle = async (data: AnalysisResult, title: string) => {
     const { saveAs } = await import('file-saver');
     const zip = new JSZip();
 
-    // 1. Editable Word SRS (IEEE 830 template by default).
+    // 1. Multi-format specification documents.
     try {
         const { captureDiagrams } = await import('@/lib/srs-export/capture');
         const { generateSrsDocx } = await import('@/lib/srs-export/generator');
+        const { exportSrsToMarkdown } = await import('@/lib/srs-export/markdown-export');
+        const { exportSrsToLatex } = await import('@/lib/srs-export/latex-export');
+        const { exportSrsToTypst } = await import('@/lib/srs-export/typst-export');
+
+        // Word DOCX
         const images = await captureDiagrams(data);
         const docBlob = await generateSrsDocx(data, title, 'ieee830', images);
         zip.file("SRS_Report.docx", docBlob);
+
+        // Markdown (.md)
+        const { text: mdText } = exportSrsToMarkdown(data, title);
+        zip.file("SRS_Specification.md", mdText);
+
+        // LaTeX (.tex)
+        const { tex: texSource } = exportSrsToLatex(data, title);
+        zip.file("SRS_Specification.tex", texSource);
+
+        // Typst (.typ)
+        const { typ: typSource } = exportSrsToTypst(data, title);
+        zip.file("SRS_Specification.typ", typSource);
     } catch (e) {
-        console.error("Failed to add SRS document to bundle", e);
+        console.error("Failed to add specification documents to bundle", e);
     }
 
     // 2. Diagram source + rendered assets.

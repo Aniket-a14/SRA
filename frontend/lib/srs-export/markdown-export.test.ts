@@ -34,10 +34,9 @@ describe("exportSrsToMarkdown", () => {
         expect(text).toContain("## 1. Introduction")
         expect(text).toContain("### 1.1 Purpose")
         expect(text).toContain("Provide a secure payment processing infrastructure.")
-        expect(text).toContain("## 3. System Features & Functional Requirements")
-        expect(text).toContain("### 3.1 Credit Card Processing")
-        expect(text).toContain("- **FR-1:** The system shall validate the 16-digit card number")
+        expect(text).toContain("## 4. System Features")
+        expect(text).toContain("### 4.1 Credit Card Processing")
+        expect(text).toContain("- **FR-1.1:** The system shall validate the 16-digit card number")
         expect(text).toContain("```mermaid\ngraph TD\n  A[Start] --> B[Process]\n```")
     })
 })
-

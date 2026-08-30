@@ -276,3 +276,100 @@
   animation: none;
   mix-blend-mode: normal;
 }
+
+/* ==========================================================================
+   Executive Print & PDF Stylesheet
+   ========================================================================== */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 18mm 14mm 20mm 14mm;
+  }
+
+  body {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 10.5pt !important;
+    line-height: 1.6 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide Web Chrome & UI Controls */
+  nav,
+  aside,
+  header:not(.print-header),
+  footer:not(.print-footer),
+  button,
+  [role="tablist"],
+  [role="dialog"],
+  [data-radix-popper-content-wrapper],
+  .no-print {
+    display: none !important;
+  }
+
+  /* Expand Document Container */
+  main,
+  .document-canvas-container,
+  .max-w-4xl {
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Component Break Rules */
+  .break-after-page {
+    break-after: page !important;
+    page-break-after: always !important;
+  }
+
+  .break-before-page {
+    break-before: page !important;
+    page-break-before: always !important;
+  }
+
+  .avoid-page-break,
+  table,
+  tr,
+  figure,
+  .requirement-card,
+  [data-slot="card"] {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Typography for Print */
+  h1, h2, h3, h4 {
+    color: #0f172a !important;
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+  }
+
+  h1 {
+    font-size: 18pt !important;
+    margin-top: 24pt !important;
+    margin-bottom: 12pt !important;
+    border-bottom: 1pt solid #cbd5e1 !important;
+    padding-bottom: 4pt !important;
+  }
+
+  h2 {
+    font-size: 14pt !important;
+    margin-top: 18pt !important;
+    margin-bottom: 8pt !important;
+  }
+
+  h3 {
+    font-size: 12pt !important;
+    margin-top: 14pt !important;
+    margin-bottom: 6pt !important;
+  }
+
+  /* Links */
+  a {
+    color: #0f172a !important;
+    text-decoration: none !important;
+  }
+}

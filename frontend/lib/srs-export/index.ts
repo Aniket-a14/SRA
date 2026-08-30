@@ -4,8 +4,20 @@ import { captureDiagrams } from "./capture";
 import { getFormatSpec, listFormatSpecs, resolveFormatId, DEFAULT_FORMAT_ID } from "@/lib/formats";
 
 import { exportSrsToMarkdown } from "./markdown-export";
+import { exportSrsToLatex } from "./latex-export";
+import { openInOverleaf } from "./overleaf";
+import { exportSrsToTypst } from "./typst-export";
 
-export { listFormatSpecs as listFormats, getFormatSpec as getFormat, resolveFormatId, DEFAULT_FORMAT_ID, exportSrsToMarkdown };
+export {
+    listFormatSpecs as listFormats,
+    getFormatSpec as getFormat,
+    resolveFormatId,
+    DEFAULT_FORMAT_ID,
+    exportSrsToMarkdown,
+    exportSrsToLatex,
+    openInOverleaf,
+    exportSrsToTypst,
+};
 export type { FormatMeta as SrsFormatMeta } from "@/lib/formats";
 
 /**

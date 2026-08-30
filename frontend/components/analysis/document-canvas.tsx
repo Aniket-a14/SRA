@@ -19,7 +19,15 @@ import dynamic from "next/dynamic"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { downloadBundle } from "@/lib/export-utils"
-import { exportSrsToDocx, exportSrsToMarkdown, listFormats } from "@/lib/srs-export"
+import {
+    exportSrsToDocx,
+    exportSrsToMarkdown,
+    exportSrsToLatex,
+    openInOverleaf,
+    exportSrsToTypst,
+    listFormats
+} from "@/lib/srs-export"
+import { PrintCoverPage } from "@/components/analysis/print-cover-page"
 import { updateAnalysis } from "@/lib/analysis-api"
 import type { Analysis, SystemFeature } from "@/types/analysis"
 import { ErrorBoundary } from "@/components/error-boundary"
@@ -212,11 +220,84 @@ export function DocumentCanvas({
                                     ))}
                                 </DropdownMenuSubContent>
                             </DropdownMenuSub>
+                            <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>Export LaTeX (.tex)</DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent>
+                                    <DropdownMenuLabel className="text-xs text-muted-foreground">Choose a standard</DropdownMenuLabel>
+                                    {listFormats().map((fmt) => (
+                                        <DropdownMenuItem
+                                            key={fmt.id}
+                                            onClick={async () => {
+                                                try {
+                                                    const { saveAs } = await import("file-saver");
+                                                    const projectTitle = analysis.projectTitle || analysis.title || "Project_Context";
+                                                    const { tex, filename } = exportSrsToLatex(analysis, projectTitle, fmt.id);
+                                                    const blob = new Blob([tex], { type: "application/x-tex;charset=utf-8" });
+                                                    saveAs(blob, filename);
+                                                    toast.success(`${fmt.name} LaTeX (.tex) downloaded`);
+                                                } catch (err) {
+                                                    console.error("LaTeX Export Failed", err);
+                                                    toast.error("Failed to generate LaTeX document");
+                                                }
+                                            }}
+                                        >
+                                            <div className="flex flex-col">
+                                                <span>{fmt.name}</span>
+                                                <span className="text-xs text-muted-foreground">{fmt.description}</span>
+                                            </div>
+                                        </DropdownMenuItem>
+                                    ))}
+                                </DropdownMenuSubContent>
+                            </DropdownMenuSub>
+                            <DropdownMenuItem
+                                onClick={() => {
+                                    try {
+                                        const projectTitle = analysis.projectTitle || analysis.title || "Project_Context";
+                                        const { tex, filename } = exportSrsToLatex(analysis, projectTitle);
+                                        openInOverleaf(tex, filename);
+                                        toast.success("Opening project in Overleaf...");
+                                    } catch (err) {
+                                        console.error("Overleaf launch failed", err);
+                                        toast.error("Failed to open project in Overleaf");
+                                    }
+                                }}
+                            >
+                                Open in Overleaf ↗
+                            </DropdownMenuItem>
+                            <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>Export Typst (.typ)</DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent>
+                                    <DropdownMenuLabel className="text-xs text-muted-foreground">Choose a standard</DropdownMenuLabel>
+                                    {listFormats().map((fmt) => (
+                                        <DropdownMenuItem
+                                            key={fmt.id}
+                                            onClick={async () => {
+                                                try {
+                                                    const { saveAs } = await import("file-saver");
+                                                    const projectTitle = analysis.projectTitle || analysis.title || "Project_Context";
+                                                    const { typ, filename } = exportSrsToTypst(analysis, projectTitle, fmt.id);
+                                                    const blob = new Blob([typ], { type: "text/plain;charset=utf-8" });
+                                                    saveAs(blob, filename);
+                                                    toast.success(`${fmt.name} Typst downloaded`);
+                                                } catch (err) {
+                                                    console.error("Typst Export Failed", err);
+                                                    toast.error("Failed to generate Typst document");
+                                                }
+                                            }}
+                                        >
+                                            <div className="flex flex-col">
+                                                <span>{fmt.name}</span>
+                                                <span className="text-xs text-muted-foreground">{fmt.description}</span>
+                                            </div>
+                                        </DropdownMenuItem>
+                                    ))}
+                                </DropdownMenuSubContent>
+                            </DropdownMenuSub>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => {
                                 window.print();
                             }}>
-                                Print / PDF Preview
+                                Print / Executive PDF
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={async () => {
                                 try {
@@ -228,7 +309,7 @@ export function DocumentCanvas({
                                     toast.error("Failed to generate Download Bundle");
                                 }
                             }}>
-                                Download Full Bundle (.zip)
+                                Download Complete Bundle (.zip)
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -285,6 +366,9 @@ export function DocumentCanvas({
 
             <div className="flex-1 overflow-y-auto">
                 <div className="flex flex-col gap-4 w-full max-w-5xl mx-auto">
+                    {/* Print-only executive cover page */}
+                    <PrintCoverPage analysis={analysis} title={analysis.projectTitle || analysis.title} />
+
                     <div className="px-4 sm:px-6 pt-4">
                         <SourcesPanel sources={analysis.metadata?.ragSources || []} />
                     </div>
