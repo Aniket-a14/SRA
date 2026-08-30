@@ -325,21 +325,24 @@ export const downloadBundle = async (data: AnalysisResult, title: string) => {
         const { exportSrsToLatex } = await import('@/lib/srs-export/latex-export');
         const { exportSrsToTypst } = await import('@/lib/srs-export/typst-export');
 
+        const { resolveFormatId } = await import('@/lib/formats');
+        const resolvedFormat = resolveFormatId(data);
+
         // Word DOCX
         const images = await captureDiagrams(data);
-        const docBlob = await generateSrsDocx(data, title, 'ieee830', images);
+        const docBlob = await generateSrsDocx(data, title, resolvedFormat, images);
         zip.file("SRS_Report.docx", docBlob);
 
         // Markdown (.md)
-        const { text: mdText } = exportSrsToMarkdown(data, title);
+        const { text: mdText } = exportSrsToMarkdown(data, title, resolvedFormat);
         zip.file("SRS_Specification.md", mdText);
 
         // LaTeX (.tex)
-        const { tex: texSource } = exportSrsToLatex(data, title);
+        const { tex: texSource } = exportSrsToLatex(data, title, resolvedFormat);
         zip.file("SRS_Specification.tex", texSource);
 
         // Typst (.typ)
-        const { typ: typSource } = exportSrsToTypst(data, title);
+        const { typ: typSource } = exportSrsToTypst(data, title, resolvedFormat);
         zip.file("SRS_Specification.typ", typSource);
     } catch (e) {
         console.error("Failed to add specification documents to bundle", e);

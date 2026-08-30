@@ -13,11 +13,12 @@ export function PrintCoverPage({ analysis, title }: PrintCoverPageProps) {
     const resolvedId = resolveFormatId(analysis)
     const spec = getFormatSpec(resolvedId)
     const displayTitle = (title || analysis.projectTitle || "System Requirements Specification").trim()
-    const purpose = typeof analysis.introduction?.purpose === "string" 
-        ? analysis.introduction.purpose 
-        : analysis.introduction?.purpose 
-            ? String((analysis.introduction.purpose as Record<string, unknown>).content || "")
-            : "Formal engineering requirements specification and architecture baseline."
+    const anyData = analysis as unknown as Record<string, unknown>
+    const purpose = 
+        (typeof analysis.introduction?.purpose === "string" ? analysis.introduction.purpose : "") ||
+        (typeof (anyData.overview as Record<string, unknown>)?.vision === "string" ? String((anyData.overview as Record<string, unknown>).vision) : "") ||
+        (typeof (anyData.purpose as Record<string, unknown>)?.businessProblem === "string" ? String((anyData.purpose as Record<string, unknown>).businessProblem) : "") ||
+        "Formal engineering requirements specification and architecture baseline."
 
     return (
         <div className="hidden print:flex flex-col justify-between min-h-[980px] p-8 border-b-2 border-slate-900 mb-8 break-after-page bg-white text-slate-950">
@@ -40,7 +41,7 @@ export function PrintCoverPage({ analysis, title }: PrintCoverPageProps) {
             <div className="my-auto space-y-6">
                 <div className="space-y-2">
                     <div className="text-xs uppercase tracking-widest font-mono text-slate-500 font-semibold">
-                        System Requirements Specification (SRS)
+                        {spec.coverSubtitle}
                     </div>
                     <h1 className="text-4xl font-bold tracking-tight font-display text-slate-950 leading-tight">
                         {displayTitle}
