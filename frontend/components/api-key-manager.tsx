@@ -40,14 +40,15 @@ export function ApiKeyManager() {
     const [generatedKey, setGeneratedKey] = useState<string | null>(null)
     const [isCopying, setIsCopying] = useState(false)
 
-    const fetchKeys = useCallback(async () => {
+    const fetchKeys = useCallback(async (signal?: AbortSignal) => {
         try {
-            const res = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/keys`)
+            const res = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/keys`, { signal })
             if (res.ok) {
                 const data = await res.json()
                 setKeys(data)
             }
-        } catch (error) {
+        } catch (error: unknown) {
+            if ((error as { name?: string })?.name === 'AbortError') return
             console.error(error)
             toast.error("Failed to fetch API keys")
         } finally {
@@ -56,9 +57,10 @@ export function ApiKeyManager() {
     }, [authFetch])
 
     useEffect(() => {
-        if (token) {
-            Promise.resolve().then(() => fetchKeys())
-        }
+        if (!token) return
+        const controller = new AbortController()
+        Promise.resolve().then(() => fetchKeys(controller.signal))
+        return () => controller.abort()
     }, [token, fetchKeys])
 
     const createKey = async () => {

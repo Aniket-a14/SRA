@@ -251,7 +251,9 @@ export async function readSpec(file = SPEC_FILE) {
 }
 
 export async function writeSpec(spec, file = SPEC_FILE) {
-    await fs.writeFile(file, `${JSON.stringify(spec, null, 2)}\n`);
+    const tmpFile = `${file}.${Math.random().toString(36).slice(2, 8)}.tmp`;
+    await fs.writeFile(tmpFile, `${JSON.stringify(spec, null, 2)}\n`);
+    await fs.rename(tmpFile, file);
 }
 
 export async function specExists(file = SPEC_FILE) {

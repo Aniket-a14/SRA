@@ -4,6 +4,7 @@ import React, { useRef } from 'react';
 import { Layers, Download } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { Button } from '@/components/ui/button';
+import { ErrorBoundary } from '@/components/error-boundary';
 import {
     ReactFlow,
     Background,
@@ -291,22 +292,26 @@ export const DFDViewer = ({ data, isExport = false }: { data: DFDInput; isExport
             )}
 
             {data.dfd_level_0 && (
-                <ReactFlowProvider>
-                    <DiagramCanvas
-                        title="DFD Level 0 (Context Diagram)"
-                        data={data.dfd_level_0}
-                        isExport={isExport}
-                    />
-                </ReactFlowProvider>
+                <ErrorBoundary name="DFD Level 0 Diagram">
+                    <ReactFlowProvider>
+                        <DiagramCanvas
+                            title="DFD Level 0 (Context Diagram)"
+                            data={data.dfd_level_0}
+                            isExport={isExport}
+                        />
+                    </ReactFlowProvider>
+                </ErrorBoundary>
             )}
             {data.dfd_level_1 && (
-                <ReactFlowProvider>
-                    <DiagramCanvas
-                        title="DFD Level 1 (Decomposition)"
-                        data={data.dfd_level_1}
-                        isExport={isExport}
-                    />
-                </ReactFlowProvider>
+                <ErrorBoundary name="DFD Level 1 Diagram">
+                    <ReactFlowProvider>
+                        <DiagramCanvas
+                            title="DFD Level 1 (Decomposition)"
+                            data={data.dfd_level_1}
+                            isExport={isExport}
+                        />
+                    </ReactFlowProvider>
+                </ErrorBoundary>
             )}
         </div>
     );

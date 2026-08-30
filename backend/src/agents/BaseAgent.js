@@ -338,10 +338,13 @@ export class BaseAgent {
      * call isn't meaningful — a mid-stream failure just ends the stream with an error.
      */
     async *streamText(prompt, options = {}) {
+        if (options.signal?.aborted) return;
+
         // Mock check before touching this.modelName — see callLLM.
         if (process.env.MOCK_AI === 'true') {
             const mockReply = options.mockText || 'This is a mocked streaming reply.';
             for (const word of mockReply.split(' ')) {
+                if (options.signal?.aborted) break;
                 await new Promise(resolve => setTimeout(resolve, 10));
                 yield `${word} `;
             }
@@ -357,8 +360,10 @@ export class BaseAgent {
                 modelName: this.modelName,
                 systemInstruction: options.systemInstruction,
                 temperature: options.temperature,
+                signal: options.signal,
                 maxOutputTokens: clampOutputTokens(options.maxOutputTokens || this.tokenLimits.mediumJson, this.outputTokenLimit)
             })) {
+                if (options.signal?.aborted) break;
                 yield chunk;
             }
         } catch (error) {

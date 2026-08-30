@@ -120,10 +120,13 @@ const PATTERNS = {
 };
 
 const runPatterns = (patterns, text, sink) => {
+    const MAX_MATCH_ITERATIONS = 1000;
     for (const pattern of patterns) {
         pattern.lastIndex = 0;
         let match;
+        let iterations = 0;
         while ((match = pattern.exec(text)) !== null) {
+            if (++iterations > MAX_MATCH_ITERATIONS) break;
             // The capture holding the value differs by pattern (a verb may come first);
             // the last non-empty group is the name/path in every case above.
             const value = match.slice(1).filter(Boolean).pop();

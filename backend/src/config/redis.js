@@ -11,16 +11,22 @@ const getRedisClient = () => {
             return null;
         }
 
-        redisClient = new Redis(process.env.REDIS_URL, {
-            tls: {
-                rejectUnauthorized: false // Required for some Upstash/cloud configurations if certs are self-signed or handled externally
-            },
+        const isRediss = process.env.REDIS_URL.startsWith('rediss://');
+        const redisOptions = {
             retryStrategy: (times) => {
                 const delay = Math.min(times * 50, 2000);
                 return delay;
             },
             maxRetriesPerRequest: 3 // Fail fast if Redis is down
-        });
+        };
+
+        if (isRediss) {
+            redisOptions.tls = {
+                rejectUnauthorized: process.env.REDIS_TLS_REJECT_UNAUTHORIZED === 'false' ? false : (process.env.NODE_ENV === 'production')
+            };
+        }
+
+        redisClient = new Redis(process.env.REDIS_URL, redisOptions);
 
         redisClient.on('connect', () => {
             log.info('Redis Connected Successfully');

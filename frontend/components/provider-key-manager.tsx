@@ -60,14 +60,15 @@ export function ProviderKeyManager() {
     const [verifiedModels, setVerifiedModels] = useState<DiscoveredModel[] | null>(null)
     const [refreshing, setRefreshing] = useState<AiProvider | null>(null)
 
-    const fetchKeys = useCallback(async () => {
+    const fetchKeys = useCallback(async (signal?: AbortSignal) => {
         try {
-            const res = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/settings/provider-keys`)
+            const res = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/settings/provider-keys`, { signal })
             if (res.ok) {
                 const json = await res.json()
                 setKeys(json.data || json)
             }
-        } catch (error) {
+        } catch (error: unknown) {
+            if ((error as { name?: string })?.name === 'AbortError') return
             console.error(error)
             toast.error("Failed to fetch provider keys")
         } finally {
@@ -76,9 +77,10 @@ export function ProviderKeyManager() {
     }, [authFetch])
 
     useEffect(() => {
-        if (token) {
-            Promise.resolve().then(() => fetchKeys())
-        }
+        if (!token) return
+        const controller = new AbortController()
+        Promise.resolve().then(() => fetchKeys(controller.signal))
+        return () => controller.abort()
     }, [token, fetchKeys])
 
     const configuredProviders = new Set(keys.map(k => k.provider))

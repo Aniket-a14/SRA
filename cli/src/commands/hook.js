@@ -10,11 +10,11 @@ export const SRA_HOOK_BODY = `${SRA_HOOK_START}
 # Ensures linked requirements trace to code before committing.
 if [ -f "./sra.spec.json" ] || [ -f "./.sra/spec.json" ]; then
     if command -v sra >/dev/null 2>&1; then
-        sra check --strict
+        sra check --strict || exit 1
     elif [ -f "./node_modules/.bin/sra" ]; then
-        ./node_modules/.bin/sra check --strict
+        ./node_modules/.bin/sra check --strict || exit 1
     else
-        npx --no-install @sra-srs/sra-cli check --strict
+        npx --no-install @sra-srs/sra-cli check --strict || exit 1
     fi
 fi
 ${SRA_HOOK_END}

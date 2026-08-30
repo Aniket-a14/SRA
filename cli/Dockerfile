@@ -21,9 +21,11 @@ COPY cli ./cli
 
 # Stage 2: Runtime
 FROM base AS runtime
-COPY --from=builder /app /app
+RUN addgroup -g 1001 -S nodejs && adduser -S cliuser -u 1001 -G nodejs
+COPY --from=builder --chown=cliuser:nodejs /app /app
 WORKDIR /app/cli
 RUN pnpm link --global
+USER cliuser
 # docker-compose.yml mounts the host project root at /app/workspace so `sra` commands
 # (check/sync/push resolve paths like sra.spec.json relative to cwd) scan the user's
 # actual project — the container's runtime cwd must match that mount, not the CLI's

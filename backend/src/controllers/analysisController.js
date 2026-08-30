@@ -442,9 +442,13 @@ export const chatStream = async (req, res, next) => {
     });
 
     // Clicking "Stop" client-side aborts the fetch, which surfaces here as 'close' —
-    // stop relaying chunks once that happens rather than writing to a dead response.
+    // stop relaying chunks and immediately abort the underlying LLM stream.
     let aborted = false;
-    req.on('close', () => { aborted = true; });
+    const abortController = new AbortController();
+    req.on('close', () => {
+        aborted = true;
+        abortController.abort();
+    });
 
     const send = (event) => {
         if (aborted) return;
@@ -454,7 +458,7 @@ export const chatStream = async (req, res, next) => {
     try {
         const result = await processChatStream(req.user.userId, id, message, clientMessageId, (chunk) => {
             send({ type: 'chunk', text: chunk });
-        });
+        }, abortController.signal);
         send({ type: 'done', newAnalysisId: result.newAnalysisId });
     } catch (error) {
         // Raw provider error text isn't logged here — some SDKs echo a masked-but-present
@@ -766,7 +770,7 @@ export const finalizeAnalysis = async (req, res, next) => {
 export const validateAnalysis = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const analysis = await prisma.analysis.findUnique({ where: { id, userId: req.user.userId } });
+        const analysis = await prisma.analysis.findFirst({ where: { id, userId: req.user.userId } });
 
         if (!analysis) {
             const error = new Error('Analysis not found');
@@ -922,7 +926,7 @@ export const autoFixValidationIssue = async (req, res, next) => {
             throw error;
         }
 
-        const analysis = await prisma.analysis.findUnique({ where: { id, userId: req.user.userId } });
+        const analysis = await prisma.analysis.findFirst({ where: { id, userId: req.user.userId } });
         if (!analysis) {
             const error = new Error('Analysis not found');
             error.statusCode = 404;

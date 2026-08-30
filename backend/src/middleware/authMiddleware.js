@@ -11,7 +11,13 @@ export const authenticate = async (req, res, next) => {
         return next(error);
     }
 
-    const token = authHeader.split(' ')[1];
+    const token = authHeader.split(' ')[1]?.trim();
+    if (!token) {
+        const error = new Error('Unauthorized access');
+        error.statusCode = 401;
+        return next(error);
+    }
+
     if (token.startsWith('sra_live_')) {
         // API Key Auth
         try {

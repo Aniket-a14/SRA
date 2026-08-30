@@ -37,10 +37,9 @@ export const looksLikeEditRequest = (message) => EDIT_INTENT_PATTERN.test(messag
  * further when this exact send was already processed.
  */
 async function loadChatContext(userId, analysisId, clientMessageId) {
-    const currentAnalysis = await prisma.analysis.findUnique({ where: { id: analysisId } });
+    const currentAnalysis = await prisma.analysis.findFirst({ where: { id: analysisId, userId } });
 
-    if (!currentAnalysis) throw new Error('Analysis not found');
-    if (currentAnalysis.userId !== userId) throw new Error('Unauthorized');
+    if (!currentAnalysis) throw new Error('Analysis not found or unauthorized');
 
     // Dedup: if this exact send was already processed (double-click, retried fetch,
     // browser back/forward replaying the request), return the stored reply instead
@@ -193,7 +192,9 @@ export async function processChat(userId, analysisId, userMessage, clientMessage
  * @param {(chunk: string) => void} onChunk — called for each reply text chunk as it streams
  * @returns {Promise<{reply: string, newAnalysisId: string|null}>}
  */
-export async function processChatStream(userId, analysisId, userMessage, clientMessageId = null, onChunk = () => {}) {
+export async function processChatStream(userId, analysisId, userMessage, clientMessageId = null, onChunk = () => {}, signal = null) {
+    if (signal?.aborted) return { reply: '', newAnalysisId: null };
+
     const context = await loadChatContext(userId, analysisId, clientMessageId);
     if (context.dedupedReply) {
         // Already processed — replay the stored reply as a single chunk so callers
@@ -229,7 +230,8 @@ export async function processChatStream(userId, analysisId, userMessage, clientM
         : Promise.resolve({ updatedAnalysis: null });
 
     let fullReply = '';
-    for await (const chunk of chatAgent.chatStream(srsSnapshot, historyText, userMessage)) {
+    for await (const chunk of chatAgent.chatStream(srsSnapshot, historyText, userMessage, { signal })) {
+        if (signal?.aborted) break;
         fullReply += chunk;
         onChunk(chunk);
     }

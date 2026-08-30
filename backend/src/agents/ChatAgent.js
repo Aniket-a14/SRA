@@ -57,7 +57,7 @@ User: ${userMessage}
      * Streaming conversational half of a chat turn — plain text, no JSON envelope.
      * @returns {AsyncGenerator<string>} text chunks as they arrive
      */
-    chatStream(srsSnapshot, historyText, userMessage) {
+    chatStream(srsSnapshot, historyText, userMessage, options = {}) {
         const prompt = `
 <current_analysis_json>
 ${JSON.stringify(srsSnapshot)}
@@ -76,7 +76,8 @@ User: ${userMessage}
             systemInstruction: CHAT_REPLY_PROMPT,
             temperature: TEMPERATURES.critic,
             maxOutputTokens: this.tokenLimits.srsRefinement,
-            mockText: 'Mocked AI Reply'
+            mockText: 'Mocked AI Reply',
+            ...options
         });
     }
 

@@ -22,6 +22,7 @@ jest.unstable_mockModule('../../src/config/prisma.js', () => ({
     default: {
         analysis: {
             findUnique: mockFindUnique,
+            findFirst: mockFindUnique,
             findMany: mockFindMany
         },
         chatMessage: {

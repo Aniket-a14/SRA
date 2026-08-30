@@ -18,7 +18,7 @@ const txClient = {
 
 jest.unstable_mockModule('../../src/config/prisma.js', () => ({
     default: {
-        analysis: { findUnique: mockFindUnique, findMany: mockFindMany },
+        analysis: { findUnique: mockFindUnique, findFirst: mockFindUnique, findMany: mockFindMany },
         chatMessage: {
             findUnique: mockChatMessageFindUnique,
             findFirst: mockChatMessageFindFirst,
