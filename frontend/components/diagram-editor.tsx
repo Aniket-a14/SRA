@@ -172,7 +172,7 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
                                 </Button>
                             </SheetTrigger>
                             <SheetContent side="right" className="w-full sm:max-w-4xl sm:w-[80vw] flex flex-col h-full p-0">
-                                <div className="p-6 pb-0">
+                                <div className="p-6 pb-0 shrink-0">
                                     <SheetHeader className="mb-4">
                                         <SheetTitle>Edit {title}</SheetTitle>
                                         <SheetDescription>
@@ -187,7 +187,7 @@ export function DiagramEditor({ title, initialCode, syntaxExplanation, onSave, o
                                     )}
                                 </div>
 
-                                <div className="flex-1 overflow-y-auto p-6 pt-0">
+                                <div className="flex-1 min-h-0 overflow-y-auto p-6 pt-0">
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full min-h-[500px]">
                                         <div className="h-full flex flex-col gap-2">
                                             <h4 className="font-medium text-sm">Mermaid Code</h4>

@@ -47,7 +47,7 @@ export function NextActionsPanel({
     }
 
     return (
-        <div className="border-b border-foreground/10 bg-muted/20 px-4 py-3">
+        <div className="border-b border-foreground/10 bg-muted/20 px-4 py-3 shrink-0">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                     <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">

@@ -63,7 +63,7 @@ export function TaskInspectorDialog({
                     </div>
                 </DialogHeader>
 
-                <ScrollArea className="flex-1 p-6">
+                <ScrollArea className="flex-1 min-h-0 p-6">
                     <div className="space-y-6">
                         {/* Status & Version Header */}
                         <div className="p-4 rounded-xl border border-foreground/10 bg-card space-y-3">

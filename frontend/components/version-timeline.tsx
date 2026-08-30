@@ -89,7 +89,7 @@ export function VersionTimeline({ rootId, currentId, className, hideHeader = fal
                     <h3 className="font-semibold">Version History</h3>
                 </div>
             )}
-            <ScrollArea className="flex-1">
+            <ScrollArea className="flex-1 min-h-0">
                 <div className="p-4 space-y-4">
                     {history.map((version, index) => {
                         const isCurrent = version.id === currentId

@@ -94,7 +94,7 @@ export function DFDGenerationDialog({
                     <DialogTitle>Data Flow Diagram (Level 0 & 1)</DialogTitle>
                 </DialogHeader>
 
-                <div className="flex-1 overflow-y-auto p-4 bg-muted/10 rounded-md border text-center">
+                <div className="flex-1 min-h-0 overflow-y-auto p-4 bg-muted/10 rounded-md border text-center">
                     {!data && !isLoading && (
                         <div className="flex flex-col items-center justify-center h-full gap-4">
                             <p className="text-muted-foreground">

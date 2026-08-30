@@ -81,7 +81,7 @@ export function RecyclingPanel({ onApply }: RecyclingPanelProps) {
                 </form>
             </div>
 
-            <div className="flex-1 overflow-auto space-y-3 pr-2">
+            <div className="flex-1 min-h-0 overflow-auto space-y-3 pr-2">
                 {results.length === 0 && !isSearching && (
                     <div className="text-center py-8 border-2 border-dashed rounded-lg bg-muted/5">
                         <Database className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />

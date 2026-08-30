@@ -106,7 +106,7 @@ export function DocumentCanvas({
                         size="icon"
                         onClick={() => setIsInspectorOpen(true)}
                         aria-label="Execution Inspector"
-                        title="Execution & Manufacturing Inspector"
+                        title="Task & Execution Inspector"
                     >
                         <Activity className="h-4 w-4 text-emerald-500" />
                     </Button>
