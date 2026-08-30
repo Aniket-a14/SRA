@@ -359,9 +359,9 @@ sra auth login
 \`\`\`
 Opens your default browser to authorize the CLI session and stores a secure session token locally in \`~/.sra/config.json\`.
 
-**Method 2: Long-Lived API Key (CI/CD Pipelines)**
+**Method 2: Non-Interactive Authentication (CI/CD Pipelines)**
 \`\`\`bash
-export SRA_API_KEY="sra_live_xxxxxxxxxxxxxxxx"
+sra auth login --token $AUTH_SECRET
 sra auth whoami
 \`\`\``
                     }
@@ -458,7 +458,7 @@ Ensure no Pull Request merges without verifying that modified code complies with
 All REST API endpoints require standard Bearer token authorization:
 
 \`\`\`http
-Authorization: Bearer <JWT_TOKEN | sra_live_xxxxxxxx>
+Authorization: Bearer <ACCESS_TOKEN>
 Content-Type: application/json
 \`\`\`
 
@@ -493,17 +493,17 @@ Standard responses follow the unified envelope:
                                 {
                                     label: "cURL",
                                     language: "bash",
-                                    code: `curl -X POST https://sra-backend.onrender.com/api/analyze \\\n  -H "Authorization: Bearer sra_live_xxx" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "inputText": "Design an automated incident response platform...",\n    "projectTitle": "OpsBridge",\n    "format": "ieee830"\n  }'`
+                                    code: `curl -X POST https://sra-backend.onrender.com/api/analyze \\\n  -H "Authorization: Bearer $AUTH_TOKEN" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "inputText": "Design an automated incident response platform...",\n    "projectTitle": "OpsBridge",\n    "format": "ieee830"\n  }'`
                                 },
                                 {
                                     label: "TypeScript",
                                     language: "typescript",
-                                    code: `const response = await fetch("https://sra-backend.onrender.com/api/analyze", {\n  method: "POST",\n  headers: {\n    "Authorization": "Bearer sra_live_xxx",\n    "Content-Type": "application/json"\n  },\n  body: JSON.stringify({\n    inputText: "Design an automated incident response platform...",\n    projectTitle: "OpsBridge",\n    format: "ieee830"\n  })\n});\nconst result = await response.json();`
+                                    code: `const response = await fetch("https://sra-backend.onrender.com/api/analyze", {\n  method: "POST",\n  headers: {\n    "Authorization": \`Bearer \${authToken}\`,\n    "Content-Type": "application/json"\n  },\n  body: JSON.stringify({\n    inputText: "Design an automated incident response platform...",\n    projectTitle: "OpsBridge",\n    format: "ieee830"\n  })\n});\nconst result = await response.json();`
                                 },
                                 {
                                     label: "Python",
                                     language: "python",
-                                    code: `import requests\n\nres = requests.post(\n    "https://sra-backend.onrender.com/api/analyze",\n    headers={"Authorization": "Bearer sra_live_xxx"},\n    json={\n        "inputText": "Design an automated incident response platform...",\n        "projectTitle": "OpsBridge",\n        "format": "ieee830"\n    }\n)\ndata = res.json()`
+                                    code: `import requests\n\nres = requests.post(\n    "https://sra-backend.onrender.com/api/analyze",\n    headers={"Authorization": f"Bearer {auth_token}"},\n    json={\n        "inputText": "Design an automated incident response platform...",\n        "projectTitle": "OpsBridge",\n        "format": "ieee830"\n    }\n)\ndata = res.json()`
                                 }
                             ]
                         }
