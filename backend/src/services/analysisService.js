@@ -892,6 +892,7 @@ export const getUserAnalyses = async (userId) => {
             SELECT DISTINCT ON ("rootId")
                 id,
                 "createdAt",
+                "updatedAt",
                 LEFT("inputText", 500) AS "inputText",
                 version,
                 title,

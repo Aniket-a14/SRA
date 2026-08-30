@@ -12,6 +12,7 @@ import { CheckCircle2, AlertCircle, Sparkles, ArrowRight } from "lucide-react"
 interface AnalysisItem {
     id: string
     createdAt: string
+    updatedAt?: string
     title?: string
     inputPreview?: string
     status?: string
@@ -64,12 +65,12 @@ export function WelcomeBackNotifier() {
                 return
             }
 
-            // Find analyses created before lastSeen or running during lastSeen that completed/failed after lastSeen
+            // Find analyses that reached COMPLETED or FAILED while the user was away
             const changedWhileAway = historyData.filter(item => {
-                const itemTime = new Date(item.createdAt).getTime()
+                const itemTime = item.updatedAt ? new Date(item.updatedAt).getTime() : new Date(item.createdAt).getTime()
                 const status = (item.status || "").toUpperCase()
                 const isFinished = status === "COMPLETED" || status === "FAILED"
-                return isFinished && itemTime >= lastSeenTime - 300000 // 5m buffer
+                return isFinished && itemTime >= lastSeenTime
             })
 
             if (changedWhileAway.length > 0) {
