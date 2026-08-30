@@ -30,4 +30,3 @@ export function openInOverleaf(texContent: string, documentName = "main.tex"): v
     form.submit();
     document.body.removeChild(form);
 }
-

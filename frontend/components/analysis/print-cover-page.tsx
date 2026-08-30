@@ -14,7 +14,7 @@ export function PrintCoverPage({ analysis, title }: PrintCoverPageProps) {
     const spec = getFormatSpec(resolvedId)
     const displayTitle = (title || analysis.projectTitle || "System Requirements Specification").trim()
     const anyData = analysis as unknown as Record<string, unknown>
-    const purpose = 
+    const purpose =
         (typeof analysis.introduction?.purpose === "string" ? analysis.introduction.purpose : "") ||
         (typeof (anyData.overview as Record<string, unknown>)?.vision === "string" ? String((anyData.overview as Record<string, unknown>).vision) : "") ||
         (typeof (anyData.purpose as Record<string, unknown>)?.businessProblem === "string" ? String((anyData.purpose as Record<string, unknown>).businessProblem) : "") ||
@@ -89,4 +89,3 @@ export function PrintCoverPage({ analysis, title }: PrintCoverPageProps) {
         </div>
     )
 }
-

@@ -89,4 +89,3 @@ describe('Audit Log Controller & Service', () => {
         expect(report.securityAlerts[0].action).toBe('SUSPICIOUS_ACTIVITY');
     });
 });
-
