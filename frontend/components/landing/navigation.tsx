@@ -13,6 +13,7 @@ const navLinks = [
   { name: "How it works", href: "/#how-it-works" },
   { name: "Architecture", href: "/#architecture" },
   { name: "CLI", href: "/#developers" },
+  { name: "Docs", href: "/docs" },
   { name: "Changelog", href: "/changelog" },
 ];
 
