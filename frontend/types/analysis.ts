@@ -160,6 +160,8 @@ export interface AnalysisResult {
 export interface Analysis extends AnalysisResult {
     id: string
     userId: string
+    resultQuality?: string
+    knowledgeChunks?: unknown[]
     inputText?: string
     resultJson?: AnalysisResult
     version: number

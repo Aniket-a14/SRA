@@ -4,7 +4,7 @@ import { jest } from '@jest/globals';
 // that key, so a new run stayed invisible until the cache aged out. Asserting on the Redis
 // DEL rather than on a return value, because the absent call *is* the bug.
 
-const CACHE_KEY = (userId) => `user:analyses:${userId}`;
+const CACHE_KEY = (userId) => `user:analyses:v2:${userId}`;
 
 const redisDel = jest.fn();
 const analysisUpdate = jest.fn();

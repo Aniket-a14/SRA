@@ -53,7 +53,7 @@ const invalidateUserAnalysesCache = async (userId) => {
     const redis = getRedisClient();
     if (!redis) return;
     try {
-        await redis.del(`user:analyses:${userId}`);
+        await redis.del(`user:analyses:v2:${userId}`);
     } catch (error) {
         logger.warn({ msg: "Non-critical: failed to invalidate user analyses cache", error: error.message, userId });
     }
@@ -868,7 +868,7 @@ export const getUserAnalyses = async (userId) => {
 
     // 0. Cache Check
     const redis = getRedisClient();
-    const CACHE_KEY = `user:analyses:${userId}`;
+    const CACHE_KEY = `user:analyses:v2:${userId}`;
 
     if (redis) {
         try {
@@ -892,6 +892,7 @@ export const getUserAnalyses = async (userId) => {
             SELECT DISTINCT ON ("rootId")
                 id,
                 "createdAt",
+                "updatedAt",
                 LEFT("inputText", 500) AS "inputText",
                 version,
                 title,
@@ -899,6 +900,7 @@ export const getUserAnalyses = async (userId) => {
                 "resultQuality",
                 "rootId",
                 "parentId",
+                "projectId",
                 metadata
             FROM "Analysis"
             WHERE "userId" = ${userId}

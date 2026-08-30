@@ -1,6 +1,6 @@
 {
     "name": "sra-monorepo",
-    "version": "4.2.1",
+    "version": "4.2.2",
     "private": true,
     "description": "SRA Monorepo - Frontend, Backend, and CLI",
     "scripts": {

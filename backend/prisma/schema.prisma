@@ -174,7 +174,7 @@ model Analysis {
 model Account {
   id                String  @id @default(uuid())
   userId            String
-  type              String
+  type              String? @default("oauth")
   provider          String
   providerAccountId String
   access_token      String?

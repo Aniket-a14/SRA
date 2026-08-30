@@ -15,15 +15,45 @@ import { generateDFD } from "@/lib/analysis-api"
 import { useAuth } from "@/lib/auth-context"
 import DFDViewer, { DFDInput } from "@/components/DFDViewer"
 
-interface DFDGenerationDialogProps {
+interface BaseDFDGenerationDialogProps {
     projectName: string
     description: string
     srsContent?: string
+    trigger?: React.ReactElement | null
 }
 
-export function DFDGenerationDialog({ projectName, description, srsContent }: DFDGenerationDialogProps) {
+interface ControlledDFDGenerationDialogProps extends BaseDFDGenerationDialogProps {
+    open: boolean
+    onOpenChange: (open: boolean) => void
+}
+
+interface UncontrolledDFDGenerationDialogProps extends BaseDFDGenerationDialogProps {
+    open?: never
+    onOpenChange?: never
+}
+
+export type DFDGenerationDialogProps = ControlledDFDGenerationDialogProps | UncontrolledDFDGenerationDialogProps
+
+export function DFDGenerationDialog({
+    projectName,
+    description,
+    srsContent,
+    open: controlledOpen,
+    onOpenChange: setControlledOpen,
+    trigger,
+}: DFDGenerationDialogProps) {
     const { token } = useAuth()
-    const [isOpen, setIsOpen] = useState(false)
+    const [internalOpen, setInternalOpen] = useState(false)
+    const isControlled = controlledOpen !== undefined
+    const isOpen = isControlled ? controlledOpen : internalOpen
+    const setIsOpen = (nextOpen: boolean) => {
+        if (setControlledOpen) {
+            setControlledOpen(nextOpen)
+        } else {
+            setInternalOpen(nextOpen)
+        }
+    }
+
     const [isLoading, setIsLoading] = useState(false)
     const [data, setData] = useState<DFDInput | null>(null)
 
@@ -49,12 +79,16 @@ export function DFDGenerationDialog({ projectName, description, srsContent }: DF
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2">
-                    <Network className="h-4 w-4" />
-                    Generate DFD (React Flow)
-                </Button>
-            </DialogTrigger>
+            {trigger !== null && (
+                <DialogTrigger asChild>
+                    {trigger || (
+                        <Button variant="outline" className="gap-2">
+                            <Network className="h-4 w-4" />
+                            Generate DFD (React Flow)
+                        </Button>
+                    )}
+                </DialogTrigger>
+            )}
             <DialogContent className="max-w-[90vw] h-[90vh] flex flex-col">
                 <DialogHeader>
                     <DialogTitle>Data Flow Diagram (Level 0 & 1)</DialogTitle>

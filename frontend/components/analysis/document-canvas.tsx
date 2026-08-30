@@ -14,7 +14,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Download, Sparkles, Database, Loader2, X, History, Zap } from "lucide-react"
+import { Download, Sparkles, Database, Loader2, X, History, Zap, Activity } from "lucide-react"
 import dynamic from "next/dynamic"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -35,6 +35,10 @@ import { SourcesPanel } from "@/components/analysis/sources-panel"
 import { CliTraceabilityPanel } from "@/components/analysis/cli-traceability-panel"
 import { FormatResults } from "@/components/analysis/format-results"
 import { getFormatSpec, resolveFormatId } from "@/lib/formats"
+import { TaskInspectorDialog } from "@/components/analysis/task-inspector-dialog"
+import { NextActionsPanel } from "@/components/analysis/next-actions-panel"
+import { DFDGenerationDialog } from "@/components/analysis/dfd-generation-dialog"
+import * as React from "react"
 
 const ResultsTabs = dynamic(() => import("@/components/results-tabs").then(mod => mod.ResultsTabs), {
     loading: () => <div className="h-[600px] w-full bg-muted/5 animate-pulse" />
@@ -55,6 +59,7 @@ interface DocumentCanvasProps {
     isFinalizing: boolean
     onFinalize: () => void
     onImproveClick: () => void
+    onOpenChat?: () => void
     className?: string
 }
 
@@ -69,8 +74,12 @@ export function DocumentCanvas({
     isFinalizing,
     onFinalize,
     onImproveClick,
+    onOpenChat,
     className,
 }: DocumentCanvasProps) {
+    const [isInspectorOpen, setIsInspectorOpen] = React.useState(false)
+    const [isDfdOpen, setIsDfdOpen] = React.useState(false)
+
     return (
         <div className={cn("flex flex-col h-full bg-background", className)}>
             {/* Toolbar — every action here operates on the document itself, so it lives
@@ -92,6 +101,16 @@ export function DocumentCanvas({
                 </div>
 
                 <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setIsInspectorOpen(true)}
+                        aria-label="Execution Inspector"
+                        title="Execution & Manufacturing Inspector"
+                    >
+                        <Activity className="h-4 w-4 text-emerald-500" />
+                    </Button>
+
                     {analysis.rootId && (
                         <Sheet>
                             <SheetTrigger asChild>
@@ -364,6 +383,19 @@ export function DocumentCanvas({
                 </div>
             </div>
 
+            {/* Contextual Next Actions & Continuation Bar */}
+            <NextActionsPanel
+                analysis={analysis}
+                onOpenChat={() => onOpenChat && onOpenChat()}
+                onOpenDfdDialog={() => setIsDfdOpen(true)}
+                onOpenCliTraceability={() => {
+                    const el = document.getElementById("cli-traceability-section")
+                    if (el) el.scrollIntoView({ behavior: "smooth" })
+                }}
+                onFinalize={onFinalize}
+                isFinalizing={isFinalizing}
+            />
+
             <div className="flex-1 overflow-y-auto">
                 <div className="flex flex-col gap-4 w-full max-w-5xl mx-auto">
                     {/* Print-only executive cover page */}
@@ -375,7 +407,7 @@ export function DocumentCanvas({
                     {/* Above the document body, and outside the format switch on purpose:
                         CLI traceability lives in metadata, so it renders identically for
                         every format instead of only for IEEE's feature section. */}
-                    <div className="px-4 sm:px-6">
+                    <div id="cli-traceability-section" className="px-4 sm:px-6">
                         <CliTraceabilityPanel traceability={analysis.metadata?.cliTraceability} />
                     </div>
                     <ErrorBoundary name="Results View">
@@ -394,6 +426,23 @@ export function DocumentCanvas({
                     </ErrorBoundary>
                 </div>
             </div>
+
+            {/* Task & Manufacturing Execution Inspector */}
+            <TaskInspectorDialog
+                analysis={analysis}
+                open={isInspectorOpen}
+                onOpenChange={setIsInspectorOpen}
+            />
+
+            {/* DFD Generator Dialog */}
+            <DFDGenerationDialog
+                projectName={analysis.projectTitle || analysis.title || "Specification"}
+                description={analysis.inputText || ""}
+                srsContent={JSON.stringify(analysis.resultJson)}
+                open={isDfdOpen}
+                onOpenChange={setIsDfdOpen}
+                trigger={null}
+            />
         </div>
     )
 }

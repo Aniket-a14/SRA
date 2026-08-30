@@ -25,6 +25,8 @@ import {
     Folder,
     Settings,
     LogOut,
+    Search,
+    Activity,
 } from "lucide-react"
 import { useLayer } from "@/lib/layer-context"
 import { useRouter, useParams } from "next/navigation"
@@ -38,6 +40,8 @@ import { useMemo } from "react"
 type AppSidebarProps = React.HTMLAttributes<HTMLDivElement> & {
     /** Rendered inside the mobile drawer (Sheet) rather than the fixed desktop rail. */
     inSheet?: boolean
+    onOpenCommandPalette?: () => void
+    onOpenActivityCenter?: () => void
 }
 
 interface AnalysisHistoryItem {
@@ -73,7 +77,12 @@ function getInitials(name: string) {
         .slice(0, 2)
 }
 
-export function AppSidebar({ className, inSheet = false }: AppSidebarProps) {
+export function AppSidebar({
+    className,
+    inSheet = false,
+    onOpenCommandPalette,
+    onOpenActivityCenter
+}: AppSidebarProps) {
     const { currentLayer, setLayer, isLayerLocked, maxAllowedLayer, isFinalized } = useLayer()
     const router = useRouter()
     const params = useParams()
@@ -96,6 +105,13 @@ export function AppSidebar({ className, inSheet = false }: AppSidebarProps) {
     })
 
     const history = useMemo(() => (Array.isArray(historyData) ? historyData : []), [historyData])
+
+    const runningCount = useMemo(() => {
+        return history.filter(item => {
+            const s = (item.status || "").toUpperCase()
+            return s === "PENDING" || s === "IN_PROGRESS" || s === "QUEUED"
+        }).length
+    }, [history])
 
     // Analyses finish server-side minutes after they are started, often while the user is
     // on another page. This watches the list already being polled above and announces the
@@ -136,6 +152,37 @@ export function AppSidebar({ className, inSheet = false }: AppSidebarProps) {
                     <Plus className="h-4 w-4" />
                     New analysis
                 </Button>
+
+                {/* Quick Search & Activity Center Launcher */}
+                <div className="flex items-center gap-1.5 mt-2">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex-1 justify-between px-2.5 h-8 text-xs text-muted-foreground hover:text-foreground border border-foreground/10"
+                        onClick={() => onOpenCommandPalette && onOpenCommandPalette()}
+                    >
+                        <span className="flex items-center gap-1.5">
+                            <Search className="h-3.5 w-3.5" />
+                            Search
+                        </span>
+                        <kbd className="pointer-events-none inline-flex h-4 select-none items-center gap-0.5 rounded border bg-muted px-1 font-mono text-[9px] font-medium text-muted-foreground opacity-100">
+                            ⌘K
+                        </kbd>
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground border border-foreground/10 relative"
+                        title="Activity & Tasks"
+                        aria-label="Activity and tasks"
+                        onClick={() => onOpenActivityCenter && onOpenActivityCenter()}
+                    >
+                        <Activity className="h-3.5 w-3.5" />
+                        {runningCount > 0 && (
+                            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                        )}
+                    </Button>
+                </div>
             </div>
 
             <ScrollArea className="flex-1">
