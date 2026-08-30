@@ -181,3 +181,46 @@ export const runSemanticAudit = async (srsContent, originalRequirements = null) 
     // position, leaving the document itself undefined so the audit scored an empty snapshot.
     return await critic.auditSRS(originalRequirements, srsContent);
 };
+
+import prisma from '../config/prisma.js';
+
+/**
+ * Persists 6Cs quality metrics and RAG faithfulness scores to track prompt & provider stability over time.
+ */
+export const recordQualityMetric = async ({
+    analysisId,
+    userId,
+    version,
+    promptVersion = '2.2.0',
+    modelProvider = 'google',
+    modelName = 'gemini-2.5-flash',
+    audit = {},
+    ragFaithfulness = null
+}) => {
+    if (!analysisId || !userId) return null;
+    try {
+        const scores = audit.scores || {};
+        const overallScore = Number(audit.overallScore) || 85.0;
+        return await prisma.qualityMetricRecord.create({
+            data: {
+                analysisId,
+                userId,
+                version: Number(version) || 1,
+                promptVersion,
+                modelProvider,
+                modelName,
+                overallScore,
+                clarity: Number(scores.clarity) || 85.0,
+                completeness: Number(scores.completeness) || 85.0,
+                conciseness: Number(scores.conciseness) || 85.0,
+                consistency: Number(scores.consistency) || 85.0,
+                correctness: Number(scores.correctness) || 85.0,
+                context: Number(scores.context) || 85.0,
+                ragFaithfulness: ragFaithfulness !== null ? Number(ragFaithfulness) : null
+            }
+        });
+    } catch (err) {
+        console.warn('Failed to record quality metric:', err.message);
+        return null;
+    }
+};

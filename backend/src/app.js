@@ -82,11 +82,8 @@ app.use(cors({
 }));
 
 app.use(express.json({
-    limit: '10mb',
-    verify: (req, res, buf) => {
-        req.rawBody = buf;
-    }
-})); // Increase limit for large SRS data
+    limit: '15mb'
+}));
 
 app.use('/api/health', healthRoutes);
 

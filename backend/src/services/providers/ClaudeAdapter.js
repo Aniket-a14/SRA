@@ -51,7 +51,7 @@ export class ClaudeAdapter {
     }
 
     /** Token stream: plain text for chat replies, JSON for the live SRS drafting view. */
-    async *generateContentStream({ prompt, systemInstruction, temperature, maxOutputTokens, jsonMode, modelName }) {
+    async *generateContentStream({ prompt, systemInstruction, temperature, maxOutputTokens, jsonMode, modelName, signal }) {
         const stream = this.client.messages.stream({
             model: modelName || DEFAULT_MODEL(),
             max_tokens: maxOutputTokens || 4096,
@@ -66,7 +66,7 @@ export class ClaudeAdapter {
                         : prompt
                 }
             ]
-        });
+        }, { signal });
 
         this.lastRateLimit = null;
 

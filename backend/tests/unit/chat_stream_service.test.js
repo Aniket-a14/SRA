@@ -48,7 +48,8 @@ jest.unstable_mockModule('../../src/utils/promptCompaction.js', () => ({
 }));
 
 jest.unstable_mockModule('../../src/config/logger.js', () => ({
-    default: { info: jest.fn(), warn: jest.fn(), error: jest.fn() }
+    default: { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() },
+    REDACTED_PATHS: []
 }));
 
 const { processChatStream, looksLikeEditRequest } = await import('../../src/services/chatService.js');
@@ -105,7 +106,7 @@ describe('processChatStream', () => {
         expect(result.newAnalysisId).toBeNull();
         expect(mockProposeEdit).not.toHaveBeenCalled();
         expect(mockChatMessageCreate).toHaveBeenCalledWith({
-            data: { analysisId: 'analysis-1', role: 'assistant', content: 'The answer is X.' }
+            data: { analysisId: 'analysis-1', userId: 'user-1', role: 'assistant', content: 'The answer is X.' }
         });
     });
 

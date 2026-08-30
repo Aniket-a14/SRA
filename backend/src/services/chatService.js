@@ -89,20 +89,49 @@ function configuredGeminiModel() {
  * Persists the turn (dedup-safe) and, if an edit was produced, creates a new
  * versioned analysis record. Shared tail end of both processChat and processChatStream.
  */
+import { getRedisClient } from '../config/redis.js';
+
+/**
+ * Acquire distributed single-flight mutex for chat turns
+ */
+export async function acquireChatLock(clientMessageId) {
+    if (!clientMessageId) return null;
+    const redis = getRedisClient();
+    if (!redis) return null;
+    try {
+        const lockKey = `lock:chat:${clientMessageId}`;
+        const acquired = await redis.set(lockKey, 'in_flight', 'PX', 45000, 'NX');
+        return acquired ? lockKey : null;
+    } catch {
+        return null;
+    }
+}
+
+export async function releaseChatLock(lockKey) {
+    if (!lockKey) return;
+    const redis = getRedisClient();
+    if (!redis) return;
+    try {
+        await redis.del(lockKey);
+    } catch (_err) {
+        // Ignore lock release error on teardown
+    }
+}
+
 async function finalizeChatTurn(userId, currentAnalysis, userMessage, clientMessageId, replyText, updatedAnalysis) {
     if (clientMessageId) {
         await prisma.chatMessage.upsert({
             where: { clientMessageId },
-            create: { analysisId: currentAnalysis.id, role: 'user', content: userMessage, clientMessageId },
+            create: { analysisId: currentAnalysis.id, userId, role: 'user', content: userMessage, clientMessageId },
             update: {}
         });
     } else {
         await prisma.chatMessage.create({
-            data: { analysisId: currentAnalysis.id, role: 'user', content: userMessage }
+            data: { analysisId: currentAnalysis.id, userId, role: 'user', content: userMessage }
         });
     }
     await prisma.chatMessage.create({
-        data: { analysisId: currentAnalysis.id, role: 'assistant', content: replyText }
+        data: { analysisId: currentAnalysis.id, userId, role: 'assistant', content: replyText }
     });
 
     let newAnalysisId = null;
@@ -154,33 +183,38 @@ async function finalizeChatTurn(userId, currentAnalysis, userMessage, clientMess
  *    resultJson, cutting prompt size from 50KB+ down to ~6-8KB per turn.
  */
 export async function processChat(userId, analysisId, userMessage, clientMessageId = null) {
-    const context = await loadChatContext(userId, analysisId, clientMessageId);
-    if (context.dedupedReply) return context.dedupedReply;
-    const { currentAnalysis, historyText, srsSnapshot } = context;
+    const lockKey = await acquireChatLock(clientMessageId);
+    try {
+        const context = await loadChatContext(userId, analysisId, clientMessageId);
+        if (context.dedupedReply) return context.dedupedReply;
+        const { currentAnalysis, historyText, srsSnapshot } = context;
 
-    const chatAgent = new ChatAgent(await resolveChatProvider(userId, currentAnalysis));
-    let parsedResponse;
+        const chatAgent = new ChatAgent(await resolveChatProvider(userId, currentAnalysis));
+        let parsedResponse;
 
-    if (process.env.MOCK_AI === 'true') {
-        parsedResponse = {
-            reply: 'Mocked AI Reply',
-            updatedAnalysis: {
-                projectTitle: 'Mocked V2',
-                functionalRequirements: ['New Reqs'],
-                nonFunctionalRequirements: [],
-                userStories: []
-            }
+        if (process.env.MOCK_AI === 'true') {
+            parsedResponse = {
+                reply: 'Mocked AI Reply',
+                updatedAnalysis: {
+                    projectTitle: 'Mocked V2',
+                    functionalRequirements: ['New Reqs'],
+                    nonFunctionalRequirements: [],
+                    userStories: []
+                }
+            };
+        } else {
+            parsedResponse = await chatAgent.chat(srsSnapshot, historyText, userMessage);
+        }
+
+        const newAnalysisId = await finalizeChatTurn(userId, currentAnalysis, userMessage, clientMessageId, parsedResponse.reply, parsedResponse.updatedAnalysis);
+
+        return {
+            reply: parsedResponse.reply,
+            newAnalysisId // If present, frontend should redirect/refresh to the new version
         };
-    } else {
-        parsedResponse = await chatAgent.chat(srsSnapshot, historyText, userMessage);
+    } finally {
+        await releaseChatLock(lockKey);
     }
-
-    const newAnalysisId = await finalizeChatTurn(userId, currentAnalysis, userMessage, clientMessageId, parsedResponse.reply, parsedResponse.updatedAnalysis);
-
-    return {
-        reply: parsedResponse.reply,
-        newAnalysisId // If present, frontend should redirect/refresh to the new version
-    };
 }
 
 /**
@@ -195,49 +229,54 @@ export async function processChat(userId, analysisId, userMessage, clientMessage
 export async function processChatStream(userId, analysisId, userMessage, clientMessageId = null, onChunk = () => {}, signal = null) {
     if (signal?.aborted) return { reply: '', newAnalysisId: null };
 
-    const context = await loadChatContext(userId, analysisId, clientMessageId);
-    if (context.dedupedReply) {
-        // Already processed — replay the stored reply as a single chunk so callers
-        // that expect at least one onChunk invocation still render something.
-        if (context.dedupedReply.reply) onChunk(context.dedupedReply.reply);
-        return context.dedupedReply;
+    const lockKey = await acquireChatLock(clientMessageId);
+    try {
+        const context = await loadChatContext(userId, analysisId, clientMessageId);
+        if (context.dedupedReply) {
+            // Already processed — replay the stored reply as a single chunk so callers
+            // that expect at least one onChunk invocation still render something.
+            if (context.dedupedReply.reply) onChunk(context.dedupedReply.reply);
+            return context.dedupedReply;
+        }
+        const { currentAnalysis, historyText, srsSnapshot } = context;
+
+        const chatAgent = new ChatAgent(await resolveChatProvider(userId, currentAnalysis));
+        const shouldProposeEdit = looksLikeEditRequest(userMessage);
+
+        if (process.env.MOCK_AI === 'true') {
+            const mockReply = 'Mocked AI Reply';
+            for (const word of mockReply.split(' ')) onChunk(`${word} `);
+            const updatedAnalysis = shouldProposeEdit ? {
+                projectTitle: 'Mocked V2',
+                functionalRequirements: ['New Reqs'],
+                nonFunctionalRequirements: [],
+                userStories: []
+            } : null;
+            const newAnalysisId = await finalizeChatTurn(userId, currentAnalysis, userMessage, clientMessageId, mockReply, updatedAnalysis);
+            return { reply: mockReply, newAnalysisId };
+        }
+
+        // Fire the edit-detection/production call in parallel with the stream — it's a
+        // completely separate AI call so it doesn't have to wait for streaming to finish.
+        const editPromise = shouldProposeEdit
+            ? chatAgent.proposeEdit(srsSnapshot, historyText, userMessage).catch(err => {
+                logger.warn({ msg: '[Chat Service] proposeEdit failed (non-fatal — reply still streams)', error: err.message });
+                return { updatedAnalysis: null };
+            })
+            : Promise.resolve({ updatedAnalysis: null });
+
+        let fullReply = '';
+        for await (const chunk of chatAgent.chatStream(srsSnapshot, historyText, userMessage, { signal })) {
+            if (signal?.aborted) break;
+            fullReply += chunk;
+            onChunk(chunk);
+        }
+
+        const { updatedAnalysis } = await editPromise;
+        const newAnalysisId = await finalizeChatTurn(userId, currentAnalysis, userMessage, clientMessageId, fullReply, updatedAnalysis);
+
+        return { reply: fullReply, newAnalysisId };
+    } finally {
+        await releaseChatLock(lockKey);
     }
-    const { currentAnalysis, historyText, srsSnapshot } = context;
-
-    const chatAgent = new ChatAgent(await resolveChatProvider(userId, currentAnalysis));
-    const shouldProposeEdit = looksLikeEditRequest(userMessage);
-
-    if (process.env.MOCK_AI === 'true') {
-        const mockReply = 'Mocked AI Reply';
-        for (const word of mockReply.split(' ')) onChunk(`${word} `);
-        const updatedAnalysis = shouldProposeEdit ? {
-            projectTitle: 'Mocked V2',
-            functionalRequirements: ['New Reqs'],
-            nonFunctionalRequirements: [],
-            userStories: []
-        } : null;
-        const newAnalysisId = await finalizeChatTurn(userId, currentAnalysis, userMessage, clientMessageId, mockReply, updatedAnalysis);
-        return { reply: mockReply, newAnalysisId };
-    }
-
-    // Fire the edit-detection/production call in parallel with the stream — it's a
-    // completely separate AI call so it doesn't have to wait for streaming to finish.
-    const editPromise = shouldProposeEdit
-        ? chatAgent.proposeEdit(srsSnapshot, historyText, userMessage).catch(err => {
-            logger.warn({ msg: '[Chat Service] proposeEdit failed (non-fatal — reply still streams)', error: err.message });
-            return { updatedAnalysis: null };
-        })
-        : Promise.resolve({ updatedAnalysis: null });
-
-    let fullReply = '';
-    for await (const chunk of chatAgent.chatStream(srsSnapshot, historyText, userMessage, { signal })) {
-        if (signal?.aborted) break;
-        fullReply += chunk;
-        onChunk(chunk);
-    }
-
-    const { updatedAnalysis } = await editPromise;
-    const newAnalysisId = await finalizeChatTurn(userId, currentAnalysis, userMessage, clientMessageId, fullReply, updatedAnalysis);
-
-    return { reply: fullReply, newAnalysisId };
 }

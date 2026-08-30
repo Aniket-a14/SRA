@@ -859,6 +859,8 @@ export const createDraftAnalysis = async (userId, srsData, projectId, settings =
     });
 };
 
+const inFlightAnalysesLoads = new Map();
+
 export const getUserAnalyses = async (userId) => {
     // Detached, throttled cluster-wide, and ahead of the cache check — a cache hit is still a live
     // user, and this is the one request every signed-in user makes.
@@ -879,9 +881,14 @@ export const getUserAnalyses = async (userId) => {
         }
     }
 
-    // Optimized: Get LATEST version for each rootId using PostgreSQL DISTINCT ON
-    try {
-        const analyses = await prisma.$queryRaw`
+    // Single-Flight in-process mutex to prevent cache stampedes
+    if (inFlightAnalysesLoads.has(userId)) {
+        return await inFlightAnalysesLoads.get(userId);
+    }
+
+    const loadPromise = (async () => {
+        try {
+            const analyses = await prisma.$queryRaw`
             SELECT DISTINCT ON ("rootId")
                 id,
                 "createdAt",
@@ -984,10 +991,16 @@ export const getUserAnalyses = async (userId) => {
 
         return result;
 
-    } catch (error) {
-        logger.error({ msg: "Error fetching user analyses", error: error });
-        throw error;
-    }
+        } catch (error) {
+            logger.error({ msg: "Error fetching user analyses", error: error });
+            throw error;
+        } finally {
+            inFlightAnalysesLoads.delete(userId);
+        }
+    })();
+
+    inFlightAnalysesLoads.set(userId, loadPromise);
+    return await loadPromise;
 };
 
 export const getAnalysisHistory = async (userId, rootId) => {

@@ -4,6 +4,13 @@ import React, { createContext, useContext, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { authEndpoint } from "./auth-endpoints"
+import {
+    broadcastTokenRefreshed,
+    broadcastSessionCleared,
+    getAuthChannel,
+    withCrossTabRefreshLock,
+    AuthSyncMessage
+} from "./auth-sync"
 
 /** Already somewhere the user can sign in — don't redirect or announce an expiry there. */
 const onAuthRoute = () =>
@@ -42,14 +49,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 /**
  * The single in-flight refresh, shared by every caller.
- *
- * Module scope rather than a ref, because the deduplication has to hold across every
- * component that calls useAuthFetch, not per-hook-instance. A page typically fires several
- * requests at once; with a 15-minute access token they expire together, so they all get a
- * 401 within milliseconds of each other. Refreshing independently would be actively
- * harmful, not merely wasteful: /auth/refresh *rotates* the token, so the first response
- * invalidates the cookie the others are still using. One wins, the rest are told their
- * session is invalid, and the user is signed out in the middle of working.
  */
 let inFlightRefresh: Promise<RefreshResult> | null = null
 
@@ -57,6 +56,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [token, setToken] = useState<string | null>(null)
     const [user, setUser] = useState<User | null>(null)
     const [isLoading, setIsLoading] = useState(true)
+
+    // Cross-tab broadcast channel listener
+    useEffect(() => {
+        const channel = getAuthChannel();
+        if (!channel) return;
+
+        const onMessage = (e: MessageEvent<AuthSyncMessage>) => {
+            if (e.data?.type === "TOKEN_REFRESHED" && e.data.token) {
+                setToken(e.data.token);
+            } else if (e.data?.type === "SESSION_CLEARED") {
+                setToken(null);
+                setUser(null);
+            }
+        };
+
+        channel.addEventListener("message", onMessage);
+        return () => {
+            channel.removeEventListener("message", onMessage);
+        };
+    }, []);
 
     const router = useRouter()
 
@@ -78,6 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem("user")
         setToken(null)
         setUser(null)
+        broadcastSessionCleared(destination)
         if (destination) router.push(destination)
     }, [router])
 
@@ -103,27 +123,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // first 401 lost the race stayed signed in, holding credentials the server had
         // already rejected.
         const shared = inFlightRefresh ?? (inFlightRefresh = (async () => {
-            try {
-                const res = await fetch(authEndpoint("refresh"), {
-                    method: "POST",
-                    credentials: "include",
-                    headers: { "Content-Type": "application/json" },
-                })
+            return await withCrossTabRefreshLock(async () => {
+                try {
+                    const res = await fetch(authEndpoint("refresh"), {
+                        method: "POST",
+                        credentials: "include",
+                        headers: { "Content-Type": "application/json" },
+                    })
 
-                // Only 401 is the server saying this session is over. A 5xx or a gateway
-                // timeout is the server saying nothing at all, and must not end a session.
-                if (!res.ok) return { token: null, reason: res.status === 401 ? "expired" : "network" }
+                    // Only 401 is the server saying this session is over. A 5xx or a gateway
+                    // timeout is the server saying nothing at all, and must not end a session.
+                    if (!res.ok) return { token: null, reason: res.status === 401 ? "expired" : "network" }
 
-                const data = await res.json()
-                if (!data?.token) return { token: null, reason: "expired" }
+                    const data = await res.json()
+                    if (!data?.token) return { token: null, reason: "expired" }
 
-                setToken(data.token)
-                return { token: data.token as string }
-            } catch {
-                return { token: null, reason: "network" }
-            } finally {
-                inFlightRefresh = null
-            }
+                    setToken(data.token)
+                    broadcastTokenRefreshed(data.token)
+                    return { token: data.token as string }
+                } catch {
+                    return { token: null, reason: "network" }
+                } finally {
+                    inFlightRefresh = null
+                }
+            })
         })())
 
         // Signing out lives here, at the one place every caller funnels through, rather than
@@ -268,6 +291,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem("user", JSON.stringify(newUser))
         setToken(newToken)
         setUser(newUser)
+        broadcastTokenRefreshed(newToken)
         router.push("/projects")
     }, [router])
 

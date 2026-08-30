@@ -6,6 +6,7 @@ import { recordUsage, recordExhausted } from '../services/providers/modelQuotaSe
 import { resolveOutputTokenLimits, clampOutputTokens } from '../utils/llmGenerationConfig.js';
 import { getAdapter, DEFAULT_MODELS, normalizeProvider } from '../services/providers/index.js';
 import { selectNextFallbackModel } from '../services/providers/modelFallbackService.js';
+import { recordStreamMetrics } from '../utils/telemetry.js';
 
 // One MOCK_AI answer, defined once so the streamed replay and the returned object cannot drift.
 const MOCK_JSON_RESPONSE = {
@@ -354,6 +355,10 @@ export class BaseAgent {
         logger.debug({ msg: `[${this.name}] Streaming LLM`, model: this.modelName });
 
         const adapter = this.getAdapter();
+        const startTime = Date.now();
+        let ttftMs = null;
+        let tokenCount = 0;
+
         try {
             for await (const chunk of adapter.generateContentStream({
                 prompt,
@@ -363,9 +368,22 @@ export class BaseAgent {
                 signal: options.signal,
                 maxOutputTokens: clampOutputTokens(options.maxOutputTokens || this.tokenLimits.mediumJson, this.outputTokenLimit)
             })) {
+                if (ttftMs === null) {
+                    ttftMs = Date.now() - startTime;
+                }
+                tokenCount += Math.max(1, Math.ceil(chunk.length / 4));
                 if (options.signal?.aborted) break;
                 yield chunk;
             }
+
+            const totalMs = Date.now() - startTime;
+            recordStreamMetrics({
+                provider: this.provider,
+                modelName: this.modelName,
+                ttftMs,
+                totalMs,
+                tokenCount
+            });
         } catch (error) {
             logger.error({ msg: `[${this.name}] Streaming LLM Call Failed`, provider: this.provider, error: error.message });
             throw new Error(`${this.name} failed to stream content: ${error.message}`);

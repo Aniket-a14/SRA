@@ -1,5 +1,5 @@
 import express from 'express';
-import { processJob, reconcileJobs } from '../controllers/workerController.js';
+import { processJob, reconcileJobs, handleDeadLetterJob } from '../controllers/workerController.js';
 import { Receiver } from "@upstash/qstash";
 import { log } from '../middleware/logger.js';
 import { aiLimiter, apiLimiter } from '../middleware/rateLimiters.js';
@@ -28,12 +28,12 @@ const verifyQStash = async (req, res, next) => {
     }
 
     const signature = req.headers["upstash-signature"];
-    const body = req.rawBody ? req.rawBody.toString() : "";
+    const body = req.rawBody ? req.rawBody.toString() : (typeof req.body === 'string' ? req.body : JSON.stringify(req.body || {}));
 
     // Derive from the actual request path (not hardcoded to /process) so this
     // middleware verifies correctly on every route it's mounted on, e.g. /reconcile —
     // QStash signs each scheduled call against its real destination URL.
-    const baseUrl = process.env.BACKEND_URL.replace(/\/$/, "");
+    const baseUrl = (process.env.BACKEND_URL || "http://localhost:3000").replace(/\/$/, "");
     const url = `${baseUrl}${req.originalUrl}`;
 
     try {
@@ -56,5 +56,6 @@ const verifyQStash = async (req, res, next) => {
 
 router.post('/process', aiLimiter, verifyQStash, processJob);
 router.post('/reconcile', apiLimiter, verifyQStash, reconcileJobs);
+router.post('/dlq', apiLimiter, verifyQStash, handleDeadLetterJob);
 
 export default router;

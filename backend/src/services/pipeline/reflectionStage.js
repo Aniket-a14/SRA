@@ -132,6 +132,12 @@ export async function runReflectionLoop({
     let finalIndustryAudit = null;
     let reflectionFeedback = [];
 
+    // Monotonic Quality Tracking to prevent regression commits
+    let bestDraft = structuredClone(srsDraft);
+    let bestFeatures = structuredClone(allFeatures);
+    let bestScore = -1;
+    let bestAudit = null;
+
     // A pass that already ran in an earlier invocation is not re-run: it costs three AI calls
     // and would score a draft this loop has already acted on.
     // The draft itself arrives through `sections`, restored from the checkpoint by the
@@ -175,6 +181,27 @@ export async function runReflectionLoop({
         finalIndustryAudit = audit;
 
         logger.info(`    Review Status: ${review.status}, Quality Score: ${score ?? 'unavailable'}`);
+
+        // Monotonic Quality Evaluation: Record best state or detect regression
+        if (score !== null) {
+            if (score > bestScore) {
+                bestScore = score;
+                bestDraft = structuredClone(srsDraft);
+                bestFeatures = structuredClone(allFeatures);
+                bestAudit = structuredClone(audit);
+            } else if (bestScore > 0 && score < bestScore - 5) {
+                logger.warn({
+                    msg: '[Quality Gate] Quality regression detected (>5pt drop). Rolling back to prior best draft.',
+                    currentScore: score,
+                    priorBestScore: bestScore
+                });
+                srsDraft = structuredClone(bestDraft);
+                allFeatures = structuredClone(bestFeatures);
+                finalIndustryAudit = bestAudit;
+                await onPassComplete?.({ loopCount, finalIndustryAudit: bestAudit, srsDraft: bestDraft, allFeatures: bestFeatures, done: true });
+                break;
+            }
+        }
 
         // C. Check if we meet the quality bar (Case-Insensitive)
         // Intelligent Override: If score is near perfect (98+), allow pass even if Reviewer is stuck in pedantry
@@ -263,6 +290,12 @@ export async function runReflectionLoop({
         // The refinement is durable from here. Yielding at this boundary and nowhere else is
         // deliberate: it is the only point in the pass where the draft is whole.
         await onPassComplete?.({ loopCount, finalIndustryAudit, srsDraft, allFeatures, done: false });
+    }
+
+    // Ensure we return the highest scoring draft across all reflection attempts
+    if (bestScore > 0 && srsDraft !== bestDraft) {
+        srsDraft = bestDraft;
+        finalIndustryAudit = bestAudit || finalIndustryAudit;
     }
 
     return { srsDraft, loopCount, finalIndustryAudit };

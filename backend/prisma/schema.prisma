@@ -59,6 +59,9 @@ model User {
   auditLogs            AuditLog[]
   modelQuotas          ModelQuotaState[]
   semanticCacheEntries SemanticPipelineCache[]
+  knowledgeChunks      KnowledgeChunk[]
+  chatMessages         ChatMessage[]
+  qualityMetrics       QualityMetricRecord[]
 
   @@index([deletedAt])
 }
@@ -118,6 +121,7 @@ model AuditLog {
 model ChatMessage {
   id              String   @id @default(uuid())
   analysisId      String
+  userId          String?
   role            String
   content         String
   createdAt       DateTime @default(now())
@@ -126,8 +130,10 @@ model ChatMessage {
   // browser back/forward replay) can't create a duplicate message pair.
   clientMessageId String?  @unique
   analysis        Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  user            User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([analysisId])
+  @@index([userId])
 }
 
 model Analysis {
@@ -155,6 +161,7 @@ model Analysis {
   user            User                    @relation(fields: [userId], references: [id])
   messages        ChatMessage[]
   knowledgeChunks KnowledgeChunk[]
+  qualityMetrics  QualityMetricRecord[]
 
   @@unique([rootId, version])
   @@index([userId])
@@ -165,8 +172,9 @@ model Analysis {
 }
 
 model Account {
-  id                String  @id @default(cuid())
+  id                String  @id @default(uuid())
   userId            String
+  type              String
   provider          String
   providerAccountId String
   access_token      String?
@@ -194,6 +202,7 @@ model Project {
 
 model KnowledgeChunk {
   id               String                 @id @default(uuid())
+  userId           String?
   type             String
   content          Json
   hash             String
@@ -204,7 +213,9 @@ model KnowledgeChunk {
   metadata         Json?
   qualityScore     Float?
   sourceAnalysis   Analysis               @relation(fields: [sourceAnalysisId], references: [id])
+  user             User?                  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@index([type])
   @@index([hash])
   @@index([sourceAnalysisId])
@@ -372,4 +383,33 @@ model SemanticPipelineCache {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, sectionName])
+}
+
+/// Records multi-dimensional 6Cs quality metrics across analysis versions to track
+/// rubric fidelity, prompt drift, and LLM provider stability over time.
+model QualityMetricRecord {
+  id              String   @id @default(uuid())
+  analysisId      String
+  userId          String
+  version         Int
+  promptVersion   String
+  modelProvider   String
+  modelName       String
+  overallScore    Float
+  clarity         Float
+  completeness    Float
+  conciseness     Float
+  consistency     Float
+  correctness     Float
+  context         Float
+  ragFaithfulness Float?
+  createdAt       DateTime @default(now())
+
+  analysis        Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([analysisId, version])
+  @@index([userId])
+  @@index([promptVersion])
+  @@index([createdAt])
 }

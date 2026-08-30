@@ -91,3 +91,28 @@ export const reconcileJobs = async (req, res, next) => {
         next(error);
     }
 };
+
+export const handleDeadLetterJob = async (req, res) => {
+    try {
+        const { analysisId, userId } = req.body || {};
+        log.error({ msg: "[QStash DLQ] Job retries permanently exhausted", analysisId, userId, payload: req.body });
+
+        if (analysisId) {
+            await prisma.analysis.updateMany({
+                where: { id: analysisId, status: { in: ['PENDING', 'IN_PROGRESS'] } },
+                data: {
+                    status: 'FAILED',
+                    metadata: {
+                        failureReason: 'Background analysis job exceeded maximum retry attempts. Please retry your request.',
+                        dlqTimestamp: new Date().toISOString()
+                    }
+                }
+            });
+        }
+
+        return res.status(200).json({ success: true, dlqRecorded: true });
+    } catch (err) {
+        log.error({ msg: "[QStash DLQ] Error processing dead letter webhook", error: err.message });
+        return res.status(200).json({ success: false, error: err.message });
+    }
+};

@@ -11,7 +11,7 @@ const router = express.Router();
 router.use(authenticate);
 
 // Get the full Knowledge Graph for a project
-router.get('/:id/graph', async (req, res, next) => {
+router.get('/:id/graph', requireScope('read'), async (req, res, next) => {
     try {
         const graph = await getFullProjectGraph(req.params.id, req.user.userId);
         return successResponse(res, graph, 'Knowledge Graph retrieved successfully');
@@ -20,10 +20,10 @@ router.get('/:id/graph', async (req, res, next) => {
     }
 });
 
-router.post('/', validate(projectCreateSchema), createProject);
-router.get('/', getProjects);
-router.get('/:id', getProject);
-router.put('/:id', validate(projectUpdateSchema), updateProject);
+router.post('/', requireScope('write'), validate(projectCreateSchema), createProject);
+router.get('/', requireScope('read'), getProjects);
+router.get('/:id', requireScope('read'), getProject);
+router.put('/:id', requireScope('write'), validate(projectUpdateSchema), updateProject);
 router.delete('/:id', requireScope('admin'), deleteProject);
 
 export default router;

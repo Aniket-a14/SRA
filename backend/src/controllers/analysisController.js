@@ -17,6 +17,7 @@ import { createNextVersion } from '../services/versioning.js';
 import { resolveProviderForUser, asAiSettings } from '../services/providers/providerKeyService.js';
 import { sanitizeError } from '../utils/errorSanitizer.js';
 import { ErrorCodes } from '../utils/errorCodes.js';
+import { createSSEStream } from '../utils/sseWriter.js';
 
 export const analyze = async (req, res, next) => {
     try {
@@ -434,41 +435,24 @@ export const chatStream = async (req, res, next) => {
         return next(error);
     }
 
-    res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache, no-transform',
-        'Connection': 'keep-alive',
-        'X-Accel-Buffering': 'no'
-    });
-
-    // Clicking "Stop" client-side aborts the fetch, which surfaces here as 'close' —
-    // stop relaying chunks and immediately abort the underlying LLM stream.
-    let aborted = false;
+    const sse = createSSEStream(res, req);
     const abortController = new AbortController();
-    req.on('close', () => {
-        aborted = true;
-        abortController.abort();
-    });
-
-    const send = (event) => {
-        if (aborted) return;
-        res.write(`data: ${JSON.stringify(event)}\n\n`);
-    };
+    req.on('close', () => abortController.abort());
 
     try {
-        const result = await processChatStream(req.user.userId, id, message, clientMessageId, (chunk) => {
-            send({ type: 'chunk', text: chunk });
+        const result = await processChatStream(req.user.userId, id, message, clientMessageId, async (chunk) => {
+            await sse.writeEvent({ type: 'chunk', text: chunk });
         }, abortController.signal);
-        send({ type: 'done', newAnalysisId: result.newAnalysisId });
+        await sse.writeEvent({ type: 'done', newAnalysisId: result?.newAnalysisId });
     } catch (error) {
         // Raw provider error text isn't logged here — some SDKs echo a masked-but-present
         // key fragment into their error message on an auth failure, and pino's redaction
         // only scrubs known field paths, not substrings inside free text (see logger.js).
         const sanitized = sanitizeError(error);
         logger.error({ msg: '[chatStream] Failed', code: sanitized.code, statusCode: sanitized.statusCode });
-        send({ type: 'error', message: sanitized.message });
+        await sse.writeEvent({ type: 'error', message: sanitized.message });
     } finally {
-        if (!aborted) res.end();
+        sse.close();
     }
 };
 

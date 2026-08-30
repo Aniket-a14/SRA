@@ -29,11 +29,18 @@ if (process.env.MOCK_QSTASH === 'true' || process.env.NODE_ENV === 'development'
     reconciliationInterval.unref();
 }
 
-// Graceful Shutdown — cleanly close all connections
+import { markShuttingDown } from './routes/healthRoutes.js';
+
+// Graceful Shutdown — cleanly close all connections with load balancer draining
 const gracefulShutdown = async (signal) => {
-    console.log(`${signal} signal received: closing HTTP server`);
+    console.log(`${signal} signal received: initiating graceful shutdown`);
+    markShuttingDown();
+
+    // 1. Drain window (2s) to allow load balancers to redirect new incoming traffic
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
     server.close(async () => {
-        console.log('HTTP server closed');
+        console.log('HTTP server closed. Disconnecting backing stores...');
         try {
             await prisma.$disconnect();
             console.log('Prisma disconnected');
@@ -52,11 +59,11 @@ const gracefulShutdown = async (signal) => {
         process.exit(0);
     });
 
-    // Force exit if graceful shutdown takes too long (10s)
+    // Force exit fallback timeout (35s) allowing in-flight streaming/analyses to drain
     setTimeout(() => {
-        console.error('Forced shutdown after 10s timeout');
+        console.error('Forced shutdown after 35s timeout');
         process.exit(1);
-    }, 10000);
+    }, 35000);
 };
 
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));

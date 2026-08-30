@@ -45,7 +45,8 @@ jest.unstable_mockModule('../../src/utils/promptCompaction.js', () => ({
 }));
 
 jest.unstable_mockModule('../../src/config/logger.js', () => ({
-    default: { info: jest.fn(), warn: jest.fn(), error: jest.fn() }
+    default: { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() },
+    REDACTED_PATHS: []
 }));
 
 const { processChat } = await import('../../src/services/chatService.js');
@@ -98,7 +99,7 @@ describe('processChat dedup via clientMessageId', () => {
 
         expect(mockChatMessageUpsert).toHaveBeenCalledWith({
             where: { clientMessageId: 'new-uuid' },
-            create: { analysisId: 'analysis-1', role: 'user', content: 'hello', clientMessageId: 'new-uuid' },
+            create: { analysisId: 'analysis-1', userId: 'user-1', role: 'user', content: 'hello', clientMessageId: 'new-uuid' },
             update: {}
         });
         expect(result.reply).toBe('Mocked AI Reply');
@@ -111,7 +112,7 @@ describe('processChat dedup via clientMessageId', () => {
 
         expect(mockChatMessageUpsert).not.toHaveBeenCalled();
         expect(mockChatMessageCreate).toHaveBeenCalledWith({
-            data: { analysisId: 'analysis-1', role: 'user', content: 'hello' }
+            data: { analysisId: 'analysis-1', userId: 'user-1', role: 'user', content: 'hello' }
         });
     });
 });

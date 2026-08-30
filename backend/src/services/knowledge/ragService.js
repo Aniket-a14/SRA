@@ -1,6 +1,7 @@
 import { Prisma } from '../../generated/prisma/index.js';
 import prisma from '../../config/prisma.js';
 import { embedText } from './embeddingService.js';
+import { reciprocalRankFusion } from './rerankService.js';
 import logger from '../../config/logger.js';
 import { traverseGraph } from './graphService.js';
 
@@ -11,26 +12,8 @@ const DEFAULT_RETRIEVAL_LIMIT = 5;
 const SIMILARITY_THRESHOLD = 0.25;
 
 /**
- * Retrieves granular knowledge chunks based on semantic similarity and keywords.
- *
- * **Scoped to one user's own chunks.** This searched `KnowledgeChunk` across every account,
- * returned `kc.content` — the requirement text itself — plus `source_title`, the other
- * user's project name, and handed both to the Architect and Developer prompts. So a
- * finalized analysis belonging to one customer could be reproduced, named, into a document
- * generated for another. No attacker was required: it ran on every analysis, silently, as
- * the intended behaviour of the feature.
- *
- * Reuse still spans a user's own projects, which is where its value actually was — the
- * cross-account corpus was never curated, just everything anyone had finalized above a 0.70
- * quality score.
- *
- * The options object is deliberate. The previous signature was positional
- * (`queryText, projectId, limit`), and slotting a `userId` in among those would let a
- * missed call site keep working while silently searching the wrong scope. A call site that
- * still passes the old shape gets `undefined` here and throws.
- *
- * @param {string} queryText
- * @param {{ userId: string, projectId?: string|null, limit?: number }} options
+ * Retrieves granular knowledge chunks based on hybrid semantic + lexical search and RRF reranking.
+ * Scoped strictly to the requesting user's own projects and chunks.
  */
 export const retrieveContext = async (queryText, options = {}) => {
     const { userId, projectId = null, limit = DEFAULT_RETRIEVAL_LIMIT } = options;
@@ -44,17 +27,18 @@ export const retrieveContext = async (queryText, options = {}) => {
             return [];
         }
 
-        // 1. Vector Search (Standard RAG)
-        const embedding = await embedText(queryText);
-        const vectorStr = `[${embedding.join(',')}]`;
         const parsedLimit = Number(limit);
         const safeLimit = Number.isFinite(parsedLimit)
             ? Math.max(1, Math.floor(parsedLimit))
             : DEFAULT_RETRIEVAL_LIMIT;
 
-        // Over-fetch by 3x to compensate for post-filter attrition from the similarity threshold
         const overfetchLimit = safeLimit * 3;
-        const matches = await prisma.$queryRaw`
+
+        // 1. Dense Semantic Vector Search (Pure Index Scan)
+        const embedding = await embedText(queryText);
+        const vectorStr = `[${embedding.join(',')}]`;
+
+        const denseMatchesPromise = prisma.$queryRaw`
             SELECT
                 kc.id,
                 kc.type,
@@ -67,27 +51,52 @@ export const retrieveContext = async (queryText, options = {}) => {
             JOIN "Analysis" a ON kc."sourceAnalysisId" = a.id
             LEFT JOIN "Project" p ON a."projectId" = p.id
             WHERE kc.embedding IS NOT NULL
-            AND a."userId" = ${userId}
-            ORDER BY
-                CASE WHEN kc."qualityScore" >= 0.85 THEN 1 ELSE 0 END DESC,
-                kc.embedding <=> ${vectorStr}::vector ASC
+            AND (kc."userId" = ${userId} OR a."userId" = ${userId})
+            ORDER BY kc.embedding <=> ${vectorStr}::vector ASC
             LIMIT ${overfetchLimit};
         `;
 
-        // Filter out low-relevance results, then cap at the requested limit
-        const vectorResults = matches
-            .filter(m => m.similarity >= SIMILARITY_THRESHOLD)
+        // 2. Sparse Lexical Full-Text Search
+        const cleanedQuery = queryText.replace(/[^a-zA-Z0-9\s]/g, ' ').trim();
+        const sparseMatchesPromise = cleanedQuery.length > 2
+            ? prisma.$queryRaw`
+                SELECT
+                    kc.id,
+                    kc.type,
+                    kc.content,
+                    kc.tags,
+                    kc."qualityScore",
+                    ts_rank_cd(to_tsvector('english', kc.content::text), plainto_tsquery('english', ${cleanedQuery})) as "lexicalRank",
+                    COALESCE(p.name, a.title, 'Historical Project') as source_title
+                FROM "KnowledgeChunk" kc
+                JOIN "Analysis" a ON kc."sourceAnalysisId" = a.id
+                LEFT JOIN "Project" p ON a."projectId" = p.id
+                WHERE to_tsvector('english', kc.content::text) @@ plainto_tsquery('english', ${cleanedQuery})
+                AND (kc."userId" = ${userId} OR a."userId" = ${userId})
+                ORDER BY "lexicalRank" DESC
+                LIMIT ${overfetchLimit};
+            `.catch(() => [])
+            : Promise.resolve([]);
+
+        const [denseMatches, sparseMatches] = await Promise.all([denseMatchesPromise, sparseMatchesPromise]);
+
+        // 3. Reciprocal Rank Fusion & Reranking
+        const rankedResults = reciprocalRankFusion(denseMatches, sparseMatches);
+
+        // Filter and cap
+        const vectorResults = rankedResults
+            .filter(m => (m.similarity ?? 0.5) >= SIMILARITY_THRESHOLD)
             .slice(0, safeLimit)
             .map(m => ({
                 type: m.type,
                 content: m.content,
-                similarity: m.similarity,
+                similarity: m.similarity ?? 0.5,
                 qualityScore: m.qualityScore,
                 tags: m.tags,
                 sourceTitle: m.source_title
             }));
 
-        // 2. Graph Retrieval (If Project Context exists)
+        // 4. Graph Retrieval (If Project Context exists)
         if (projectId) {
             const stopWords = new Set(['The', 'And', 'For', 'This', 'That', 'With', 'From', 'Moreover', 'However', 'Furthermore']);
             const matches = queryText.match(/[A-Z][a-zA-Z0-9]+/g) || [];
@@ -109,7 +118,7 @@ export const retrieveContext = async (queryText, options = {}) => {
         return vectorResults;
 
     } catch (error) {
-        logger.error({ msg: "[RAG Service] Retrieval failed", error: error.message });
+        logger.error({ msg: "[RAG Service] Hybrid retrieval failed", error: error.message });
         return [];
     }
 };

@@ -46,7 +46,7 @@ export class OpenAIAdapter {
     }
 
     /** Token stream: plain text for chat replies, JSON for the live SRS drafting view. */
-    async *generateContentStream({ prompt, systemInstruction, temperature, maxOutputTokens, jsonMode, modelName }) {
+    async *generateContentStream({ prompt, systemInstruction, temperature, maxOutputTokens, jsonMode, modelName, signal }) {
         // withResponse() so a streamed call still records rate-limit headers for the quota service.
         this.lastRateLimit = null;
         const { data: stream, response } = await this.client.chat.completions.create({
@@ -59,7 +59,7 @@ export class OpenAIAdapter {
             max_tokens: maxOutputTokens,
             response_format: jsonMode ? { type: 'json_object' } : undefined,
             stream: true
-        }).withResponse();
+        }, { signal }).withResponse();
 
         this.lastRateLimit = parseRateLimitHeaders(response?.headers);
 

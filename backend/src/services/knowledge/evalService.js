@@ -18,15 +18,10 @@ export class EvalService extends BaseAgent {
     }
 
     async evaluateRAG(query, context, response) {
-        // Simple heuristic: If no context, faithfulness might be low if response is long
-        if (!context || context.length === 0) {
-            return {
-                faithfulness: 0.1,
-                contextPrecision: 0.0,
-                answerRelevancy: 0.5,
-                reasoning: "No context provided for evaluation."
-            };
-        }
+        const isGreenfield = !context || (Array.isArray(context) && context.length === 0);
+        const effectiveContext = isGreenfield
+            ? `[USER_ORIGINAL_SPECIFICATION_BRIEF]\n${typeof query === 'string' ? query : stringifyForPrompt(query)}`
+            : (typeof context === 'string' ? context : stringifyForPrompt(context));
 
         const prompt = `
 <role>
@@ -36,12 +31,13 @@ Your goal is to evaluate the quality of a generated response based on the provid
 
 <task>
 Analyze the provided context and the generated response. Evaluate the response against key RAG metrics (Faithfulness, Context Precision, Answer Relevancy) and assign a score from 0 to 100 for each.
+${isGreenfield ? "NOTE: This is a greenfield project without prior database chunks. Faithfulness measures adherence to the user's initial specification brief." : ""}
 </task>
 
 <constraints>
 [METRICS (Score 0 to 100)]
-1. Faithfulness: Is the response factually grounded ONLY in the retrieved context? (100 = Highly Faithful, 0 = Hallucinated)
-2. Context Precision: How much of the retrieved context was relevant to the user's intent? (100 = Highly Precise, 0 = Noise)
+1. Faithfulness: Is the response factually grounded ONLY in the retrieved context/user brief? (100 = Highly Faithful, 0 = Hallucinated)
+2. Context Precision: How much of the retrieved context/brief was relevant to the user's intent? (100 = Highly Precise, 0 = Noise)
 3. Answer Relevancy: Does the response directly and exhaustively address the user's core request? (100 = Highly Relevant, 0 = Off-topic)
 </constraints>
 
@@ -57,7 +53,7 @@ Return ONLY a valid JSON object matching this schema. No markdown wrappers.
 
 <input>
 Context:
-${typeof context === 'string' ? context : stringifyForPrompt(context)}
+${effectiveContext}
 
 Generated Response:
 ${typeof response === 'string' ? response : stringifyForPrompt(response)}

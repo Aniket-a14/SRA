@@ -16,7 +16,7 @@ const { streamAnalysisProgress } = await import('../../src/controllers/streamCon
 function makeRes() {
     const res = new EventEmitter();
     res.writeHead = jest.fn();
-    res.write = jest.fn();
+    res.write = jest.fn().mockReturnValue(true);
     res.end = jest.fn();
     return res;
 }
@@ -97,11 +97,13 @@ describe('streamAnalysisProgress', () => {
 
         // Simulate a published progress event
         subscriber.emit('message', 'analysis:progress:a1', JSON.stringify({ stage: 'architect', message: 'Designing...' }));
+        await new Promise(resolve => setImmediate(resolve));
         expect(res.write).toHaveBeenCalledWith(expect.stringContaining('"stage":"architect"'));
         expect(res.end).not.toHaveBeenCalled();
 
         // A terminal event should trigger cleanup
         subscriber.emit('message', 'analysis:progress:a1', JSON.stringify({ stage: 'completed', terminal: true }));
+        await new Promise(resolve => setImmediate(resolve));
         expect(subscriber.unsubscribe).toHaveBeenCalledTimes(1);
         expect(subscriber.quit).toHaveBeenCalledTimes(1);
         expect(res.end).toHaveBeenCalledTimes(1);
@@ -121,6 +123,7 @@ describe('streamAnalysisProgress', () => {
         await streamAnalysisProgress(req, res, next);
 
         req.emit('close');
+        await new Promise(resolve => setImmediate(resolve));
 
         expect(subscriber.unsubscribe).toHaveBeenCalledTimes(1);
         expect(subscriber.quit).toHaveBeenCalledTimes(1);

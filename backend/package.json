@@ -10,6 +10,7 @@
     "scripts": {
         "test": "cross-env NODE_OPTIONS=--experimental-vm-modules MOCK_AI=true jest",
         "test:coverage": "cross-env NODE_OPTIONS=--experimental-vm-modules MOCK_AI=true jest --coverage",
+        "test:benchmark": "cross-env NODE_OPTIONS=--experimental-vm-modules MOCK_AI=true jest tests/benchmarks/sra_eval_suite.test.js",
         "test:mutation": "cross-env NODE_OPTIONS=--experimental-vm-modules MOCK_AI=true stryker run",
         "lint": "eslint .",
         "start": "node src/server.js",
