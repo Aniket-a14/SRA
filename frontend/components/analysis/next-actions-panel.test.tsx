@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react"
 import { NextActionsPanel } from "./next-actions-panel"
 import type { Analysis } from "@/types/analysis"
 
-const mockAnalysis: Analysis = {
+const mockAnalysis = {
     id: "test-analysis-id",
     userId: "test-user",
     inputText: "Test Input",
@@ -20,7 +20,7 @@ const mockAnalysis: Analysis = {
             format: "ieee830"
         }
     }
-}
+} as unknown as Analysis
 
 describe("NextActionsPanel Component", () => {
     it("renders all key action triggers", () => {
@@ -50,6 +50,9 @@ describe("NextActionsPanel Component", () => {
 
         fireEvent.click(screen.getByText("Refine via Chat"))
         expect(onOpenChat).toHaveBeenCalledTimes(1)
+
+        fireEvent.click(screen.getByText("Code Traceability"))
+        expect(onOpenCliTraceability).toHaveBeenCalledTimes(1)
 
         fireEvent.click(screen.getByText("Finalize & Index"))
         expect(onFinalize).toHaveBeenCalledTimes(1)
