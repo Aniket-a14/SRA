@@ -36,7 +36,18 @@ export default function AnalysisPage() {
     const { data: historyData, error, mutate } = useSWR<AnalysisHistoryItem[]>(
         swrKey,
         swrFetcher,
-        swrOptions
+        {
+            ...swrOptions,
+            refreshInterval: (latestData) => {
+                const list = Array.isArray(latestData) ? latestData : [];
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const hasActive = list.some((item: any) => {
+                    const s = (item.status || '').toUpperCase();
+                    return s === 'PENDING' || s === 'IN_PROGRESS' || s === 'QUEUED';
+                });
+                return hasActive ? 3000 : 0;
+            }
+        }
     );
 
     // The list shows statuses that change while the tab is away; refetch on return so a

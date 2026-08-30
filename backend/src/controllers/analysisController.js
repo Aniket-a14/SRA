@@ -436,13 +436,11 @@ export const chatStream = async (req, res, next) => {
     }
 
     const sse = createSSEStream(res, req);
-    const abortController = new AbortController();
-    req.on('close', () => abortController.abort());
 
     try {
         const result = await processChatStream(req.user.userId, id, message, clientMessageId, async (chunk) => {
             await sse.writeEvent({ type: 'chunk', text: chunk });
-        }, abortController.signal);
+        });
         await sse.writeEvent({ type: 'done', newAnalysisId: result?.newAnalysisId });
     } catch (error) {
         // Raw provider error text isn't logged here — some SDKs echo a masked-but-present

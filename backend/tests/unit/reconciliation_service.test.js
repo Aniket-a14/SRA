@@ -47,7 +47,7 @@ describe('reconciliationService', () => {
 
             expect(count).toBe(2);
             const call = mockUpdateMany.mock.calls[0][0];
-            expect(call.where.status).toBe('IN_PROGRESS');
+            expect(call.where.status).toEqual({ in: ['PENDING', 'IN_PROGRESS'] });
             expect(call.where.updatedAt.lt).toBeInstanceOf(Date);
             // Threshold should be roughly "now - 30min", not some arbitrary cutoff
             const deltaMs = Date.now() - call.where.updatedAt.lt.getTime();

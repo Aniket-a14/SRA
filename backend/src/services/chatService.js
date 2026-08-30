@@ -90,6 +90,7 @@ function configuredGeminiModel() {
  * versioned analysis record. Shared tail end of both processChat and processChatStream.
  */
 import { getRedisClient } from '../config/redis.js';
+import { publishProgress } from './progressService.js';
 
 /**
  * Acquire distributed single-flight mutex for chat turns
@@ -118,18 +119,28 @@ export async function releaseChatLock(lockKey) {
     }
 }
 
-async function finalizeChatTurn(userId, currentAnalysis, userMessage, clientMessageId, replyText, updatedAnalysis) {
+/**
+ * Persists the user message immediately upon turn arrival before AI invocation.
+ */
+async function persistUserMessage(userId, analysisId, userMessage, clientMessageId) {
     if (clientMessageId) {
-        await prisma.chatMessage.upsert({
+        return await prisma.chatMessage.upsert({
             where: { clientMessageId },
-            create: { analysisId: currentAnalysis.id, userId, role: 'user', content: userMessage, clientMessageId },
+            create: { analysisId, userId, role: 'user', content: userMessage, clientMessageId },
             update: {}
         });
-    } else {
-        await prisma.chatMessage.create({
-            data: { analysisId: currentAnalysis.id, userId, role: 'user', content: userMessage }
-        });
     }
+    return await prisma.chatMessage.create({
+        data: { analysisId, userId, role: 'user', content: userMessage }
+    });
+}
+
+/**
+ * Persists the assistant reply and, if an edit was produced, creates a new
+ * versioned analysis record. Emits real-time progress to synchronize all devices.
+ */
+async function finalizeChatTurn(userId, currentAnalysis, userMessage, clientMessageId, replyText, updatedAnalysis) {
+    // User message was already created up front; create assistant reply
     await prisma.chatMessage.create({
         data: { analysisId: currentAnalysis.id, userId, role: 'assistant', content: replyText }
     });
@@ -151,10 +162,6 @@ async function finalizeChatTurn(userId, currentAnalysis, userMessage, clientMess
                 metadata: {
                     trigger: 'chat',
                     source: 'ai',
-                    // Records which model produced this version. Inherit the parent's
-                    // setting; otherwise fall back to the configured Gemini default — but
-                    // only when one is configured (mock/test runs have no model env and
-                    // never called a provider, so there is nothing honest to record).
                     promptSettings: {
                         ...(currentAnalysis.metadata?.promptSettings || {}),
                         modelName: currentAnalysis.metadata?.promptSettings?.modelName
@@ -169,18 +176,18 @@ async function finalizeChatTurn(userId, currentAnalysis, userMessage, clientMess
         logger.info(`[Chat Service] Created new analysis version ${newAnalysisId} from chat edit.`);
     }
 
+    // Broadcast real-time event for any open tabs / devices
+    await publishProgress(currentAnalysis.id, {
+        stage: 'chat_completed',
+        newAnalysisId,
+        replyPreview: replyText.slice(0, 100)
+    });
+
     return newAnalysisId;
 }
 
 /**
- * Processes a single chat turn for an analysis session (non-streaming — single
- * combined JSON call for {reply, updatedAnalysis}).
- *
- * Token-efficiency improvements:
- *  - Uses ChatAgent (extends BaseAgent) instead of a raw genAI call,
- *    eliminating ~40 lines of duplicated retry/timeout/JSON-repair logic.
- *  - Injects a compact SRS snapshot (createChatSnapshot) instead of the full
- *    resultJson, cutting prompt size from 50KB+ down to ~6-8KB per turn.
+ * Processes a single chat turn for an analysis session.
  */
 export async function processChat(userId, analysisId, userMessage, clientMessageId = null) {
     const lockKey = await acquireChatLock(clientMessageId);
@@ -188,6 +195,9 @@ export async function processChat(userId, analysisId, userMessage, clientMessage
         const context = await loadChatContext(userId, analysisId, clientMessageId);
         if (context.dedupedReply) return context.dedupedReply;
         const { currentAnalysis, historyText, srsSnapshot } = context;
+
+        // Persist user message immediately before AI generation
+        await persistUserMessage(userId, currentAnalysis.id, userMessage, clientMessageId);
 
         const chatAgent = new ChatAgent(await resolveChatProvider(userId, currentAnalysis));
         let parsedResponse;
@@ -210,7 +220,7 @@ export async function processChat(userId, analysisId, userMessage, clientMessage
 
         return {
             reply: parsedResponse.reply,
-            newAnalysisId // If present, frontend should redirect/refresh to the new version
+            newAnalysisId
         };
     } finally {
         await releaseChatLock(lockKey);
@@ -218,27 +228,22 @@ export async function processChat(userId, analysisId, userMessage, clientMessage
 }
 
 /**
- * Streaming variant of processChat: the conversational reply is streamed token-by-token
- * via onChunk while, only when the message looks like an edit request, a separate
- * non-streamed JSON call runs concurrently to produce the document update. Both are
- * persisted/versioned the same way as the non-streaming path once the reply finishes.
- *
- * @param {(chunk: string) => void} onChunk — called for each reply text chunk as it streams
- * @returns {Promise<{reply: string, newAnalysisId: string|null}>}
+ * Streaming variant of processChat: decouples AI generation from HTTP connection lifetimes.
+ * If the user closes the tab mid-stream, generation continues in the background and
+ * persists the complete assistant response and versioned document to PostgreSQL.
  */
-export async function processChatStream(userId, analysisId, userMessage, clientMessageId = null, onChunk = () => {}, signal = null) {
-    if (signal?.aborted) return { reply: '', newAnalysisId: null };
-
+export async function processChatStream(userId, analysisId, userMessage, clientMessageId = null, onChunk = () => {}, _signal = null) {
     const lockKey = await acquireChatLock(clientMessageId);
     try {
         const context = await loadChatContext(userId, analysisId, clientMessageId);
         if (context.dedupedReply) {
-            // Already processed — replay the stored reply as a single chunk so callers
-            // that expect at least one onChunk invocation still render something.
             if (context.dedupedReply.reply) onChunk(context.dedupedReply.reply);
             return context.dedupedReply;
         }
         const { currentAnalysis, historyText, srsSnapshot } = context;
+
+        // Persist user message immediately before AI generation starts
+        await persistUserMessage(userId, currentAnalysis.id, userMessage, clientMessageId);
 
         const chatAgent = new ChatAgent(await resolveChatProvider(userId, currentAnalysis));
         const shouldProposeEdit = looksLikeEditRequest(userMessage);
@@ -256,8 +261,7 @@ export async function processChatStream(userId, analysisId, userMessage, clientM
             return { reply: mockReply, newAnalysisId };
         }
 
-        // Fire the edit-detection/production call in parallel with the stream — it's a
-        // completely separate AI call so it doesn't have to wait for streaming to finish.
+        // Fire the edit-detection/production call in parallel
         const editPromise = shouldProposeEdit
             ? chatAgent.proposeEdit(srsSnapshot, historyText, userMessage).catch(err => {
                 logger.warn({ msg: '[Chat Service] proposeEdit failed (non-fatal — reply still streams)', error: err.message });
@@ -266,10 +270,18 @@ export async function processChatStream(userId, analysisId, userMessage, clientM
             : Promise.resolve({ updatedAnalysis: null });
 
         let fullReply = '';
-        for await (const chunk of chatAgent.chatStream(srsSnapshot, historyText, userMessage, { signal })) {
-            if (signal?.aborted) break;
-            fullReply += chunk;
-            onChunk(chunk);
+        try {
+            for await (const chunk of chatAgent.chatStream(srsSnapshot, historyText, userMessage)) {
+                fullReply += chunk;
+                try {
+                    onChunk(chunk);
+                } catch {
+                    // Client disconnected from stream; continue server-side generation
+                }
+            }
+        } catch (streamErr) {
+            logger.error({ msg: '[Chat Service] Stream generation encountered error', error: streamErr.message });
+            if (!fullReply) fullReply = 'Sorry, an error occurred while generating the reply.';
         }
 
         const { updatedAnalysis } = await editPromise;

@@ -15,17 +15,23 @@ export const STALE_IN_PROGRESS_THRESHOLD_MS = 30 * 60 * 1000;
 // reaching that cleanup step) and is safe to prune.
 export const DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
 
-/** Force-transitions IN_PROGRESS rows stuck past the worker's realistic worst-case runtime to FAILED. */
+/** Force-transitions PENDING/IN_PROGRESS rows stuck past the worker's realistic worst-case runtime to FAILED. */
 export const reconcileStaleInProgress = async () => {
     const staleBefore = new Date(Date.now() - STALE_IN_PROGRESS_THRESHOLD_MS);
 
     const { count } = await prisma.analysis.updateMany({
-        where: { status: 'IN_PROGRESS', updatedAt: { lt: staleBefore } },
-        data: { status: 'FAILED', resultQuality: 'NONE' }
+        where: {
+            status: { in: ['PENDING', 'IN_PROGRESS'] },
+            updatedAt: { lt: staleBefore }
+        },
+        data: {
+            status: 'FAILED',
+            resultQuality: 'NONE'
+        }
     });
 
     if (count > 0) {
-        logger.warn({ msg: '[Reconciliation] Force-failed stale IN_PROGRESS analyses', count, staleBefore });
+        logger.warn({ msg: '[Reconciliation] Force-failed stale active analyses', count, staleBefore });
     }
     return count;
 };

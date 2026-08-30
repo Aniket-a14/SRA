@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -40,6 +40,24 @@ function useChatSession(analysisId: string, onAnalysisUpdate?: (newAnalysisId: s
     const [streamingId, setStreamingId] = useState<string | null>(null)
     const abortControllerRef = useRef<AbortController | null>(null)
 
+    const loadHistory = useCallback(async () => {
+        if (!token || !analysisId) return
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze/${analysisId}/chat`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+            if (res.ok) {
+                const json = await res.json()
+                const data = json.data || json
+                if (Array.isArray(data)) {
+                    setMessages(data)
+                }
+            }
+        } catch (e) {
+            console.error("Failed to load chat history", e)
+        }
+    }, [token, analysisId])
+
     useEffect(() => {
         if (!token || !analysisId) return
         let cancelled = false
@@ -50,15 +68,24 @@ function useChatSession(analysisId: string, onAnalysisUpdate?: (newAnalysisId: s
             .then(res => res.ok ? res.json() : null)
             .then(json => {
                 if (cancelled || !json) return
-                setMessages(json.data || json)
+                const data = json.data || json
+                if (Array.isArray(data)) setMessages(data)
             })
             .catch(e => {
                 console.error("Failed to load chat history", e)
-                toast.error("Couldn't load chat history for this analysis.")
             })
 
         return () => { cancelled = true }
     }, [token, analysisId])
+
+    // Reconcile conversation state when tab comes back into focus / visible
+    useEffect(() => {
+        const onVisible = () => {
+            if (document.visibilityState === "visible") loadHistory()
+        }
+        document.addEventListener("visibilitychange", onVisible)
+        return () => document.removeEventListener("visibilitychange", onVisible)
+    }, [loadHistory])
 
     const handleSend = async (userMsg: string, tempId: string) => {
         if (!userMsg.trim() || isLoading) return
@@ -108,6 +135,9 @@ function useChatSession(analysisId: string, onAnalysisUpdate?: (newAnalysisId: s
             if (newAnalysisId) {
                 toast.success("Analysis updated! Redirecting to new version...")
                 if (onAnalysisUpdate) onAnalysisUpdate(newAnalysisId)
+            } else {
+                // Ensure messages match the authoritative server state
+                await loadHistory()
             }
 
         } catch (e) {
@@ -115,8 +145,9 @@ function useChatSession(analysisId: string, onAnalysisUpdate?: (newAnalysisId: s
                 // User clicked Stop — keep whatever streamed so far, no error toast.
             } else {
                 console.error(e)
-                toast.error("Failed to send message")
-                setMessages(prev => prev.filter(m => m.id !== tempId && m.id !== assistantId)) // Rollback
+                toast.error("Network issue or stream disconnected. Re-syncing conversation...")
+                // Instead of wiping the message, fetch the authoritative state from the server
+                await loadHistory()
             }
         } finally {
             setIsLoading(false)
