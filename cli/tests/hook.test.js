@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach, afterAll } from '@jest/globals';
 import fs from 'fs/promises';
 import os from 'os';
 import path from 'path';
-import { hook, findGitRoot } from '../src/commands/hook.js';
+import { hook, findGitRoot, SRA_HOOK_START } from '../src/commands/hook.js';
 
 const originalCwd = process.cwd();
 let workdir;
@@ -41,7 +41,7 @@ describe('git hook automation', () => {
 
         const hookPath = path.join(workdir, '.git', 'hooks', 'pre-commit');
         const content = await fs.readFile(hookPath, 'utf8');
-        expect(content).toContain('# SRA Pre-Commit Verification Hook');
+        expect(content).toContain(SRA_HOOK_START);
         expect(content).toContain('sra check --strict');
     });
 
@@ -53,7 +53,7 @@ describe('git hook automation', () => {
 
         const hookPath = path.join(workdir, '.git', 'hooks', 'pre-commit');
         const content = await fs.readFile(hookPath, 'utf8');
-        const occurrences = (content.match(/# SRA Pre-Commit Verification Hook/g) || []).length;
+        const occurrences = (content.match(new RegExp(SRA_HOOK_START, 'g')) || []).length;
         expect(occurrences).toBe(1);
     });
 
@@ -61,11 +61,9 @@ describe('git hook automation', () => {
         await fs.mkdir(path.join(workdir, '.git'));
 
         await hook('install');
-        const hookPath = path.join(workdir, '.git', 'hooks', 'pre-commit');
-        expect(await fs.stat(hookPath)).toBeTruthy();
-
         await hook('uninstall');
 
+        const hookPath = path.join(workdir, '.git', 'hooks', 'pre-commit');
         let exists = true;
         try {
             await fs.stat(hookPath);
@@ -75,4 +73,3 @@ describe('git hook automation', () => {
         expect(exists).toBe(false);
     });
 });
-

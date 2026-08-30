@@ -3,17 +3,21 @@ import path from 'path';
 import chalk from 'chalk';
 import { logger } from '../utils/logger.js';
 
-const SRA_HOOK_MARKER = '# SRA Pre-Commit Verification Hook';
+export const SRA_HOOK_START = '# --- SRA Pre-Commit Verification Hook ---';
+export const SRA_HOOK_END = '# --- End SRA Pre-Commit Hook ---';
 
-const SRA_HOOK_BODY = `${SRA_HOOK_MARKER}
+export const SRA_HOOK_BODY = `${SRA_HOOK_START}
 # Ensures linked requirements trace to code before committing.
-if command -v sra >/dev/null 2>&1; then
-    sra check --strict
-elif [ -f "./node_modules/.bin/sra" ]; then
-    ./node_modules/.bin/sra check --strict
-else
-    npx --no-install @sra-srs/sra-cli check --strict
+if [ -f "./sra.spec.json" ] || [ -f "./.sra/spec.json" ]; then
+    if command -v sra >/dev/null 2>&1; then
+        sra check --strict
+    elif [ -f "./node_modules/.bin/sra" ]; then
+        ./node_modules/.bin/sra check --strict
+    else
+        npx --no-install @sra-srs/sra-cli check --strict
+    fi
 fi
+${SRA_HOOK_END}
 `;
 
 /**
@@ -68,7 +72,7 @@ export async function hook(action = 'install', options = {}) {
                 // file doesn't exist yet
             }
 
-            if (existingContent.includes(SRA_HOOK_MARKER)) {
+            if (existingContent.includes(SRA_HOOK_START)) {
                 logger.info('SRA pre-commit hook is already installed in .git/hooks/pre-commit.');
                 return;
             }
@@ -99,13 +103,14 @@ export async function hook(action = 'install', options = {}) {
                 return;
             }
 
-            if (!existingContent.includes(SRA_HOOK_MARKER)) {
+            if (!existingContent.includes(SRA_HOOK_START) && !existingContent.includes('# SRA Pre-Commit Verification Hook')) {
                 logger.info('SRA pre-commit hook is not installed.');
                 return;
             }
 
             const cleaned = existingContent
-                .replace(new RegExp(`${SRA_HOOK_MARKER}[\\s\\S]*?fi\\n?`, 'g'), '')
+                .replace(new RegExp(`${SRA_HOOK_START}[\\s\\S]*?${SRA_HOOK_END}\\n?`, 'g'), '')
+                .replace(/# SRA Pre-Commit Verification Hook[\s\S]*?fi\n?/g, '')
                 .trim();
 
             if (cleaned === '#!/bin/sh' || cleaned === '') {
@@ -122,7 +127,7 @@ export async function hook(action = 'install', options = {}) {
     } else if (action === 'status') {
         try {
             const existingContent = await fs.readFile(hookPath, 'utf8');
-            if (existingContent.includes(SRA_HOOK_MARKER)) {
+            if (existingContent.includes(SRA_HOOK_START) || existingContent.includes('# SRA Pre-Commit Verification Hook')) {
                 logger.info(`${chalk.green('✔ Active:')} SRA pre-commit hook is installed.`);
             } else {
                 logger.info(`${chalk.yellow('○ Inactive:')} SRA pre-commit hook is not configured.`);
@@ -135,4 +140,3 @@ export async function hook(action = 'install', options = {}) {
         process.exitCode = 1;
     }
 }
-
