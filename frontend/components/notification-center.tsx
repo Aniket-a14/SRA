@@ -139,8 +139,13 @@ export function NotificationCenter() {
                     )}
                 </Button>
             </PopoverTrigger>
-            <PopoverContent align="end" className="w-80 sm:w-96 p-0 border border-foreground/10 shadow-lg bg-card">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-foreground/10">
+            <PopoverContent
+                align="end"
+                sideOffset={8}
+                collisionPadding={16}
+                className="w-[calc(100vw-1.5rem)] sm:w-96 max-w-[calc(100vw-1.5rem)] p-0 border border-foreground/10 shadow-lg bg-card overflow-hidden"
+            >
+                <div className="flex items-center justify-between px-4 py-3 border-b border-foreground/10 shrink-0">
                     <div className="flex items-center gap-2">
                         <h4 className="font-display text-base">Notifications</h4>
                         {unreadCount > 0 && (
@@ -161,7 +166,7 @@ export function NotificationCenter() {
                     )}
                 </div>
 
-                <ScrollArea className="h-80">
+                <ScrollArea className="max-h-[min(22rem,65vh)]">
                     {notifications.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-48 text-center p-4">
                             <Clock className="h-8 w-8 text-muted-foreground/40 mb-2" />
@@ -200,7 +205,7 @@ export function NotificationCenter() {
                                             )}
                                         </div>
 
-                                        <div className="flex-1 min-w-0">
+                                        <div className="flex-1 min-w-0 pr-1">
                                             <div className="flex items-center justify-between gap-1">
                                                 <p className="text-xs font-medium truncate text-foreground">
                                                     {item.title || "Requirements Specification"}
@@ -209,7 +214,7 @@ export function NotificationCenter() {
                                                     {formatRelative(item.createdAt)}
                                                 </span>
                                             </div>
-                                            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5 font-sans">
+                                            <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5 font-sans break-words">
                                                 {isFailed
                                                     ? item.failureReason || "Analysis interrupted. Click to resume."
                                                     : "Analysis generated and ready for review."}
