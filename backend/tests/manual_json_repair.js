@@ -71,7 +71,7 @@ testCases.forEach(test => {
     try {
         const repaired = repairJson(test.input);
         // Verify it parses
-        const parsed = JSON.parse(repaired);
+        const _parsed = JSON.parse(repaired);
         console.log(`[PASS] ${test.name}`);
     } catch (e) {
         console.error(`[FAIL] ${test.name}`);

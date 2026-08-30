@@ -22,7 +22,7 @@ export const authenticate = async (req, res, next) => {
             // account itself and holds every scope; a key holds only what it was granted.
             req.user = { userId: user.id, email: user.email, scopes, authMethod: 'apiKey' };
             return next();
-        } catch (e) {
+        } catch (_e) {
             const error = new Error('Invalid or revoked API Key');
             error.statusCode = 401;
             return next(error);

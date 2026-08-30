@@ -65,7 +65,7 @@ export const logger = pinoHttp({
     customErrorMessage: (req, res, err) => {
         return `${req.method} ${safeUrl(req.url)} ${res.statusCode} - ${err.message}`;
     },
-    customProps: (req, res) => ({
+    customProps: (req, _res) => ({
         userId: req.user?.userId,
         requestId: req.id
     })

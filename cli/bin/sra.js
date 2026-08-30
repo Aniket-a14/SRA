@@ -21,6 +21,7 @@ import { analyze } from '../src/commands/analyze.js';
 import { status } from '../src/commands/status.js';
 import { list, projects } from '../src/commands/list.js';
 import { formats } from '../src/commands/formats.js';
+import { hook } from '../src/commands/hook.js';
 
 // The banner is decoration. It must never land in a `--json` pipe, and it is noise in a
 // CI log, so it is drawn only for a human at an interactive terminal.
@@ -133,5 +134,11 @@ program
     .description('Diagnose local setup, credentials and platform connectivity')
     .option('--json', 'machine-readable output')
     .action(doctor);
+
+program
+    .command('hook [action]')
+    .description('Install or manage git pre-commit verification hooks (install | uninstall | status)')
+    .option('--json', 'machine-readable output')
+    .action(hook);
 
 program.parse();

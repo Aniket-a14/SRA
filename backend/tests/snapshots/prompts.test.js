@@ -1,4 +1,3 @@
-import { jest } from '@jest/globals';
 import { constructMasterPrompt } from '../../src/utils/prompts.js';
 
 describe('Prompt Snapshots', () => {

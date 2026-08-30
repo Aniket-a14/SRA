@@ -64,7 +64,7 @@ jest.unstable_mockModule('../../src/services/aiService.js', () => ({
 // import { processJob } from '../../src/controllers/workerController.js';
 
 jest.unstable_mockModule('../../src/services/queueService.js', () => ({
-    addAnalysisJob: jest.fn(async (userId, text, projectId, parentId, rootId, settings) => {
+    addAnalysisJob: jest.fn(async (userId, text, projectId, _parentId, _rootId, _settings) => {
         const { processJob } = await import('../../src/controllers/workerController.js');
         const id = 'generated-id';
         await mockPrisma.analysis.create({

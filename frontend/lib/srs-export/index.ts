@@ -3,7 +3,9 @@ import { generateSrsDocx } from "./generator";
 import { captureDiagrams } from "./capture";
 import { getFormatSpec, listFormatSpecs, resolveFormatId, DEFAULT_FORMAT_ID } from "@/lib/formats";
 
-export { listFormatSpecs as listFormats, getFormatSpec as getFormat, resolveFormatId, DEFAULT_FORMAT_ID };
+import { exportSrsToMarkdown } from "./markdown-export";
+
+export { listFormatSpecs as listFormats, getFormatSpec as getFormat, resolveFormatId, DEFAULT_FORMAT_ID, exportSrsToMarkdown };
 export type { FormatMeta as SrsFormatMeta } from "@/lib/formats";
 
 /**

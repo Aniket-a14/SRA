@@ -1,6 +1,6 @@
 import express from 'express';
 import prisma from '../config/prisma.js';
-import { successResponse, errorResponse } from '../utils/response.js';
+import { successResponse } from '../utils/response.js';
 
 const router = express.Router();
 

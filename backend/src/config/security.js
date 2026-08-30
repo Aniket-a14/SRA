@@ -3,7 +3,7 @@
  * Generates Content Security Policy (CSP) headers based on environment
  */
 
-export const getCSP = (isDev = false) => {
+export const getCSP = (_isDev = false) => {
     const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
         ? process.env.ALLOWED_ORIGINS.split(',')
         : ["'self'", "http://localhost:*", "https://*.vercel.app"];

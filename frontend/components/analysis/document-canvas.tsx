@@ -19,7 +19,7 @@ import dynamic from "next/dynamic"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { downloadBundle } from "@/lib/export-utils"
-import { exportSrsToDocx, listFormats } from "@/lib/srs-export"
+import { exportSrsToDocx, exportSrsToMarkdown, listFormats } from "@/lib/srs-export"
 import { updateAnalysis } from "@/lib/analysis-api"
 import type { Analysis, SystemFeature } from "@/types/analysis"
 import { ErrorBoundary } from "@/components/error-boundary"
@@ -155,7 +155,7 @@ export function DocumentCanvas({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuSub>
-                                <DropdownMenuSubTrigger>Export SRS (Word)</DropdownMenuSubTrigger>
+                                <DropdownMenuSubTrigger>Export SRS (Word .docx)</DropdownMenuSubTrigger>
                                 <DropdownMenuSubContent>
                                     <DropdownMenuLabel className="text-xs text-muted-foreground">Choose a template</DropdownMenuLabel>
                                     {listFormats().map((fmt) => (
@@ -183,7 +183,41 @@ export function DocumentCanvas({
                                     ))}
                                 </DropdownMenuSubContent>
                             </DropdownMenuSub>
+                            <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>Export SRS (Markdown .md)</DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent>
+                                    <DropdownMenuLabel className="text-xs text-muted-foreground">Choose a standard</DropdownMenuLabel>
+                                    {listFormats().map((fmt) => (
+                                        <DropdownMenuItem
+                                            key={fmt.id}
+                                            onClick={async () => {
+                                                try {
+                                                    const { saveAs } = await import("file-saver");
+                                                    const projectTitle = analysis.projectTitle || analysis.title || "Project_Context";
+                                                    const { text, filename } = exportSrsToMarkdown(analysis, projectTitle, fmt.id);
+                                                    const blob = new Blob([text], { type: "text/markdown;charset=utf-8" });
+                                                    saveAs(blob, filename);
+                                                    toast.success(`${fmt.name} Markdown downloaded`);
+                                                } catch (err) {
+                                                    console.error("SRS Markdown Export Failed", err);
+                                                    toast.error("Failed to generate Markdown document");
+                                                }
+                                            }}
+                                        >
+                                            <div className="flex flex-col">
+                                                <span>{fmt.name}</span>
+                                                <span className="text-xs text-muted-foreground">{fmt.description}</span>
+                                            </div>
+                                        </DropdownMenuItem>
+                                    ))}
+                                </DropdownMenuSubContent>
+                            </DropdownMenuSub>
                             <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => {
+                                window.print();
+                            }}>
+                                Print / PDF Preview
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={async () => {
                                 try {
                                     toast.info("Generating bundle...");
@@ -194,7 +228,7 @@ export function DocumentCanvas({
                                     toast.error("Failed to generate Download Bundle");
                                 }
                             }}>
-                                Download Bundle (.zip)
+                                Download Full Bundle (.zip)
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>

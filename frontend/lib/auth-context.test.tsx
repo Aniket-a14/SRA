@@ -35,6 +35,7 @@ const renderAuth = () => render(<AuthProvider><Consumer /></AuthProvider>)
 describe("AuthProvider session survival", () => {
     beforeEach(() => {
         vi.clearAllMocks()
+        process.env.NEXT_PUBLIC_BACKEND_URL = "http://localhost:5000"
         // The access token is never persisted; only the (non-sensitive) cached profile is.
         // Session restore on mount goes through /auth/refresh exchanging the httpOnly cookie.
         localStorage.setItem("user", JSON.stringify(CACHED_USER))

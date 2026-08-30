@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import prisma from '../config/prisma.js';
 import { registerUser, loginUser, handleGoogleAuth, handleGithubAuth, getUserById, verifyCredentialsForRestore } from '../services/auth/authService.js';
 import { requestAccountDeletion, cancelAccountDeletion } from '../services/auth/accountDeletionService.js';
 import { getGoogleAuthURL, getGoogleTokens, getGoogleUser } from '../config/googleOAuth.js';
@@ -241,6 +242,63 @@ export const exportMyData = async (req, res, next) => {
         res.setHeader('Content-Disposition', `attachment; filename="sra-export-${Date.now()}.json"`);
         res.setHeader('Cache-Control', 'no-store');
         res.status(200).send(JSON.stringify(data, null, 2));
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * GET /auth/me/audit-logs — returns paginated audit events for the authenticated user.
+ */
+export const getMyAuditLogs = async (req, res, next) => {
+    try {
+        const userId = req.user.userId;
+        const page = Math.max(1, parseInt(req.query.page || '1', 10));
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit || '20', 10)));
+        const skip = (page - 1) * limit;
+
+        const { action, status, from, to } = req.query;
+
+        const where = { userId };
+        if (action) where.action = String(action);
+        if (status) where.status = String(status);
+        if (from || to) {
+            where.createdAt = {};
+            if (from) where.createdAt.gte = new Date(from);
+            if (to) where.createdAt.lte = new Date(to);
+        }
+
+        const [logs, total] = await Promise.all([
+            prisma.auditLog.findMany({
+                where,
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take: limit,
+                select: {
+                    id: true,
+                    action: true,
+                    resource: true,
+                    resourceId: true,
+                    ipAddress: true,
+                    userAgent: true,
+                    status: true,
+                    metadata: true,
+                    createdAt: true
+                }
+            }),
+            prisma.auditLog.count({ where })
+        ]);
+
+        res.json({
+            success: true,
+            data: logs,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit)
+            }
+        });
     } catch (error) {
         next(error);
     }

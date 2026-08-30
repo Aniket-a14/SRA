@@ -1,4 +1,4 @@
-import { describe, it, expect, jest } from '@jest/globals';
+import { describe, it, expect } from '@jest/globals';
 import { successResponse, errorResponse } from '../../src/utils/response.js';
 
 /**

@@ -16,7 +16,7 @@ const getLocationFromIp = async (ip) => {
         if (response.data.status === 'success') {
             return `${response.data.city}, ${response.data.country}`;
         }
-    } catch (error) {
+    } catch (_error) {
         // Silently fail - we don't want this error to crash the login.
         // It's better to log in without a location than to fail entirely.
         // In production, we might want to log this to Sentry/Datadog, but not here.

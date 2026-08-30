@@ -60,7 +60,7 @@ ${text}
             projectName = words.slice(pIdx + 1, endIdx).join(" ").trim();
           }
         }
-      } catch (e) {
+      } catch (_e) {
         if (text && typeof text === 'string') {
           // Regex for multi-line/multi-word name extraction
           const match = text.match(/Project:\s*([^\n\r]+)/);

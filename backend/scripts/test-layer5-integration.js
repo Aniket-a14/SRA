@@ -1,7 +1,6 @@
 import 'dotenv/config';
 import prisma from '../src/config/prisma.js';
 import { finalizeAnalysis } from '../src/controllers/analysisController.js';
-import crypto from 'crypto';
 
 // Mock Response Object
 const mockRes = () => {

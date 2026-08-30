@@ -168,8 +168,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
      * likely to hit a cold backend, which is why it looked like "closing the tab logs me out".
      */
     const fetchUser = React.useCallback(async (authToken: string) => {
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || ""
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/me`, {
+            const res = await fetch(`${backendUrl}/auth/me`, {
                 headers: {
                     Authorization: `Bearer ${authToken}`
                 }
@@ -189,7 +190,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const refreshed = await refreshAccessToken()
 
                 if (refreshed.token) {
-                    const retryRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/me`, {
+                    const retryRes = await fetch(`${backendUrl}/auth/me`, {
                         headers: { Authorization: `Bearer ${refreshed.token}` }
                     })
                     if (retryRes.ok) {

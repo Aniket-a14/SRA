@@ -186,7 +186,7 @@ async function runTest(title, inputData) {
         try {
             // Attempt real AI API call
             result = await validateRequirements(inputData);
-        } catch (apiErr) {
+        } catch (_apiErr) {
             console.log(`\n⚠️ [API Blocked/No Network] Falling back to High-Fidelity Validation Simulator...`);
             result = simulateValidation(inputData);
         }

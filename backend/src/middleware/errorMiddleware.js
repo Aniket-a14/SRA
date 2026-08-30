@@ -2,7 +2,7 @@ import { ErrorCodes } from '../utils/errorCodes.js';
 import { sanitizeError } from '../utils/errorSanitizer.js';
 import logger from '../config/logger.js';
 
-export const errorHandler = (err, req, res, next) => {
+export const errorHandler = (err, req, res, _next) => {
     // sanitizeError trusts any message already attached to a statusCode < 500 (our own
     // deliberately-thrown, client-actionable errors) and only rewrites raw/5xx/unclassified
     // provider text — so this is safe to apply to every error that reaches this handler.

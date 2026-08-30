@@ -5,6 +5,7 @@ import { ApiKeyManager } from "@/components/api-key-manager"
 import { ProviderKeyManager } from "@/components/provider-key-manager"
 import { PrivacySettings } from "@/components/privacy-settings"
 import { ModelQuotaPanel } from "@/components/model-quota-panel"
+import { AuditLogViewer } from "@/components/audit-log-viewer"
 import { useAuth } from "@/lib/auth-context"
 import { redirect } from "next/navigation"
 
@@ -25,6 +26,11 @@ export default function SettingsPage() {
                 <div className="space-y-4">
                     <h2 className="text-xs font-mono uppercase tracking-wide text-muted-foreground">Account security</h2>
                     <SecuritySettings />
+                </div>
+
+                <div className="space-y-4">
+                    <h2 className="text-xs font-mono uppercase tracking-wide text-muted-foreground">Activity &amp; Audit Trail</h2>
+                    <AuditLogViewer />
                 </div>
 
                 <div className="space-y-4">

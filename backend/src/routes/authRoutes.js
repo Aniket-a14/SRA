@@ -1,6 +1,6 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
-import { signup, login, googleStart, googleCallback, githubStart, githubCallback, exchangeToken, getMe, refreshToken, logout, getSessions, revokeSessionEndpoint, exportMyData, deleteMyAccount, restoreMyAccount, REFRESH_TOKEN_COOKIE } from '../controllers/authController.js';
+import { signup, login, googleStart, googleCallback, githubStart, githubCallback, exchangeToken, getMe, refreshToken, logout, getSessions, revokeSessionEndpoint, exportMyData, getMyAuditLogs, deleteMyAccount, restoreMyAccount, REFRESH_TOKEN_COOKIE } from '../controllers/authController.js';
 import { authenticate, requireScope } from '../middleware/authMiddleware.js';
 import { loginLimiter } from '../middleware/rateLimiters.js';
 import { validate } from '../middleware/validationMiddleware.js';
@@ -30,6 +30,7 @@ router.get('/me', authenticate, getMe);
 // Data access/portability (GDPR Art. 15/20). Bearer-authenticated like /me, so it is not
 // reachable with the ambient refresh cookie and needs no CSRF guard.
 router.get('/me/export', authenticate, exportMyData);
+router.get('/me/audit-logs', authenticate, getMyAuditLogs);
 // Erasure (Art. 17). Restore is credential-authenticated rather than bearer-authenticated,
 // because requesting deletion revokes every session — there is no token left to present —
 // and re-entering a password is the right bar for undoing a destructive request. It carries

@@ -109,7 +109,7 @@ export const auditLogger = (req, res, next) => {
 /**
  * Log request audit trail
  */
-function logRequestAudit(req, res, startTime, responseData) {
+function logRequestAudit(req, res, startTime, _responseData) {
     const duration = Date.now() - startTime;
     const action = determineAction(req, res);
 
@@ -134,11 +134,20 @@ function logRequestAudit(req, res, startTime, responseData) {
     });
 }
 
-/**
- * Determine action type from request
- */
 function determineAction(req, res) {
-    const { method, path } = req;
+    const path = req.baseUrl + req.path;
+    const method = req.method;
+
+    if (path.includes('/auth/login') && method === 'POST') {
+        return res.statusCode === 200 ? 'LOGIN_SUCCESS' : 'LOGIN_FAILURE';
+    }
+    if (path.includes('/auth/logout')) return 'LOGOUT';
+    if (path.includes('/auth/password')) return 'PASSWORD_CHANGE';
+
+    // Subject-rights operations (GDPR compliance)
+    if (path.includes('/auth/me/export')) return 'EXPORT_DATA';
+    if (path.includes('/auth/me/restore')) return 'RESTORE_ACCOUNT';
+    if (path.endsWith('/auth/me') && method === 'DELETE') return 'DELETE_USER';
 
     // Project operations
     if (path.includes('/projects')) {
@@ -153,20 +162,6 @@ function determineAction(req, res) {
         if (path.includes('/finalize')) return 'FINALIZE_ANALYSIS';
     }
 
-    // Auth operations
-    if (path.includes('/auth/login')) {
-        return res.statusCode === 200 ? 'LOGIN_SUCCESS' : 'LOGIN_FAILURE';
-    }
-    if (path.includes('/auth/logout')) return 'LOGOUT';
-
-    // Subject-rights operations. These are the events a data-protection enquiry actually
-    // asks about — "when did they ask, and did we do it?" — so they are recorded before
-    // any other /user matching, which would otherwise never see them: the routes are
-    // /auth/me, not /user.
-    if (path.includes('/auth/me/export')) return 'EXPORT_DATA';
-    if (path.includes('/auth/me/restore')) return 'RESTORE_ACCOUNT';
-    if (path.endsWith('/auth/me') && method === 'DELETE') return 'DELETE_USER';
-
     // User operations
     if (path.includes('/user')) {
         if (method === 'PUT' || method === 'PATCH') return 'UPDATE_USER';
@@ -177,16 +172,57 @@ function determineAction(req, res) {
 }
 
 /**
- * Manual audit logging for specific events
+ * Audit specific events manually
  */
-export async function auditDataExport(userId, exportType, recordCount) {
+export async function auditAccountAction(userId, action, details = {}) {
+    return logAuditEvent({
+        userId,
+        action,
+        resource: 'account',
+        metadata: details
+    });
+}
+
+export async function auditSecurityEvent(userId, action, ipAddress, userAgent) {
+    return logAuditEvent({
+        userId,
+        action,
+        resource: 'security',
+        ipAddress,
+        userAgent,
+        metadata: {
+            timestamp: new Date().toISOString()
+        }
+    });
+}
+
+export async function auditProjectAction(userId, projectId, action, changes = null) {
+    return logAuditEvent({
+        userId,
+        action,
+        resource: 'project',
+        resourceId: projectId,
+        changes
+    });
+}
+
+export async function auditAnalysisAction(userId, analysisId, action, status = 'success') {
+    return logAuditEvent({
+        userId,
+        action,
+        resource: 'analysis',
+        resourceId: analysisId,
+        status
+    });
+}
+
+export async function auditDataExport(userId, exportType, ipAddress) {
     return logAuditEvent({
         userId,
         action: 'EXPORT_DATA',
-        resource: 'data_export',
+        resource: 'user_data',
+        ipAddress,
         metadata: {
-            exportType,
-            recordCount,
             timestamp: new Date().toISOString()
         }
     });
@@ -222,16 +258,55 @@ export async function auditSuspiciousActivity(userId, activityType, details) {
  * Generate audit report for a date range
  */
 export async function generateAuditReport(startDate, endDate, userId = null) {
-    // TODO: Query AuditLog table when implemented
-    // For now, return placeholder
-    return {
-        startDate,
-        endDate,
-        userId,
-        totalEvents: 0,
-        eventsByType: {},
-        securityAlerts: []
-    };
+    const where = {};
+    if (startDate || endDate) {
+        where.createdAt = {};
+        if (startDate) where.createdAt.gte = new Date(startDate);
+        if (endDate) where.createdAt.lte = new Date(endDate);
+    }
+    if (userId) {
+        where.userId = userId;
+    }
+
+    try {
+        const [events, totalEvents] = await Promise.all([
+            prisma.auditLog.findMany({
+                where,
+                orderBy: { createdAt: 'desc' },
+                take: 1000
+            }),
+            prisma.auditLog.count({ where })
+        ]);
+
+        const eventsByType = {};
+        const securityAlerts = [];
+
+        for (const event of events) {
+            eventsByType[event.action] = (eventsByType[event.action] || 0) + 1;
+            if (event.action === 'SUSPICIOUS_ACTIVITY' || event.status === 'warning' || event.status === 'failure') {
+                securityAlerts.push(event);
+            }
+        }
+
+        return {
+            startDate,
+            endDate,
+            userId,
+            totalEvents,
+            eventsByType,
+            securityAlerts
+        };
+    } catch (error) {
+        logger.error({ msg: 'Failed to generate audit report', error: error.message });
+        return {
+            startDate,
+            endDate,
+            userId,
+            totalEvents: 0,
+            eventsByType: {},
+            securityAlerts: []
+        };
+    }
 }
 
 export { logAuditEvent };

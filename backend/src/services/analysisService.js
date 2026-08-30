@@ -678,19 +678,6 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
         promptSettings: settings // Store settings
     };
 
-    // Update metadata with governance info
-    // We assume "settings" was passed in. analysisMeta overrides it if AI service provided explicit version info.
-    const finalMetadata = {
-        trigger: 'initial',
-        formatId: spec.id,
-        ...analysisMeta
-    };
-
-    // Note: We need to pass this metadata to the update call effectively.
-    // The "update" below updates `resultJson`. `metadata` is a separate column.
-    // We should merge it.
-
-
     // LAYER 3: Alignment Check (Sync with Layer 1 & 2)
     if (analysisId) {
         try {
@@ -955,7 +942,7 @@ export const getUserAnalyses = async (userId) => {
                             "Draft analysis";
                     }
                 }
-            } catch (e) {
+            } catch (_e) {
                 // Parsing failed, use raw text but cleaned of some chars
             }
 

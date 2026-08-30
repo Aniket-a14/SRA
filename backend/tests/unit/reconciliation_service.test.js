@@ -26,10 +26,8 @@ const {
     reconcileStaleInProgress,
     pruneOrphanedDrafts,
     runReconciliation,
-    pruneAuditLog,
     STALE_IN_PROGRESS_THRESHOLD_MS,
-    DRAFT_TTL_MS,
-    AUDIT_LOG_RETENTION_MS
+    DRAFT_TTL_MS
 } = await import('../../src/services/reconciliationService.js');
 
 describe('reconciliationService', () => {

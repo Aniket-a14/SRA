@@ -1,4 +1,4 @@
-import { performAnalysis, getUserAnalyses, getAnalysisById, getAnalysisHistory, deleteAnalysis as deleteAnalysisService, createDraftAnalysis } from '../services/analysisService.js';
+import { getUserAnalyses, getAnalysisById, getAnalysisHistory, deleteAnalysis as deleteAnalysisService, createDraftAnalysis } from '../services/analysisService.js';
 import { processChat, processChatStream } from '../services/chatService.js';
 import { addAnalysisJob, getJobStatus, resumeAnalysisJob } from '../services/queueService.js';
 import { surgicalRefine } from '../services/surgicalRefineService.js';
@@ -7,7 +7,6 @@ import { lintRequirements, checkAlignment } from '../services/qualityService.js'
 import { validateRequirements, autoFixRequirements } from '../services/validationService.js';
 import { repairDiagram as aiRepairDiagram } from '../services/aiService.js';
 import { embedText } from '../services/knowledge/embeddingService.js';
-import { ensureProjectExists } from '../services/projectService.js';
 import { findReuseCandidate } from '../services/knowledge/reuseService.js';
 import { expandFeatureContent, generateDfdStructure } from '../services/featureService.js';
 import prisma from '../config/prisma.js';
@@ -21,7 +20,7 @@ import { ErrorCodes } from '../utils/errorCodes.js';
 
 export const analyze = async (req, res, next) => {
     try {
-        let { text, srsData, validationResult, parentId, rootId } = req.body;
+        let { text, srsData, validationResult } = req.body;
 
         // Auto-Create Project if missing - DEFERRED to Worker Service (performAnalysis)
         // req.body.projectId = await ensureProjectExists(req.user.userId, req.body.projectId, srsData, text);
@@ -863,7 +862,7 @@ export const expandFeature = async (req, res, next) => {
     }
 };
 
-export const repairDiagram = async (req, res, next) => {
+export const repairDiagram = async (req, res, _next) => {
     try {
         const { code, error, settings } = req.body;
         logger.info(`[AnalysisController] Repairing Diagram. Error length: ${error?.length}`);

@@ -140,7 +140,7 @@ async function filterFalsePositives(issues, providerConfig) {
         typeof title === 'string' && issue.title.toLowerCase().includes(title.toLowerCase())
       )
     );
-  } catch (err) {
+  } catch (_err) {
     // If filter fails, return original issues (safe fallback)
     return issues;
   }
@@ -200,7 +200,7 @@ export async function validateRequirements(srsData, providerConfig) {
   }
 
   if (result.issues && Array.isArray(result.issues)) {
-    result.issues = result.issues.map((issue, idx) => {
+    result.issues = result.issues.map((issue, _idx) => {
       let severity = (issue.severity || 'info').toLowerCase();
 
       if (severity === 'blocker') severity = 'critical';
