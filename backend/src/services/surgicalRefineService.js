@@ -14,36 +14,31 @@ import { stringifyForPrompt } from "../utils/promptCompaction.js";
  * Typical response time: 5-10s (vs 30-60s for full pipeline)
  */
 
-const SURGICAL_REFINE_PROMPT = `
+function buildSurgicalPrompt(formatName = 'the specification standard') {
+    return `
 <role>
-You are a senior SRS editor performing a SURGICAL EDIT on an existing Software Requirements Specification document.
+You are a senior specification editor performing a SURGICAL EDIT on an existing ${formatName} document.
 You are NOT rewriting the entire document. You are making TARGETED changes to specific sections based on the user's feedback.
 </role>
 
 <rules>
-1. You will receive the COMPLETE current SRS as JSON and the user's improvement instructions.
+1. You will receive the COMPLETE current specification as JSON and the user's improvement instructions.
 2. Return ONLY a JSON object containing the sections that need to change. Do NOT return unchanged sections.
-3. The returned JSON keys MUST match the exact key names from the original SRS (e.g., "systemFeatures", "nonFunctionalRequirements", "introduction", etc.).
-4. For array fields (like systemFeatures), return the COMPLETE array for that field — not just the changed items. This is because arrays cannot be partially merged.
-5. For object fields (like introduction, overallDescription), return the COMPLETE object for that field with your edits applied.
-6. Preserve all technical accuracy, IEEE 830 compliance, and formatting from the original.
+3. The returned JSON keys MUST match the exact key names from the original specification (e.g., matching the schema of this ${formatName} document).
+4. For array fields, return the COMPLETE array for that field — not just the changed items. This is because arrays cannot be partially merged.
+5. For object fields, return the COMPLETE object for that field with your edits applied.
+6. Preserve all technical accuracy, ${formatName} compliance, and formatting conventions from the original.
 7. Do NOT invent new sections. Only modify sections the user asked about.
 8. If the user's feedback is vague, apply reasonable improvements to the most relevant section.
 9. Maintain consistency with unchanged sections — don't introduce contradictions.
 </rules>
 
 <output_format>
-Return ONLY valid JSON — a partial object containing ONLY the modified sections.
-
-Example: If the user wants to improve the introduction and add a feature:
-{
-  "introduction": { ...full updated introduction object... },
-  "systemFeatures": [ ...full updated features array... ]
-}
-
+Return ONLY valid JSON — a partial object containing ONLY the modified sections matching the original document's key structure.
 Do NOT wrap in markdown. Do NOT include explanations. ONLY the JSON partial.
 </output_format>
 `;
+}
 
 /**
  * Perform a surgical refinement on an existing SRS
@@ -80,7 +75,7 @@ Apply the user's feedback as a surgical edit. Return ONLY the modified sections 
         try {
             const response = await analyzeText(userPrompt, {
                 ...asAiSettings(providerConfig),
-                systemPrompt: SURGICAL_REFINE_PROMPT,
+                systemPrompt: buildSurgicalPrompt(currentSRS?.formatName || currentSRS?.formatId || 'SRS'),
                 temperature: TEMPERATURES.critic,
                 maxOutputTokens: OUTPUT_TOKEN_LIMITS.srsRefinement,
                 zodSchema: null

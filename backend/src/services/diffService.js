@@ -1,12 +1,11 @@
-
 /**
- * Compares two analysis objects and returns differences.
- * Supports deep comparison for IEEE SRS structure.
+ * Compares two analysis objects format-agnostically and returns all section differences.
+ * Works dynamically across IEEE 830, ISO 29148, Volere, Agile PRD, and custom standards.
  */
 export const compareAnalyses = (v1, v2) => {
     const changes = {};
 
-    // 1. Input Text
+    // 1. Input Text Diff
     if (v1.inputText !== v2.inputText) {
         changes.inputText = {
             old: v1.inputText,
@@ -14,59 +13,32 @@ export const compareAnalyses = (v1, v2) => {
         };
     }
 
-    // Helper: Deep JSON compare
-    const getDiff = (obj1, obj2) => {
-        if (JSON.stringify(obj1) === JSON.stringify(obj2)) return null;
-        return {
-            old: obj1,
-            new: obj2
-        };
-    };
-
-    // Helper: Array compare (naive)
-    const getArrayDiff = (arr1, arr2) => {
-        if (!arr1 && !arr2) return null;
-        if (JSON.stringify(arr1) === JSON.stringify(arr2)) return null;
-        return {
-            old: arr1,
-            new: arr2
-        };
-    };
-
     const r1 = v1.resultJson || {};
     const r2 = v2.resultJson || {};
 
-    // 2. Sections Diff
+    const EXCLUDED_META_KEYS = new Set([
+        'qualityAudit',
+        'promptSettings',
+        'checkpoint',
+        'draftData'
+    ]);
 
-    // Introduction
-    const introDiff = getDiff(r1.introduction, r2.introduction);
-    if (introDiff) changes.introduction = introDiff;
+    // 2. Collect all section keys from both documents
+    const allKeys = Array.from(new Set([...Object.keys(r1), ...Object.keys(r2)]));
 
-    // Overall Description
-    const overallDiff = getDiff(r1.overallDescription, r2.overallDescription);
-    if (overallDiff) changes.overallDescription = overallDiff;
+    for (const key of allKeys) {
+        if (EXCLUDED_META_KEYS.has(key)) continue;
 
-    // System Features (The most complex one)
-    // For now, simpler object diff.
-    // Ideally we match by 'name' and diff internals, but atomic replacement view is also fine for V1.
-    const featuresDiff = getArrayDiff(r1.systemFeatures, r2.systemFeatures);
-    if (featuresDiff) changes.systemFeatures = featuresDiff;
+        const val1 = r1[key];
+        const val2 = r2[key];
 
-    // Non-Functional
-    const nfrDiff = getDiff(r1.nonFunctionalRequirements, r2.nonFunctionalRequirements);
-    if (nfrDiff) changes.nonFunctionalRequirements = nfrDiff;
-
-    // External Interfaces
-    const extDiff = getDiff(r1.externalInterfaceRequirements, r2.externalInterfaceRequirements);
-    if (extDiff) changes.externalInterfaceRequirements = extDiff;
-
-    // Appendices (Diagrams, Glossary)
-    const appDiff = getDiff(r1.appendices, r2.appendices);
-    if (appDiff) changes.appendices = appDiff;
-
-    // Other Req
-    const otherDiff = getArrayDiff(r1.otherRequirements, r2.otherRequirements);
-    if (otherDiff) changes.otherRequirements = otherDiff;
+        if (JSON.stringify(val1) !== JSON.stringify(val2)) {
+            changes[key] = {
+                old: val1,
+                new: val2
+            };
+        }
+    }
 
     return changes;
 };

@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
-import { VersionDiffViewer } from "@/components/version-diff-viewer"
+import { VersionDiffViewer, type AnalysisDiff } from "@/components/version-diff-viewer"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -41,7 +41,7 @@ function CompareContent() {
     const v2 = searchParams.get("v2")
     const { token, isLoading: authLoading } = useAuth()
 
-    const [diff, setDiff] = useState<unknown>(null)
+    const [diff, setDiff] = useState<AnalysisDiff | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState("")
 
