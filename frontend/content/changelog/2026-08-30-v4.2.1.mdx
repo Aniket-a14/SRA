@@ -1,0 +1,42 @@
+---
+title: "Publication-grade LaTeX, Overleaf integration and complete system hardening"
+description: "SRA 4.2.1 introduces academic & enterprise LaTeX, Typst, 1-click Overleaf projects, executive Print-to-PDF, format-agnostic surgical refinement, and a comprehensive 22-finding security, performance and reliability overhaul."
+date: "2026-08-30"
+version: "4.2.1"
+tags: ["LaTeX", "Overleaf", "Typst", "PDF", "Security", "Performance", "Formats"]
+milestone: true
+---
+
+Release 4.2.1 transforms SRA into a publication-grade requirements platform. Specifications can now be compiled directly into high-fidelity LaTeX documents, opened seamlessly in Overleaf with a single click, rendered into executive-ready vector PDFs, or exported as modern Typst specifications.
+
+Alongside export enhancements, this release completes an exhaustive monorepo audit and resolves 22 structural, security, performance, and accessibility findings across the stack.
+
+## 📄 Academic & Enterprise LaTeX & 1-Click Overleaf
+
+Engineering and academic teams often require formal, typeset documentation for contract bids, compliance filings, and research publications.
+
+SRA now generates complete, standalone LaTeX projects (`.tex`) tailored to all supported standards (IEEE 830, ISO/IEC/IEEE 29148, Volere, and Agile PRD):
+
+- **Structured Typography**: Powered by `tcolorbox`, `booktabs`, `fancyhdr`, and `hyperref`.
+- **Requirement Cards**: Clean, color-coded callout boxes for functional and non-functional specifications.
+- **Overleaf Integration**: Click **"Open in Overleaf"** to instantly launch a compiled, editable project on Overleaf via the official Snip API with zero local LaTeX installation.
+
+## 📑 Executive Print-to-PDF & Modern Typst Engine
+
+- **Executive Print-to-PDF**: A dedicated `<PrintCoverPage />` component and `@media print` styling rules eliminate web chrome, enforce page breaks between major chapters, and produce clean vector PDFs directly from the browser.
+- **Typst Specifications (`.typ`)**: Full support for Typst, the high-speed Rust-based markup and typesetting system.
+- **Multi-Asset ZIP Bundles**: One-click download packaging `.docx`, `.tex`, `.typ`, `.md`, `.json`, and vector diagrams (`.svg`, `.png`, `.mmd`).
+
+## 🔄 Format-Agnostic Generation & Diff Viewer
+
+The entire generation pipeline is now dynamic across all 4 standards:
+- **Surgical Refinement**: Prompts dynamically adapt to the active standard's section schema.
+- **Deep Version Diff Viewer**: Compare any two versions across custom keys, user stories, stakeholder tables, and requirement shells with fine-grained additions, deletions, and updates.
+
+## 🛡️ Monorepo Audit & 22-Finding System Hardening
+
+- **AI Streaming Aborts**: User cancellations and tab closures now propagate an `AbortSignal` directly to LLM provider streams (Gemini, Claude, OpenAI, Grok), stopping token consumption immediately.
+- **Static Page Prerendering**: Removed root layout header dependencies, restoring static generation for landing, marketing, and legal routes.
+- **Security**: Hardened Redis TLS verification, added guards for malformed authorization headers, and consolidated unscoped Prisma queries into secure `findFirst` lookups.
+- **CLI Robustness**: Added strict `|| exit 1` failure propagation in pre-commit hooks, capped regex iteration depth against ReDoS, and made local `sra.spec.json` write operations atomic.
+- **Docker Hardening**: Runtime container execution runs with non-root user privileges.

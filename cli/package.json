@@ -1,7 +1,7 @@
 {
     "name": "@sra-srs/sra-cli",
-    "version": "4.2.0",
-    "description": "SRA CLI Tool",
+    "version": "4.2.1",
+    "description": "CLI tool to synchronize, trace, and verify IEEE-830 software requirements locally with SRA.",
     "main": "bin/sra.js",
     "type": "module",
     "bin": {

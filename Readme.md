@@ -17,7 +17,7 @@
 [![Dependabot](https://img.shields.io/badge/Dependabot-enabled-success)](https://github.com/Aniket-a14/SRA/blob/main/.github/dependabot.yml)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/Aniket-a14/SRA/graphs/commit-activity)
 [![Frontend Deploy](https://img.shields.io/badge/Frontend-Live-brightgreen?logo=vercel)](https://sra-xi.vercel.app/)
-[![Socket Badge](https://badge.socket.dev/npm/package/@sra-srs/sra-cli/4.2.0)](https://badge.socket.dev/npm/package/@sra-srs/sra-cli/4.2.0)
+[![Socket Badge](https://badge.socket.dev/npm/package/@sra-srs/sra-cli/4.2.1)](https://badge.socket.dev/npm/package/@sra-srs/sra-cli/4.2.1)
 
 <p align="center">
   <img src="assets/sra.png" alt="SRA Platform Dashboard" width="100%" />
@@ -130,7 +130,7 @@ The pipeline runs entirely server-side and survives the browser being closed: wo
 *   **Revision History**: Complete versioning system with visual diff tracking between requirement updates.
 *   **Audit-Ready Exports**: One-click professional PDF generation with table of contents and revision logs.
 
-### 🛠️ SRA CLI Toolkit (v4.2.0)
+### 🛠️ SRA CLI Toolkit (v4.2.1)
 *   **Spec-to-Code Traceability**: Requirement groups link to the source files that implement them, surfaced back on the web workspace for every format.
 *   **Reverse Engineering**: `sra reverse` reduces an existing codebase to a structural digest — interfaces, entities, module layout, dependencies — runs it through the same multi-agent pipeline, and proposes source links for the requirements it produces.
 *   **Local Compliance Engine**: `sra check` confirms links resolve; `--deep` re-checks that the linked files still carry the requirement's own identifiers, catching links that rotted as code moved.
@@ -324,7 +324,7 @@ docker compose up --build -d
 *   **API Service**: `http://localhost:3000` (Optimized Multi-stage Build)
 *   **Application UI**: `http://localhost:3001` (Next.js Standalone Build)
 
-### ⌨️ CLI (v4.2.0)
+### ⌨️ CLI (v4.2.1)
 The SRA toolkit operates cross-workspace for unified project control. See [`cli/README.md`](cli/README.md) for the full command reference.
 ```bash
 pnpm install -g @sra-srs/sra-cli

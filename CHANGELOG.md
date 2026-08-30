@@ -2,7 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [4.2.1] - 2026-08-30
+
+### 📄 Publication-Grade Multi-Standard Exporters
+- **Added** academic and enterprise **LaTeX (`.tex`)** export engine with `tcolorbox` requirement cards, `booktabs` tables, `fancyhdr` headers/footers, and clean preamble supporting IEEE 830, ISO 29148, Volere, and Agile PRD formats.
+- **Added** **1-click Open in Overleaf** integration via the official Overleaf Snip API.
+- **Added** executive **Print-to-PDF** engine with formal print cover sheets, dynamic metadata, and `@media print` vector stylesheets.
+- **Added** **Typst (`.typ`)** document generator for high-performance Rust-based typesetting.
+- **Added** comprehensive **Multi-Asset ZIP Bundle** packaging Word (`.docx`), LaTeX (`.tex`), Typst (`.typ`), Markdown (`.md`), JSON, and vector diagrams (`.svg`, `.png`, `.mmd`).
+
+### 🔄 Format-Agnostic Generation & Diff Engine
+- **Refactored** surgical refinement prompts (`surgicalRefineService.js`) and reviewer checklists to be 100% format-agnostic across all 4 supported standards.
+- **Upgraded** version comparison (`diffService.js` and `version-diff-viewer.tsx`) to deeply compare and visualize any requirement section schema.
+
+### 🛡️ System Audit Remediation & Hardening (22 Findings)
+- **Security**: Enforced production Redis TLS verification, added empty auth header crash guards, and consolidated IDOR checks into scoped `findFirst` Prisma queries.
+- **Cost & Streaming**: Propagated client disconnect `AbortSignal` down to underlying LLM provider streams, eliminating token leaks on tab closures.
+- **Performance**: Restored Next.js 16 static prerendering on marketing and legal pages by eliminating root layout header dependencies, and dynamically loaded below-the-fold landing page components.
+- **CLI & Git Hooks**: Enforced `|| exit 1` in pre-commit hooks, added 1000-iteration ReDoS safety bounds in regex scanner loops, made local spec writebacks atomic, and dropped container privileges to non-root `cliuser`.
 
 ### 🩹 Generation reliability
 - **Fixed** finished documents containing no diagrams at all. The reflection loop selects the Appendices section whenever feedback mentions a diagram, a flowchart or an ERD — which the Critic's feedback usually does, and it is the first branch tested — but `refineSRS` mapped a response schema for Shell, Features and Requirements and had no entry for Appendices. That refinement fell through to the *whole-document* schema, so the model was shown one section, asked for an entire SRS, and the result was spread over the draft, dropping the Mermaid models the refinement existed to repair. The section now has its own schema, an unmappable section is refused rather than guessed at, and the merge keeps any diagram a refinement did not return. Long-standing, but invisible until runs stopped being killed mid-loop: the failsafe used to persist the pre-reflection draft, which still had them.
