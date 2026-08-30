@@ -1,6 +1,6 @@
 /**
- * Opens a LaTeX document directly in Overleaf in a new tab via the Overleaf Snip API.
- * This spins up a full Overleaf workspace with the document pre-loaded without requiring any server setup.
+ * Opens a LaTeX document directly in Overleaf in a new tab via the official Overleaf API.
+ * Uses the URL-encoded `encoded_snip` parameter as specified in https://www.overleaf.com/devs
  */
 export function openInOverleaf(texContent: string, documentName = "main.tex"): void {
     if (typeof window === "undefined" || typeof document === "undefined") {
@@ -14,12 +14,14 @@ export function openInOverleaf(texContent: string, documentName = "main.tex"): v
     form.rel = "noopener noreferrer";
     form.style.display = "none";
 
+    // Overleaf API requires `encoded_snip` containing the URI-encoded LaTeX source
     const snipInput = document.createElement("input");
     snipInput.type = "hidden";
-    snipInput.name = "snip";
-    snipInput.value = texContent;
+    snipInput.name = "encoded_snip";
+    snipInput.value = encodeURIComponent(texContent);
     form.appendChild(snipInput);
 
+    // Optional filename descriptor for the root project document
     const nameInput = document.createElement("input");
     nameInput.type = "hidden";
     nameInput.name = "snip_name";
