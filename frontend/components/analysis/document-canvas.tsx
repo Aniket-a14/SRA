@@ -14,7 +14,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Download, Sparkles, Database, Loader2, X, History, Zap, Activity } from "lucide-react"
+import { Download, Sparkles, Database, Loader2, X, History, Zap, Activity, Network } from "lucide-react"
 import dynamic from "next/dynamic"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -36,7 +36,6 @@ import { CliTraceabilityPanel } from "@/components/analysis/cli-traceability-pan
 import { FormatResults } from "@/components/analysis/format-results"
 import { getFormatSpec, resolveFormatId } from "@/lib/formats"
 import { TaskInspectorDialog } from "@/components/analysis/task-inspector-dialog"
-import { NextActionsPanel } from "@/components/analysis/next-actions-panel"
 import { DFDGenerationDialog } from "@/components/analysis/dfd-generation-dialog"
 import * as React from "react"
 
@@ -83,11 +82,17 @@ export function DocumentCanvas({
         <div className={cn("flex flex-col h-full bg-background", className)}>
             {/* Toolbar — every action here operates on the document itself, so it lives
                 with the document rather than in the outer page chrome. */}
-            <div className="border-b border-foreground/10 px-4 sm:px-6 py-2 flex items-center justify-between gap-3 shrink-0 bg-muted/5">
-                <div className="min-w-0 flex items-center gap-2">
-                    <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
-                        Document Controls
-                    </span>
+            <div className="border-b border-foreground/10 px-4 sm:px-6 py-1.5 flex items-center justify-between gap-3 shrink-0 bg-muted/5">
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs gap-1.5 border-foreground/20 hover:bg-foreground/5 rounded-full"
+                        onClick={() => setIsDfdOpen(true)}
+                    >
+                        <Network className="h-3.5 w-3.5 text-indigo-500" />
+                        <span>Generate DFD</span>
+                    </Button>
                 </div>
 
                 <div className="flex items-center gap-1 shrink-0">
@@ -373,29 +378,21 @@ export function DocumentCanvas({
                 </div>
             </div>
 
-            {/* Contextual Next Actions & Continuation Bar */}
-            <NextActionsPanel
-                onOpenDfdDialog={() => setIsDfdOpen(true)}
-                onOpenCliTraceability={() => {
-                    const el = document.getElementById("cli-traceability-section")
-                    if (el) el.scrollIntoView({ behavior: "smooth" })
-                }}
-            />
-
             <div className="flex-1 overflow-y-auto">
-                <div className="flex flex-col gap-4 w-full max-w-5xl mx-auto">
+                <div className="flex flex-col gap-2 w-full max-w-5xl mx-auto">
                     {/* Print-only executive cover page */}
                     <PrintCoverPage analysis={analysis} title={analysis.projectTitle || analysis.title} />
 
-                    <div className="px-4 sm:px-6 pt-4">
-                        <SourcesPanel sources={analysis.metadata?.ragSources || []} />
-                    </div>
-                    {/* Above the document body, and outside the format switch on purpose:
-                        CLI traceability lives in metadata, so it renders identically for
-                        every format instead of only for IEEE's feature section. */}
-                    <div id="cli-traceability-section" className="px-4 sm:px-6">
-                        <CliTraceabilityPanel traceability={analysis.metadata?.cliTraceability} />
-                    </div>
+                    {analysis.metadata?.ragSources && analysis.metadata.ragSources.length > 0 && (
+                        <div className="px-4 sm:px-6 pt-2">
+                            <SourcesPanel sources={analysis.metadata.ragSources} />
+                        </div>
+                    )}
+                    {analysis.metadata?.cliTraceability?.groups && analysis.metadata.cliTraceability.groups.length > 0 && (
+                        <div id="cli-traceability-section" className="px-4 sm:px-6">
+                            <CliTraceabilityPanel traceability={analysis.metadata.cliTraceability} />
+                        </div>
+                    )}
                     <ErrorBoundary name="Results View">
                         {resolveFormatId(analysis) === "ieee830" ? (
                             <ResultsTabs

@@ -123,49 +123,44 @@ export const ResultsTabs = memo(function ResultsTabs({ data, onDiagramEditChange
   return (
     <section ref={sectionRef} className="pb-10">
       <Tabs defaultValue="intro" className="w-full gap-0">
-        {/* Editorial masthead + sticky underline nav. The eyebrow carries the standard,
-            the serif line the section identity — matching the landing page's language. */}
+        {/* Sticky compact tab bar */}
         <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-foreground/10">
-          <div className="flex items-end justify-between gap-3 px-4 sm:px-6 pt-4 pb-1">
-            <div className="min-w-0">
-              <span className="inline-flex items-center gap-3 text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground/70">
-                <span className="w-6 h-px bg-foreground/30" />
-                IEEE 830-1998
+          <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-1">
+            <ScrollArea className="flex-1 min-w-0">
+              <TabsList className="inline-flex w-max items-center justify-start gap-5 bg-transparent p-0 h-auto rounded-none border-0">
+                <TabsTrigger value="intro" className={tabTriggerClass}><span className={tabIndexClass}>01</span> Introduction</TabsTrigger>
+                <TabsTrigger value="features" className={tabTriggerClass}><span className={tabIndexClass}>02</span> Features</TabsTrigger>
+                <TabsTrigger value="interfaces" className={tabTriggerClass}><span className={tabIndexClass}>03</span> Interfaces</TabsTrigger>
+                <TabsTrigger value="nfrs" className={tabTriggerClass}><span className={tabIndexClass}>04</span> Non-Functional</TabsTrigger>
+                <TabsTrigger value="appendices" className={tabTriggerClass}><span className={tabIndexClass}>05</span> Appendices</TabsTrigger>
+                <TabsTrigger value="graph" className={tabTriggerClass}><span className={tabIndexClass}>06</span> Knowledge Graph</TabsTrigger>
+              </TabsList>
+              <ScrollBar orientation="horizontal" className="opacity-0" />
+            </ScrollArea>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="hidden md:inline font-mono text-[10px] text-muted-foreground/60 uppercase tracking-widest mr-1">
+                IEEE 830
               </span>
-              <p className="font-display text-2xl leading-tight mt-1 hidden sm:block">Specification</p>
-            </div>
-            <div className="flex gap-2 ml-auto pb-1">
               {isEditing ? (
                 <>
-                  <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => {
+                  <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={() => {
                     setIsEditing(false)
                     setEditedData(data ? structuredClone(data) : null)
                   }}>
                     Cancel
                   </Button>
-                  <Button size="sm" className="h-8 text-xs rounded-full bg-foreground text-background hover:bg-foreground/90" onClick={handleSave}>
-                    Save changes
+                  <Button size="sm" className="h-7 text-xs px-3 rounded-full bg-foreground text-background hover:bg-foreground/90" onClick={handleSave}>
+                    Save
                   </Button>
                 </>
               ) : (
-                <Button variant="outline" size="sm" className="h-8 text-xs rounded-full border-foreground/20 hover:bg-foreground/5" onClick={() => setIsEditing(true)}>
+                <Button variant="outline" size="sm" className="h-7 text-xs px-3 rounded-full border-foreground/20 hover:bg-foreground/5" onClick={() => setIsEditing(true)}>
                   Edit
                 </Button>
               )}
             </div>
           </div>
-
-          <ScrollArea className="w-full">
-            <TabsList className="inline-flex w-max items-center justify-start gap-6 bg-transparent p-0 px-4 sm:px-6 h-auto rounded-none border-0">
-              <TabsTrigger value="intro" className={tabTriggerClass}><span className={tabIndexClass}>01</span> Introduction</TabsTrigger>
-              <TabsTrigger value="features" className={tabTriggerClass}><span className={tabIndexClass}>02</span> System Features</TabsTrigger>
-              <TabsTrigger value="interfaces" className={tabTriggerClass}><span className={tabIndexClass}>03</span> Interfaces</TabsTrigger>
-              <TabsTrigger value="nfrs" className={tabTriggerClass}><span className={tabIndexClass}>04</span> Non-Functional</TabsTrigger>
-              <TabsTrigger value="appendices" className={tabTriggerClass}><span className={tabIndexClass}>05</span> Appendices</TabsTrigger>
-              <TabsTrigger value="graph" className={tabTriggerClass}><span className={tabIndexClass}>06</span> Knowledge Graph</TabsTrigger>
-            </TabsList>
-            <ScrollBar orientation="horizontal" className="opacity-0" />
-          </ScrollArea>
         </div>
 
         <div className="px-4 sm:px-6 pt-6">
