@@ -312,6 +312,61 @@ export function CommandPalette({
                         <Settings className="mr-2 h-4 w-4 text-muted-foreground" />
                         <span>AI Provider & BYOK Settings</span>
                     </CommandItem>
+                    <CommandItem
+                        value="action-documentation"
+                        onSelect={() => handleSelect(() => router.push("/docs"))}
+                    >
+                        <BookOpen className="mr-2 h-4 w-4 text-indigo-500" />
+                        <span>Browse Enterprise Documentation</span>
+                    </CommandItem>
+                </CommandGroup>
+
+                <CommandSeparator />
+
+                {/* Documentation Pillars */}
+                <CommandGroup heading="Documentation & Guides">
+                    <CommandItem
+                        value="docs-getting-started"
+                        onSelect={() => handleSelect(() => router.push("/docs/getting-started"))}
+                    >
+                        <Sparkles className="mr-2 h-4 w-4 text-primary" />
+                        <span>Docs: Getting Started & Fast-Track Quickstart</span>
+                    </CommandItem>
+                    <CommandItem
+                        value="docs-pipeline"
+                        onSelect={() => handleSelect(() => router.push("/docs/pipeline"))}
+                    >
+                        <Activity className="mr-2 h-4 w-4 text-emerald-500" />
+                        <span>Docs: 5-Layer Multi-Agent AI Pipeline</span>
+                    </CommandItem>
+                    <CommandItem
+                        value="docs-standards"
+                        onSelect={() => handleSelect(() => router.push("/docs/standards"))}
+                    >
+                        <FileText className="mr-2 h-4 w-4 text-amber-500" />
+                        <span>Docs: Standards (IEEE 830, ISO 29148, Volere, PRD)</span>
+                    </CommandItem>
+                    <CommandItem
+                        value="docs-cli"
+                        onSelect={() => handleSelect(() => router.push("/docs/cli"))}
+                    >
+                        <FileText className="mr-2 h-4 w-4 text-blue-500" />
+                        <span>Docs: SRA CLI Toolkit (@sra-srs/sra-cli)</span>
+                    </CommandItem>
+                    <CommandItem
+                        value="docs-api"
+                        onSelect={() => handleSelect(() => router.push("/docs/api"))}
+                    >
+                        <Database className="mr-2 h-4 w-4 text-purple-500" />
+                        <span>Docs: REST API Reference & Integration</span>
+                    </CommandItem>
+                    <CommandItem
+                        value="docs-security"
+                        onSelect={() => handleSelect(() => router.push("/docs/security"))}
+                    >
+                        <Settings className="mr-2 h-4 w-4 text-emerald-500" />
+                        <span>Docs: Security, Compliance & Governance</span>
+                    </CommandItem>
                 </CommandGroup>
 
                 <CommandSeparator />

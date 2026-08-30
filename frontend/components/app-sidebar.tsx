@@ -27,6 +27,7 @@ import {
     LogOut,
     Search,
     Activity,
+    BookOpen,
 } from "lucide-react"
 import { useLayer } from "@/lib/layer-context"
 import { useRouter, useParams } from "next/navigation"
@@ -153,7 +154,7 @@ export function AppSidebar({
                     New analysis
                 </Button>
 
-                {/* Quick Search & Activity Center Launcher */}
+                {/* Quick Search, Docs & Activity Center Launcher */}
                 <div className="flex items-center gap-1.5 mt-2">
                     <Button
                         variant="ghost"
@@ -168,6 +169,16 @@ export function AppSidebar({
                         <kbd className="pointer-events-none inline-flex h-4 select-none items-center gap-0.5 rounded border bg-muted px-1 font-mono text-[9px] font-medium text-muted-foreground opacity-100">
                             ⌘K
                         </kbd>
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground border border-foreground/10"
+                        title="Documentation"
+                        aria-label="Documentation"
+                        onClick={() => router.push("/docs")}
+                    >
+                        <BookOpen className="h-3.5 w-3.5" />
                     </Button>
                     <Button
                         variant="ghost"
@@ -330,6 +341,10 @@ export function AppSidebar({
                             <DropdownMenuItem onClick={() => router.push("/settings")}>
                                 <Settings className="mr-2 h-4 w-4" />
                                 Settings
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => router.push("/docs")}>
+                                <BookOpen className="mr-2 h-4 w-4" />
+                                Documentation
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
