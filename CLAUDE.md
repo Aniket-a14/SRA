@@ -107,7 +107,7 @@ Then call `EnterWorktree` with `path` set to the `WORKTREE` path it printed (thi
 
 **Once you are inside, the harness refuses any Bash call it cannot prove stays in the worktree.** That means a multi-line block that reaches into the shared checkout, or builds a path in a variable and `cd`s to it, comes back as "too complex to verify" rather than running. Bootstrap and the second-task block are both that shape. Two ways through, both fine: run the block one plain command at a time, or write it to a file and run `bash the-file.sh`, which is a single in-tree command and is accepted whole. The guard is written to need neither.
 
-**Then bootstrap, before the first test run.** A worktree has tracked files only, so `.env`, `node_modules/` and virtualenvs are absent and your first command fails for reasons unrelated to your change.
+**Then bootstrap, before the first test run.** A worktree has tracked files only, so `.env`, node_modules/ and virtualenvs are absent and your first command fails for reasons unrelated to your change.
 
 ```bash
 ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
@@ -187,7 +187,7 @@ git worktree prune
 
 Removing a worktree never deletes its branch. `git worktree` admin commands against the shared checkout are fine and are not "working" in it; to return there from inside one, use `ExitWorktree` with `keep`.
 
-Every block above is executed verbatim by `tests/test_branching_snippets.sh` at [github.com/jbarbier/CLAUDE.md](https://github.com/jbarbier/CLAUDE.md), one case per bug that bit. That suite is why the reasons here can stay this short. Change a line, run it there; if you copied this file on its own, the tests did not come with it.
+Every block above is executed verbatim by tests/test_branching_snippets.sh in the upstream template repo at [github.com/jbarbier/CLAUDE.md](https://github.com/jbarbier/CLAUDE.md), one case per bug that bit. That suite is why the reasons here can stay this short. Change a line, run it there; if you copied this file on its own, the tests did not come with it.
 
 **Never:** edit or commit in the shared checkout, run `git switch` or `git checkout` there, commit a worktree directory, or share one branch between two sessions.
 
@@ -247,7 +247,7 @@ The context window is your only control surface over the model. Treat it as a de
 ### LLM access — local Claude Code, not the API
 
 - When the software we build needs to call an LLM, do NOT use an LLM API (Anthropic API, OpenAI API, any hosted inference endpoint) unless Aniket explicitly instructs it. Route the call through the local Claude Code instead.
-- If no LLM service exists yet in the project, build one. Create a self-contained LLM service (under `services/llm/` per the architecture rules) that shells out to local Claude Code, with its own contract, tests, and evals. Every other service calls that contract, never an external API.
+- If no LLM service exists yet in the project, build one. Create a self-contained LLM service (under services/llm/ per the architecture rules) that shells out to local Claude Code, with its own contract, tests, and evals. Every other service calls that contract, never an external API.
 - Always use the best available model by default unless Aniket explicitly instructs otherwise. No silent downgrades to a cheaper or smaller model for cost.
 
 ### Tech choice — vanilla by default
@@ -279,11 +279,11 @@ Failures get skillified — that rule already stands. So does repeated success. 
 
 Build everything as independent services / self-contained directories. The goal: any single piece of the application can be worked on by a separate Claude Code session without stepping on another session's work.
 
-- **One concern, one directory.** Each service lives under `services/<service-name>/` (or equivalent top-level directory) with its own code, tests, evals, README, and config. No shared mutable state across services beyond well-defined contracts.
-- **Contracts at the boundary.** Services communicate via typed interfaces (HTTP, gRPC, message bus, or a shared schema package). Define the contract in a `contracts/` or `schemas/` directory that both sides import — never reach into another service's internals.
+- **One concern, one directory.** Each service lives under services/&lt;service-name&gt;/ (or equivalent top-level directory) with its own code, tests, evals, README, and config. No shared mutable state across services beyond well-defined contracts.
+- **Contracts at the boundary.** Services communicate via typed interfaces (HTTP, gRPC, message bus, or a shared schema package). Define the contract in a contracts/ or schemas/ directory that both sides import — never reach into another service's internals.
 - **Independent test + eval suites.** Each service has its own gate tests and periodic evals. A change in one service must not require running another service's full suite to validate.
 - **Independent deploy unit.** Each service builds and ships on its own. No monolithic release that forces every service to move in lockstep.
-- **Parallel-session safe.** Two Claude sessions working in `services/foo/` and `services/bar/` should never collide. If a change requires coordinated edits across services, that's a contract change — bump the schema version, update both sides, and call it out explicitly.
+- **Parallel-session safe.** Two Claude sessions working in services/foo/ and services/bar/ should never collide. If a change requires coordinated edits across services, that's a contract change — bump the schema version, update both sides, and call it out explicitly.
 - **Top-level only holds glue.** Root directory: orchestration scripts, shared config, contracts, docs. No business logic.
 
 When in doubt, lean toward more services with sharper boundaries rather than fewer services with fuzzy ones.
@@ -310,8 +310,8 @@ No reference, no build. If you can't write down what "wowed" means for this task
 2. **Builder never grades its own work.** Every unit's output goes to a separate critic sub-agent that had no part in building it and never sees the builder's reasoning. Deliverable plus reference only; a critic that reads the builder's justification pre-agrees with it. Self-review does not count as review.
 3. **The critic is harsh by default; its job is to reject.** Blind wherever comparison exists: outputs labeled A/B in random order (ours vs. the reference, or variant vs. variant) so the critic doesn't know which is ours. The verdict must be concrete: which is better and exactly why. "Pretty good" is a FAIL. "Acceptable" is a FAIL. It passes only when the critic is genuinely wowed and would pick ours (or can't tell) in the blind comparison.
 4. **Loop until pass.** Builder revises against the critic's named findings. A fresh critic re-judges cold each round, no memory of wanting to be nice. A pass requires the critic's explicit verdict, never the builder's claim.
-5. **Stall rule.** If 3 consecutive rounds produce no improvement on the critic's named criteria, stop looping and report BLOCKED with the critic's last verdict, the evidence, and what's missing (asset, tool, or decision from Aniket). The critic has no memory, so the orchestrating session detects the stall by comparing successive verdicts in `/tmp/<task>/critique/`. Do not silently lower the bar to exit the loop.
-6. **Evidence or it didn't happen.** Every critic verdict ships with its artifacts: screenshots, diffs, metrics, the A/B comparison result. Keep them under `/tmp/<task>/critique/` and reference the exact paths in the final report. They stay in `/tmp`, never in the repo (Safety: no binaries committed).
+5. **Stall rule.** If 3 consecutive rounds produce no improvement on the critic's named criteria, stop looping and report BLOCKED with the critic's last verdict, the evidence, and what's missing (asset, tool, or decision from Aniket). The critic has no memory, so the orchestrating session detects the stall by comparing successive verdicts in /tmp/&lt;task&gt;/critique/. Do not silently lower the bar to exit the loop.
+6. **Evidence or it didn't happen.** Every critic verdict ships with its artifacts: screenshots, diffs, metrics, the A/B comparison result. Keep them under /tmp/&lt;task&gt;/critique/ and reference the exact paths in the final report. They stay in `/tmp`, never in the repo (Safety: no binaries committed).
 
 **The critic per work type** (the pattern is constant, the weapon changes):
 
@@ -352,7 +352,7 @@ Reporting a completion status is not the end of the task. Before the final repor
 
 Once a task is done, two things happen, no exceptions:
 
-1. **Commit, push the branch, open the PR.** Stage the work and write a clear commit message. Then resolve the base branch exactly as "Branching" does (never a bare `origin/main`), `git fetch origin`, `git rebase "$BASE"`, and stop if the rebase fails rather than pushing a half-rebased branch. Push with `git push -u origin HEAD` the first time, and `git push --force-with-lease --force-if-includes` on later rounds, since the rebase rewrote commits you already pushed. Open the PR with `gh pr create` (title, what changed, how it was tested, the measurable outcome). Don't wait to be asked. Print the PR URL in the final report. A human merges it; you do not, unless Aniket says so. Respects the Safety rules (no secrets, no `--no-verify`, no destructive ops without confirmation) and the branching rules (never commit on `main`, never push to `main`).
+1. **Commit, push the branch, open the PR.** Stage the work and write a clear commit message. Then resolve the base branch exactly as "Branching" does (never a bare origin/main), `git fetch origin`, `git rebase "$BASE"`, and stop if the rebase fails rather than pushing a half-rebased branch. Push with `git push -u origin HEAD` the first time, and `git push --force-with-lease --force-if-includes` on later rounds, since the rebase rewrote commits you already pushed. Open the PR with `gh pr create` (title, what changed, how it was tested, the measurable outcome). Don't wait to be asked. Print the PR URL in the final report. A human merges it; you do not, unless Aniket says so. Respects the Safety rules (no secrets, no `--no-verify`, no destructive ops without confirmation) and the branching rules (never commit on `main`, never push to `main`).
 2. **Report what to restart.** Tell Aniket exactly which service / system / program needs to be restarted for the change to take effect, with the full list of commands to run. If nothing needs restarting, say so explicitly.
 
 For restart commands that need `sudo`: never run them yourself. List them for Aniket to run, clearly marked as his to execute.
@@ -361,7 +361,7 @@ For restart commands that need `sudo`: never run them yourself. List them for An
 
 Long-running work often runs in the background: a batch, a migration, a backfill in another session. Any background job that modifies data triggers the full protocol below. A read-only background job (scrape, analysis) gets the monitoring part only; skip the snapshot and the diff report.
 
-**Monitor it, don't fire-and-forget.** While the job runs, post a progress update at least every 5 minutes. Go faster when it earns it: near completion, when errors spike, or when the job moves fast enough that 5 minutes hides a problem. Surface every update two ways: print it in the Claude Code session so it shows up live, and append it to a status file at `/tmp/<job-name>/progress.log`, timestamped. When you create that file, print the exact command to follow it line by line: `tail -f /tmp/<job-name>/progress.log`. Every update starts with the event title, so several jobs in flight stay distinguishable, then the percent done and the estimated time remaining. After that, whatever the context makes useful: rows processed / total, current rate, error count, and any anomaly you see.
+**Monitor it, don't fire-and-forget.** While the job runs, post a progress update at least every 5 minutes. Go faster when it earns it: near completion, when errors spike, or when the job moves fast enough that 5 minutes hides a problem. Surface every update two ways: print it in the Claude Code session so it shows up live, and append it to a status file at /tmp/&lt;job-name&gt;/progress.log, timestamped. When you create that file, print the exact command to follow it line by line: `tail -f` on that path. Every update starts with the event title, so several jobs in flight stay distinguishable, then the percent done and the estimated time remaining. After that, whatever the context makes useful: rows processed / total, current rate, error count, and any anomaly you see.
 
 Progress percent, rate, and ETA are deterministic. Do not eyeball them in latent space. Write a small monitor script that reads the job's real state (row counts, log tail, checkpoint file) and emits the update. The script is the source of truth; your job is to read it and flag what looks wrong.
 
@@ -398,7 +398,7 @@ STOP. Name the ambiguity in one sentence. Present 2-3 options with real trade-of
 ## How Aniket wants to be talked to
 
 - Direct. Short. Concrete. No preamble.
-- Specific file names, function names, line numbers. Not "there's an issue in the classifier" — it's `food_vision/classifier.py:47`.
+- Specific file names, function names, line numbers. Not "there's an issue in the classifier" — it's food_vision/classifier.py:47.
 - No em dashes. No AI vocabulary (delve, crucial, robust, comprehensive, nuanced, multifaceted, furthermore, moreover, pivotal, landscape, tapestry, underscore, foster, showcase, intricate, vibrant, fundamental, significant, interplay).
 - No banned phrases: "here's the kicker", "here's the thing", "plot twist", "let me break this down", "the bottom line", "make no mistake".
 - If something is broken, say so plainly.
