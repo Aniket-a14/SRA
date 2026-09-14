@@ -1,5 +1,6 @@
 import logger from '../config/logger.js';
 import { repairAndParseJSON } from '../utils/jsonRepair.js';
+import { geminiSchemaToZod, summarizeZodIssues } from '../utils/geminiSchemaToZod.js';
 import { isExhaustedQuota, buildExhaustedQuotaError } from '../utils/quotaErrors.js';
 import { parseQuotaFailure, isPerDayQuota } from '../utils/rateLimitHeaders.js';
 import { recordUsage, recordExhausted } from '../services/providers/modelQuotaService.js';
@@ -154,6 +155,14 @@ export class BaseAgent {
         // mid-call swaps this.provider/this.modelName/this._apiKey in place.
         const attempted = [{ provider: this.provider, modelName: this.modelName }];
 
+        // Gemini's `responseSchema` constrains ONLY Gemini generation — OpenAI/Claude/Grok
+        // never see it. Reusing the same schema here validates every provider's output the
+        // same way, after jsonRepair.js's best-effort syntactic repair. One corrective retry
+        // (not counted against `retries`/`attempt`, which is for network-level failures) asks
+        // the model to fix a shape mismatch before this call gives up entirely.
+        const zodSchema = jsonMode && responseSchema ? geminiSchemaToZod(responseSchema) : null;
+        let zodRetried = false;
+
         while (true) {
             // Set when the timeout wins the race below, so an abandoned stream stops consuming.
             let streamAbandoned = false;
@@ -202,12 +211,41 @@ export class BaseAgent {
                 });
 
                 if (jsonMode) {
-                    return this.parseJSON(text);
+                    const parsed = this.parseJSON(text);
+                    if (!zodSchema) return parsed;
+
+                    const validation = zodSchema.safeParse(parsed);
+                    if (validation.success) return validation.data;
+
+                    const issues = summarizeZodIssues(validation.error);
+                    if (!zodRetried) {
+                        zodRetried = true;
+                        logger.warn({ msg: `[${this.name}] Structured output failed schema validation — retrying once with a correction`, issues });
+                        prompt = `${prompt}\n\n--- OUTPUT CORRECTION REQUIRED ---\nYour previous JSON response did not match the required shape. Problems found:\n${issues}\n\nReturn ONLY the corrected JSON object, matching the required schema exactly. Do not include any commentary.`;
+                        options.onStream?.({ type: 'reset' });
+                        continue; // immediate retry — not a network failure, no backoff
+                    }
+
+                    // Malformed output the model couldn't self-correct must not reach
+                    // persistence or a downstream stage as if it were valid — that's how a
+                    // half-shaped Analysis.resultJson corrupts a project silently.
+                    logger.error({ msg: `[${this.name}] Structured output still invalid after correction retry`, issues });
+                    const structuredError = new Error(`${this.name} produced output that does not match the required schema after a correction attempt:\n${issues}`);
+                    structuredError.statusCode = 502;
+                    structuredError.code = 'AI_STRUCTURED_OUTPUT_INVALID';
+                    throw structuredError;
                 }
                 return text;
 
             } catch (error) {
                 streamAbandoned = true;
+                // Already final — thrown by the validation block above after its own
+                // correction retry. Not a network/provider failure, so none of the
+                // classify/retry/fallback logic below applies; rethrow as-is rather than
+                // letting it fall into the generic wrapped-Error path at the bottom, which
+                // would strip its statusCode/code.
+                if (error.code === 'AI_STRUCTURED_OUTPUT_INVALID') throw error;
+
                 const isTimeout = error.message === "AI Request Timeout";
                 const { isRateLimit, isServerError, isAuthError } = isTimeout ? {} : adapter.classifyError(error);
 
