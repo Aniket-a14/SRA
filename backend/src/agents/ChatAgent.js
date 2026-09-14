@@ -1,6 +1,18 @@
 import { BaseAgent } from './BaseAgent.js';
 import { CHAT_PROMPT, CHAT_REPLY_PROMPT, CHAT_EDIT_PROMPT } from '../utils/prompts.js';
 import { TEMPERATURES } from '../utils/llmGenerationConfig.js';
+import { sanitizePromptBlock } from '../utils/promptSanitizer.js';
+
+/**
+ * srsSnapshot is server-derived (createChatSnapshot() over the stored resultJson), not raw
+ * user input — but resultJson's string fields are model OUTPUT, and a prior turn's model
+ * output can itself echo back attacker-influenced text (the analysis pipeline's own <input>
+ * defanging doesn't retroactively clean content a model already generated from it). Escaping
+ * here closes that second-order path the same way userMessage/historyText are closed in
+ * chatService.js, rather than trusting srsSnapshot because it "isn't user input" in the
+ * literal sense.
+ */
+const serializeSnapshot = (srsSnapshot) => sanitizePromptBlock(JSON.stringify(srsSnapshot));
 
 /**
  * ChatAgent — handles conversational Q&A and targeted SRS edits.
@@ -27,7 +39,7 @@ export class ChatAgent extends BaseAgent {
     async chat(srsSnapshot, historyText, userMessage) {
         const prompt = `
 <current_analysis_json>
-${JSON.stringify(srsSnapshot)}
+${serializeSnapshot(srsSnapshot)}
 </current_analysis_json>
 
 <chat_history>
@@ -60,7 +72,7 @@ User: ${userMessage}
     chatStream(srsSnapshot, historyText, userMessage, options = {}) {
         const prompt = `
 <current_analysis_json>
-${JSON.stringify(srsSnapshot)}
+${serializeSnapshot(srsSnapshot)}
 </current_analysis_json>
 
 <chat_history>
@@ -90,7 +102,7 @@ User: ${userMessage}
     async proposeEdit(srsSnapshot, historyText, userMessage) {
         const prompt = `
 <current_analysis_json>
-${JSON.stringify(srsSnapshot)}
+${serializeSnapshot(srsSnapshot)}
 </current_analysis_json>
 
 <chat_history>
