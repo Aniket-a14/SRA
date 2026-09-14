@@ -18,13 +18,11 @@ import { resolveProviderForUser, asAiSettings } from '../services/providers/prov
 import { sanitizeError } from '../utils/errorSanitizer.js';
 import { ErrorCodes } from '../utils/errorCodes.js';
 import { createSSEStream } from '../utils/sseWriter.js';
+import { ensureProjectExists } from '../services/projectService.js';
 
 export const analyze = async (req, res, next) => {
     try {
         let { text, srsData, validationResult } = req.body;
-
-        // Auto-Create Project if missing - DEFERRED to Worker Service (performAnalysis)
-        // req.body.projectId = await ensureProjectExists(req.user.userId, req.body.projectId, srsData, text);
 
         let projectName = "Project";
 
@@ -32,11 +30,26 @@ export const analyze = async (req, res, next) => {
         if (srsData) {
             // LAYER 1: Draft / Validation Mode
             if (req.body.draft) {
-                // Synchronous Draft Creation (No AI) — logic lives in analysisService.createDraftAnalysis.
-                const newAnalysis = await createDraftAnalysis(req.user.userId, srsData, req.body.projectId, req.body.settings);
+                // Save the project association with the draft, not only after the worker has
+                // finished. The review screen promotes this same row into the queued run, so
+                // resolving it here makes new analyses visible under Projects immediately and
+                // gives the worker a stable projectId to reuse instead of creating a duplicate.
+                const draftProjectId = await ensureProjectExists(
+                    req.user.userId,
+                    req.body.projectId,
+                    srsData,
+                    text
+                );
+                const newAnalysis = await createDraftAnalysis(
+                    req.user.userId,
+                    srsData,
+                    draftProjectId,
+                    req.body.settings
+                );
 
                 return successResponse(res, {
                     id: newAnalysis.id,
+                    projectId: newAnalysis.projectId,
                     status: "draft"
                 }, "Draft created successfully");
             }

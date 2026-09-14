@@ -29,7 +29,7 @@ import { NextRequest, NextResponse } from "next/server";
  */
 const isProd = process.env.NODE_ENV === "production";
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
     const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
 
     // 'unsafe-eval' is required by Next's dev-mode Fast Refresh; production never needs it.
@@ -62,7 +62,7 @@ export function middleware(request: NextRequest) {
     return response;
 }
 
-export const config = {
+export const proxyConfig = {
     matcher: [
         /*
          * Everything except static assets and prefetches. Static files are served straight

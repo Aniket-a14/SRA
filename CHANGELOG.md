@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Reliability and platform integration
+- **Fixed** Layer-1 drafts created without a selected project now reuse or create a user-scoped project before the draft is returned. The returned `projectId` is carried into generation, keeping drafts visible in Projects and preventing duplicate project creation when the worker completes.
+- **Migrated** the frontend CSP request handler to Next.js 16's `proxy.ts` convention and added a per-request nonce regression test; the production build no longer emits the deprecated `middleware.ts` warning.
+
 ## [4.2.2] - 2026-08-30
 
 ### AI Workspace UX & Productivity Architecture

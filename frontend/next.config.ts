@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 import createMDX from "@next/mdx";
 
 // The Content-Security-Policy is NOT set here any more — it is built per request in
-// middleware.ts, because it carries a nonce and a nonce that is the same on every response
+// proxy.ts, because it carries a nonce and a nonce that is the same on every response
 // is not a nonce. Everything below is static and stays.
 const nextConfig: NextConfig = {
   output: 'standalone',

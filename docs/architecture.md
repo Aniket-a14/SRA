@@ -6,9 +6,10 @@ summarized in `CLAUDE.md`.
 
 ## Analysis pipeline — full lifecycle
 
-1. **Enqueue** — `queueService.js: addAnalysisJob` creates an `Analysis` row (`status: 'PENDING'`), hashes input (MD5) for idempotency (returns existing PENDING job on duplicate), then publishes to QStash (prod) or fires in-process (`MOCK_QSTASH`/dev).
-2. **Worker** — QStash → `POST /api/worker/process` → `workerController.processJob`. Atomically transitions `PENDING → IN_PROGRESS` via `updateMany` (guards duplicate QStash deliveries — `count === 0` means already handled or wrong user), then calls `analysisService.performAnalysis`.
-3. **Orchestration** (`analysisService.js`, single large function):
+1. **Intake and project association** — the Layer-1 draft endpoint saves the structured brief and calls `projectService.ensureProjectExists`. A selected project is preserved; otherwise the user-scoped project is reused by exact name or created before the draft is returned, so the draft is visible in Projects immediately.
+2. **Enqueue** — `queueService.js: addAnalysisJob` creates an `Analysis` row (`status: 'PENDING'`), hashes input (SHA-256) for idempotency (returns existing PENDING job on duplicate), then publishes to QStash (prod) or fires in-process (`MOCK_QSTASH`/dev).
+3. **Worker** — QStash → `POST /api/worker/process` → `workerController.processJob`. Atomically transitions `PENDING → IN_PROGRESS` via `updateMany` (guards duplicate QStash deliveries — `count === 0` means already handled or wrong user), then calls `analysisService.performAnalysis`.
+4. **Orchestration** (`analysisService.js`, single large function):
    - `ProductOwnerAgent` refines raw input into scope/features.
    - Multi-query RAG retrieval per feature (`ragService.retrieveContext`, pgvector cosine similarity) via `Promise.all`.
    - `ArchitectAgent` designs system using RAG context.
@@ -17,7 +18,7 @@ summarized in `CLAUDE.md`.
    - Diagrams get heuristic pre-checks + AI self-repair (`validateAndAutoRepairDiagrams`) before reflection scoring.
    - `evalService.evaluateRAG` runs RAGAS-style faithfulness/relevancy as final benchmark.
    - Everything persisted in a single Prisma `$transaction`; async knowledge-graph extraction follows.
-4. **Versioning** — `Analysis.rootId`/`parentId` form a tree (not mutable history). Every refinement/chat edit creates a new row.
+5. **Versioning** — `Analysis.rootId`/`parentId` form a tree (not mutable history). Every refinement/chat edit creates a new row. The queued run receives the draft's projectId, so its successful transactional write updates the same project rather than creating a second one.
 
 ## Checkpointed pipeline (Vercel execution budget)
 

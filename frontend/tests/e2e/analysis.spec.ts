@@ -62,7 +62,10 @@ test.describe("starting an analysis", () => {
 
         await page.route("**/analyze", (route) => {
             if (route.request().method() === "POST") {
-                return route.fulfill(json({ success: true, data: { id: analysisId, status: "draft" } }))
+                return route.fulfill(json({
+                    success: true,
+                    data: { id: analysisId, projectId: "project_e2e_0001", status: "draft" }
+                }))
             }
             return route.fallback()
         })

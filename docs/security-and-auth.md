@@ -75,4 +75,4 @@ Erasure follows the foreign keys:
 
 ## CSP and nonce rendering
 
-The frontend CSP carries a per-request nonce. `middleware.ts` builds the policy; `next.config.ts` does not set `Content-Security-Policy`. `app/layout.tsx` awaits `headers()` to force dynamic rendering — with static rendering, Next stamped zero nonces onto 17 script tags while `'strict-dynamic'` was in force. Restoring static rendering requires restoring `'unsafe-inline'`.
+The frontend CSP carries a per-request nonce. `proxy.ts` builds the policy; `next.config.ts` does not set `Content-Security-Policy`. `app/layout.tsx` awaits `headers()` to force dynamic rendering — with static rendering, Next stamped zero nonces onto 17 script tags while `'strict-dynamic'` was in force. Restoring static rendering requires restoring `'unsafe-inline'`.
