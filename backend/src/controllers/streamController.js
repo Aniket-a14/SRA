@@ -9,7 +9,7 @@ export const streamAnalysisProgress = async (req, res, next) => {
 
     let analysis;
     try {
-        analysis = await getAnalysisById(req.user.userId, id); // 403 on ownership mismatch
+        analysis = await getAnalysisById(req.user.userId, id); // null on not-found or ownership mismatch, handled below
     } catch (error) {
         return next(error);
     }
