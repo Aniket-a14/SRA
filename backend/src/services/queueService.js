@@ -6,6 +6,7 @@ import { createNextVersion } from './versioning.js';
 import { assertWithinQuota } from './quotaService.js';
 import { resolveProviderKey } from './providers/providerKeyService.js';
 import { isModelExhausted } from './providers/modelQuotaService.js';
+import { assertOwned } from '../utils/ownership.js';
 
 const qstashClient = new Client({
     token: process.env.QSTASH_TOKEN,
@@ -282,12 +283,11 @@ export const resumeAnalysisJob = async (userId, analysisId, modelOverride = {}) 
         select: { id: true, userId: true, status: true, inputText: true, projectId: true, parentId: true, rootId: true, metadata: true }
     });
 
-    if (!analysis) {
-        const err = new Error("Analysis not found"); err.statusCode = 404; throw err;
-    }
-    if (analysis.userId !== userId) {
-        const err = new Error("Not authorized to resume this analysis"); err.statusCode = 403; throw err;
-    }
+    // Same 404 for "doesn't exist" and "not yours" — see utils/ownership.js.
+    // Previously a 403 on mismatch, which both leaked existence and (since this
+    // throw has a statusCode) was inconsistent with the 404 used one line above
+    // for the exact same "can't resume this" outcome.
+    assertOwned(analysis, userId, 'Analysis');
     if (!(analysis.status === 'FAILED' || analysis.status === 'IN_PROGRESS')) {
         const err = new Error(`Only a failed analysis can be resumed (current status: ${analysis.status}).`); err.statusCode = 409; throw err;
     }

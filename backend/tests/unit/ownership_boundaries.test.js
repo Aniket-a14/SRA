@@ -17,18 +17,21 @@ import { describe, it, expect, jest, beforeEach } from '@jest/globals';
  */
 
 const mockAnalysisFindFirst = jest.fn();
+const mockAnalysisFindUnique = jest.fn();
 const mockProjectFindFirst = jest.fn();
 const mockGraphNodeFindMany = jest.fn();
 const mockGraphEdgeFindMany = jest.fn();
 
 jest.unstable_mockModule('../../src/config/prisma.js', () => ({
     default: {
-        analysis: { findFirst: mockAnalysisFindFirst },
+        analysis: { findFirst: mockAnalysisFindFirst, findUnique: mockAnalysisFindUnique },
         project: { findFirst: mockProjectFindFirst },
         graphNode: { findMany: mockGraphNodeFindMany },
         graphEdge: { findMany: mockGraphEdgeFindMany }
     }
 }));
+
+process.env.BACKEND_URL = process.env.BACKEND_URL || 'https://backend.test';
 
 jest.unstable_mockModule('../../src/config/logger.js', () => ({
     default: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
@@ -104,5 +107,81 @@ describe('getFullProjectGraph is scoped to the caller', () => {
 
         await expect(getFullProjectGraph(PROJECT_ID)).rejects.toThrow(/userId/);
         expect(mockProjectFindFirst).not.toHaveBeenCalled();
+    });
+});
+
+describe('assertOwned', () => {
+    it('returns the record when it belongs to the caller', async () => {
+        const { assertOwned } = await import('../../src/utils/ownership.js');
+        const record = { id: 'p1', userId: OWNER };
+
+        expect(assertOwned(record, OWNER, 'Project')).toBe(record);
+    });
+
+    it('404s with a generic message when the record is missing', async () => {
+        const { assertOwned } = await import('../../src/utils/ownership.js');
+
+        expect(() => assertOwned(null, OWNER, 'Project')).toThrow(
+            expect.objectContaining({ statusCode: 404, message: 'Project not found' })
+        );
+    });
+
+    it('404s (never 403) when the record belongs to someone else', async () => {
+        const { assertOwned } = await import('../../src/utils/ownership.js');
+        const record = { id: 'p1', userId: OWNER };
+
+        expect(() => assertOwned(record, INTRUDER, 'Project')).toThrow(
+            expect.objectContaining({ statusCode: 404, message: 'Project not found' })
+        );
+    });
+});
+
+describe('getAnalysisById does not distinguish "not yours" from "doesn\'t exist"', () => {
+    it('returns the analysis for its owner', async () => {
+        const { getAnalysisById } = await import('../../src/services/analysisService.js');
+        mockAnalysisFindUnique.mockResolvedValue({ id: ANALYSIS_ID, userId: OWNER, metadata: {} });
+
+        const result = await getAnalysisById(OWNER, ANALYSIS_ID);
+        expect(result.id).toBe(ANALYSIS_ID);
+    });
+
+    it('returns null (not a thrown 403) when the analysis belongs to someone else', async () => {
+        const { getAnalysisById } = await import('../../src/services/analysisService.js');
+        mockAnalysisFindUnique.mockResolvedValue({ id: ANALYSIS_ID, userId: OWNER, metadata: {} });
+
+        const result = await getAnalysisById(INTRUDER, ANALYSIS_ID);
+        expect(result).toBeNull();
+    });
+
+    it('returns null when the analysis does not exist at all', async () => {
+        const { getAnalysisById } = await import('../../src/services/analysisService.js');
+        mockAnalysisFindUnique.mockResolvedValue(null);
+
+        const result = await getAnalysisById(OWNER, ANALYSIS_ID);
+        expect(result).toBeNull();
+    });
+});
+
+describe('resumeAnalysisJob is scoped to the caller', () => {
+    it('404s a non-owner instead of leaking existence with a 403', async () => {
+        const { resumeAnalysisJob } = await import('../../src/services/queueService.js');
+        mockAnalysisFindUnique.mockResolvedValue({
+            id: ANALYSIS_ID, userId: OWNER, status: 'FAILED', metadata: {}
+        });
+
+        const error = await resumeAnalysisJob(INTRUDER, ANALYSIS_ID).catch(e => e);
+
+        expect(error.statusCode).toBe(404);
+        expect(error.message).toBe('Analysis not found');
+    });
+
+    it('404s a missing analysis the same way', async () => {
+        const { resumeAnalysisJob } = await import('../../src/services/queueService.js');
+        mockAnalysisFindUnique.mockResolvedValue(null);
+
+        const error = await resumeAnalysisJob(OWNER, ANALYSIS_ID).catch(e => e);
+
+        expect(error.statusCode).toBe(404);
+        expect(error.message).toBe('Analysis not found');
     });
 });

@@ -1033,11 +1033,15 @@ export const getAnalysisById = async (userId, analysisId) => {
         return null;
     }
 
+    // Deliberately 404 (via the caller's own "not found" branch, not a thrown 403
+    // here) rather than a distinct "unauthorized" response — every other ownership
+    // check in this codebase returns the same 404 for "not yours" and "doesn't
+    // exist" so a non-owner can't tell them apart (see projectController, and the
+    // IDOR comment in getChatHistory). Returning null lets it fall through the
+    // existing `if (!analysis)` 404 handling already present in every caller.
     if (analysis.userId !== userId) {
         logger.warn(`[getAnalysisById] Analysis ${analysisId} belongs to ${analysis.userId}, but requested by ${userId}`);
-        const error = new Error('Unauthorized access to this analysis');
-        error.statusCode = 403;
-        throw error;
+        return null;
     }
 
     // The resume checkpoint holds a full draft SRS and has no client consumer — `resumable`
@@ -1060,7 +1064,7 @@ const assertNotFinalized = (analysis) => {
 };
 
 export const deleteAnalysis = async (userId, analysisId, { chain = false } = {}) => {
-    const analysis = await getAnalysisById(userId, analysisId); // 404/403 handled inside
+    const analysis = await getAnalysisById(userId, analysisId); // returns null on not-found or wrong-owner, handled below
 
     if (!analysis) {
         const error = new Error('Analysis not found');

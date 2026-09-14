@@ -39,7 +39,13 @@ export const looksLikeEditRequest = (message) => EDIT_INTENT_PATTERN.test(messag
 async function loadChatContext(userId, analysisId, clientMessageId) {
     const currentAnalysis = await prisma.analysis.findFirst({ where: { id: analysisId, userId } });
 
-    if (!currentAnalysis) throw new Error('Analysis not found or unauthorized');
+    if (!currentAnalysis) {
+        // Was a plain Error with no statusCode, which errorHandler defaults to 500 —
+        // a non-owner or a bad id both got "Internal Server Error" instead of 404.
+        const error = new Error('Analysis not found');
+        error.statusCode = 404;
+        throw error;
+    }
 
     // Dedup: if this exact send was already processed (double-click, retried fetch,
     // browser back/forward replaying the request), return the stored reply instead
