@@ -155,8 +155,6 @@ export type DFDInput = {
 // 3. HELPER: DATA MAPPING & LAYOUT (DAGRE)
 // -----------------------------------------------------------------------------
 
-// (mapToReactFlow removed because it's replaced by DiagramCanvas logic or was unused)
-
 interface DiagramCanvasProps {
     title: string;
     data: DFDLevel | undefined;
