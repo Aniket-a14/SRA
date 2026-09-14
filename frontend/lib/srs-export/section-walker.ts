@@ -96,8 +96,19 @@ export interface SectionRenderer {
     afterRequirementList(): string[];
 
     featureHeading(section: FormatSection, featureIndex: number, name: string): string[];
-    /** Sub-heading before a feature's stimulus-response sequences — typst renders none (see method). */
+    /** Sub-heading before a feature's stimulus-response sequences — text differs per format. */
     srsHeading(): string[];
+    /**
+     * A feature's stimulus-response sequences. Typed `unknown[]` and NOT pre-stringified by
+     * the walker on purpose: `AnalysisResult` declares this field `string[]`, but resultJson
+     * isn't runtime-validated end to end, so a non-string item is possible on old/malformed
+     * records. Each format's pre-refactor handling of that case was genuinely different
+     * (markdown coerces via string interpolation, latex silently renders an empty line via
+     * `toStr`'s fallback, typst throws a TypeError from calling `.replace` on a non-string) —
+     * preserved exactly here rather than unified into one "improved" behavior, which would be
+     * a silent behavior change smuggled into a refactor commit.
+     */
+    srsList(items: unknown[]): string[];
     /** Sub-heading before a feature's functional requirements — text differs per format. */
     featureReqsHeading(): string[];
     noFeaturesNote(): string[];
@@ -180,7 +191,7 @@ export function walkSection(section: FormatSection, data: AnyData, r: SectionRen
                     const srs = feat.stimulusResponseSequences;
                     if (Array.isArray(srs) && srs.length > 0) {
                         lines.push(...r.srsHeading());
-                        lines.push(...r.list(srs.map((s) => String(s))));
+                        lines.push(...r.srsList(srs));
                     }
 
                     const reqs = Array.isArray(feat.functionalRequirements) ? feat.functionalRequirements : [];

@@ -115,9 +115,16 @@ class TypstRenderer implements SectionRenderer {
         return ["=== Stimulus-Response Sequences"];
     }
 
+    srsList(items: unknown[]): string[] {
+        // escapeTypst is called on the RAW item, matching the pre-refactor call exactly:
+        // it calls .replace() directly with no type guard, so a non-string item throws —
+        // preserved rather than made silently lenient.
+        return [...items.map((item) => `- ${escapeTypst(item as string)}`), ""];
+    }
+
     featureReqsHeading(): string[] {
-        // Same as srsHeading(): typst never emitted "Functional Requirements"/"Requirements
-        // Specifications" here, unlike markdown/latex.
+        // Unlike srsHeading(), typst never emitted a "Functional Requirements"/"Requirements
+        // Specifications" heading here, unlike markdown/latex.
         return [];
     }
 

@@ -149,6 +149,18 @@ class LatexRenderer implements SectionRenderer {
         return ["\\subsubsection*{Stimulus-Response Sequences}"];
     }
 
+    srsList(items: unknown[]): string[] {
+        // formatLatexText takes the RAW item, matching the pre-refactor call exactly — its
+        // internal toStr() silently returns "" for a non-string/array/`{content}` item,
+        // which is the original (if surprising) behavior for a malformed item here.
+        return [
+            "\\begin{enumerate}[leftmargin=*]",
+            ...items.map((item) => `    \\item ${formatLatexText(item as string)}`),
+            "\\end{enumerate}",
+            "",
+        ];
+    }
+
     featureReqsHeading(): string[] {
         return ["\\subsubsection*{Requirements Specifications}"];
     }

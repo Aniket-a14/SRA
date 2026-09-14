@@ -83,6 +83,12 @@ class MarkdownRenderer implements SectionRenderer {
         return ["#### Stimulus-Response Sequences"];
     }
 
+    srsList(items: unknown[]): string[] {
+        // Matches the old `- ${srs}` template-literal interpolation, which coerces any value
+        // (including a non-string) via the same algorithm as String().
+        return this.list(items.map((item) => String(item)));
+    }
+
     featureReqsHeading(): string[] {
         return ["#### Functional Requirements"];
     }
