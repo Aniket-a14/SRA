@@ -1,0 +1,281 @@
+% ==========================================================================
+% System Requirements Specification: Golden Title
+% Specification Standard: ISO/IEC/IEEE 29148:2018 (ISO29148)
+% Generated with SRA (Smart Requirements Analyzer)
+% Date: 2026-09-14
+% ==========================================================================
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=1in,headheight=15pt,footskip=30pt]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{tcolorbox}
+\usepackage{fancyhdr}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{listings}
+\usepackage{parskip}
+\usepackage{lastpage}
+\usepackage[hidelinks,colorlinks=true,linkcolor=sraprimary,urlcolor=sraaccent,citecolor=sraaccent]{hyperref}
+
+% Brand and Accent Palette
+\definecolor{sraprimary}{HTML}{0F172A}
+\definecolor{sraaccent}{HTML}{4F46E5}
+\definecolor{slatebg}{HTML}{F8FAFC}
+\definecolor{slateborder}{HTML}{E2E8F0}
+\definecolor{darkslate}{HTML}{1E293B}
+\definecolor{frcolor}{HTML}{6366F1}
+\definecolor{prcolor}{HTML}{D97706}
+\definecolor{statusgreen}{HTML}{16A34A}
+
+% Custom Styled Environments
+\tcbuselibrary{skins,breakable}
+\newtcolorbox{requirementbox}[3]{
+    enhanced,
+    breakable,
+    colback=slatebg,
+    colframe=slateborder,
+    coltitle=darkslate,
+    fonttitle=\bfseries\sffamily,
+    title={\textcolor{sraaccent}{\texttt{#1}} \quad #2 \hfill \footnotesize\textsc{\textcolor{statusgreen}{#3}}},
+    arc=2mm,
+    leftrule=4mm,
+    borderline west={4mm}{0pt}{frcolor},
+    boxrule=0.5pt,
+    top=8pt,
+    bottom=8pt,
+    left=10pt,
+    right=10pt,
+    before skip=10pt,
+    after skip=10pt
+}
+
+\newtcolorbox{infobox}[1]{
+    enhanced,
+    breakable,
+    colback=slatebg,
+    colframe=sraaccent,
+    coltitle=sraprimary,
+    fonttitle=\bfseries\sffamily,
+    title={#1},
+    arc=1.5mm,
+    boxrule=0.8pt,
+    top=6pt,
+    bottom=6pt,
+    left=8pt,
+    right=8pt,
+    before skip=8pt,
+    after skip=8pt
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced,
+    breakable,
+    colback=white,
+    colframe=prcolor,
+    coltitle=prcolor,
+    fonttitle=\bfseries\sffamily,
+    title={#1},
+    arc=1.5mm,
+    leftrule=3mm,
+    boxrule=0.6pt,
+    top=6pt,
+    bottom=6pt,
+    left=8pt,
+    right=8pt,
+    before skip=8pt,
+    after skip=8pt
+}
+
+\lstdefinestyle{sracodestyle}{
+    backgroundcolor=\color{slatebg},
+    basicstyle=\ttfamily\footnotesize\color{darkslate},
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=none,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    frame=single,
+    rulecolor=\color{slateborder}
+}
+\lstset{style=sracodestyle}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textsl{Golden Title --- ISO/IEC/IEEE 29148:2018}}
+\fancyhead[R]{\small\textbf{\textcolor{sraaccent}{ISO29148}}}
+\fancyfoot[L]{\footnotesize\textsc{\textcolor{gray}{Confidential \& Proprietary}}}
+\fancyfoot[R]{\footnotesize Page \thepage\ of \pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+\begin{document}
+
+% --- FORMAL COVER PAGE ---
+\begin{titlepage}
+    \centering
+    \vspace*{1.5cm}
+    {\Huge\bfseries\sffamily\textcolor{sraprimary}{Golden Title} \par}
+    \vspace{0.6cm}
+    {\Large\textsc{\textcolor{sraaccent}{System/Software Requirements Specification}} \par}
+    \vspace{1.2cm}
+    {\color{slateborder}\rule{\linewidth}{1.2pt}}\\[0.4cm]
+    {\large \textbf{Standard:} ISO/IEC/IEEE 29148:2018 (ISO29148) \quad \textbf{Version:} 1.0.0}\\[0.2cm]
+    {\color{slateborder}\rule{\linewidth}{1.2pt}}
+    \vspace{1.8cm}
+
+    \begin{infobox}{Executive Scope \& Purpose}
+        Collect and analyze vehicle telemetry in real time.
+    \end{infobox}
+
+    \vfill
+    \begin{tabularx}{0.85\linewidth}{rX}
+        \textbf{Prepared By:} & Smart Requirements Analyzer (SRA) \\
+        \textbf{Standard Template:} & ISO/IEC/IEEE 29148:2018 \\
+        \textbf{Release Date:} & September 14, 2026 \\
+        \textbf{Classification:} & \textsc{Confidential / Engineering Baseline} \\
+    \end{tabularx}
+    \vspace{1cm}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section*{Document Revision History}
+\addcontentsline{toc}{section}{Document Revision History}
+\begin{table}[h!]
+\centering
+\begin{tabularx}{\linewidth}{l l X l}
+\toprule
+\textbf{Version} & \textbf{Date} & \textbf{Description of Changes} & \textbf{Author / Source} \\
+\midrule
+1.0.0 & 2026-09-14 & Baseline specification generated from architectural analysis & SRA Engine \\
+\bottomrule
+\end{tabularx}
+\end{table}
+\vspace{1cm}
+
+\section{Introduction}
+\subsection{Purpose}
+Collect and analyze vehicle telemetry in real time.
+
+\subsection{Scope}
+Covers ingestion, storage, and dashboarding.
+
+\subsection{Product Perspective}
+A cloud-native streaming pipeline.
+
+\subsection{Product Functions}
+\begin{itemize}[leftmargin=*]
+    \item Ingest telemetry
+    \item Detect anomalies
+\end{itemize}
+
+\subsection{User Characteristics}
+\begin{table}[h!]
+\centering
+\begin{tabularx}{\linewidth}{l X}
+\toprule
+\textbf{Class / Role} & \textbf{Characteristics \& Responsibilities} \\
+\midrule
+\textbf{Fleet Operator} & Monitors live vehicle status. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Limitations and Constraints}
+\begin{itemize}[leftmargin=*]
+    \item Must run within existing AWS account.
+\end{itemize}
+
+\subsection{Assumptions and Dependencies}
+\textit{None specified.}\par\vspace{6pt}
+\section{References}
+\begin{enumerate}[leftmargin=*]
+    \item ISO/IEC/IEEE 29148:2018
+\end{enumerate}
+
+\section{External Interfaces}
+\subsection{User Interfaces}
+Web dashboard.
+
+\subsection{Hardware Interfaces}
+OBD-II telemetry units.
+
+\subsection{Software Interfaces}
+Kafka ingestion topic.
+
+\subsection{Communications Interfaces}
+MQTT over TLS.
+
+\section{System Functions}
+\subsection{Anomaly Detection}
+Flags telemetry outside expected ranges.
+
+\subsubsection*{Requirements Specifications}
+\begin{requirementbox}{SF-1}{Anomaly Detection}{VERIFIED}
+The system shall flag readings 3 standard deviations from the rolling mean.
+\begin{itemize}[leftmargin=*,itemsep=2pt,topsep=4pt]
+    \item \textbf{Verification:} Analysis
+\end{itemize}
+\end{requirementbox}
+
+\section{Software System Attributes}
+\subsection{Performance Requirements}
+\begin{itemize}[leftmargin=*]
+    \item Process 10k events/sec sustained.
+\end{itemize}
+
+\subsection{Security}
+\begin{itemize}[leftmargin=*]
+    \item mTLS between all internal services.
+\end{itemize}
+
+\subsection{Safety}
+\textit{None specified.}\par\vspace{6pt}
+\subsection{Software Quality Attributes}
+\textit{None specified.}\par\vspace{6pt}
+\subsection{Business Rules}
+\textit{None specified.}\par\vspace{6pt}
+\section{Verification}
+Verified via load testing and anomaly-injection drills.
+
+\section{Appendix A: Definitions}
+\begin{table}[h!]
+\centering
+\begin{tabularx}{\linewidth}{l X}
+\toprule
+\textbf{Term / Acronym} & \textbf{Formal Definition} \\
+\midrule
+\textbf{OBD-II} & On-board diagnostics standard. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Appendix B: Analysis Models}
+\subsection{System Architecture Flowchart}
+\begin{lstlisting}[language={},caption={Flowchart Model (Mermaid Source)}]
+flowchart TD
+  A[Start] --> B[Process] --> C[End]
+\end{lstlisting}
+
+\subsection{Transaction Sequence Diagram}
+\begin{lstlisting}[language={},caption={Sequence Model (Mermaid Source)}]
+sequenceDiagram
+  User->>System: Request
+  System-->>User: Response
+\end{lstlisting}
+
+\subsection{Entity Relationship Diagram}
+\begin{lstlisting}[language={},caption={Entity Relationship Model (Mermaid Source)}]
+erDiagram
+  USER ||--o{ ORDER : places
+\end{lstlisting}
+
+\end{document}

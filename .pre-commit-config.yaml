@@ -2,8 +2,14 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
     hooks:
+      # Golden export fixtures are byte-exact test data: markdown's trailing double-space
+      # hard-breaks and latex/typst's lack of a final newline (String.join("\n") never adds
+      # a trailing one) are the behavior under test, not formatting slop. See
+      # frontend/lib/srs-export/renderer-parity.test.ts.
       - id: trailing-whitespace
+        exclude: ^frontend/lib/srs-export/__fixtures__/golden/
       - id: end-of-file-fixer
+        exclude: ^frontend/lib/srs-export/__fixtures__/golden/
       - id: check-yaml
       - id: check-added-large-files
 

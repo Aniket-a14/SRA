@@ -1,0 +1,340 @@
+% ==========================================================================
+% System Requirements Specification: Golden Title
+% Specification Standard: IEEE 830-1998 (IEEE830)
+% Generated with SRA (Smart Requirements Analyzer)
+% Date: 2026-09-14
+% ==========================================================================
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=1in,headheight=15pt,footskip=30pt]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{tcolorbox}
+\usepackage{fancyhdr}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{listings}
+\usepackage{parskip}
+\usepackage{lastpage}
+\usepackage[hidelinks,colorlinks=true,linkcolor=sraprimary,urlcolor=sraaccent,citecolor=sraaccent]{hyperref}
+
+% Brand and Accent Palette
+\definecolor{sraprimary}{HTML}{0F172A}
+\definecolor{sraaccent}{HTML}{4F46E5}
+\definecolor{slatebg}{HTML}{F8FAFC}
+\definecolor{slateborder}{HTML}{E2E8F0}
+\definecolor{darkslate}{HTML}{1E293B}
+\definecolor{frcolor}{HTML}{6366F1}
+\definecolor{prcolor}{HTML}{D97706}
+\definecolor{statusgreen}{HTML}{16A34A}
+
+% Custom Styled Environments
+\tcbuselibrary{skins,breakable}
+\newtcolorbox{requirementbox}[3]{
+    enhanced,
+    breakable,
+    colback=slatebg,
+    colframe=slateborder,
+    coltitle=darkslate,
+    fonttitle=\bfseries\sffamily,
+    title={\textcolor{sraaccent}{\texttt{#1}} \quad #2 \hfill \footnotesize\textsc{\textcolor{statusgreen}{#3}}},
+    arc=2mm,
+    leftrule=4mm,
+    borderline west={4mm}{0pt}{frcolor},
+    boxrule=0.5pt,
+    top=8pt,
+    bottom=8pt,
+    left=10pt,
+    right=10pt,
+    before skip=10pt,
+    after skip=10pt
+}
+
+\newtcolorbox{infobox}[1]{
+    enhanced,
+    breakable,
+    colback=slatebg,
+    colframe=sraaccent,
+    coltitle=sraprimary,
+    fonttitle=\bfseries\sffamily,
+    title={#1},
+    arc=1.5mm,
+    boxrule=0.8pt,
+    top=6pt,
+    bottom=6pt,
+    left=8pt,
+    right=8pt,
+    before skip=8pt,
+    after skip=8pt
+}
+
+\newtcolorbox{warningbox}[1]{
+    enhanced,
+    breakable,
+    colback=white,
+    colframe=prcolor,
+    coltitle=prcolor,
+    fonttitle=\bfseries\sffamily,
+    title={#1},
+    arc=1.5mm,
+    leftrule=3mm,
+    boxrule=0.6pt,
+    top=6pt,
+    bottom=6pt,
+    left=8pt,
+    right=8pt,
+    before skip=8pt,
+    after skip=8pt
+}
+
+\lstdefinestyle{sracodestyle}{
+    backgroundcolor=\color{slatebg},
+    basicstyle=\ttfamily\footnotesize\color{darkslate},
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=none,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    frame=single,
+    rulecolor=\color{slateborder}
+}
+\lstset{style=sracodestyle}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textsl{Golden Title --- IEEE 830-1998}}
+\fancyhead[R]{\small\textbf{\textcolor{sraaccent}{IEEE830}}}
+\fancyfoot[L]{\footnotesize\textsc{\textcolor{gray}{Confidential \& Proprietary}}}
+\fancyfoot[R]{\footnotesize Page \thepage\ of \pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+\begin{document}
+
+% --- FORMAL COVER PAGE ---
+\begin{titlepage}
+    \centering
+    \vspace*{1.5cm}
+    {\Huge\bfseries\sffamily\textcolor{sraprimary}{Golden Title} \par}
+    \vspace{0.6cm}
+    {\Large\textsc{\textcolor{sraaccent}{Software Requirements Specification}} \par}
+    \vspace{1.2cm}
+    {\color{slateborder}\rule{\linewidth}{1.2pt}}\\[0.4cm]
+    {\large \textbf{Standard:} IEEE 830-1998 (IEEE830) \quad \textbf{Version:} 1.0.0}\\[0.2cm]
+    {\color{slateborder}\rule{\linewidth}{1.2pt}}
+    \vspace{1.8cm}
+
+    \begin{infobox}{Executive Scope \& Purpose}
+        Provide a secure payment processing infrastructure.
+    \end{infobox}
+
+    \vfill
+    \begin{tabularx}{0.85\linewidth}{rX}
+        \textbf{Prepared By:} & Smart Requirements Analyzer (SRA) \\
+        \textbf{Standard Template:} & IEEE 830-1998 \\
+        \textbf{Release Date:} & September 14, 2026 \\
+        \textbf{Classification:} & \textsc{Confidential / Engineering Baseline} \\
+    \end{tabularx}
+    \vspace{1cm}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section*{Document Revision History}
+\addcontentsline{toc}{section}{Document Revision History}
+\begin{table}[h!]
+\centering
+\begin{tabularx}{\linewidth}{l l X l}
+\toprule
+\textbf{Version} & \textbf{Date} & \textbf{Description of Changes} & \textbf{Author / Source} \\
+\midrule
+1.0.0 & 2026-01-01 & Initial baseline & SRA Engine \\
+\bottomrule
+\end{tabularx}
+\end{table}
+\vspace{1cm}
+
+\section{Introduction}
+\subsection{Purpose}
+Provide a secure payment processing infrastructure.
+
+\subsection{Document Conventions}
+IEEE 830-1998 standard conventions.
+
+\subsection{Intended Audience and Reading Suggestions}
+Engineering, QA, and compliance stakeholders.
+
+\subsection{Product Scope}
+\textit{None specified.}\par\vspace{6pt}
+
+\subsection{References}
+\begin{itemize}[leftmargin=*]
+    \item IEEE Std 830-1998
+    \item PCI DSS v4.0
+\end{itemize}
+
+\section{Overall Description}
+\subsection{Product Perspective}
+A standalone payment microservice.
+
+\subsection{Product Functions}
+\begin{itemize}[leftmargin=*]
+    \item Authorize card
+    \item Capture funds
+    \item Issue refund
+\end{itemize}
+
+\subsection{User Classes and Characteristics}
+\begin{table}[h!]
+\centering
+\begin{tabularx}{\linewidth}{l X}
+\toprule
+\textbf{Class / Role} & \textbf{Characteristics \& Responsibilities} \\
+\midrule
+\textbf{Merchant Admin} & Configures payment methods. \\
+\textbf{Support Agent} & Investigates failed transactions. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Operating Environment}
+\textit{None specified.}\par\vspace{6pt}
+
+\subsection{Design and Implementation Constraints}
+\textit{None specified.}\par\vspace{6pt}
+\subsection{User Documentation}
+\begin{itemize}[leftmargin=*]
+    \item API reference
+\end{itemize}
+
+\subsection{Assumptions and Dependencies}
+\begin{itemize}[leftmargin=*]
+    \item Assumes a reachable card network gateway.
+\end{itemize}
+
+\section{External Interface Requirements}
+\subsection{User Interfaces}
+None — this is a backend service.
+
+\subsection{Hardware Interfaces}
+\textit{None specified.}\par\vspace{6pt}
+
+\subsection{Software Interfaces}
+REST API over HTTPS.
+
+\subsection{Communications Interfaces}
+TLS 1.3.
+
+\section{System Features}
+\subsection{Credit Card Processing}
+Processes Visa and Mastercard transactions.
+
+\subsubsection*{Stimulus-Response Sequences}
+\begin{enumerate}[leftmargin=*]
+    \item User submits card details
+    \item System returns authorization result
+\end{enumerate}
+
+\subsubsection*{Requirements Specifications}
+\begin{requirementbox}{GT-FR-1.1}{Functional Requirement}{VERIFIED}
+The system shall validate the 16-digit card number using the Luhn algorithm.
+\end{requirementbox}
+
+\begin{requirementbox}{FR-CUSTOM-1}{Credit Card Processing}{VERIFIED}
+The system shall verify CVV with the card issuing network.
+\begin{itemize}[leftmargin=*,itemsep=2pt,topsep=4pt]
+    \item \textbf{Rationale:} Reduces card-not-present fraud.
+    \item \textbf{Fit Criterion:} 99.9\% of invalid CVVs rejected in under 500ms.
+    \item \textbf{Verification:} Test
+    \item \textbf{Source:} PCI DSS 3.2
+\end{itemize}
+\end{requirementbox}
+
+\subsection{Empty Feature}
+\section{Other Nonfunctional Requirements}
+\subsection{Performance Requirements}
+\begin{itemize}[leftmargin=*]
+    \item 95th percentile latency under 200ms.
+\end{itemize}
+
+\subsection{Safety Requirements}
+\textit{None specified.}\par\vspace{6pt}
+\subsection{Security Requirements}
+\begin{itemize}[leftmargin=*]
+    \item All card data encrypted at rest with AES-256.
+\end{itemize}
+
+\subsection{Software Quality Attributes}
+\begin{itemize}[leftmargin=*]
+    \item Availability: 99.95\% monthly uptime.
+\end{itemize}
+
+\subsection{Business Rules}
+\textit{None specified.}\par\vspace{6pt}
+\section{Other Requirements}
+\begin{enumerate}[leftmargin=*]
+    \item Must support PCI DSS re-certification annually.
+\end{enumerate}
+
+\section{Appendix A: Glossary}
+\begin{table}[h!]
+\centering
+\begin{tabularx}{\linewidth}{l X}
+\toprule
+\textbf{Term / Acronym} & \textbf{Formal Definition} \\
+\midrule
+\textbf{PAN} & Primary Account Number \\
+\textbf{CVV} & Card Verification Value \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Appendix B: Analysis Models}
+\subsection{System Architecture Flowchart}
+\begin{lstlisting}[language={},caption={Flowchart Model (Mermaid Source)}]
+flowchart TD
+  A[Start] --> B[Process] --> C[End]
+\end{lstlisting}
+
+\subsection{Transaction Sequence Diagram}
+\begin{lstlisting}[language={},caption={Sequence Model (Mermaid Source)}]
+sequenceDiagram
+  User->>System: Request
+  System-->>User: Response
+\end{lstlisting}
+
+\subsection{Entity Relationship Diagram}
+\begin{lstlisting}[language={},caption={Entity Relationship Model (Mermaid Source)}]
+erDiagram
+  USER ||--o{ ORDER : places
+\end{lstlisting}
+
+\section{Quality Audit \& Specification Integrity}
+
+\begin{infobox}{Engineering Quality Score}
+    \textbf{Automated Compliance Score:} \textcolor{sraaccent}{\textbf{92/100}}\\
+    \textbf{Standard Adherence Status:} COMPLIANT\\
+    \vspace{4pt}
+    This score reflects automated verification of unambiguous phrasing, testability, non-contradiction, and section completeness.
+\end{infobox}
+
+\begin{warningbox}{Identified Contradictions \& Ambiguities}
+\begin{itemize}[leftmargin=*]
+    \item Section 3.2 conflicts with Section 5.1 on retry timeout.
+\end{itemize}
+\end{warningbox}
+
+\begin{warningbox}{Missing Architectural Logic \& Edge Cases}
+\begin{itemize}[leftmargin=*]
+    \item No handling specified for a declined card mid-transaction.
+\end{itemize}
+\end{warningbox}
+
+\end{document}

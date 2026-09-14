@@ -1,22 +1,12 @@
 import type { AnalysisResult } from "@/types/analysis";
 import { getFormatSpec, resolveFormatId } from "@/lib/formats";
-import type { FormatSection } from "@/lib/formats/types";
-import type { RequirementShell } from "@/lib/formats/types";
-
-type AnyData = Record<string, unknown>;
-
-const asArray = (v: unknown): AnyData[] => (Array.isArray(v) ? v as AnyData[] : []);
-const isShell = (r: unknown): r is RequirementShell =>
-    !!r && typeof r === "object" && "description" in (r as object);
-
-const toStr = (v: unknown): string => {
-    if (typeof v === "string") return v;
-    if (Array.isArray(v)) return v.map(toStr).join("\n");
-    if (v && typeof v === "object" && "content" in (v as Record<string, unknown>)) {
-        return String((v as Record<string, unknown>).content || "");
-    }
-    return "";
-};
+import type { FormatSection, FormatField } from "@/lib/formats/types";
+import {
+    walkSection,
+    type AnyData,
+    type NormalizedRequirement,
+    type SectionRenderer,
+} from "./section-walker";
 
 const escapeTypst = (text: string): string => {
     if (!text) return "";
@@ -29,233 +19,172 @@ const escapeTypst = (text: string): string => {
         .replace(/@/g, "\\@");
 };
 
-function renderSectionToTypst(section: FormatSection, data: AnyData, acronym: string): string[] {
-    const lines: string[] = [];
-    const value = data[section.id];
-    const sectionNum = section.number;
-    const isAppendix = Boolean(section.appendix);
-    const heading = isAppendix ? `= Appendix ${sectionNum}: ${escapeTypst(section.title)}` : `= ${escapeTypst(section.title)}`;
+const EMPTY_NOTE = "_None specified._";
 
-    lines.push(heading);
+class TypstRenderer implements SectionRenderer {
+    constructor(private readonly acronym: string) {}
 
-    switch (section.kind) {
-        case "prose":
-            if (value) {
-                lines.push(escapeTypst(toStr(value)));
-                lines.push("");
-            } else {
-                lines.push("_None specified._");
-                lines.push("");
-            }
-            break;
-
-        case "list": {
-            const list = Array.isArray(value) ? value : [];
-            if (list.length > 0) {
-                list.forEach((item) => {
-                    lines.push(`- ${escapeTypst(typeof item === "string" ? item : JSON.stringify(item))}`);
-                });
-                lines.push("");
-            } else {
-                lines.push("_None specified._");
-                lines.push("");
-            }
-            break;
-        }
-
-        case "group": {
-            const obj = (value || {}) as AnyData;
-            (section.fields || []).forEach((field) => {
-                lines.push(`== ${escapeTypst(field.label)}`);
-                const fVal = obj[field.id];
-                if (field.kind === "prose") {
-                    lines.push(escapeTypst(toStr(fVal)) || "_None specified._");
-                    lines.push("");
-                } else if (field.kind === "list") {
-                    const fList = Array.isArray(fVal) ? fVal : [];
-                    if (fList.length > 0) {
-                        fList.forEach((it) => lines.push(`- ${escapeTypst(String(it))}`));
-                        lines.push("");
-                    } else {
-                        lines.push("_None specified._");
-                        lines.push("");
-                    }
-                } else if (field.kind === "user-classes") {
-                    const ucs = asArray(fVal);
-                    if (ucs.length > 0) {
-                        lines.push("#table(");
-                        lines.push("  columns: (1fr, 2fr),");
-                        lines.push("  stroke: 0.5pt + rgb(\"#cbd5e1\"),");
-                        lines.push("  fill: (col, row) => if row == 0 { rgb(\"#f1f5f9\") } else { none },");
-                        lines.push("  [*Class / Role*], [*Characteristics & Responsibilities*],");
-                        ucs.forEach((u) => {
-                            lines.push(`  [${escapeTypst(String(u.userClass || u.name || "User"))}], [${escapeTypst(String(u.characteristics || u.description || ""))}],`);
-                        });
-                        lines.push(")");
-                        lines.push("");
-                    }
-                } else if (field.kind === "shell-list") {
-                    const shells = Array.isArray(fVal) ? fVal : [];
-                    shells.forEach((req, rIdx) => {
-                        if (typeof req === "string") {
-                            const reqId = `${acronym}-${field.id.slice(0, 3).toUpperCase()}-${rIdx + 1}`;
-                            lines.push(`#requirement("${reqId}", "${escapeTypst(field.label)}", [${escapeTypst(req)}])`);
-                        } else if (isShell(req)) {
-                            const shell = req as RequirementShell;
-                            const reqId = shell.id || `${acronym}-${field.id.slice(0, 3).toUpperCase()}-${rIdx + 1}`;
-                            const rationale = shell.rationale ? `"${escapeTypst(shell.rationale)}"` : "none";
-                            const fit = shell.fitCriterion ? `"${escapeTypst(shell.fitCriterion)}"` : "none";
-                            const verification = shell.verificationMethod ? `"${escapeTypst(shell.verificationMethod)}"` : "none";
-                            lines.push(
-                                `#requirement("${reqId}", "${escapeTypst(field.label)}", [${escapeTypst(shell.description)}], rationale: ${rationale}, fit: ${fit}, verification: ${verification})`
-                            );
-                        }
-                    });
-                    lines.push("");
-                }
-            });
-            break;
-        }
-
-        case "feature-list": {
-            const feats = asArray(value);
-            if (feats.length > 0) {
-                feats.forEach((feat, idx) => {
-                    lines.push(`== ${escapeTypst(String(feat.name || `Feature ${idx + 1}`))}`);
-                    if (feat.description) {
-                        lines.push(escapeTypst(String(feat.description)));
-                        lines.push("");
-                    }
-
-                    if (Array.isArray(feat.stimulusResponseSequences) && feat.stimulusResponseSequences.length > 0) {
-                        lines.push("=== Stimulus-Response Sequences");
-                        (feat.stimulusResponseSequences as string[]).forEach((srs) => {
-                            lines.push(`- ${escapeTypst(srs)}`);
-                        });
-                        lines.push("");
-                    }
-
-                    const reqs = Array.isArray(feat.functionalRequirements) ? feat.functionalRequirements : [];
-                    if (reqs.length > 0) {
-                        reqs.forEach((req, reqIdx) => {
-                            if (typeof req === "string") {
-                                const reqId = `${acronym}-FR-${idx + 1}.${reqIdx + 1}`;
-                                lines.push(`#requirement("${reqId}", "Functional Requirement", [${escapeTypst(req)}])`);
-                            } else if (isShell(req)) {
-                                const shell = req as RequirementShell;
-                                const reqId = shell.id || `${acronym}-FR-${idx + 1}.${reqIdx + 1}`;
-                                const rationale = shell.rationale ? `"${escapeTypst(shell.rationale)}"` : "none";
-                                const fit = shell.fitCriterion ? `"${escapeTypst(shell.fitCriterion)}"` : "none";
-                                const verification = shell.verificationMethod ? `"${escapeTypst(shell.verificationMethod)}"` : "none";
-                                lines.push(
-                                    `#requirement("${reqId}", "${escapeTypst(String(feat.name || ""))}", [${escapeTypst(shell.description)}], rationale: ${rationale}, fit: ${fit}, verification: ${verification})`
-                                );
-                            }
-                        });
-                        lines.push("");
-                    }
-                });
-            }
-            break;
-        }
-
-        case "user-classes": {
-            const ucs = asArray(value);
-            if (ucs.length > 0) {
-                lines.push("#table(");
-                lines.push("  columns: (1fr, 2fr),");
-                lines.push("  stroke: 0.5pt + rgb(\"#cbd5e1\"),");
-                lines.push("  fill: (col, row) => if row == 0 { rgb(\"#f1f5f9\") } else { none },");
-                lines.push("  [*Class / Role*], [*Characteristics & Responsibilities*],");
-                ucs.forEach((uc) => {
-                    lines.push(`  [${escapeTypst(String(uc.userClass || uc.name || "User"))}], [${escapeTypst(String(uc.characteristics || uc.description || ""))}],`);
-                });
-                lines.push(")");
-                lines.push("");
-            }
-            break;
-        }
-
-        case "stakeholders": {
-            const list = asArray(value);
-            if (list.length > 0) {
-                lines.push("#table(");
-                lines.push("  columns: (1fr, 2fr),");
-                lines.push("  stroke: 0.5pt + rgb(\"#cbd5e1\"),");
-                lines.push("  fill: (col, row) => if row == 0 { rgb(\"#f1f5f9\") } else { none },");
-                lines.push("  [*Stakeholder Role*], [*Interest & Success Measure*],");
-                list.forEach((s) => {
-                    lines.push(`  [${escapeTypst(String(s.role || "Stakeholder"))}], [${escapeTypst(String(s.interest || ""))}],`);
-                });
-                lines.push(")");
-                lines.push("");
-            }
-            break;
-        }
-
-        case "personas": {
-            const list = asArray(value);
-            list.forEach((p) => {
-                lines.push(`== Persona: ${escapeTypst(String(p.name || "User"))}`);
-                if (p.description) lines.push(escapeTypst(String(p.description)));
-                if (Array.isArray(p.goals) && p.goals.length > 0) {
-                    lines.push("*Goals:*");
-                    p.goals.forEach((g) => lines.push(`- ${escapeTypst(String(g))}`));
-                }
-                lines.push("");
-            });
-            break;
-        }
-
-        case "user-stories": {
-            const list = asArray(value);
-            list.forEach((s, i) => {
-                lines.push(`=== US-${i + 1}: ${escapeTypst(String(s.role || "User"))}`);
-                lines.push(`*As a* ${escapeTypst(String(s.role || ""))}, *I want* ${escapeTypst(String(s.action || s.feature || ""))}, *so that* ${escapeTypst(String(s.benefit || ""))}.`);
-                if (Array.isArray(s.acceptanceCriteria) && s.acceptanceCriteria.length > 0) {
-                    lines.push("*Acceptance Criteria:*");
-                    s.acceptanceCriteria.forEach((ac) => lines.push(`- ${escapeTypst(String(ac))}`));
-                }
-                lines.push("");
-            });
-            break;
-        }
-
-        case "issues": {
-            const list = asArray(value);
-            if (list.length > 0) {
-                list.forEach((it) => {
-                    lines.push(`- *${escapeTypst(String(it.issue || "Issue"))}:* ${escapeTypst(String(it.impact || ""))} _(Mitigation: ${escapeTypst(String(it.mitigation || "None specified"))})_`);
-                });
-                lines.push("");
-            }
-            break;
-        }
-
-        case "glossary": {
-            const list = asArray(value);
-            if (list.length > 0) {
-                lines.push("#table(");
-                lines.push("  columns: (1fr, 2fr),");
-                lines.push("  stroke: 0.5pt + rgb(\"#cbd5e1\"),");
-                lines.push("  fill: (col, row) => if row == 0 { rgb(\"#f1f5f9\") } else { none },");
-                lines.push("  [*Term / Acronym*], [*Definition*],");
-                list.forEach((item) => {
-                    lines.push(`  [*${escapeTypst(String(item.term || item.name || ""))}*], [${escapeTypst(String(item.definition || item.description || ""))}],`);
-                });
-                lines.push(")");
-                lines.push("");
-            }
-            break;
-        }
-
-        case "diagrams":
-            lines.push("// Architecture diagrams embedded in export bundle");
-            lines.push("");
-            break;
+    sectionHeading(section: FormatSection): string[] {
+        const heading = section.appendix
+            ? `= Appendix ${section.number}: ${escapeTypst(section.title)}`
+            : `= ${escapeTypst(section.title)}`;
+        return [heading];
     }
 
-    return lines;
+    fieldHeading(_section: FormatSection, field: FormatField): string[] {
+        return [`== ${escapeTypst(field.label)}`];
+    }
+
+    emptyNote(): string[] {
+        return [EMPTY_NOTE, ""];
+    }
+
+    prose(text: string): string[] {
+        return [escapeTypst(text), ""];
+    }
+
+    fieldProse(text: string): string[] {
+        return text ? this.prose(text) : this.emptyNote();
+    }
+
+    list(items: string[]): string[] {
+        return [...items.map((item) => `- ${escapeTypst(item)}`), ""];
+    }
+
+    fieldList(items: string[]): string[] {
+        return this.list(items);
+    }
+
+    private table(headerLeft: string, headerRight: string, rows: [string, string][]): string[] {
+        return [
+            "#table(",
+            "  columns: (1fr, 2fr),",
+            "  stroke: 0.5pt + rgb(\"#cbd5e1\"),",
+            "  fill: (col, row) => if row == 0 { rgb(\"#f1f5f9\") } else { none },",
+            `  [*${headerLeft}*], [*${headerRight}*],`,
+            ...rows.map(([left, right]) => `  [${left}], [${right}],`),
+            ")",
+            "",
+        ];
+    }
+
+    userClassesField(items: AnyData[]): string[] {
+        if (items.length === 0) return [];
+        return this.table(
+            "Class / Role",
+            "Characteristics & Responsibilities",
+            items.map((u) => [escapeTypst(String(u.userClass || u.name || "User")), escapeTypst(String(u.characteristics || u.description || ""))])
+        );
+    }
+
+    userClassesSection(items: AnyData[]): string[] {
+        return this.userClassesField(items);
+    }
+
+    private fallbackId(req: NormalizedRequirement): string {
+        return `${this.acronym}-${req.bareFallbackId}`;
+    }
+
+    requirementItem(req: NormalizedRequirement, label: string, context: "group" | "feature"): string[] {
+        const id = req.explicitId || this.fallbackId(req);
+        const title = context === "feature" && !req.shell ? "Functional Requirement" : label;
+        const body = escapeTypst(req.shell ? req.shell.description : req.plainText);
+
+        if (!req.shell) {
+            return [`#requirement("${id}", "${escapeTypst(title)}", [${body}])`];
+        }
+
+        const shell = req.shell;
+        const rationale = shell.rationale ? `"${escapeTypst(shell.rationale)}"` : "none";
+        const fit = shell.fitCriterion ? `"${escapeTypst(shell.fitCriterion)}"` : "none";
+        const verification = shell.verificationMethod ? `"${escapeTypst(shell.verificationMethod)}"` : "none";
+        return [
+            `#requirement("${id}", "${escapeTypst(title)}", [${body}], rationale: ${rationale}, fit: ${fit}, verification: ${verification})`,
+        ];
+    }
+
+    afterRequirementList(): string[] {
+        return [""];
+    }
+
+    featureHeading(_section: FormatSection, featureIndex: number, name: string): string[] {
+        return [`== ${escapeTypst(name || `Feature ${featureIndex + 1}`)}`];
+    }
+
+    srsHeading(): string[] {
+        return ["=== Stimulus-Response Sequences"];
+    }
+
+    featureReqsHeading(): string[] {
+        // Same as srsHeading(): typst never emitted "Functional Requirements"/"Requirements
+        // Specifications" here, unlike markdown/latex.
+        return [];
+    }
+
+    noFeaturesNote(): string[] {
+        return [];
+    }
+
+    stakeholdersTable(items: AnyData[]): string[] {
+        if (items.length === 0) return [];
+        return this.table(
+            "Stakeholder Role",
+            "Interest & Success Measure",
+            items.map((s) => [escapeTypst(String(s.role || "Stakeholder")), escapeTypst(String(s.interest || ""))])
+        );
+    }
+
+    personaBlock(persona: AnyData): string[] {
+        const lines: string[] = [`== Persona: ${escapeTypst(String(persona.name || "User"))}`];
+        if (persona.description) lines.push(escapeTypst(String(persona.description)));
+        if (Array.isArray(persona.goals) && persona.goals.length > 0) {
+            lines.push("*Goals:*");
+            persona.goals.forEach((g) => lines.push(`- ${escapeTypst(String(g))}`));
+        }
+        lines.push("");
+        return lines;
+    }
+
+    userStoryBlock(story: AnyData, index: number): string[] {
+        const lines: string[] = [
+            `=== US-${index + 1}: ${escapeTypst(String(story.role || "User"))}`,
+            `*As a* ${escapeTypst(String(story.role || ""))}, *I want* ${escapeTypst(String(story.action || story.feature || ""))}, *so that* ${escapeTypst(String(story.benefit || ""))}.`,
+        ];
+        if (Array.isArray(story.acceptanceCriteria) && story.acceptanceCriteria.length > 0) {
+            lines.push("*Acceptance Criteria:*");
+            story.acceptanceCriteria.forEach((ac) => lines.push(`- ${escapeTypst(String(ac))}`));
+        }
+        lines.push("");
+        return lines;
+    }
+
+    issuesList(items: AnyData[]): string[] {
+        if (items.length === 0) return [];
+        return [
+            ...items.map((it) => `- *${escapeTypst(String(it.issue || "Issue"))}:* ${escapeTypst(String(it.impact || ""))} _(Mitigation: ${escapeTypst(String(it.mitigation || "None specified"))})_`),
+            "",
+        ];
+    }
+
+    glossaryTable(items: AnyData[]): string[] {
+        if (items.length === 0) return [];
+        return [
+            "#table(",
+            "  columns: (1fr, 2fr),",
+            "  stroke: 0.5pt + rgb(\"#cbd5e1\"),",
+            "  fill: (col, row) => if row == 0 { rgb(\"#f1f5f9\") } else { none },",
+            "  [*Term / Acronym*], [*Definition*],",
+            ...items.map((item) => `  [*${escapeTypst(String(item.term || item.name || ""))}*], [${escapeTypst(String(item.definition || item.description || ""))}],`),
+            ")",
+            "",
+        ];
+    }
+
+    diagramsBlock(): string[] {
+        // Diagrams are embedded separately in the export bundle for typst, not inline —
+        // matches the pre-refactor placeholder comment exactly.
+        return ["// Architecture diagrams embedded in export bundle", ""];
+    }
 }
 
 /**
@@ -271,6 +200,7 @@ export function exportSrsToTypst(
     const safeTitle = (title || data.projectTitle || "SRS").trim();
     const acronym = safeTitle.split(/\s+/).map(w => w[0]).join("").toUpperCase() || "SRA";
     const anyData = data as unknown as AnyData;
+    const renderer = new TypstRenderer(acronym);
 
     const lines: string[] = [];
 
@@ -363,7 +293,7 @@ export function exportSrsToTypst(
 
     // Walk all sections defined by the chosen format
     spec.sections.forEach((section) => {
-        lines.push(...renderSectionToTypst(section, anyData, acronym));
+        lines.push(...walkSection(section, anyData, renderer));
     });
 
     const typ = lines.join("\n");
