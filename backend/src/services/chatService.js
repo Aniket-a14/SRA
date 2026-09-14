@@ -4,6 +4,7 @@ import { createChatSnapshot } from '../utils/promptCompaction.js';
 import { createNextVersion } from './versioning.js';
 import { resolveProviderKey } from './providers/providerKeyService.js';
 import { DEFAULT_MODELS } from './providers/index.js';
+import { sanitizePromptBlock } from '../utils/promptSanitizer.js';
 import logger from '../config/logger.js';
 
 /**
@@ -67,7 +68,15 @@ async function loadChatContext(userId, analysisId, clientMessageId) {
         orderBy: { createdAt: 'asc' },
         take: 20 // last 20 messages for rolling context window
     });
-    const historyText = history.map(msg => `${msg.role}: ${msg.content}`).join('\n');
+    // sanitizePromptBlock defangs delimiter forgery (a stored user turn containing
+    // literal `</chat_history>`/`<current_analysis_json>`-shaped text that could escape
+    // this block once re-interpolated into the prompt below) — same treatment the main
+    // analysis pipeline already gives ragContext/systemPromptExtension. It does NOT stop
+    // an attacker's own message content from containing a fake "assistant: ..." line —
+    // that's a content-level impersonation the model's own instructions have to refuse,
+    // not something a string sanitizer can structurally prevent without a real per-turn
+    // delimiter format (a larger change than this fixes).
+    const historyText = history.map(msg => `${msg.role}: ${sanitizePromptBlock(msg.content)}`).join('\n');
 
     // Compact SRS snapshot — avoids serialising the full 50KB+ resultJson into every
     // chat turn. createChatSnapshot targets ~6-8K tokens max.
@@ -213,7 +222,9 @@ export async function processChat(userId, analysisId, userMessage, clientMessage
                 }
             };
         } else {
-            parsedResponse = await chatAgent.chat(srsSnapshot, historyText, userMessage);
+            // Sanitized only for the prompt — persistUserMessage/finalizeChatTurn above and
+            // below still store/echo the user's literal, unmangled message.
+            parsedResponse = await chatAgent.chat(srsSnapshot, historyText, sanitizePromptBlock(userMessage));
         }
 
         const newAnalysisId = await finalizeChatTurn(userId, currentAnalysis, userMessage, clientMessageId, parsedResponse.reply, parsedResponse.updatedAnalysis);
@@ -261,9 +272,14 @@ export async function processChatStream(userId, analysisId, userMessage, clientM
             return { reply: mockReply, newAnalysisId };
         }
 
+        // Sanitized only for the prompt — persistUserMessage above and finalizeChatTurn
+        // below still store/echo the user's literal, unmangled message; looksLikeEditRequest
+        // above is a local regex check, not a prompt, so it stays on the raw message too.
+        const sanitizedUserMessage = sanitizePromptBlock(userMessage);
+
         // Fire the edit-detection/production call in parallel
         const editPromise = shouldProposeEdit
-            ? chatAgent.proposeEdit(srsSnapshot, historyText, userMessage).catch(err => {
+            ? chatAgent.proposeEdit(srsSnapshot, historyText, sanitizedUserMessage).catch(err => {
                 logger.warn({ msg: '[Chat Service] proposeEdit failed (non-fatal — reply still streams)', error: err.message });
                 return { updatedAnalysis: null };
             })
@@ -271,7 +287,7 @@ export async function processChatStream(userId, analysisId, userMessage, clientM
 
         let fullReply = '';
         try {
-            for await (const chunk of chatAgent.chatStream(srsSnapshot, historyText, userMessage)) {
+            for await (const chunk of chatAgent.chatStream(srsSnapshot, historyText, sanitizedUserMessage)) {
                 fullReply += chunk;
                 try {
                     onChunk(chunk);

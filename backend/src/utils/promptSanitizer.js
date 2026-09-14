@@ -12,8 +12,10 @@
  * Two shapes of untrusted value, two treatments:
  *  - **labels** (`projectName`, `formatName`) — short and single-line; no markup, newline or
  *    control character is ever legitimate, so they are stripped outright.
- *  - **blocks** (`ragContext`, `systemPromptExtension`) — long-form prose that must keep its
- *    line structure, so structural tags are escaped rather than removed.
+ *  - **blocks** (`ragContext`, `systemPromptExtension`, the raw analysis `text` passed through
+ *    `constructMasterPrompt`, and chat's `userMessage`/history — see `chatService.js` and
+ *    `prompts.js`) — long-form prose that must keep its line structure, so structural tags
+ *    are escaped rather than removed.
  */
 
 /**

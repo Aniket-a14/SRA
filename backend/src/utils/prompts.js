@@ -1,6 +1,6 @@
 // DYNAMIC PROMPT GENERATOR
 import { registerPromptVersion, getPromptByVersion, getLatestVersion } from './promptRegistry.js';
-import { sanitizePromptSettings } from './promptSanitizer.js';
+import { sanitizePromptSettings, sanitizePromptBlock } from './promptSanitizer.js';
 import logger from '../config/logger.js';
 import * as v1 from './versions/v1_0_0.js';
 import * as v1_1 from './versions/v1_1_0.js';
@@ -37,7 +37,15 @@ export const constructMasterPrompt = async (text = null, settings = {}, version 
   // Untrusted values (projectName, ragContext, …) are interpolated into the *system* role by
   // every generator, so they are defanged here — the one place all agents funnel through —
   // rather than at each call site. See utils/promptSanitizer.js.
-  return await generator(text, sanitizePromptSettings(settings));
+  //
+  // `text` (the user's raw requirements input) is the highest-volume, most directly
+  // attacker-controlled value in the whole prompt, and every active generator places it
+  // inside a delimited <input> block exactly like ragContext/systemPromptExtension — so it
+  // gets the same structural-tag defanging, not just those two. The generators also tell the
+  // model everything inside <input>/<context> is data, never instructions (defense in depth,
+  // not a replacement for this): that's a prose instruction, which is weaker on its own than
+  // denying the attacker the ability to forge a closing tag in the first place.
+  return await generator(sanitizePromptBlock(text), sanitizePromptSettings(settings));
 };
 
 // Re-export constants for compatibility
