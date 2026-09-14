@@ -1,0 +1,90 @@
+---
+name: upstash-qstash-js
+description: Work with the @upstash/qstash TypeScript/JavaScript SDK, an HTTP-based message queue, task scheduler, and background job system for serverless and edge runtimes (Next.js, Vercel, Cloudflare Workers, Deno, Node.js). Use when publishing messages to HTTP endpoints or URL groups, running background jobs without a long-running worker process, scheduling with cron expressions, delaying messages, building FIFO queues with parallelism and flow control, configuring retries and callbacks, handling a dead letter queue (DLQ), deduplicating messages, fanning out to multiple endpoints, verifying QStash webhook signatures (Next.js App Router, Pages Router, and Edge Runtime), running a local QStash dev server, or migrating regions. Also use when the user asks for a serverless cron job, async task queue, job scheduler, delayed delivery, webhook delivery with retries, or event-driven messaging between services.
+license: MIT
+metadata:
+  author: Upstash
+  homepage: https://upstash.com
+---
+
+# QStash JavaScript SDK
+
+QStash is an HTTP-based messaging and scheduling solution for serverless and edge runtimes. This skill helps you use the QStash JS SDK effectively.
+
+## When to use this skill
+
+Use this skill when:
+
+- Publishing HTTP messages to endpoints or URL groups
+- Creating scheduled or delayed message delivery
+- Managing FIFO queues with configurable parallelism
+- Verifying incoming webhook signatures from QStash
+- Implementing callbacks, DLQ handling, or message deduplication
+
+## Quick Start
+
+### Installing the SDK
+
+```bash
+npm install @upstash/qstash
+```
+
+### Basic Publishing
+
+```typescript
+import { Client } from "@upstash/qstash";
+
+const client = new Client({
+  token: process.env.QSTASH_TOKEN!,
+});
+
+const result = await client.publishJSON({
+  url: "https://my-api.example.com/webhook",
+  body: { event: "user.created", userId: "123" },
+});
+```
+
+## Core Concepts
+
+For fundamental QStash operations, see:
+
+- [Publishing Messages](fundamentals/publishing-messages.md)
+- [Schedules](fundamentals/schedules.md)
+- [Queues and Flow Control](fundamentals/queues-and-flow-control.md)
+- [URL Groups](fundamentals/url-groups.md)
+- [Local Development](fundamentals/local-development.md) — automatic dev server via `devMode: true`
+
+For verifying incoming messages:
+
+- [Receiver Verification](verification/receiver.md) - Core signature verification with the Receiver class
+- Platform-Specific Verifiers:
+  - [Next.js](verification/platform-specific/nextjs.md) - App Router, Pages Router, and Edge Runtime
+
+For advanced features:
+
+- [Callbacks](advanced/callbacks.md)
+- [Dead Letter Queue (DLQ)](advanced/dlq.md)
+- [Message Deduplication](advanced/deduplication.md)
+- [Region migration & multi-region support](advanced/multi-region/summary.md)
+  - If needed, [multi-region env variable setup verification script](advanced/multi-region/verify-multi-region-setup.ts). Can be run without arguments
+
+## Platform Support
+
+QStash JS SDK works across various platforms:
+
+- Next.js (App Router and Pages Router)
+- Cloudflare Workers
+- Deno
+- Node.js (v18+)
+- Vercel Edge Runtime
+- SvelteKit, Nuxt, SolidJS, and other frameworks
+
+> **Note on Workflow SDK:** For building complex durable workflows that chain multiple QStash messages together, consider using the separate QStash Workflow SDK (`@upstash/workflow`). The Workflow SDK empowers you to orchestrate multi-step processes with automatic state management, retries, and fault tolerance. This Skills file focuses on the core QStash messaging SDK.
+
+## Best Practices
+
+- Always verify incoming QStash messages using the Receiver class
+- Use environment variables for tokens and signing keys
+- Set appropriate retry counts and timeouts for your use case
+- Use queues for ordered processing with controlled parallelism
+- Implement DLQ handling for failed message recovery
