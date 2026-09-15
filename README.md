@@ -35,6 +35,7 @@
 | **Architecture Guide** | [ARCHITECTURE.md](./ARCHITECTURE.md) | System architecture & design |
 | **Operations Manual** | [OPERATIONS.md](./docs/operations/OPERATIONS.md) | Deployment, backup & DR procedures |
 | **Contributing** | [CONTRIBUTING.md](./CONTRIBUTING.md) | Development setup & guidelines |
+| **Modernization Record** | [docs/MODERNIZATION.md](./docs/MODERNIZATION.md) | Findings, fixes, and deferred work from the latest audit pass |
 
 ---
 
