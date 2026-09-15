@@ -6,6 +6,18 @@ import createMDX from "@next/mdx";
 // is not a nonce. Everything below is static and stays.
 const nextConfig: NextConfig = {
   output: 'standalone',
+  typescript: {
+    // Test files have no business gating a production build, and shouldn't need to:
+    // they're already typechecked by the separate `tsc --noEmit` CI step (full workspace
+    // install) and by vitest itself. Routing `next build` at test files at all was
+    // incidental (one shared tsconfig), and it broke production builds outright once a
+    // narrower, image-minimizing install (Dockerfile's `pnpm install --filter frontend...
+    // --filter .`) hoisted `@testing-library/jest-dom`/`vitest` differently than a full
+    // workspace install — Linux-only, so it passed everywhere this was tested until the
+    // real Docker build hit it. tsconfig.build.json is identical to tsconfig.json minus
+    // test files.
+    tsconfigPath: "./tsconfig.build.json",
+  },
   async headers() {
     return [
       {
