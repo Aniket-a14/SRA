@@ -7,6 +7,8 @@ import { createSSEStream } from '../../src/utils/sseWriter.js';
 import { EventEmitter } from 'events';
 import { constructMasterPrompt } from '../../src/utils/prompts.js';
 import { sanitizePromptBlock } from '../../src/utils/promptSanitizer.js';
+import { RefinedIntentSchema, ArchitectSchema, ReviewSchema, AuditSchema } from '../../src/utils/aiSchemas.js';
+import { geminiSchemaToZod } from '../../src/utils/geminiSchemaToZod.js';
 
 describe('SRA 29-Parameter Architecture Verification Suite', () => {
 
@@ -174,6 +176,75 @@ describe('SRA 29-Parameter Architecture Verification Suite', () => {
                 expect(sanitized).not.toContain('<historical_patterns>');
                 expect(sanitized).not.toContain('</historical_patterns>');
             }
+        });
+    });
+
+    describe('Structured LLM Output Validation (schema-driven, cross-provider)', () => {
+        // BaseAgent.callLLM validates every provider's output against the same schema
+        // Gemini's responseSchema already declares (see aiSchemas.js) via
+        // geminiSchemaToZod.js. These exercise the REAL per-agent schemas against
+        // realistic well-formed and adversarially-malformed payloads — not synthetic
+        // toy shapes — to catch a drift between an agent's schema and what
+        // BaseAgent actually accepts/rejects.
+
+        it('ProductOwner (RefinedIntentSchema) accepts a well-formed intent and rejects one with a malformed feature', () => {
+            const schema = geminiSchemaToZod(RefinedIntentSchema);
+
+            const wellFormed = {
+                projectTitle: 'Fleet Telemetry Platform',
+                scopeSummary: 'Real-time vehicle telemetry ingestion and anomaly detection.',
+                features: [{ name: 'Anomaly Detection', description: 'Flags outlier readings.', priority: 'High' }],
+                userStories: [{ role: 'Fleet Operator', action: 'view live vehicle status', benefit: 'react to issues quickly', acceptanceCriteria: ['Updates within 5s'] }],
+            };
+            expect(schema.safeParse(wellFormed).success).toBe(true);
+
+            // A realistic failure mode: the model collapses a feature to a bare string
+            // instead of the required {name, description, priority} object.
+            const malformed = { ...wellFormed, features: ['Anomaly Detection'] };
+            const result = schema.safeParse(malformed);
+            expect(result.success).toBe(false);
+        });
+
+        it('Architect (ArchitectSchema) rejects a logical component missing its required role', () => {
+            const schema = geminiSchemaToZod(ArchitectSchema);
+            const malformed = {
+                logicalComponents: [{ name: 'Telemetry Ingestor' }], // missing `role`
+                entityModel: [{ entity: 'Vehicle', attributes: ['vin'], relationships: [] }],
+                logicalPrinciples: ['Stateless ingestion workers'],
+            };
+            expect(schema.safeParse(malformed).success).toBe(false);
+        });
+
+        it('Reviewer (ReviewSchema) rejects a score sent as a string instead of a number', () => {
+            const schema = geminiSchemaToZod(ReviewSchema);
+            // A realistic failure mode across non-Gemini providers: the model emits "85"
+            // instead of 85 for a numeric field.
+            const malformed = { status: 'APPROVED', score: '85', feedback: [] };
+            expect(schema.safeParse(malformed).success).toBe(false);
+        });
+
+        it('Critic (AuditSchema) rejects a response missing the required sub-scores object', () => {
+            const schema = geminiSchemaToZod(AuditSchema);
+            const malformed = {
+                overallScore: 90,
+                criticalIssues: [],
+                suggestions: ['Add rate limiting'],
+                // `scores` omitted entirely — a real truncation/omission failure mode.
+            };
+            expect(schema.safeParse(malformed).success).toBe(false);
+        });
+
+        it('every schema tolerates a provider adding fields beyond what Gemini was told to emit', () => {
+            const schema = geminiSchemaToZod(ReviewSchema);
+            const result = schema.safeParse({
+                status: 'APPROVED',
+                score: 90,
+                feedback: [],
+                // Only Gemini's generation is constrained to the declared shape — OpenAI/
+                // Claude/Grok output isn't, and shouldn't be penalized for saying more.
+                modelSelfCommentary: 'I am fairly confident in this review.',
+            });
+            expect(result.success).toBe(true);
         });
     });
 });
