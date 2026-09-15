@@ -64,7 +64,10 @@ jobs:
       # even from here, so this sees the backend's graph too. No allowlist: the
       # brace-expansion advisories that used to need one came in through nodemon sitting in
       # the backend's `dependencies` and dragging minimatch along with it. nodemon is a
-      # devDependency now, so the production graph no longer contains it.
+      # devDependency now, so the production graph no longer contains it. The Node filter
+      # below re-checks severity itself rather than trusting `--audit-level`'s exit code
+      # (which the `set +e`/`set -e` pair discards) — it used to only match "high" and
+      # silently let critical advisories through.
       run: |
         set +e
         AUDIT_JSON=$(pnpm audit --prod --audit-level=high --json)
@@ -73,14 +76,18 @@ jobs:
           let data = "";
           process.stdin.on("data", d => data += d);
           process.stdin.on("end", () => {
-            const j = JSON.parse(data || "{}");
-            const remaining = Object.values(j.advisories || {}).filter(a => a.severity === "high");
+            // Advisory text (e.g. multi-line reference lists) can carry raw control
+            // characters that are invalid inside a JSON string; strip them so an
+            // unrelated moderate advisory cannot crash this step with a parse error
+            // instead of a clean pass/fail on severity.
+            const j = JSON.parse((data || "{}").replace(/[\x00-\x1f]+/g, " "));
+            const remaining = Object.values(j.advisories || {}).filter(a => a.severity === "high" || a.severity === "critical");
             if (remaining.length > 0) {
-              console.error("High-severity vulnerabilities found in production dependencies:");
-              remaining.forEach(a => console.error(`- ${a.title} (${a.module_name})`));
+              console.error("High/critical-severity vulnerabilities found in production dependencies:");
+              remaining.forEach(a => console.error(`- [${a.severity}] ${a.title} (${a.module_name})`));
               process.exit(1);
             }
-            console.log("No high-severity vulnerabilities in production dependencies.");
+            console.log("No high/critical-severity vulnerabilities in production dependencies.");
           });
         '
       working-directory: ./frontend
