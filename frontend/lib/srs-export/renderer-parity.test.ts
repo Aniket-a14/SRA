@@ -19,6 +19,12 @@ import { ieee830Fixture, iso29148Fixture, volereFixture, agilePrdFixture } from 
 const GOLDEN_DIR = path.join(__dirname, "__fixtures__", "golden");
 const readGolden = (name: string) => readFileSync(path.join(GOLDEN_DIR, name), "utf-8");
 
+// The golden fixtures embed the "generated on" date each renderer prints in its cover
+// page/header, so it has to be pinned to whatever instant the fixtures were captured at
+// (2026-09-14) rather than left to read the real wall clock — otherwise this test is a
+// coin flip around every UTC midnight and fails outright on every later day.
+const GOLDEN_GENERATED_AT = new Date("2026-09-14T00:00:00Z");
+
 const cases = [
     { id: "ieee830", data: ieee830Fixture },
     { id: "iso29148", data: iso29148Fixture },
@@ -28,17 +34,17 @@ const cases = [
 
 describe("export renderer parity with pre-refactor golden output", () => {
     it.each(cases)("markdown: $id matches golden output byte-for-byte", ({ id, data }) => {
-        const { text } = exportSrsToMarkdown(data, "Golden Title", id);
+        const { text } = exportSrsToMarkdown(data, "Golden Title", id, GOLDEN_GENERATED_AT);
         expect(text).toBe(readGolden(`${id}.md`));
     });
 
     it.each(cases)("latex: $id matches golden output byte-for-byte", ({ id, data }) => {
-        const { tex } = exportSrsToLatex(data, "Golden Title", id);
+        const { tex } = exportSrsToLatex(data, "Golden Title", id, GOLDEN_GENERATED_AT);
         expect(tex).toBe(readGolden(`${id}.tex`));
     });
 
     it.each(cases)("typst: $id matches golden output byte-for-byte", ({ id, data }) => {
-        const { typ } = exportSrsToTypst(data, "Golden Title", id);
+        const { typ } = exportSrsToTypst(data, "Golden Title", id, GOLDEN_GENERATED_AT);
         expect(typ).toBe(readGolden(`${id}.typ`));
     });
 });

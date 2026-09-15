@@ -269,7 +269,8 @@ class LatexRenderer implements SectionRenderer {
 export function exportSrsToLatex(
     data: AnalysisResult,
     title: string,
-    formatId?: string
+    formatId?: string,
+    generatedAt: Date = new Date()
 ): { tex: string; filename: string } {
     const resolvedId = formatId || resolveFormatId(data);
     const spec = getFormatSpec(resolvedId);
@@ -285,7 +286,7 @@ export function exportSrsToLatex(
     lines.push(`% System Requirements Specification: ${safeTitle}`);
     lines.push(`% Specification Standard: ${spec.name} (${spec.id.toUpperCase()})`);
     lines.push(`% Generated with SRA (Smart Requirements Analyzer)`);
-    lines.push(`% Date: ${new Date().toISOString().slice(0, 10)}`);
+    lines.push(`% Date: ${generatedAt.toISOString().slice(0, 10)}`);
     lines.push("% ==========================================================================");
     lines.push("\\documentclass[11pt,a4paper]{article}");
     lines.push("\\usepackage[utf8]{inputenc}");
@@ -433,7 +434,7 @@ export function exportSrsToLatex(
     lines.push("    \\begin{tabularx}{0.85\\linewidth}{rX}");
     lines.push("        \\textbf{Prepared By:} & Smart Requirements Analyzer (SRA) \\\\");
     lines.push(`        \\textbf{Standard Template:} & ${escapeLatex(spec.name)} \\\\`);
-    lines.push(`        \\textbf{Release Date:} & ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })} \\\\`);
+    lines.push(`        \\textbf{Release Date:} & ${generatedAt.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })} \\\\`);
     lines.push("        \\textbf{Classification:} & \\textsc{Confidential / Engineering Baseline} \\\\");
     lines.push("    \\end{tabularx}");
     lines.push("    \\vspace{1cm}");
@@ -458,7 +459,7 @@ export function exportSrsToLatex(
             lines.push(`${escapeLatex(rev.version)} & ${escapeLatex(rev.date)} & ${formatLatexText(rev.description)} & ${escapeLatex(rev.author)} \\\\`);
         });
     } else {
-        lines.push(`1.0.0 & ${new Date().toISOString().slice(0, 10)} & Baseline specification generated from architectural analysis & SRA Engine \\\\`);
+        lines.push(`1.0.0 & ${generatedAt.toISOString().slice(0, 10)} & Baseline specification generated from architectural analysis & SRA Engine \\\\`);
     }
     lines.push("\\bottomrule");
     lines.push("\\end{tabularx}");

@@ -200,7 +200,8 @@ class TypstRenderer implements SectionRenderer {
 export function exportSrsToTypst(
     data: AnalysisResult,
     title: string,
-    formatId?: string
+    formatId?: string,
+    generatedAt: Date = new Date()
 ): { typ: string; filename: string } {
     const resolvedId = formatId || resolveFormatId(data);
     const spec = getFormatSpec(resolvedId);
@@ -288,7 +289,7 @@ export function exportSrsToTypst(
     lines.push("  ]");
     lines.push("  #v(50pt)");
     lines.push("  #text(size: 10pt, fill: rgb(\"#64748b\"))[Prepared with *SRA (Smart Requirements Analyzer)*] \\");
-    lines.push(`  #text(size: 10pt, fill: rgb(\"#64748b\"))[${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}]`);
+    lines.push(`  #text(size: 10pt, fill: rgb(\"#64748b\"))[${generatedAt.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}]`);
     lines.push("]");
     lines.push("#pagebreak()");
     lines.push("");
