@@ -142,12 +142,20 @@ describe('SRA 29-Parameter Architecture Verification Suite', () => {
             const tagsInPayload = [...text.matchAll(/<\/?[a-z][a-z_]*>/g)].map((m) => m[0]);
             expect(tagsInPayload.length).toBeGreaterThan(0); // sanity: every fixture here must actually contain a tag
             for (const tag of tagsInPayload) {
-                const escaped = tag.replace('<', '&lt;').replace('>', '&gt;');
+                const escaped = tag.replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 expect(prompt).toContain(escaped);
             }
             // Defanged, not deleted — the surrounding prose the attacker wrote is still
-            // present so the model can flag it as suspicious stakeholder input.
-            const strippedOfTags = text.replace(/<\/?[a-z][a-z_]*>/g, '').trim();
+            // present so the model can flag it as suspicious stakeholder input. Stripped to a
+            // fixed point (not a single pass) so a nested/overlapping forgery like
+            // "<scr<script>ipt>" can't reassemble into a live tag after one removal.
+            let strippedOfTags = text;
+            let beforePass;
+            do {
+                beforePass = strippedOfTags;
+                strippedOfTags = strippedOfTags.replace(/<\/?[a-z][a-z_]*>/gi, '');
+            } while (strippedOfTags !== beforePass);
+            strippedOfTags = strippedOfTags.trim();
             const firstWords = strippedOfTags.split(/\s+/).slice(0, 3).join(' ');
             expect(prompt).toContain(firstWords);
         });
