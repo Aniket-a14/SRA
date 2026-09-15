@@ -1,30 +1,14 @@
 import type { AnalysisResult } from "@/types/analysis";
 import { getFormatSpec, resolveFormatId } from "@/lib/formats";
-import type { FormatSection } from "@/lib/formats/types";
-import type { RequirementShell } from "@/lib/formats/types";
-
-type AnyData = Record<string, unknown>;
-
-const asArray = (v: unknown): AnyData[] => (Array.isArray(v) ? v as AnyData[] : []);
-const isShell = (r: unknown): r is RequirementShell =>
-    !!r && typeof r === "object" && "description" in (r as object);
-
-const toStr = (v: unknown): string => {
-    if (typeof v === "string") return v;
-    if (Array.isArray(v)) return v.map(toStr).join("\n");
-    if (v && typeof v === "object" && "content" in (v as Record<string, unknown>)) {
-        return String((v as Record<string, unknown>).content || "");
-    }
-    return "";
-};
-
-const getDiagramCode = (d: unknown): string => {
-    if (typeof d === "string") return d;
-    if (d && typeof d === "object" && "code" in (d as Record<string, unknown>)) {
-        return String((d as Record<string, unknown>).code || "");
-    }
-    return "";
-};
+import type { FormatSection, FormatField } from "@/lib/formats/types";
+import {
+    walkSection,
+    toStr,
+    getDiagramCode,
+    type AnyData,
+    type NormalizedRequirement,
+    type SectionRenderer,
+} from "./section-walker";
 
 const LATEX_SPECIAL_MAP: Record<string, string> = {
     "\\": "\\textbackslash{}",
@@ -61,308 +45,222 @@ export function formatLatexText(text: string): string {
         .join("");
 }
 
-/**
- * Builds LaTeX section blocks dynamically for ANY SRS standard (IEEE 830, ISO 29148, Volere, Agile PRD).
- */
-function renderSectionToLatex(section: FormatSection, data: AnyData, acronym: string): string[] {
-    const lines: string[] = [];
-    const value = data[section.id];
-    const sectionNum = section.number;
-    const isAppendix = Boolean(section.appendix);
-    const headingCmd = isAppendix ? `\\section{Appendix ${sectionNum}: ${escapeLatex(section.title)}}` : `\\section{${escapeLatex(section.title)}}`;
+const EMPTY_NOTE = "\\textit{None specified.}\\par\\vspace{6pt}";
 
-    lines.push(headingCmd);
+class LatexRenderer implements SectionRenderer {
+    constructor(private readonly acronym: string) {}
 
-    switch (section.kind) {
-        case "prose":
-            if (value) {
-                lines.push(formatLatexText(toStr(value)));
-                lines.push("");
-            } else {
-                lines.push("\\textit{None specified.}\\par\\vspace{6pt}");
-            }
-            break;
-
-        case "list": {
-            const list = Array.isArray(value) ? value : [];
-            if (list.length > 0) {
-                lines.push("\\begin{enumerate}[leftmargin=*]");
-                list.forEach((item) => {
-                    lines.push(`    \\item ${formatLatexText(typeof item === "string" ? item : JSON.stringify(item))}`);
-                });
-                lines.push("\\end{enumerate}");
-                lines.push("");
-            } else {
-                lines.push("\\textit{None specified.}\\par\\vspace{6pt}");
-            }
-            break;
-        }
-
-        case "group": {
-            const obj = (value || {}) as AnyData;
-            (section.fields || []).forEach((field) => {
-                lines.push(`\\subsection{${escapeLatex(field.label)}}`);
-                const fVal = obj[field.id];
-                if (field.kind === "prose") {
-                    lines.push(formatLatexText(toStr(fVal)) || "\\textit{None specified.}\\par\\vspace{6pt}");
-                    lines.push("");
-                } else if (field.kind === "list") {
-                    const fList = Array.isArray(fVal) ? fVal : [];
-                    if (fList.length > 0) {
-                        lines.push("\\begin{itemize}[leftmargin=*]");
-                        fList.forEach((it) => lines.push(`    \\item ${formatLatexText(String(it))}`));
-                        lines.push("\\end{itemize}");
-                        lines.push("");
-                    } else {
-                        lines.push("\\textit{None specified.}\\par\\vspace{6pt}");
-                    }
-                } else if (field.kind === "user-classes") {
-                    const ucs = asArray(fVal);
-                    if (ucs.length > 0) {
-                        lines.push("\\begin{table}[h!]");
-                        lines.push("\\centering");
-                        lines.push("\\begin{tabularx}{\\linewidth}{l X}");
-                        lines.push("\\toprule");
-                        lines.push("\\textbf{Class / Role} & \\textbf{Characteristics \\& Responsibilities} \\\\");
-                        lines.push("\\midrule");
-                        ucs.forEach((u) => {
-                            lines.push(`\\textbf{${escapeLatex(String(u.userClass || u.name || "User"))}} & ${formatLatexText(String(u.characteristics || u.description || ""))} \\\\`);
-                        });
-                        lines.push("\\bottomrule");
-                        lines.push("\\end{tabularx}");
-                        lines.push("\\end{table}");
-                        lines.push("");
-                    } else {
-                        lines.push("\\textit{None specified.}\\par\\vspace{6pt}");
-                    }
-                } else if (field.kind === "shell-list") {
-                    const shells = Array.isArray(fVal) ? fVal : [];
-                    shells.forEach((req, rIdx) => {
-                        if (typeof req === "string") {
-                            const reqId = `${acronym}-${field.id.slice(0, 3).toUpperCase()}-${rIdx + 1}`;
-                            lines.push(`\\begin{requirementbox}{${escapeLatex(reqId)}}{${escapeLatex(field.label)}}{VERIFIED}`);
-                            lines.push(formatLatexText(req));
-                            lines.push("\\end{requirementbox}");
-                            lines.push("");
-                        } else if (isShell(req)) {
-                            const shell = req as RequirementShell;
-                            const reqId = shell.id || `${acronym}-${field.id.slice(0, 3).toUpperCase()}-${rIdx + 1}`;
-                            lines.push(`\\begin{requirementbox}{${escapeLatex(reqId)}}{${escapeLatex(field.label)}}{VERIFIED}`);
-                            lines.push(formatLatexText(shell.description));
-                            if (shell.rationale || shell.fitCriterion || shell.verificationMethod || shell.source) {
-                                lines.push("\\begin{itemize}[leftmargin=*,itemsep=2pt,topsep=4pt]");
-                                if (shell.rationale) lines.push(`    \\item \\textbf{Rationale:} ${formatLatexText(shell.rationale)}`);
-                                if (shell.fitCriterion) lines.push(`    \\item \\textbf{Fit Criterion:} ${formatLatexText(shell.fitCriterion)}`);
-                                if (shell.verificationMethod) lines.push(`    \\item \\textbf{Verification:} ${formatLatexText(shell.verificationMethod)}`);
-                                if (shell.source) lines.push(`    \\item \\textbf{Source:} ${formatLatexText(shell.source)}`);
-                                lines.push("\\end{itemize}");
-                            }
-                            lines.push("\\end{requirementbox}");
-                            lines.push("");
-                        }
-                    });
-                }
-            });
-            break;
-        }
-
-        case "feature-list": {
-            const feats = asArray(value);
-            if (feats.length > 0) {
-                feats.forEach((feat, idx) => {
-                    lines.push(`\\subsection{${escapeLatex(String(feat.name || `Feature ${idx + 1}`))}}`);
-                    if (feat.description) {
-                        lines.push(formatLatexText(String(feat.description)));
-                        lines.push("");
-                    }
-
-                    if (Array.isArray(feat.stimulusResponseSequences) && feat.stimulusResponseSequences.length > 0) {
-                        lines.push("\\subsubsection*{Stimulus-Response Sequences}");
-                        lines.push("\\begin{enumerate}[leftmargin=*]");
-                        (feat.stimulusResponseSequences as string[]).forEach((srs) => {
-                            lines.push(`    \\item ${formatLatexText(srs)}`);
-                        });
-                        lines.push("\\end{enumerate}");
-                        lines.push("");
-                    }
-
-                    const reqs = Array.isArray(feat.functionalRequirements) ? feat.functionalRequirements : [];
-                    if (reqs.length > 0) {
-                        lines.push("\\subsubsection*{Requirements Specifications}");
-                        reqs.forEach((req, reqIdx) => {
-                            if (typeof req === "string") {
-                                const reqId = `${acronym}-FR-${idx + 1}.${reqIdx + 1}`;
-                                lines.push(`\\begin{requirementbox}{${escapeLatex(reqId)}}{Functional Requirement}{VERIFIED}`);
-                                lines.push(formatLatexText(req));
-                                lines.push("\\end{requirementbox}");
-                                lines.push("");
-                            } else if (isShell(req)) {
-                                const shell = req as RequirementShell;
-                                const reqId = shell.id || `${acronym}-FR-${idx + 1}.${reqIdx + 1}`;
-                                lines.push(`\\begin{requirementbox}{${escapeLatex(reqId)}}{${escapeLatex(String(feat.name || ""))}}{VERIFIED}`);
-                                lines.push(formatLatexText(shell.description));
-                                if (shell.rationale || shell.fitCriterion || shell.verificationMethod || shell.source) {
-                                    lines.push("\\begin{itemize}[leftmargin=*,itemsep=2pt,topsep=4pt]");
-                                    if (shell.rationale) lines.push(`    \\item \\textbf{Rationale:} ${formatLatexText(shell.rationale)}`);
-                                    if (shell.fitCriterion) lines.push(`    \\item \\textbf{Fit Criterion:} ${formatLatexText(shell.fitCriterion)}`);
-                                    if (shell.verificationMethod) lines.push(`    \\item \\textbf{Verification:} ${formatLatexText(shell.verificationMethod)}`);
-                                    if (shell.source) lines.push(`    \\item \\textbf{Source:} ${formatLatexText(shell.source)}`);
-                                    lines.push("\\end{itemize}");
-                                }
-                                lines.push("\\end{requirementbox}");
-                                lines.push("");
-                            }
-                        });
-                    }
-                });
-            } else {
-                lines.push("\\textit{No features specified.}\\par\\vspace{6pt}");
-            }
-            break;
-        }
-
-        case "user-classes": {
-            const ucs = asArray(value);
-            if (ucs.length > 0) {
-                lines.push("\\begin{table}[h!]");
-                lines.push("\\centering");
-                lines.push("\\begin{tabularx}{\\linewidth}{l X}");
-                lines.push("\\toprule");
-                lines.push("\\textbf{User Class} & \\textbf{Characteristics \\& Responsibilities} \\\\");
-                lines.push("\\midrule");
-                ucs.forEach((uc) => {
-                    lines.push(`\\textbf{${escapeLatex(String(uc.userClass || uc.name || "User"))}} & ${formatLatexText(String(uc.characteristics || uc.description || ""))} \\\\`);
-                });
-                lines.push("\\bottomrule");
-                lines.push("\\end{tabularx}");
-                lines.push("\\end{table}");
-                lines.push("");
-            }
-            break;
-        }
-
-        case "stakeholders": {
-            const list = asArray(value);
-            if (list.length > 0) {
-                lines.push("\\begin{table}[h!]");
-                lines.push("\\centering");
-                lines.push("\\begin{tabularx}{\\linewidth}{l X}");
-                lines.push("\\toprule");
-                lines.push("\\textbf{Stakeholder Role} & \\textbf{Core Interest \\& Success Measure} \\\\");
-                lines.push("\\midrule");
-                list.forEach((s) => {
-                    lines.push(`\\textbf{${escapeLatex(String(s.role || ""))}} & ${formatLatexText(String(s.interest || ""))} \\\\`);
-                });
-                lines.push("\\bottomrule");
-                lines.push("\\end{tabularx}");
-                lines.push("\\end{table}");
-                lines.push("");
-            }
-            break;
-        }
-
-        case "personas": {
-            const list = asArray(value);
-            list.forEach((p) => {
-                lines.push(`\\begin{infobox}{Persona: ${escapeLatex(String(p.name || ""))}}`);
-                if (p.description) lines.push(`\\textbf{Profile:} ${formatLatexText(String(p.description))}\\\\`);
-                if (Array.isArray(p.goals) && p.goals.length > 0) {
-                    lines.push("\\vspace{3pt}\\textbf{Primary Goals:}");
-                    lines.push("\\begin{itemize}[leftmargin=*,itemsep=1pt,topsep=2pt]");
-                    p.goals.forEach((g) => lines.push(`    \\item ${formatLatexText(String(g))}`));
-                    lines.push("\\end{itemize}");
-                }
-                lines.push("\\end{infobox}");
-                lines.push("");
-            });
-            break;
-        }
-
-        case "user-stories": {
-            const list = asArray(value);
-            list.forEach((s, i) => {
-                lines.push(`\\begin{requirementbox}{US-${i + 1}}{User Story: ${escapeLatex(String(s.role || "User"))}}{APPROVED}`);
-                lines.push(`\\textbf{As a} ${escapeLatex(String(s.role || ""))}, \\textbf{I want} ${formatLatexText(String(s.action || s.feature || ""))}, \\textbf{so that} ${formatLatexText(String(s.benefit || ""))}.`);
-                if (Array.isArray(s.acceptanceCriteria) && s.acceptanceCriteria.length > 0) {
-                    lines.push("\\vspace{4pt}\\\\");
-                    lines.push("\\textbf{Acceptance Criteria:}");
-                    lines.push("\\begin{itemize}[leftmargin=*,itemsep=1pt,topsep=2pt]");
-                    s.acceptanceCriteria.forEach((ac) => lines.push(`    \\item ${formatLatexText(String(ac))}`));
-                    lines.push("\\end{itemize}");
-                }
-                lines.push("\\end{requirementbox}");
-                lines.push("");
-            });
-            break;
-        }
-
-        case "issues": {
-            const list = asArray(value);
-            if (list.length > 0) {
-                list.forEach((it) => {
-                    lines.push(`\\begin{warningbox}{Issue: ${escapeLatex(String(it.issue || ""))}}`);
-                    if (it.impact) lines.push(`\\textbf{Impact:} ${formatLatexText(String(it.impact))}\\\\`);
-                    if (it.mitigation) lines.push(`\\textbf{Mitigation:} ${formatLatexText(String(it.mitigation))}\\\\`);
-                    lines.push("\\end{warningbox}");
-                    lines.push("");
-                });
-            }
-            break;
-        }
-
-        case "glossary": {
-            const list = asArray(value);
-            if (list.length > 0) {
-                lines.push("\\begin{table}[h!]");
-                lines.push("\\centering");
-                lines.push("\\begin{tabularx}{\\linewidth}{l X}");
-                lines.push("\\toprule");
-                lines.push("\\textbf{Term / Acronym} & \\textbf{Formal Definition} \\\\");
-                lines.push("\\midrule");
-                list.forEach((item) => {
-                    lines.push(`\\textbf{${escapeLatex(String(item.term || item.name || ""))}} & ${formatLatexText(String(item.definition || item.description || ""))} \\\\`);
-                });
-                lines.push("\\bottomrule");
-                lines.push("\\end{tabularx}");
-                lines.push("\\end{table}");
-                lines.push("");
-            }
-            break;
-        }
-
-        case "diagrams": {
-            const models = ((data.appendices as AnyData)?.analysisModels || value) as Record<string, unknown> | undefined;
-            if (models) {
-                const flowchart = getDiagramCode(models.flowchartDiagram);
-                if (flowchart) {
-                    lines.push("\\subsection{System Architecture Flowchart}");
-                    lines.push("\\begin{lstlisting}[language={},caption={Flowchart Model (Mermaid Source)}]");
-                    lines.push(flowchart.trim());
-                    lines.push("\\end{lstlisting}");
-                    lines.push("");
-                }
-                const sequence = getDiagramCode(models.sequenceDiagram);
-                if (sequence) {
-                    lines.push("\\subsection{Transaction Sequence Diagram}");
-                    lines.push("\\begin{lstlisting}[language={},caption={Sequence Model (Mermaid Source)}]");
-                    lines.push(sequence.trim());
-                    lines.push("\\end{lstlisting}");
-                    lines.push("");
-                }
-                const erd = getDiagramCode(models.entityRelationshipDiagram);
-                if (erd) {
-                    lines.push("\\subsection{Entity Relationship Diagram}");
-                    lines.push("\\begin{lstlisting}[language={},caption={Entity Relationship Model (Mermaid Source)}]");
-                    lines.push(erd.trim());
-                    lines.push("\\end{lstlisting}");
-                    lines.push("");
-                }
-            }
-            break;
-        }
+    sectionHeading(section: FormatSection): string[] {
+        const heading = section.appendix
+            ? `\\section{Appendix ${section.number}: ${escapeLatex(section.title)}}`
+            : `\\section{${escapeLatex(section.title)}}`;
+        return [heading];
     }
 
-    return lines;
+    fieldHeading(_section: FormatSection, field: FormatField): string[] {
+        return [`\\subsection{${escapeLatex(field.label)}}`];
+    }
+
+    emptyNote(): string[] {
+        return [EMPTY_NOTE];
+    }
+
+    prose(text: string): string[] {
+        return [formatLatexText(text), ""];
+    }
+
+    fieldProse(text: string): string[] {
+        return text ? this.prose(text) : [EMPTY_NOTE, ""];
+    }
+
+    list(items: string[]): string[] {
+        return ["\\begin{enumerate}[leftmargin=*]", ...items.map((item) => `    \\item ${formatLatexText(item)}`), "\\end{enumerate}", ""];
+    }
+
+    fieldList(items: string[]): string[] {
+        return ["\\begin{itemize}[leftmargin=*]", ...items.map((item) => `    \\item ${formatLatexText(item)}`), "\\end{itemize}", ""];
+    }
+
+    userClassesField(items: AnyData[]): string[] {
+        if (items.length === 0) return this.emptyNote();
+        return this.userClassesTable("Class / Role", items);
+    }
+
+    userClassesSection(items: AnyData[]): string[] {
+        if (items.length === 0) return [];
+        return this.userClassesTable("User Class", items);
+    }
+
+    private userClassesTable(headerLabel: string, items: AnyData[]): string[] {
+        return [
+            "\\begin{table}[h!]",
+            "\\centering",
+            "\\begin{tabularx}{\\linewidth}{l X}",
+            "\\toprule",
+            `\\textbf{${headerLabel}} & \\textbf{Characteristics \\& Responsibilities} \\\\`,
+            "\\midrule",
+            ...items.map((u) => `\\textbf{${escapeLatex(String(u.userClass || u.name || "User"))}} & ${formatLatexText(String(u.characteristics || u.description || ""))} \\\\`),
+            "\\bottomrule",
+            "\\end{tabularx}",
+            "\\end{table}",
+            "",
+        ];
+    }
+
+    private fallbackId(req: NormalizedRequirement): string {
+        return `${this.acronym}-${req.bareFallbackId}`;
+    }
+
+    requirementItem(req: NormalizedRequirement, label: string, context: "group" | "feature"): string[] {
+        const lines: string[] = [];
+        const id = req.explicitId || this.fallbackId(req);
+        // Plain-string feature requirements get a fixed title; every other case (shells, and
+        // group shell-list items of either shape) uses the passed label. Matches the
+        // pre-refactor split between the "Functional Requirement" literal and feat.name.
+        const title = context === "feature" && !req.shell ? "Functional Requirement" : label;
+
+        lines.push(`\\begin{requirementbox}{${escapeLatex(id)}}{${escapeLatex(title)}}{VERIFIED}`);
+        lines.push(formatLatexText(req.shell ? req.shell.description : req.plainText));
+        if (req.shell) {
+            const shell = req.shell;
+            if (shell.rationale || shell.fitCriterion || shell.verificationMethod || shell.source) {
+                lines.push("\\begin{itemize}[leftmargin=*,itemsep=2pt,topsep=4pt]");
+                if (shell.rationale) lines.push(`    \\item \\textbf{Rationale:} ${formatLatexText(shell.rationale)}`);
+                if (shell.fitCriterion) lines.push(`    \\item \\textbf{Fit Criterion:} ${formatLatexText(shell.fitCriterion)}`);
+                if (shell.verificationMethod) lines.push(`    \\item \\textbf{Verification:} ${formatLatexText(shell.verificationMethod)}`);
+                if (shell.source) lines.push(`    \\item \\textbf{Source:} ${formatLatexText(shell.source)}`);
+                lines.push("\\end{itemize}");
+            }
+        }
+        lines.push("\\end{requirementbox}");
+        lines.push("");
+        return lines;
+    }
+
+    afterRequirementList(): string[] {
+        return [];
+    }
+
+    featureHeading(_section: FormatSection, featureIndex: number, name: string): string[] {
+        return [`\\subsection{${escapeLatex(name || `Feature ${featureIndex + 1}`)}}`];
+    }
+
+    srsHeading(): string[] {
+        return ["\\subsubsection*{Stimulus-Response Sequences}"];
+    }
+
+    srsList(items: unknown[]): string[] {
+        // formatLatexText takes the RAW item, matching the pre-refactor call exactly — its
+        // internal toStr() silently returns "" for a non-string/array/`{content}` item,
+        // which is the original (if surprising) behavior for a malformed item here.
+        return [
+            "\\begin{enumerate}[leftmargin=*]",
+            ...items.map((item) => `    \\item ${formatLatexText(item as string)}`),
+            "\\end{enumerate}",
+            "",
+        ];
+    }
+
+    featureReqsHeading(): string[] {
+        return ["\\subsubsection*{Requirements Specifications}"];
+    }
+
+    noFeaturesNote(): string[] {
+        return ["\\textit{No features specified.}\\par\\vspace{6pt}"];
+    }
+
+    stakeholdersTable(items: AnyData[]): string[] {
+        if (items.length === 0) return [];
+        return [
+            "\\begin{table}[h!]",
+            "\\centering",
+            "\\begin{tabularx}{\\linewidth}{l X}",
+            "\\toprule",
+            "\\textbf{Stakeholder Role} & \\textbf{Core Interest \\& Success Measure} \\\\",
+            "\\midrule",
+            ...items.map((s) => `\\textbf{${escapeLatex(String(s.role || ""))}} & ${formatLatexText(String(s.interest || ""))} \\\\`),
+            "\\bottomrule",
+            "\\end{tabularx}",
+            "\\end{table}",
+            "",
+        ];
+    }
+
+    personaBlock(persona: AnyData): string[] {
+        const lines: string[] = [`\\begin{infobox}{Persona: ${escapeLatex(String(persona.name || ""))}}`];
+        if (persona.description) lines.push(`\\textbf{Profile:} ${formatLatexText(String(persona.description))}\\\\`);
+        if (Array.isArray(persona.goals) && persona.goals.length > 0) {
+            lines.push("\\vspace{3pt}\\textbf{Primary Goals:}");
+            lines.push("\\begin{itemize}[leftmargin=*,itemsep=1pt,topsep=2pt]");
+            persona.goals.forEach((g) => lines.push(`    \\item ${formatLatexText(String(g))}`));
+            lines.push("\\end{itemize}");
+        }
+        lines.push("\\end{infobox}", "");
+        return lines;
+    }
+
+    userStoryBlock(story: AnyData, index: number): string[] {
+        const lines: string[] = [
+            `\\begin{requirementbox}{US-${index + 1}}{User Story: ${escapeLatex(String(story.role || "User"))}}{APPROVED}`,
+            `\\textbf{As a} ${escapeLatex(String(story.role || ""))}, \\textbf{I want} ${formatLatexText(String(story.action || story.feature || ""))}, \\textbf{so that} ${formatLatexText(String(story.benefit || ""))}.`,
+        ];
+        if (Array.isArray(story.acceptanceCriteria) && story.acceptanceCriteria.length > 0) {
+            lines.push("\\vspace{4pt}\\\\");
+            lines.push("\\textbf{Acceptance Criteria:}");
+            lines.push("\\begin{itemize}[leftmargin=*,itemsep=1pt,topsep=2pt]");
+            story.acceptanceCriteria.forEach((ac) => lines.push(`    \\item ${formatLatexText(String(ac))}`));
+            lines.push("\\end{itemize}");
+        }
+        lines.push("\\end{requirementbox}", "");
+        return lines;
+    }
+
+    issuesList(items: AnyData[]): string[] {
+        const lines: string[] = [];
+        items.forEach((it) => {
+            lines.push(`\\begin{warningbox}{Issue: ${escapeLatex(String(it.issue || ""))}}`);
+            if (it.impact) lines.push(`\\textbf{Impact:} ${formatLatexText(String(it.impact))}\\\\`);
+            if (it.mitigation) lines.push(`\\textbf{Mitigation:} ${formatLatexText(String(it.mitigation))}\\\\`);
+            lines.push("\\end{warningbox}", "");
+        });
+        return lines;
+    }
+
+    glossaryTable(items: AnyData[]): string[] {
+        if (items.length === 0) return [];
+        return [
+            "\\begin{table}[h!]",
+            "\\centering",
+            "\\begin{tabularx}{\\linewidth}{l X}",
+            "\\toprule",
+            "\\textbf{Term / Acronym} & \\textbf{Formal Definition} \\\\",
+            "\\midrule",
+            ...items.map((item) => `\\textbf{${escapeLatex(String(item.term || item.name || ""))}} & ${formatLatexText(String(item.definition || item.description || ""))} \\\\`),
+            "\\bottomrule",
+            "\\end{tabularx}",
+            "\\end{table}",
+            "",
+        ];
+    }
+
+    diagramsBlock(models: AnyData | undefined): string[] {
+        if (!models) return [];
+        const lines: string[] = [];
+        const push = (title: string, caption: string, code: string) => {
+            if (!code) return;
+            lines.push(
+                `\\subsection{${title}}`,
+                `\\begin{lstlisting}[language={},caption={${caption}}]`,
+                code.trim(),
+                "\\end{lstlisting}",
+                ""
+            );
+        };
+        push("System Architecture Flowchart", "Flowchart Model (Mermaid Source)", getDiagramCode(models.flowchartDiagram));
+        push("Transaction Sequence Diagram", "Sequence Model (Mermaid Source)", getDiagramCode(models.sequenceDiagram));
+        push("Entity Relationship Diagram", "Entity Relationship Model (Mermaid Source)", getDiagramCode(models.entityRelationshipDiagram));
+        return lines;
+    }
 }
 
 /**
@@ -371,13 +269,15 @@ function renderSectionToLatex(section: FormatSection, data: AnyData, acronym: st
 export function exportSrsToLatex(
     data: AnalysisResult,
     title: string,
-    formatId?: string
+    formatId?: string,
+    generatedAt: Date = new Date()
 ): { tex: string; filename: string } {
     const resolvedId = formatId || resolveFormatId(data);
     const spec = getFormatSpec(resolvedId);
     const safeTitle = (title || data.projectTitle || "SRS").trim();
     const acronym = safeTitle.split(/\s+/).map(w => w[0]).join("").toUpperCase() || "SRA";
     const anyData = data as unknown as AnyData;
+    const renderer = new LatexRenderer(acronym);
 
     const lines: string[] = [];
 
@@ -386,7 +286,7 @@ export function exportSrsToLatex(
     lines.push(`% System Requirements Specification: ${safeTitle}`);
     lines.push(`% Specification Standard: ${spec.name} (${spec.id.toUpperCase()})`);
     lines.push(`% Generated with SRA (Smart Requirements Analyzer)`);
-    lines.push(`% Date: ${new Date().toISOString().slice(0, 10)}`);
+    lines.push(`% Date: ${generatedAt.toISOString().slice(0, 10)}`);
     lines.push("% ==========================================================================");
     lines.push("\\documentclass[11pt,a4paper]{article}");
     lines.push("\\usepackage[utf8]{inputenc}");
@@ -534,7 +434,7 @@ export function exportSrsToLatex(
     lines.push("    \\begin{tabularx}{0.85\\linewidth}{rX}");
     lines.push("        \\textbf{Prepared By:} & Smart Requirements Analyzer (SRA) \\\\");
     lines.push(`        \\textbf{Standard Template:} & ${escapeLatex(spec.name)} \\\\`);
-    lines.push(`        \\textbf{Release Date:} & ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })} \\\\`);
+    lines.push(`        \\textbf{Release Date:} & ${generatedAt.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })} \\\\`);
     lines.push("        \\textbf{Classification:} & \\textsc{Confidential / Engineering Baseline} \\\\");
     lines.push("    \\end{tabularx}");
     lines.push("    \\vspace{1cm}");
@@ -559,7 +459,7 @@ export function exportSrsToLatex(
             lines.push(`${escapeLatex(rev.version)} & ${escapeLatex(rev.date)} & ${formatLatexText(rev.description)} & ${escapeLatex(rev.author)} \\\\`);
         });
     } else {
-        lines.push(`1.0.0 & ${new Date().toISOString().slice(0, 10)} & Baseline specification generated from architectural analysis & SRA Engine \\\\`);
+        lines.push(`1.0.0 & ${generatedAt.toISOString().slice(0, 10)} & Baseline specification generated from architectural analysis & SRA Engine \\\\`);
     }
     lines.push("\\bottomrule");
     lines.push("\\end{tabularx}");
@@ -569,7 +469,7 @@ export function exportSrsToLatex(
 
     // Dynamic Sections based on the chosen FormatSpec
     spec.sections.forEach((section) => {
-        lines.push(...renderSectionToLatex(section, anyData, acronym));
+        lines.push(...walkSection(section, anyData, renderer));
     });
 
     // Quality Audit & Compliance section (appended if present)
