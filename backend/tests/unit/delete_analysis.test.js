@@ -41,11 +41,16 @@ describe('deleteAnalysis', () => {
         await expect(deleteAnalysis('user-1', 'missing-id')).rejects.toThrow('Analysis not found');
     });
 
-    it('throws 403 when the analysis belongs to a different user', async () => {
+    it('throws 404 (not 403) when the analysis belongs to a different user', async () => {
+        // Was 403 ("Unauthorized access to this analysis"), which distinguished "not yours"
+        // from "doesn't exist" — an existence leak inconsistent with every other ownership
+        // check in this codebase (see tests/unit/ownership_boundaries.test.js). Fixed to 404
+        // by having getAnalysisById return null on owner mismatch, same as not-found.
         mockFindUnique.mockResolvedValue({ id: 'a1', userId: 'someone-else' });
 
         const error = await deleteAnalysis('user-1', 'a1').catch(e => e);
-        expect(error.statusCode).toBe(403);
+        expect(error.statusCode).toBe(404);
+        expect(error.message).toBe('Analysis not found');
     });
 
     it('deletes a childless leaf version outright', async () => {

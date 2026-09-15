@@ -1,5 +1,6 @@
 import prisma from '../config/prisma.js';
 import { successResponse } from '../utils/response.js';
+import { assertOwned } from '../utils/ownership.js';
 import logger from '../config/logger.js';
 
 export const createProject = async (req, res, next) => {
@@ -68,11 +69,7 @@ export const getProject = async (req, res, next) => {
             }
         });
 
-        if (!project || project.userId !== req.user.userId) {
-            const error = new Error('Project not found or unauthorized');
-            error.statusCode = 404;
-            throw error;
-        }
+        assertOwned(project, req.user.userId, 'Project');
 
         return successResponse(res, project);
     } catch (error) {
@@ -86,11 +83,7 @@ export const updateProject = async (req, res, next) => {
         const { name, description } = req.body;
 
         const existing = await prisma.project.findUnique({ where: { id } });
-        if (!existing || existing.userId !== req.user.userId) {
-            const error = new Error('Project not found or unauthorized');
-            error.statusCode = 404;
-            throw error;
-        }
+        assertOwned(existing, req.user.userId, 'Project');
 
         const updated = await prisma.project.update({
             where: { id },
@@ -112,11 +105,7 @@ export const deleteProject = async (req, res, next) => {
         const { id } = req.params;
 
         const existing = await prisma.project.findUnique({ where: { id } });
-        if (!existing || existing.userId !== req.user.userId) {
-            const error = new Error('Project not found or unauthorized');
-            error.statusCode = 404;
-            throw error;
-        }
+        assertOwned(existing, req.user.userId, 'Project');
 
         await prisma.project.delete({ where: { id } });
         return successResponse(res, null, 'Project deleted successfully');
