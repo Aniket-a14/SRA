@@ -49,10 +49,16 @@ jobs:
       run: pnpm --filter backend run lint
       working-directory: ./backend
 
+    - name: Test audit-severity script
+      # Gate test for the script the next step depends on: it used to be inlined here as a
+      # shell heredoc, untested, and it silently missed "critical" advisories for a while
+      # because of that. See .github/scripts/check-audit-severity.test.mjs.
+      run: node --test .github/scripts/check-audit-severity.test.mjs
+
     - name: Security Scan
       # --prod scopes this to runtime dependencies (dev-only tooling like jest/eslint/prisma-cli
-      # isn't shipped, so its advisories don't need to block a merge). This step fails the
-      # build on any high-severity production CVE, with no allowlist.
+      # isn't shipped, so its advisories don't need to block a merge). Fails the build on any
+      # high-or-critical-severity production CVE, with no allowlist.
       #
       # The brace-expansion advisories that used to need one reached this scan because
       # nodemon — a dev-only file watcher — sat in `dependencies`, pulling minimatch into the
@@ -66,20 +72,7 @@ jobs:
         set +e
         AUDIT_JSON=$(pnpm audit --prod --audit-level=high --json)
         set -e
-        echo "$AUDIT_JSON" | node -e '
-          let data = "";
-          process.stdin.on("data", d => data += d);
-          process.stdin.on("end", () => {
-            const j = JSON.parse(data || "{}");
-            const remaining = Object.values(j.advisories || {}).filter(a => a.severity === "high");
-            if (remaining.length > 0) {
-              console.error("High-severity vulnerabilities found in production dependencies:");
-              remaining.forEach(a => console.error(`- ${a.title} (${a.module_name})`));
-              process.exit(1);
-            }
-            console.log("No high-severity vulnerabilities in production dependencies.");
-          });
-        '
+        echo "$AUDIT_JSON" | node ../.github/scripts/check-audit-severity.mjs
       working-directory: ./backend
 
     - name: Run Tests with Coverage
