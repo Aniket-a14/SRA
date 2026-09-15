@@ -10,10 +10,16 @@ export const successResponse = (res, data = {}, message = 'Success', status = 20
     });
 };
 
-export const errorResponse = (res, message = 'Error', status = 500, errorCode = 'INTERNAL_ERROR') => {
+/**
+ * `data` is optional (omitted entirely rather than sent as `undefined`) since most callers
+ * have no extra diagnostic payload beyond the message/errorCode — see healthRoutes.js for
+ * the one caller that does (readiness/liveness probes returning per-service status).
+ */
+export const errorResponse = (res, message = 'Error', status = 500, errorCode = 'INTERNAL_ERROR', data = undefined) => {
     return res.status(status).json({
         success: false,
         message,
-        errorCode
+        errorCode,
+        ...(data !== undefined ? { data } : {})
     });
 };

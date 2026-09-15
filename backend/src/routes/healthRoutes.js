@@ -15,7 +15,7 @@ export const markShuttingDown = () => {
  */
 router.get('/live', (req, res) => {
     if (isShuttingDown) {
-        return errorResponse(res, 'SHUTTING_DOWN', 503, { uptime: process.uptime() });
+        return errorResponse(res, 'Process is shutting down', 503, 'SHUTTING_DOWN', { uptime: process.uptime() });
     }
     return successResponse(res, {
         status: 'UP',
@@ -29,7 +29,7 @@ router.get('/live', (req, res) => {
  */
 router.get('/ready', async (req, res) => {
     if (isShuttingDown) {
-        return errorResponse(res, 'SHUTTING_DOWN', 503, { ready: false });
+        return errorResponse(res, 'Process is shutting down', 503, 'SHUTTING_DOWN', { ready: false });
     }
 
     const services = {
@@ -76,7 +76,7 @@ router.get('/ready', async (req, res) => {
     };
 
     if (!isHealthy) {
-        return errorResponse(res, 'Service dependencies unavailable', 503, payload);
+        return errorResponse(res, 'Service dependencies unavailable', 503, 'SERVICE_UNAVAILABLE', payload);
     }
 
     return successResponse(res, payload, 'System ready');
@@ -87,7 +87,7 @@ router.get('/ready', async (req, res) => {
  */
 router.get('/', async (req, res) => {
     if (isShuttingDown) {
-        return errorResponse(res, 'SHUTTING_DOWN', 503, { ready: false });
+        return errorResponse(res, 'Process is shutting down', 503, 'SHUTTING_DOWN', { ready: false });
     }
 
     const health = {
@@ -118,7 +118,7 @@ router.get('/', async (req, res) => {
     health.status = isHealthy ? 'UP' : 'DOWN';
 
     if (!isHealthy) {
-        return errorResponse(res, 'Database unavailable', 503, health);
+        return errorResponse(res, 'Database unavailable', 503, 'SERVICE_UNAVAILABLE', health);
     }
 
     return successResponse(res, health, 'System operational');
