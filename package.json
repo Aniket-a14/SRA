@@ -23,6 +23,6 @@
     "license": "ISC",
     "dependencies": {
         "pdf-parse": "^2.4.5",
-        "pdfjs-dist": "^6.2.108"
+        "pdfjs-dist": "^6.4.299"
     }
 }

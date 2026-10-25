@@ -17,10 +17,10 @@ allowBuilds:
 # These live here, not in package.json: pnpm 10+ reads them from this file, and pnpm 11+
 # ignores the package.json `pnpm` field entirely (it would silently drop every patch).
 overrides:
-  prisma: 7.9.0
-  '@prisma/client': 7.9.0
-  '@prisma/adapter-pg': 7.9.0
-  '@prisma/client-runtime-utils': 7.9.0
+  prisma: 7.10.1
+  '@prisma/client': 7.10.1
+  '@prisma/adapter-pg': 7.10.1
+  '@prisma/client-runtime-utils': 7.10.1
   hono: '^4.12.25'
   fast-uri: '^3.1.7'
   nanoid: '^3.3.17'
