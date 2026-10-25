@@ -77,7 +77,7 @@ export async function init(options = {}) {
         const projects = await fetchProjects();
         if (projects.length > 1) {
             const { chosen } = await inquirer.prompt([{
-                type: 'list',
+                type: 'select',
                 name: 'chosen',
                 message: 'Filter by project:',
                 choices: [
@@ -103,7 +103,7 @@ export async function init(options = {}) {
     }
 
     const { analysisId } = await inquirer.prompt([{
-        type: 'list',
+        type: 'select',
         name: 'analysisId',
         message: 'Link this folder to which analysis?',
         pageSize: 15,

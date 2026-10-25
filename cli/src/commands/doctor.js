@@ -6,10 +6,9 @@ import { configManager } from '../config/config-manager.js';
 import { api, describeError, DEFAULT_BACKEND_URL } from '../api/api-client.js';
 import { specExists, readSpec } from '../lib/spec.js';
 import { fetchFormats } from '../lib/formats.js';
-import { CLI_VERSION } from '../lib/version.js';
+import { CLI_VERSION, MIN_NODE_VERSION, satisfiesMinimum } from '../lib/version.js';
 
 const execFileAsync = promisify(execFile);
-const MIN_NODE_MAJOR = 18;
 
 /**
  * Diagnose the local setup and its connection to the platform.
@@ -33,11 +32,11 @@ export async function doctor(options = {}) {
     logger.raw('');
 
     // --- Environment -----------------------------------------------------------------
-    const nodeMajor = Number(process.version.replace('v', '').split('.')[0]);
+    const nodeOk = satisfiesMinimum(process.version);
     record(
         'Node.js',
-        nodeMajor >= MIN_NODE_MAJOR ? 'ok' : 'error',
-        nodeMajor >= MIN_NODE_MAJOR ? process.version : `${process.version} — the CLI requires >= ${MIN_NODE_MAJOR}`
+        nodeOk ? 'ok' : 'error',
+        nodeOk ? process.version : `${process.version} — the CLI requires >= ${MIN_NODE_VERSION}`
     );
     record('CLI version', 'ok', CLI_VERSION);
 

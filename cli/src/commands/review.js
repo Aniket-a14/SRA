@@ -93,7 +93,7 @@ export async function review(options = {}) {
             logger.raw(chalk.yellow(reqToString(req)));
 
             const { action } = await inquirer.prompt([{
-                type: 'list',
+                type: 'select',
                 name: 'action',
                 message: 'Decision:',
                 choices: [

@@ -19,7 +19,8 @@ pnpm dlx @sra-srs/sra-cli doctor     # or run without installing
 
 ### Prerequisites
 
-- **Node.js** >= 18 (the monorepo itself targets >= 20.19).
+- **Node.js** >= 22.12 (Node 18 and 20 are end-of-life, and the CLI's dependencies need
+  22.12+). `sra doctor` checks this.
 - **A platform API key.** Generate one under Settings in the web app; use the `rawKey` value
   (`sra_live_…`), which is shown once.
 - **A provider API key configured on your account.** Generation is BYOK on every provider,
