@@ -4,7 +4,7 @@ import { listAllSectionIds } from '../formats/index.js';
 /**
  * The AI settings a client is allowed to choose, and nothing else.
  *
- * `settings` used to be `.passthrough()` (or `z.record(z.any())`), so any key a caller invented
+ * `settings` used to be `.passthrough()` (or `z.record(z.string(), z.any())`), so any key a caller invented
  * travelled all the way into `analyzeText`. Two of those keys steer the *system* prompt —
  * `systemPrompt` replaces it outright and `systemPromptExtension` is interpolated into it — and
  * `apiKey` would let a request nominate the credential the call is billed to. None of the three
@@ -75,16 +75,16 @@ export const analyzeSchema = z.object({
         text: z.string()
             .min(1, "Text input cannot be empty")
             .max(50000, "Text input exceeds 50,000 characters"),
-        projectId: z.union([z.string().uuid(), z.literal(""), z.null()]).optional(),
-        parentId: z.string().uuid().optional(),
-        rootId: z.string().uuid().optional(),
+        projectId: z.union([z.guid(), z.literal(""), z.null()]).optional(),
+        parentId: z.guid().optional(),
+        rootId: z.guid().optional(),
         settings: clientAiSettingsSchema.optional(),
         srsData: z.object({
             details: z.object({
                 projectName: z.object({ content: z.string().optional() }).optional(),
                 fullDescription: z.object({ content: z.string().optional() }).optional()
             }).passthrough().optional(),
-            metadata: z.record(z.any()).optional()
+            metadata: z.record(z.string(), z.any()).optional()
         }).passthrough().optional(),
         draft: z.boolean().optional(),
         validationResult: z.object({
@@ -130,7 +130,7 @@ export const projectUpdateSchema = z.object({
     body: z.object({
         name: z.string().min(1, "Project name is required").max(100).optional(),
         description: z.string().optional(),
-        settings: z.record(z.any()).optional()
+        settings: z.record(z.string(), z.any()).optional()
     })
 });
 
@@ -140,7 +140,7 @@ export const projectUpdateSchema = z.object({
 // validate, getChatHistory) — still worth validating so a malformed ID
 // gets a clean 400 instead of falling through to a Prisma cast error.
 export const idParamSchema = z.object({
-    params: z.object({ id: z.string().uuid("Invalid analysis ID") })
+    params: z.object({ id: z.guid("Invalid analysis ID") })
 });
 
 /**
@@ -151,7 +151,7 @@ export const idParamSchema = z.object({
  * Zod strips unknown keys, so that restriction is enforced by omission.
  */
 export const resumeAnalysisSchema = z.object({
-    params: z.object({ id: z.string().uuid("Invalid analysis ID") }),
+    params: z.object({ id: z.guid("Invalid analysis ID") }),
     body: z.object({
         modelProvider: z.enum(['google', 'gemini', 'openai', 'claude', 'anthropic', 'grok', 'xai',
                                'GEMINI', 'OPENAI', 'CLAUDE', 'GROK']).optional(),
@@ -160,26 +160,26 @@ export const resumeAnalysisSchema = z.object({
 });
 
 export const getAnalysisSchema = z.object({
-    params: z.object({ id: z.string().uuid("Invalid analysis ID") }),
+    params: z.object({ id: z.guid("Invalid analysis ID") }),
     query: z.object({ mode: z.string().optional() }).passthrough().optional()
 });
 
 export const rootIdParamSchema = z.object({
-    params: z.object({ rootId: z.string().uuid("Invalid root ID") })
+    params: z.object({ rootId: z.guid("Invalid root ID") })
 });
 
 // DELETE /api/analysis/:id — `chain=true` deletes the entire rootId lineage in one
 // shot; omitted/false restricts deletion to a childless leaf version (see BE-19/Phase 5
 // reconciliation — avoids orphaning parentId pointers on a partial delete).
 export const deleteAnalysisSchema = z.object({
-    params: z.object({ id: z.string().uuid("Invalid analysis ID") }),
+    params: z.object({ id: z.guid("Invalid analysis ID") }),
     query: z.object({ chain: z.enum(['true', 'false']).optional() }).optional()
 });
 
 export const diffParamSchema = z.object({
     params: z.object({
-        id1: z.string().uuid("Invalid analysis ID"),
-        id2: z.string().uuid("Invalid analysis ID")
+        id1: z.guid("Invalid analysis ID"),
+        id2: z.guid("Invalid analysis ID")
     })
 });
 
@@ -209,9 +209,9 @@ const writableResultKeys = Object.fromEntries(
 );
 
 export const updateAnalysisSchema = z.object({
-    params: z.object({ id: z.string().uuid("Invalid analysis ID") }),
+    params: z.object({ id: z.guid("Invalid analysis ID") }),
     body: z.object({
-        metadata: z.record(z.any()).optional(),
+        metadata: z.record(z.string(), z.any()).optional(),
         inPlace: z.boolean().optional(),
         skipAlignment: z.boolean().optional(),
         ...writableResultKeys
@@ -219,15 +219,15 @@ export const updateAnalysisSchema = z.object({
 });
 
 export const chatSchema = z.object({
-    params: z.object({ id: z.string().uuid("Invalid analysis ID") }),
+    params: z.object({ id: z.guid("Invalid analysis ID") }),
     body: z.object({
         message: z.string().min(1, "Message cannot be empty").max(10000, "Message is too long"),
-        clientMessageId: z.string().uuid("Invalid client message ID").optional()
+        clientMessageId: z.guid("Invalid client message ID").optional()
     })
 });
 
 export const regenerateSchema = z.object({
-    params: z.object({ id: z.string().uuid("Invalid analysis ID") }),
+    params: z.object({ id: z.guid("Invalid analysis ID") }),
     body: z.object({
         improvementNotes: z.string().min(1, "Improvement notes are required").max(5000),
         affectedSections: z.array(z.string()).optional()
@@ -235,7 +235,7 @@ export const regenerateSchema = z.object({
 });
 
 export const autoFixSchema = z.object({
-    params: z.object({ id: z.string().uuid("Invalid analysis ID") }),
+    params: z.object({ id: z.guid("Invalid analysis ID") }),
     body: z.object({
         issueId: z.string().min(1, "Issue ID is required")
     })

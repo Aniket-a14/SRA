@@ -196,7 +196,6 @@ export async function runReflectionLoop({
                     priorBestScore: bestScore
                 });
                 srsDraft = structuredClone(bestDraft);
-                allFeatures = structuredClone(bestFeatures);
                 finalIndustryAudit = bestAudit;
                 await onPassComplete?.({ loopCount, finalIndustryAudit: bestAudit, srsDraft: bestDraft, allFeatures: bestFeatures, done: true });
                 break;

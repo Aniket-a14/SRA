@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import swaggerUi from 'swagger-ui-express';
 import fs from 'fs';
-import yaml from 'js-yaml';
+import { load as loadYaml } from 'js-yaml';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
@@ -34,7 +34,7 @@ const __dirname = path.dirname(__filename);
 let swaggerDocument;
 try {
     const swaggerPath = path.resolve(__dirname, 'swagger.yaml');
-    swaggerDocument = yaml.load(fs.readFileSync(swaggerPath, 'utf8'));
+    swaggerDocument = loadYaml(fs.readFileSync(swaggerPath, 'utf8'));
 } catch (e) {
     console.warn("Failed to load swagger.yaml, documentation will be unavailable", e.message);
 }

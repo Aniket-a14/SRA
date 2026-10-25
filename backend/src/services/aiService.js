@@ -186,7 +186,7 @@ ${text}
       const isRetryable = error.message.includes("429") || error.message.includes("503") || error.message.includes("Timeout");
 
       if (error.message.includes("403") || error.message.includes("Forbidden") || error.message.includes("API key")) {
-        throw new Error("AI Service Authentication Failed: API Key is invalid or expired.");
+        throw new Error("AI Service Authentication Failed: API Key is invalid or expired.", { cause: error });
       }
 
       // A spent daily quota is a 429 that no backoff can clear. Bail out before burning

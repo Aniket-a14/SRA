@@ -47,7 +47,7 @@ export function createSSEStream(res, req, options = {}) {
     const writeEvent = async (event, data = null) => {
         if (isClosed) return false;
 
-        let payload = '';
+        let payload;
         if (data === null && typeof event === 'object') {
             payload = `data: ${JSON.stringify(event)}\n\n`;
         } else if (data !== null) {

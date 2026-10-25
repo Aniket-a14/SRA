@@ -1,7 +1,7 @@
 import pinoHttp from 'pino-http';
 import pino from 'pino';
 
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'node:crypto';
 import { REDACTED_PATHS } from '../config/logger.js';
 
 const pinoLogger = pino({
@@ -57,7 +57,7 @@ export const logger = pinoHttp({
         if (req.id) return req.id;
         const supplied = req.headers['x-request-id'];
         if (typeof supplied === 'string' && /^[\w.-]{1,128}$/.test(supplied)) return supplied;
-        return uuidv4();
+        return randomUUID();
     },
     customSuccessMessage: (req, res, responseTime) => {
         return `${req.method} ${safeUrl(req.url)} ${res.statusCode} - ${responseTime}ms`;

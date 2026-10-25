@@ -67,10 +67,17 @@ async function discoverGrok(apiKey) {
 }
 
 async function discoverClaude(apiKey) {
+    // Without a key the SDK falls back to ANTHROPIC_API_KEY / ANTHROPIC_AUTH_TOKEN from the
+    // environment, which would list (and later bill) the platform's account, not the user's.
+    if (!apiKey) throw new ModelDiscoveryError('A Claude API key is required.', 'auth');
     const client = new Anthropic({ apiKey });
-    const res = await client.models.list();
-    return (res?.data || [])
-        .map((m) => ({ id: m.id, label: m.display_name || formatModelLabel(m.id) }));
+    // Iterate the page object so the SDK fetches every page: `list()` alone returns only the
+    // first page, which hid any model past it from the picker.
+    const models = [];
+    for await (const m of client.models.list()) {
+        models.push({ id: m.id, label: m.display_name || formatModelLabel(m.id) });
+    }
+    return models;
 }
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';

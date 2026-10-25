@@ -1,3 +1,4 @@
+import { ZodError } from 'zod';
 import logger from '../config/logger.js';
 
 export const validate = (schema) => (req, res, next) => {
@@ -15,10 +16,15 @@ export const validate = (schema) => (req, res, next) => {
         }
         next();
     } catch (error) {
-        logger.error({ msg: 'Validation Error', errors: error.errors });
+        // Only a ZodError is a validation failure; anything else is a bug and goes to the
+        // error handler. `.issues` is the array zod 3 also exposed as `.errors`; zod 4 removed
+        // that alias, which would have left every 400 without its `details` (the web app and
+        // the published CLI both read them).
+        if (!(error instanceof ZodError)) return next(error);
+        logger.error({ msg: 'Validation Error', errors: error.issues });
         return res.status(400).json({
             error: 'Validation Error',
-            details: error.errors,
+            details: error.issues,
         });
     }
 };

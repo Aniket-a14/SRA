@@ -21,9 +21,8 @@ const server = app.listen(PORT, () => {
 // There's no local QStash schedule in dev, so run the same sweep in-process on an
 // interval — mirrors the MOCK_QSTASH pattern already used for the analysis queue.
 const RECONCILIATION_INTERVAL_MS = 15 * 60 * 1000;
-let reconciliationInterval = null;
 if (process.env.MOCK_QSTASH === 'true' || process.env.NODE_ENV === 'development') {
-    reconciliationInterval = setInterval(() => {
+    const reconciliationInterval = setInterval(() => {
         runReconciliation().catch(err => console.error('[Reconciliation] Sweep failed:', err.message));
     }, RECONCILIATION_INTERVAL_MS);
     reconciliationInterval.unref();

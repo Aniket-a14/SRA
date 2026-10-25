@@ -56,7 +56,7 @@ export const getGoogleTokens = async (code) => {
                 client_id: CLIENT_ID ? 'Set' : 'Missing'
             }
         });
-        throw new Error(errorData.error_description || 'Failed to fetch Google tokens');
+        throw new Error(errorData.error_description || 'Failed to fetch Google tokens', { cause: error });
     }
 };
 
@@ -75,6 +75,6 @@ export const getGoogleUser = async (id_token, access_token) => {
         return res.data;
     } catch (error) {
         logger.error({ msg: 'Failed to fetch Google user', error: error.response?.data || error.message });
-        throw new Error('Failed to fetch Google user info');
+        throw new Error('Failed to fetch Google user info', { cause: error });
     }
 };

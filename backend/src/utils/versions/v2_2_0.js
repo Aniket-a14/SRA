@@ -53,7 +53,7 @@ export const generate = async (text = null, settings = {}) => {
   // --- DYNAMIC SETTINGS ---
   const detailLevel = depth <= 2 ? "Concise and high-level, but never at the expense of testability" : depth >= 4 ? "Exhaustive and defensible at audit depth" : "Detailed and professional";
 
-  let creativityInstruction = "";
+  let creativityInstruction;
   if (strictness >= 4) {
     creativityInstruction = "Specify ONLY what is explicitly stated or logically unavoidable. Do NOT infer additional features. Where the input is silent on a needed detail, raise a TBD rather than inventing content.";
   } else if (strictness <= 2) {

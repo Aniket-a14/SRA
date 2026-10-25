@@ -94,7 +94,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
     let resultJson;
     let analysisMeta = {};
     let finalIndustryAudit = null;
-    let srsDraft = null; // Declare upfront to avoid ReferenceError in catch block
+    let srsDraft; // Declared before the try so the catch block can read it
     // The run's resolved BYOK provider/model/key. Function-scoped because the post-pipeline
     // steps below (Layer-3 alignment, async graph extraction) run outside the try that
     // resolves it, and they are user-funded AI calls too.
@@ -684,7 +684,7 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
             await invalidateUserAnalysesCache(userId);
             emitProgress('failed', failureReason, { terminal: true, status: 'FAILED', resumable });
         }
-        throw new Error(failureReason);
+        throw new Error(failureReason, { cause: error });
     }
 
     // Run Quality Check (Linting). The IEEE linter is shape-specific (systemFeatures/NFRs);

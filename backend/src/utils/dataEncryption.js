@@ -60,7 +60,7 @@ export function encryptData(plaintext, masterSecret = process.env.ENCRYPTION_KEY
         return combined.toString('base64');
     } catch (error) {
         logger.error({ msg: 'Encryption failed', error: error.message });
-        throw new Error('Failed to encrypt data');
+        throw new Error('Failed to encrypt data', { cause: error });
     }
 }
 
@@ -104,7 +104,7 @@ export function decryptData(encryptedData, masterSecret = process.env.ENCRYPTION
         return decrypted.toString('utf8');
     } catch (error) {
         logger.error({ msg: 'Decryption failed', error: error.message });
-        throw new Error('Failed to decrypt data');
+        throw new Error('Failed to decrypt data', { cause: error });
     }
 }
 

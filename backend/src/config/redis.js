@@ -17,7 +17,11 @@ const getRedisClient = () => {
                 const delay = Math.min(times * 50, 2000);
                 return delay;
             },
-            maxRetriesPerRequest: 3 // Fail fast if Redis is down
+            maxRetriesPerRequest: 3, // Fail fast if Redis is down
+            // ioredis 6 defaults to RESP3. Pinned to RESP2, the protocol every caller here
+            // (rate-limit-redis Lua replies, cache GET/SET, pub/sub progress) was written and
+            // tested against, so the upgrade changes no reply shapes against Upstash.
+            protocol: 2
         };
 
         if (isRediss) {

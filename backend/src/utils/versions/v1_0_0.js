@@ -37,7 +37,7 @@ Your requirements must explicitly address Authentication, Authorization, Data Pr
   const detailLevel = depth <= 2 ? "Concise and high-level" : depth >= 4 ? "Extremely detailed and exhaustive" : "Detailed and professional";
 
   // 3. STRICTNESS/CREATIVITY
-  let creativityInstruction = "";
+  let creativityInstruction;
   if (strictness >= 4) {
     creativityInstruction = "STRICTNESS: HIGH. Do NOT infer features not explicitly requested. Stick exactly to the user input.";
   } else if (strictness <= 2) {

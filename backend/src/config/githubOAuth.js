@@ -36,7 +36,7 @@ export const getGithubTokens = async (code) => {
         return res.data;
     } catch (error) {
         logger.error({ msg: 'Failed to fetch GitHub tokens', error: error.response?.data || error.message });
-        throw new Error(error.response?.data?.error_description || 'Failed to fetch GitHub tokens');
+        throw new Error(error.response?.data?.error_description || 'Failed to fetch GitHub tokens', { cause: error });
     }
 };
 
@@ -81,6 +81,6 @@ export const getGithubUser = async (accessToken) => {
         if (error.statusCode) throw error;
 
         logger.error({ msg: 'Failed to fetch GitHub user', error: error.response?.data || error.message });
-        throw new Error('Failed to fetch GitHub user info');
+        throw new Error('Failed to fetch GitHub user info', { cause: error });
     }
 };

@@ -10,6 +10,14 @@ jest.unstable_mockModule('openai', () => ({
 }));
 
 const mockAnthropicList = jest.fn();
+/**
+ * Shaped like the SDK's PagePromise: awaiting it gives the first page only, iterating it with
+ * `for await` walks every page. A plain resolved promise would hide a first-page-only bug.
+ */
+const anthropicPages = (...pages) => ({
+    then: (resolve, reject) => Promise.resolve({ data: pages[0] || [] }).then(resolve, reject),
+    async *[Symbol.asyncIterator]() { for (const page of pages) yield* page; }
+});
 jest.unstable_mockModule('@anthropic-ai/sdk', () => ({
     default: class MockAnthropic {
         constructor(opts) { this.opts = opts; this.models = { list: mockAnthropicList }; }
@@ -98,18 +106,33 @@ describe('modelDiscovery', () => {
 
     describe('discoverModels — Claude', () => {
         it('returns claude models with their display names', async () => {
-            mockAnthropicList.mockResolvedValue({
-                data: [
-                    { id: 'claude-opus-4-8', display_name: 'Claude Opus 4.8' },
-                    { id: 'claude-sonnet-5', display_name: 'Claude Sonnet 5' }
-                ]
-            });
+            mockAnthropicList.mockReturnValue(anthropicPages([
+                { id: 'claude-opus-4-8', display_name: 'Claude Opus 4.8' },
+                { id: 'claude-sonnet-5', display_name: 'Claude Sonnet 5' }
+            ]));
 
             const { models } = await discoverModels('CLAUDE', 'sk-ant-valid');
             expect(models).toEqual([
                 { id: 'claude-opus-4-8', label: 'Claude Opus 4.8' },
                 { id: 'claude-sonnet-5', label: 'Claude Sonnet 5' }
             ]);
+        });
+
+        it('lists models from every page, not only the first', async () => {
+            mockAnthropicList.mockReturnValue(anthropicPages(
+                [{ id: 'claude-opus-5-5', display_name: 'Claude Opus 5.5' }],
+                [{ id: 'claude-haiku-4-5', display_name: 'Claude Haiku 4.5' }]
+            ));
+
+            const { models } = await discoverModels('CLAUDE', 'sk-ant-valid');
+            expect(models.map(m => m.id)).toEqual(['claude-opus-5-5', 'claude-haiku-4-5']);
+        });
+
+        it('rejects an empty key before the SDK can fall back to environment credentials', async () => {
+            const thrown = await discoverModels('CLAUDE', '').catch(e => e);
+            expect(thrown).toBeInstanceOf(ModelDiscoveryError);
+            expect(thrown.kind).toBe('auth');
+            expect(mockAnthropicList).not.toHaveBeenCalled();
         });
     });
 

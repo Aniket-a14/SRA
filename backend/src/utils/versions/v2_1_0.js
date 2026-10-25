@@ -35,7 +35,7 @@ export const generate = async (text = null, settings = {}) => {
   // --- DYNAMIC SETTINGS ---
   const detailLevel = depth <= 2 ? "Concise and high-level" : depth >= 4 ? "Extremely detailed and exhaustive" : "Detailed and professional";
 
-  let creativityInstruction = "";
+  let creativityInstruction;
   if (strictness >= 4) {
     creativityInstruction = "Do NOT infer features not explicitly requested. Stick exactly to the user input.";
   } else if (strictness <= 2) {

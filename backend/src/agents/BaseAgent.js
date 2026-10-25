@@ -365,7 +365,7 @@ export class BaseAgent {
                 if (isFetchFailed) {
                     logger.fatal(`[${this.name}] FATAL: Unable to reach ${this.provider} servers. Check network/proxy.`);
                 }
-                throw new Error(`${this.name} failed to generate content: ${error.message}`);
+                throw new Error(`${this.name} failed to generate content: ${error.message}`, { cause: error });
             }
         }
     }
@@ -424,7 +424,7 @@ export class BaseAgent {
             });
         } catch (error) {
             logger.error({ msg: `[${this.name}] Streaming LLM Call Failed`, provider: this.provider, error: error.message });
-            throw new Error(`${this.name} failed to stream content: ${error.message}`);
+            throw new Error(`${this.name} failed to stream content: ${error.message}`, { cause: error });
         }
     }
 
@@ -452,7 +452,7 @@ export class BaseAgent {
         try {
             return repairAndParseJSON(text, { label: this.name });
         } catch (error) {
-            throw new Error(`${this.name} failed to parse JSON output. ${error.message}`);
+            throw new Error(`${this.name} failed to parse JSON output. ${error.message}`, { cause: error });
         }
     }
 }

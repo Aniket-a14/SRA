@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { getDefaultModel } from '../../config/models.js';
 import { assertNotTruncated } from '../../utils/truncationError.js';
 import { parseRateLimitHeaders } from '../../utils/rateLimitHeaders.js';
+import { claudeRequestFields, assertNotRefused } from './claudeModelRules.js';
 
 /** No platform default — Claude is BYOK-only, so `modelName` must always come from the caller. */
 const DEFAULT_MODEL = () => getDefaultModel('CLAUDE');
@@ -16,15 +17,15 @@ export class ClaudeAdapter {
         this.lastRateLimit = null;
     }
 
-    async generateContent({ prompt, systemInstruction, temperature, maxOutputTokens, jsonMode, modelName }) {
+    async generateContent({ prompt, systemInstruction, maxOutputTokens, jsonMode, modelName }) {
+        const model = modelName || DEFAULT_MODEL();
         const { data: message, response } = await this.client.messages.create({
-            model: modelName || DEFAULT_MODEL(),
+            model,
             max_tokens: maxOutputTokens || 4096,
-            // Disabled rather than adaptive: this call is used for structured JSON
-            // generation with a fixed max_tokens budget tuned for the JSON payload
-            // size — adaptive thinking would compete with the output for that budget.
-            thinking: { type: 'disabled' },
-            ...(temperature !== undefined && { temperature }),
+            // Thinking kept off (or as low as the model allows) so it does not compete with
+            // the JSON payload for this fixed max_tokens budget. No temperature: API version
+            // 2026-10-21 rejects sampling parameters on every model (claudeModelRules.js).
+            ...claudeRequestFields(model),
             ...(systemInstruction && { system: systemInstruction }),
             messages: [
                 {
@@ -38,6 +39,7 @@ export class ClaudeAdapter {
 
         this.lastRateLimit = parseRateLimitHeaders(response?.headers);
 
+        assertNotRefused(message, model);
         assertNotTruncated(message.stop_reason, {
             provider: 'Claude',
             modelName: modelName || DEFAULT_MODEL(),
@@ -51,12 +53,12 @@ export class ClaudeAdapter {
     }
 
     /** Token stream: plain text for chat replies, JSON for the live SRS drafting view. */
-    async *generateContentStream({ prompt, systemInstruction, temperature, maxOutputTokens, jsonMode, modelName, signal }) {
+    async *generateContentStream({ prompt, systemInstruction, maxOutputTokens, jsonMode, modelName, signal }) {
+        const model = modelName || DEFAULT_MODEL();
         const stream = this.client.messages.stream({
-            model: modelName || DEFAULT_MODEL(),
+            model,
             max_tokens: maxOutputTokens || 4096,
-            thinking: { type: 'disabled' },
-            ...(temperature !== undefined && { temperature }),
+            ...claudeRequestFields(model),
             ...(systemInstruction && { system: systemInstruction }),
             messages: [
                 {
@@ -82,6 +84,7 @@ export class ClaudeAdapter {
         // JSON only — see the note in GeminiAdapter.generateContentStream.
         if (jsonMode) {
             const finished = await stream.finalMessage();
+            assertNotRefused(finished, model);
             assertNotTruncated(finished?.stop_reason, {
                 provider: 'Claude',
                 modelName: modelName || DEFAULT_MODEL(),

@@ -110,7 +110,7 @@ export const globalSearch = async (req, res, next) => {
 
         // Format search snippets
         const formattedAnalyses = analyses.map(a => {
-            let snippet = '';
+            let snippet;
             const lowerInput = a.inputText.toLowerCase();
             const matchIdx = lowerInput.indexOf(sanitizedQuery.toLowerCase());
             if (matchIdx !== -1) {
