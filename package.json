@@ -2,7 +2,7 @@
     "name": "sra-monorepo",
     "version": "4.2.2",
     "private": true,
-    "packageManager": "pnpm@9.15.9",
+    "packageManager": "pnpm@10.34.8",
     "description": "SRA Monorepo - Frontend, Backend, and CLI",
     "scripts": {
         "dev": "pnpm --filter frontend dev",
@@ -17,56 +17,7 @@
         "lint:all": "pnpm -r lint"
     },
     "engines": {
-        "node": ">=20.19.0"
-    },
-    "resolutions": {
-        "prisma": "7.9.0",
-        "@prisma/client": "7.9.0",
-        "@prisma/adapter-pg": "7.9.0",
-        "@prisma/client-runtime-utils": "7.9.0"
-    },
-    "_comment_overrides": "Transitive security patches. Each entry exists because a dependency we do not control pins a vulnerable version; direct dependencies are bumped in their own workspace package.json instead. Keep these pinned within the installed major — an override that crosses a major boundary broke minimatch@3 here once, because brace-expansion@5 has a different API than the v1 it expected. CI is pinned to pnpm 9 (see .github/workflows/*.yml), which only reads overrides from here — pnpm-workspace.yaml's top-level `overrides:` key needs pnpm 10+, so it will not work until every workflow's pnpm/action-setup version is bumped too.",
-    "pnpm": {
-        "overrides": {
-            "hono": "^4.12.25",
-            "fast-uri": "^3.1.7",
-            "nanoid": "^3.3.17",
-            "sharp": "^0.35.4",
-            "form-data": "^4.0.6",
-            "lodash": "^4.17.21",
-            "postcss": "^8.5.18",
-            "dompurify": "^3.4.14",
-            "qs": "^6.15.2",
-            "body-parser": "^2.3.0",
-            "ip-address": "^10.1.1",
-            "valibot": "^1.4.2",
-            "find-my-way": "^9.7.0",
-            "pdf-parse>pdfjs-dist": "^6.2.108",
-            "@babel/core": "^7.29.6",
-            "@blocknote/core>uuid": "^11.1.1",
-            "deepmerge-ts": "^8.0.1",
-            "js-yaml@3": "^3.15.1",
-            "brace-expansion@1": "^1.1.18",
-            "brace-expansion@2": "^2.1.4",
-            "brace-expansion@5": "^5.0.9",
-            "browserslist": "^4.28.7",
-            "mysql2": "^3.22.0",
-            "@tiptap/core": "^3.30.5",
-            "@tiptap/pm": "^3.30.5",
-            "@tiptap/react": "^3.30.5",
-            "@tiptap/extensions": "^3.30.5",
-            "@tiptap/extension-bold": "^3.30.5",
-            "@tiptap/extension-bubble-menu": "^3.30.5",
-            "@tiptap/extension-code": "^3.30.5",
-            "@tiptap/extension-floating-menu": "^3.30.5",
-            "@tiptap/extension-horizontal-rule": "^3.30.5",
-            "@tiptap/extension-italic": "^3.30.5",
-            "@tiptap/extension-link": "^3.30.5",
-            "@tiptap/extension-paragraph": "^3.30.5",
-            "@tiptap/extension-strike": "^3.30.5",
-            "@tiptap/extension-text": "^3.30.5",
-            "@tiptap/extension-underline": "^3.30.5"
-        }
+        "node": ">=24.0.0"
     },
     "author": "SRA Team",
     "license": "ISC",

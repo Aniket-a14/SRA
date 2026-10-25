@@ -16,6 +16,10 @@ paths = [
   '''frontend/lib/docs-data\.ts'''
 ]
 regexes = [
+  # Public default credential of the Upstash QStash local dev server: base64 of
+  # {"UserID":"defaultUser","Password":"defaultPassword"}. Quoted in the vendored
+  # upstash-qstash-js skill docs; it only authenticates against `qstash-cli dev` on localhost.
+  '''eyJVc2VySUQiOiJkZWZhdWx0VXNlciIsIlBhc3N3b3JkIjoiZGVmYXVsdFBhc3N3b3JkIn0=?''',
   '''ci-bruno-jwt-secret-at-least-32-characters-long''',
   '''ci-bruno-encryption-key-16char''',
 ]

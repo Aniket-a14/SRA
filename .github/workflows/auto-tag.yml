@@ -17,14 +17,14 @@ jobs:
   tag:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Get version from package.json
         id: package-version
         working-directory: ./backend
-        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
       - name: Create and Push Tag
         env:
@@ -37,12 +37,12 @@ jobs:
           TAG="v$VERSION"
           if git ls-remote --tags --exit-code origin "refs/tags/$TAG" >/dev/null 2>&1; then
             echo "Tag $TAG already exists on remote. Skipping."
-            echo "tag_created=false" >> $GITHUB_OUTPUT
+            echo "tag_created=false" >> "$GITHUB_OUTPUT"
           else
             echo "Creating tag $TAG"
             git tag "$TAG"
             git push origin "$TAG"
-            echo "tag_created=true" >> $GITHUB_OUTPUT
+            echo "tag_created=true" >> "$GITHUB_OUTPUT"
           fi
       # This job creates the release itself, and must.
       #

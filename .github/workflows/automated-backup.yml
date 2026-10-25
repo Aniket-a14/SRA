@@ -13,25 +13,23 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
+        uses: pnpm/action-setup@v6
 
       - name: Use Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Get pnpm store directory
         id: pnpm-cache
         shell: bash
         run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+          echo "STORE_PATH=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         name: Setup pnpm cache
         with:
           path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
@@ -95,7 +93,7 @@ jobs:
           node scripts/backup-cli.js create
 
       - name: Upload backup to artifact storage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: database-backup-${{ github.run_number }}
           path: backend/backups/*.enc
@@ -112,8 +110,10 @@ jobs:
           BACKUP_ENCRYPTION_SALT: ${{ secrets.BACKUP_ENCRYPTION_SALT }}
           BACKUP_DIR: ./backups
         run: |
-          LATEST_BACKUP=$(ls -t backups/*.enc | head -1)
-          node scripts/backup-cli.js verify $(basename $LATEST_BACKUP)
+          # Newest by mtime; find (not ls) so unusual filenames survive.
+          LATEST_BACKUP=$(find backups -maxdepth 1 -name '*.enc' -type f -print0 | xargs -0 ls -t | head -1)
+          [ -n "$LATEST_BACKUP" ] || { echo "No backup file found to verify"; exit 1; }
+          node scripts/backup-cli.js verify "$(basename "$LATEST_BACKUP")"
 
       - name: Cleanup old backups
         working-directory: ./backend
@@ -127,7 +127,7 @@ jobs:
 
       - name: Notify on failure
         if: failure()
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           # Comment on the existing alert instead of opening a new one. A weekly outage
           # opened a fresh identical issue every Sunday — five accumulated before anyone

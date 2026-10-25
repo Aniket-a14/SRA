@@ -1,8 +1,8 @@
 # Base Stage
-FROM node:20.20.2-alpine AS base
+FROM node:24.22.1-alpine AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN npm install -g pnpm@9
+RUN npm install -g pnpm@10.34.8
 WORKDIR /app
 
 # Stage 1: Dependencies
@@ -25,7 +25,7 @@ ENV NEXT_PRIVATE_STANDALONE=true
 RUN pnpm --filter frontend run build
 
 # Stage 3: Runner
-FROM node:20.20.2-alpine AS runner
+FROM node:24.22.1-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production

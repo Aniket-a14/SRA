@@ -3,7 +3,7 @@
     "version": "4.2.2",
     "private": true,
     "engines": {
-        "node": ">=20.19.0"
+        "node": "24.x"
     },
     "scripts": {
         "dev": "cross-env NODE_OPTIONS='--max-old-space-size=8192' next dev -p 3001",

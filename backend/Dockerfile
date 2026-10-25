@@ -1,9 +1,9 @@
 # Base Stage
-FROM node:20.20.2-alpine AS base
+FROM node:24.22.1-alpine AS base
 RUN apk add --no-cache openssl
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN npm install -g pnpm@9
+RUN npm install -g pnpm@10.34.8
 WORKDIR /app
 
 # Stage 1: Dependencies
@@ -28,7 +28,7 @@ COPY . .
 RUN pnpm --filter backend run prisma:generate
 
 # Stage 3: Runner
-FROM node:20.20.2-alpine AS runner
+FROM node:24.22.1-alpine AS runner
 RUN apk add --no-cache openssl
 WORKDIR /app
 

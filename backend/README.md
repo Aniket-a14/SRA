@@ -93,7 +93,7 @@ The backend supports bi-directional synchronization with the **SRA CLI**:
 ## 🚀 Setup & Deployment
 
 ### Prerequisites
--   Node.js (>=20.19.0) & pnpm
+-   Node.js 24 LTS (see `.nvmrc`) & pnpm 10 (pinned via `packageManager`; Corepack or any pnpm 10+ picks it up)
 -   PostgreSQL (Database)
 -   Upstash QStash (Serverless Queue)
 -   Gemini API Key

@@ -2,7 +2,7 @@ name: Pull Request Labeler
 
 on:
   pull_request_target:
-    types: [opened, synchronized, reopened]
+    types: [opened, synchronize, reopened]
 
 jobs:
   label:
@@ -13,7 +13,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Apply labels
-        uses: actions/labeler@v5
+        uses: actions/labeler@v7
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
           sync-labels: true

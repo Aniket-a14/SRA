@@ -212,7 +212,7 @@ SRA leverages professional GitHub Actions for continuous quality assurance and o
 |-----------|------------|-----------|
 | **Frontend** | [Next.js 16.1.6](https://nextjs.org/) | App Router with standalone output for enterprise scalability. |
 | **Styling** | [Tailwind CSS v4](https://tailwindcss.com/) | Next-gen JIT engine for high-performance, responsive UI. |
-| **Backend** | [Node.js 20](https://nodejs.org/) / [Prisma 7](https://www.prisma.io/) | Type-safe ORM for robust asynchronous data orchestration. |
+| **Backend** | [Node.js 24 LTS](https://nodejs.org/) / [Prisma 7](https://www.prisma.io/) | Type-safe ORM for robust asynchronous data orchestration. |
 | **Database** | [PostgreSQL 16+](https://www.postgresql.org/) | High-concurrency persistence with `pgvector` RAG support. |
 | **Orchestration** | [Upstash QStash](https://upstash.com/) | Serverless job queue for reliable, long-running AI tasks. |
 | **LLM Engine** | Multi-provider (Gemini default, BYOK OpenAI/Claude/Grok) | Gemini runs on the platform's own key for every user out of the box; users can add their own OpenAI, Claude, or Grok key in Settings and pick a provider + model per analysis. |
