@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
-import { authEndpoint } from "@/lib/auth-endpoints"
+import { authEndpoint, startOAuth, type OAuthProvider } from "@/lib/auth-endpoints"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -45,13 +45,15 @@ export default function SignupPage() {
         }
     }
 
-    const handleGoogleLogin = () => {
-        window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/google/start`
+    const signInWith = (provider: OAuthProvider) => {
+        try {
+            startOAuth(provider)
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Sign-in is unavailable")
+        }
     }
-
-    const handleGithubLogin = () => {
-        window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/github/start`
-    }
+    const handleGoogleLogin = () => signInWith("google")
+    const handleGithubLogin = () => signInWith("github")
 
     return (
         <div className="relative min-h-screen flex items-center justify-center px-6 py-12 noise-overlay">

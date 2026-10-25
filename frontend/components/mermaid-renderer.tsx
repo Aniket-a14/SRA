@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import { MERMAID_BASE_CONFIG } from "@/lib/mermaid-config"
 
 interface Diagram {
     code: string
@@ -37,7 +38,7 @@ export function MermaidRenderer({
     useEffect(() => {
         import("mermaid").then((m) => {
             m.default.initialize({
-                startOnLoad: false,
+                ...MERMAID_BASE_CONFIG,
                 theme: isExport ? 'neutral' : 'default',
                 themeVariables: isExport ? {
                     fontFamily: 'arial, sans-serif',
@@ -47,7 +48,6 @@ export function MermaidRenderer({
                     textColor: '#000000',
                     lineColor: '#000000'
                 } : undefined,
-                securityLevel: 'strict',
                 fontFamily: 'arial, sans-serif',
                 flowchart: { useMaxWidth: true, htmlLabels: true }
             })

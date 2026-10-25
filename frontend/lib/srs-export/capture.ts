@@ -1,5 +1,6 @@
 import type { AnalysisResult } from "@/types/analysis";
 import { getAdditionalDiagrams } from "./blocks";
+import { MERMAID_BASE_CONFIG } from "../mermaid-config";
 
 /** Convert a rendered SVG string into a PNG data URL via an offscreen canvas. */
 const svgToPngDataUrl = (svg: string): Promise<string | null> =>
@@ -66,7 +67,7 @@ export async function captureDiagrams(data: AnalysisResult): Promise<Record<stri
             const mermaidModule = await import("mermaid");
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const mermaid = (mermaidModule as any).default;
-            mermaid.initialize({ startOnLoad: false, theme: "base", securityLevel: "loose" });
+            mermaid.initialize({ ...MERMAID_BASE_CONFIG, theme: "base" });
 
             for (let i = 0; i < dynamic.length; i++) {
                 try {

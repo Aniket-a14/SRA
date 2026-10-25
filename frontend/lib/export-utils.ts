@@ -1,5 +1,6 @@
 import type { AnalysisResult, Diagram } from '@/types/analysis';
 import type { DFDInput } from '@/components/DFDViewer';
+import { MERMAID_BASE_CONFIG } from './mermaid-config';
 
 // Helper: Convert SVG string to PNG Blob (used by the bundle exporter)
 const svgToPng = (svgStr: string): Promise<Blob | null> => {
@@ -355,7 +356,7 @@ export const downloadBundle = async (data: AnalysisResult, title: string) => {
         const mermaidModule = await import('mermaid');
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         mermaid = (mermaidModule as any).default;
-        mermaid.initialize({ startOnLoad: false, theme: 'base', securityLevel: 'loose' });
+        mermaid.initialize({ ...MERMAID_BASE_CONFIG, theme: 'base' });
     } catch (e) {
         console.warn("Mermaid failed to load", e);
     }
