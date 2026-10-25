@@ -95,9 +95,11 @@ jest.unstable_mockModule('../../src/services/knowledge/graphService.js', () => (
     extractGraph: jest.fn().mockResolvedValue(undefined)
 }));
 
+const mockRecordQualityMetric = jest.fn().mockResolvedValue(null);
 jest.unstable_mockModule('../../src/services/qualityService.js', () => ({
     lintRequirements: jest.fn(() => ({ issues: [] })),
-    checkAlignment: jest.fn().mockResolvedValue({ status: 'ALIGNED' })
+    checkAlignment: jest.fn().mockResolvedValue({ status: 'ALIGNED' }),
+    recordQualityMetric: mockRecordQualityMetric
 }));
 
 const { performAnalysis } = await import('../../src/services/analysisService.js');
@@ -113,6 +115,7 @@ beforeEach(() => {
     mockGenerateSrsSections.mockClear();
     mockRepairDiagrams.mockClear();
     mockReflectionLoop.mockClear();
+    mockRecordQualityMetric.mockClear();
     mockSelectNextFallbackModel.mockReset();
     mockEnqueueContinuation.mockReset();
     mockEnqueueContinuation.mockResolvedValue({ continued: true });
@@ -202,6 +205,32 @@ describe('performAnalysis — yielding in the tail', () => {
         expect(mockGenerateSrsSections).toHaveBeenCalledTimes(1);
         expect(mockRepairDiagrams).toHaveBeenCalledTimes(1);
         expect(mockReflectionLoop).toHaveBeenCalledTimes(1);
+    });
+
+    it('records one quality metric for a completed run, with the audit it actually produced', async () => {
+        await run(createStageBudget(240000), { promptVersion: '2.1.0' });
+
+        expect(mockRecordQualityMetric).toHaveBeenCalledTimes(1);
+        expect(mockRecordQualityMetric).toHaveBeenCalledWith(expect.objectContaining({
+            analysisId: 'a1',
+            userId: 'u1',
+            promptVersion: '2.1.0',
+            modelProvider: 'GEMINI',
+            audit: { overallScore: 91 },
+            ragFaithfulness: 1
+        }));
+    });
+
+    it('resolves the default "latest" prompt version to a concrete one', async () => {
+        await run(createStageBudget(240000));
+        const { promptVersion } = mockRecordQualityMetric.mock.calls[0][0];
+        expect(promptVersion).not.toBe('latest');
+        expect(promptVersion).toMatch(/^\d+\.\d+\.\d+$/);
+    });
+
+    it('records no metric for a run that paused', async () => {
+        await run(createStageBudget(STAGE_COST_MS.diagram_repair + 5000)).catch(() => {});
+        expect(mockRecordQualityMetric).not.toHaveBeenCalled();
     });
 
     it('queues an approved model fallback instead of finalizing a quota failure as partial', async () => {

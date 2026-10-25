@@ -4,6 +4,7 @@ import { asAiSettings } from './providers/providerKeyService.js';
 import { OUTPUT_TOKEN_LIMITS, TEMPERATURES } from '../utils/llmGenerationConfig.js';
 import { stringifyForPrompt } from '../utils/promptCompaction.js';
 import { sanitizePromptLabel, fillTemplate } from '../utils/promptSanitizer.js';
+import { ALIGNMENT_CHECK_FAILED } from '../utils/layer3Status.js';
 
 /**
  * Lints requirements to calculate a quality score and identify issues.
@@ -162,65 +163,77 @@ export const checkAlignment = async (originalInput, validationContext, srsOutput
     });
 
     if (!response || response.success === false || !response.srs) {
-        // Fallback if AI fails to return structure
-        console.warn("Layer 3 Alignment Check failed:", response?.error);
-        return { status: 'ALIGNED', mismatches: [] };
+        // A check that did not run is not a pass. This used to return ALIGNED, so a provider
+        // outage or a malformed reply was reported to the user as a verified alignment.
+        logger.warn({ msg: 'Layer 3 alignment check did not complete', error: response?.error });
+        return { status: ALIGNMENT_CHECK_FAILED, mismatches: [], reason: response?.error || 'No structured response' };
     }
 
     return response.srs;
 };
 
-/**
- * Pillar 4: Semantic LLM-Judge Audit
- * Integrates the CriticAgent's deep audit into the quality scoring system.
- */
-export const runSemanticAudit = async (srsContent, originalRequirements = null) => {
-    const { CriticAgent } = await import('../agents/CriticAgent.js');
-    const critic = new CriticAgent();
-    // auditSRS takes (originalRequirements, srsContent); this used to pass the SRS in the first
-    // position, leaving the document itself undefined so the audit scored an empty snapshot.
-    return await critic.auditSRS(originalRequirements, srsContent);
+import prisma from '../config/prisma.js';
+import logger from '../config/logger.js';
+
+const SIX_CS = ['clarity', 'completeness', 'conciseness', 'consistency', 'correctness', 'context'];
+const finiteOrNull = (value) => {
+    if (value === null || value === undefined || value === '') return null;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
 };
 
-import prisma from '../config/prisma.js';
-
 /**
- * Persists 6Cs quality metrics and RAG faithfulness scores to track prompt & provider stability over time.
+ * Persist one completed run's 6Cs audit and RAG faithfulness, so quality can be tracked per
+ * prompt version and per provider/model over time. Called once per successful analysis.
+ *
+ * Records only what was measured. The columns are NOT NULL, and this used to fill any
+ * missing score with 85 (`Number(x) || 85`, which also turned a real 0 into 85). Now an
+ * audit that was skipped or lacks any of the six scores writes no row at all, and a 0 is
+ * stored as 0. Best-effort: a failure is logged and never affects the analysis.
+ *
+ * @returns {Promise<object|null>} the created row, or null when nothing was recorded
  */
 export const recordQualityMetric = async ({
     analysisId,
     userId,
     version,
-    promptVersion = '2.2.0',
-    modelProvider = 'google',
-    modelName = 'gemini-2.5-flash',
-    audit = {},
+    promptVersion,
+    modelProvider,
+    modelName,
+    audit,
     ragFaithfulness = null
 }) => {
-    if (!analysisId || !userId) return null;
+    if (!analysisId || !userId || !promptVersion || !modelProvider || !modelName) return null;
+
+    const overallScore = finiteOrNull(audit?.overallScore);
+    const scores = Object.fromEntries(SIX_CS.map((dim) => [dim, finiteOrNull(audit?.scores?.[dim])]));
+    const missing = SIX_CS.filter((dim) => scores[dim] === null);
+    if (!audit || audit.skipped || overallScore === null || missing.length > 0) {
+        logger.info({
+            msg: 'Quality metric not recorded: audit incomplete',
+            analysisId,
+            skipped: Boolean(audit?.skipped),
+            missing: overallScore === null ? ['overallScore', ...missing] : missing
+        });
+        return null;
+    }
+
     try {
-        const scores = audit.scores || {};
-        const overallScore = Number(audit.overallScore) || 85.0;
         return await prisma.qualityMetricRecord.create({
             data: {
                 analysisId,
                 userId,
                 version: Number(version) || 1,
-                promptVersion,
-                modelProvider,
-                modelName,
+                promptVersion: String(promptVersion),
+                modelProvider: String(modelProvider),
+                modelName: String(modelName),
                 overallScore,
-                clarity: Number(scores.clarity) || 85.0,
-                completeness: Number(scores.completeness) || 85.0,
-                conciseness: Number(scores.conciseness) || 85.0,
-                consistency: Number(scores.consistency) || 85.0,
-                correctness: Number(scores.correctness) || 85.0,
-                context: Number(scores.context) || 85.0,
-                ragFaithfulness: ragFaithfulness !== null ? Number(ragFaithfulness) : null
+                ...scores,
+                ragFaithfulness: finiteOrNull(ragFaithfulness)
             }
         });
     } catch (err) {
-        console.warn('Failed to record quality metric:', err.message);
+        logger.warn({ msg: 'Failed to record quality metric', analysisId, error: err.message });
         return null;
     }
 };

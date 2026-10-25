@@ -4,6 +4,7 @@ import { addAnalysisJob, getJobStatus, resumeAnalysisJob } from '../services/que
 import { surgicalRefine } from '../services/surgicalRefineService.js';
 import { compareAnalyses } from '../services/diffService.js';
 import { lintRequirements, checkAlignment } from '../services/qualityService.js';
+import { toLayer3Status } from '../utils/layer3Status.js';
 import { validateRequirements, autoFixRequirements } from '../services/validationService.js';
 import { repairDiagram as aiRepairDiagram } from '../services/aiService.js';
 import { embedText } from '../services/knowledge/embeddingService.js';
@@ -349,7 +350,8 @@ export const updateAnalysis = async (req, res, next) => {
         };
 
         if (skipAlignment) {
-            newResultJson.layer3Status = currentAnalysis.resultJson?.layer3Status || 'ALIGNED';
+            // A skipped check carries the previous verdict forward but never invents one.
+            newResultJson.layer3Status = currentAnalysis.resultJson?.layer3Status || toLayer3Status(null);
         } else {
             try {
                 // Only run expensive AI check if standard quality passes or logic dictates
@@ -361,19 +363,16 @@ export const updateAnalysis = async (req, res, next) => {
                     await resolveProviderForUser(req.user.userId, currentAnalysis.metadata?.promptSettings)
                 );
 
-                if (alignmentResult.status === 'MISMATCH_DETECTED') {
-                    // Attach mismatches to the result so backend/frontend knows
+                newResultJson.layer3Status = toLayer3Status(alignmentResult);
+                if (newResultJson.layer3Status === 'MISMATCH') {
+                    // Attach mismatches so the client can show what deviated. Passed back with
+                    // the flag rather than rejecting the update, which suits the regenerate flow.
                     newResultJson.alignmentResult = alignmentResult;
-
-                    // If BLOCKER exists, we might reject the update entirely,
-                    // BUT for "Regeneration" flow, passing it back with error flags is often better UI.
-                    // We will attach it to metadata for frontend to display "Layer 3 Rejection"
-                    newResultJson.layer3Status = 'MISMATCH';
-                } else {
-                    newResultJson.layer3Status = 'ALIGNED';
                 }
             } catch (l3Err) {
                 logger.warn({ err: l3Err }, "Layer 3 Check Failed (Skipping Block)");
+                // Never inherit the previous version's verdict for a check that did not run.
+                newResultJson.layer3Status = toLayer3Status(null);
             }
         }
 

@@ -1,7 +1,9 @@
 import prisma from '../config/prisma.js';
 import { getRedisClient } from '../config/redis.js';
 import logger from '../config/logger.js';
-import { lintRequirements, checkAlignment } from './qualityService.js';
+import { lintRequirements, checkAlignment, recordQualityMetric } from './qualityService.js';
+import { toLayer3Status } from '../utils/layer3Status.js';
+import { getLatestVersion } from '../utils/promptRegistry.js';
 import { extractGraph } from './knowledge/graphService.js';
 import { validateAndAutoRepairDiagrams } from './pipeline/diagramRepair.js';
 import { runReflectionLoop } from './pipeline/reflectionStage.js';
@@ -15,6 +17,7 @@ import { ReviewerAgent } from '../agents/ReviewerAgent.js';
 import { CriticAgent } from '../agents/CriticAgent.js';
 import { resolveProviderKey, asAiSettings } from './providers/providerKeyService.js';
 import { selectNextFallbackModel } from './providers/modelFallbackService.js';
+import { DEFAULT_MODELS } from './providers/index.js';
 import { publishProgress } from './progressService.js';
 import { STAGE_COST_MS } from './pipelineBudget.js';
 import { triggerReconcileInBackground } from './opportunisticReconcile.js';
@@ -46,6 +49,25 @@ const summarizeGeneratedDiagrams = (draft) => {
         additional,
         total: fixedPresent.length + additional
     };
+};
+
+/** The concrete prompt version a run used: "latest" (the default) resolves to the registry head. */
+const resolvePromptVersion = (requested) => {
+    if (requested && requested !== 'latest') return requested;
+    try {
+        return getLatestVersion();
+    } catch {
+        return 'latest';
+    }
+};
+
+/** Provider default model id, or null when the env does not configure one (e.g. MOCK_AI). */
+const safeDefaultModel = (provider) => {
+    try {
+        return DEFAULT_MODELS[provider] || null;
+    } catch {
+        return null;
+    }
 };
 
 /** Invalidate the cached dashboard list so the UI reflects mutations immediately. */
@@ -696,15 +718,11 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
 
                 const alignmentResult = await checkAlignment(layer1Intent, layer2Context, resultJson, providerConfig);
                 resultJson.alignmentResult = alignmentResult;
-
-                if (alignmentResult.status === 'MISMATCH_DETECTED') {
-                    resultJson.layer3Status = 'MISMATCH';
-                } else {
-                    resultJson.layer3Status = 'ALIGNED';
-                }
+                resultJson.layer3Status = toLayer3Status(alignmentResult);
             }
         } catch (l3Error) {
             logger.warn({ msg: "Layer 3 Check (Initial) Failed", error: l3Error });
+            resultJson.layer3Status = toLayer3Status(null);
         }
     }
 
@@ -778,6 +796,19 @@ export const performAnalysis = async (userId, text, projectId = null, parentId =
     if (transactionResult) {
         await invalidateUserAnalysesCache(userId);
         emitProgress('completed', 'Analysis complete.', { terminal: true, status: 'COMPLETED', resultQuality: 'FULL' });
+
+        // Quality trend tracking (QualityMetricRecord). Awaited but never thrown from:
+        // recordQualityMetric logs and returns null on any failure.
+        await recordQualityMetric({
+            analysisId,
+            userId,
+            version: transactionResult.result.version,
+            promptVersion: resolvePromptVersion(settings.promptVersion),
+            modelProvider: providerConfig?.provider,
+            modelName: providerConfig?.modelName || (providerConfig?.provider ? safeDefaultModel(providerConfig.provider) : null),
+            audit: finalIndustryAudit,
+            ragFaithfulness: resultJson.benchmarks?.ragEvaluation?.faithfulness ?? null
+        });
 
         // Synchronize Knowledge Graph (Async)
         if (transactionResult.finalProjectId) {

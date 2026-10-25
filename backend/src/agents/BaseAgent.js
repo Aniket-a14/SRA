@@ -429,6 +429,12 @@ export class BaseAgent {
     }
 
     async countTokens(text) {
+        // MOCK_AI never talks to a provider. Without this the Gemini adapter fell back to the
+        // platform client and sent a real countTokens request from the "mocked" test suite,
+        // with whatever key backend/.env held. Same length/4 estimate the OpenAI adapter uses.
+        if (process.env.MOCK_AI === 'true') {
+            return Math.ceil((text?.length || 0) / 4);
+        }
         try {
             return await this.getAdapter().countTokens(text, this.modelName);
         } catch (error) {

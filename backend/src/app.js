@@ -82,8 +82,15 @@ app.use(cors({
     credentials: true,
 }));
 
+// QStash signs the exact request bytes, so the worker's signature check (routes/workerRoutes.js)
+// must hash those, not JSON.stringify(req.body): re-serializing can change whitespace and
+// escapes and fail verification of a genuine delivery. Kept only for worker routes.
+const isWorkerPath = (url = '') => /^\/(api\/)?worker(\/|\?|$)/.test(url);
 app.use(express.json({
-    limit: '15mb'
+    limit: '15mb',
+    verify: (req, _res, buf) => {
+        if (isWorkerPath(req.originalUrl || req.url)) req.rawBody = buf;
+    }
 }));
 
 app.use('/api/health', healthRoutes);

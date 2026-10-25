@@ -2,6 +2,7 @@
     "name": "sra-monorepo",
     "version": "4.2.2",
     "private": true,
+    "packageManager": "pnpm@9.15.9",
     "description": "SRA Monorepo - Frontend, Backend, and CLI",
     "scripts": {
         "dev": "pnpm --filter frontend dev",
